@@ -3,6 +3,7 @@
 
 #include "application.h"
 
+#include <arg-parse/arg-parse.h>
 #include <memory>
 
 namespace orion
@@ -13,7 +14,7 @@ namespace orion
 int main(int argc, const char* argv[])
 {
     auto application = orion::create_application();
-    application->on_create();
+    application->on_create(argparse::ArgParse(argc, argv));
     application->run();
     application->on_shutdown();
     return 0;

@@ -4,7 +4,10 @@
 
 class Sandbox : public orion::Application
 {
-    void on_user_create() override { spdlog::info("on_create()"); }
+    void on_user_create(const argparse::ArgParse& args) override
+    {
+        spdlog::info("on_create()");
+    }
     void on_user_shutdown() override { spdlog::info("on_shutdown()"); }
 };
 

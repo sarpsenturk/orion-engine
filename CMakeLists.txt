@@ -7,6 +7,7 @@ project(orion-engine
 
 # External dependencies
 add_subdirectory(external/spdlog)
+add_subdirectory(external/arg-parse)
 
 add_library(orion-engine STATIC
         # Public headers
@@ -22,7 +23,7 @@ add_library(orion-engine STATIC
 target_compile_features(orion-engine PUBLIC cxx_std_20)
 target_link_libraries(orion-engine
         PUBLIC
-        spdlog
+        spdlog arg-parse
         )
 target_include_directories(orion-engine PUBLIC include/)
 
