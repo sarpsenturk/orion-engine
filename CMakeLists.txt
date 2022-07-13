@@ -14,7 +14,6 @@ add_library(orion-engine STATIC
 
         # Source files
         src/core/application.cpp
-        src/core/entry_point.cpp
         )
 
 target_compile_features(orion-engine PUBLIC cxx_std_20)
@@ -23,3 +22,8 @@ target_include_directories(orion-engine PUBLIC include/)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 include(EnableGoogleTest)
 EnableGoogleTest(ORION_ENGINE)
+
+option(ORION_BUILD_SANDBOX "Build the Orion sandbox project" OFF)
+if (ORION_BUILD_SANDBOX)
+    add_subdirectory(Sandbox)
+endif ()
