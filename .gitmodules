@@ -1,3 +1,6 @@
 [submodule "cmake"]
 	path = cmake
 	url = https://github.com/sarpsenturk/cmake-common.git
+[submodule "external/spdlog"]
+	path = external/spdlog
+	url = https://github.com/gabime/spdlog.git
