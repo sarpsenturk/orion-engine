@@ -9,8 +9,12 @@ add_library(orion-engine STATIC
         # Public headers
         include/orion/orion.h
 
+        include/orion/core/application.h
+        include/orion/core/entry_point.h
+
         # Source files
-        src/orion.cpp
+        src/core/application.cpp
+        src/core/entry_point.cpp
         )
 
 target_compile_features(orion-engine PUBLIC cxx_std_20)
