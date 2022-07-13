@@ -1,0 +1,17 @@
+Checks:
+  -*,
+  bugprone-*,
+  cert-*,
+  cppcoreguidelines-*,
+  google-explicit-constructor,
+  google-global-names-in-headers,
+  google-readability-avoid-underscore-in-googletest-name,
+  google-readability-casting, google-runtime-int,
+  hicpp-*,
+  misc-*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  performance-*,
+  portability-*,
+  readability-*
+FormatStyle: file
