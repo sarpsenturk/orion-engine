@@ -1,0 +1,7 @@
+#ifndef ORION_ENGINE_WIN_INCLUDE_H
+#define ORION_ENGINE_WIN_INCLUDE_H
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
+#endif // ORION_ENGINE_WIN_INCLUDE_H

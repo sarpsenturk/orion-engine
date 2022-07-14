@@ -8,6 +8,16 @@ project(orion-engine
 # External dependencies
 add_subdirectory(external/spdlog)
 add_subdirectory(external/arg-parse)
+add_subdirectory(external/orion-math)
+
+if(WIN32)
+    set(ORION_PLATFORM_SOURCES
+            include/orion/platform/win32/win_include.h
+            include/orion/platform/win32/win_window.h
+
+            src/platform/win32/win_window.cpp
+            )
+endif()
 
 add_library(orion-engine STATIC
         # Public headers
@@ -16,14 +26,20 @@ add_library(orion-engine STATIC
         include/orion/core/application.h
         include/orion/core/entry_point.h
 
+        include/orion/window/window.h
+        include/orion/window/window_props.h
+
         # Source files
         src/core/application.cpp
+
+        # Platform specific sources
+        ${ORION_PLATFORM_SOURCES}
         )
 
 target_compile_features(orion-engine PUBLIC cxx_std_20)
 target_link_libraries(orion-engine
         PUBLIC
-        spdlog arg-parse
+        spdlog arg-parse orion-math
         )
 target_include_directories(orion-engine PUBLIC include/)
 

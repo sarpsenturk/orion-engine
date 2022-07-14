@@ -7,3 +7,6 @@
 [submodule "external/arg-parse"]
 	path = external/arg-parse
 	url = https://github.com/sarpsenturk/arg-parse.git
+[submodule "external/orion-math"]
+	path = external/orion-math
+	url = https://github.com/sarpsenturk/orion-math.git
