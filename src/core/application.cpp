@@ -9,12 +9,6 @@ namespace orion
 
     void Application::on_shutdown() { on_user_shutdown(); }
 
-    void Application::run()
-    {
-        while (!should_close())
-            on_update();
-    }
-
     void Application::on_update() { on_user_update(); }
 
     bool Application::should_close() const noexcept

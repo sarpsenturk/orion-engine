@@ -2,22 +2,17 @@
 #define ORION_ENGINE_ENTRY_POINT_H
 
 #include "application.h"
-
-#include <arg-parse/arg-parse.h>
-#include <memory>
+#include "engine.h"
 
 namespace orion
 {
-    std::unique_ptr<Application> create_application();
+    Application::Ptr create_application();
 }
 
 int main(int argc, const char* argv[])
 {
-    auto application = orion::create_application();
-    application->on_create(argparse::ArgParse(argc, argv));
-    application->run();
-    application->on_shutdown();
-    return 0;
+    auto engine = orion::Engine(orion::create_application(), argc, argv);
+    return engine.main();
 }
 
 #endif // ORION_ENGINE_ENTRY_POINT_H

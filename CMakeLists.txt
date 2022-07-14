@@ -23,6 +23,7 @@ add_library(orion-engine STATIC
         # Public headers
         include/orion/orion.h
 
+        include/orion/core/engine.h
         include/orion/core/application.h
         include/orion/core/entry_point.h
 
@@ -30,6 +31,7 @@ add_library(orion-engine STATIC
         include/orion/window/window_props.h
 
         # Source files
+        src/core/engine.cpp
         src/core/application.cpp
 
         # Platform specific sources
