@@ -11,6 +11,24 @@ namespace orion::detail
 
     WinWindow::~WinWindow() { destroy(); }
 
+    WinWindow::WinWindow(WinWindow&& other) noexcept
+        : hwnd_(other.hwnd_)
+        , should_close_(other.should_close_)
+        , props_(std::move(other.props_))
+    {
+        other.hwnd_ = nullptr;
+    }
+
+    WinWindow& WinWindow::operator=(WinWindow&& other) noexcept
+    {
+        hwnd_ = other.hwnd_;
+        should_close_ = other.should_close_;
+        props_ = std::move(other.props_);
+
+        other.hwnd_ = nullptr;
+        return *this;
+    }
+
     LRESULT WinWindow::main_window_procedure(HWND hwnd, UINT msg, WPARAM wparam,
                                              LPARAM lparam)
     {

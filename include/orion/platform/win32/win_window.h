@@ -13,8 +13,8 @@ namespace orion::detail
         virtual ~WinWindow();
         WinWindow(const WinWindow&) = delete;
         WinWindow& operator=(const WinWindow&) = delete;
-        WinWindow(WinWindow&&) = default;
-        WinWindow& operator=(WinWindow&&) = default;
+        WinWindow(WinWindow&& other) noexcept;
+        WinWindow& operator=(WinWindow&& other) noexcept;
 
         void initialize();
         void destroy();
@@ -24,7 +24,10 @@ namespace orion::detail
         {
             return should_close_;
         }
-        [[nodiscard]] bool is_valid() const noexcept { return hwnd_ != nullptr; }
+        [[nodiscard]] bool is_valid() const noexcept
+        {
+            return hwnd_ != nullptr;
+        }
 
     private:
         static LRESULT CALLBACK main_window_procedure(HWND hwnd, UINT msg,
@@ -35,7 +38,8 @@ namespace orion::detail
         {
             return "orionWin32BaseWindow";
         }
-        virtual LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+        virtual LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam,
+                                             LPARAM lparam);
         void invalidate_props();
 
     private:
