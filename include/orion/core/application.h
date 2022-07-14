@@ -11,11 +11,15 @@ namespace orion
         virtual ~Application() = default;
         void on_create(const argparse::ArgParse& args);
         void on_shutdown();
+        void on_update();
+        bool should_close() const noexcept;
         void run();
 
     private:
         virtual void on_user_create(const argparse::ArgParse& args) = 0;
         virtual void on_user_shutdown() = 0;
+        virtual void on_user_update() = 0;
+        virtual bool user_should_close() const noexcept = 0;
     };
 } // namespace orion
 

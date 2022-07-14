@@ -14,6 +14,20 @@ namespace orion::detail
     LRESULT WinWindow::main_window_procedure(HWND hwnd, UINT msg, WPARAM wparam,
                                              LPARAM lparam)
     {
+        WinWindow* this_ptr = nullptr;
+        if (msg == WM_NCCREATE) {
+            auto* create_params = reinterpret_cast<CREATESTRUCT*>(lparam);
+            this_ptr = static_cast<WinWindow*>(create_params->lpCreateParams);
+            SetWindowLongPtr(hwnd, GWLP_USERDATA,
+                             reinterpret_cast<LONG>(this_ptr));
+        } else {
+            this_ptr = reinterpret_cast<WinWindow*>(
+                GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        }
+
+        if (this_ptr) {
+            return this_ptr->window_proc(hwnd, msg, wparam, lparam);
+        }
         return DefWindowProc(hwnd, msg, wparam, lparam);
     }
 
@@ -78,5 +92,19 @@ namespace orion::detail
         props_.size = {window_rect.right - window_rect.left,
                        window_rect.bottom - window_rect.top};
         props_.position = {window_rect.left, window_rect.top};
+    }
+
+    LRESULT WinWindow::window_proc(HWND hwnd, UINT msg, WPARAM wparam,
+                                   LPARAM lparam)
+    {
+        switch (msg) {
+            case WM_CLOSE:
+                should_close_ = true;
+                break;
+            default:
+                break;
+        }
+
+        return DefWindowProc(hwnd, msg, wparam, lparam);
     }
 } // namespace orion::detail

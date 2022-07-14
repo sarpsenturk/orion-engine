@@ -35,6 +35,7 @@ namespace orion::detail
         {
             return "orionWin32BaseWindow";
         }
+        virtual LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
         void invalidate_props();
 
     private:

@@ -11,6 +11,14 @@ namespace orion
 
     void Application::run()
     {
-        // TODO: Run main application loop
+        while (!should_close())
+            on_update();
+    }
+
+    void Application::on_update() { on_user_update(); }
+
+    bool Application::should_close() const noexcept
+    {
+        return user_should_close();
     }
 } // namespace orion
