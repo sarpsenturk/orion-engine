@@ -8,7 +8,7 @@ namespace orion
     class Engine final
     {
     public:
-        explicit Engine(Application::Ptr application, int argc,
+        Engine(Application::Ptr application, int argc,
                         const char* argv[]);
         [[nodiscard]] int main();
 

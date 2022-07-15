@@ -34,7 +34,7 @@ namespace orion::detail
     {
         WinWindow* this_ptr = nullptr;
         if (msg == WM_NCCREATE) {
-            auto* create_params = reinterpret_cast<CREATESTRUCT*>(lparam);
+            auto create_params = reinterpret_cast<CREATESTRUCT*>(lparam);
             this_ptr = static_cast<WinWindow*>(create_params->lpCreateParams);
             SetWindowLongPtr(hwnd, GWLP_USERDATA,
                              reinterpret_cast<LONG>(this_ptr));
