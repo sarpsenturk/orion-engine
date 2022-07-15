@@ -1,3 +1,3 @@
 include(AddTestFromFile)
 
-AddTestFromFile(basic orion-engine)
+add_subdirectory(utility)

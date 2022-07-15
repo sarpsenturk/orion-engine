@@ -30,6 +30,8 @@ add_library(orion-engine STATIC
         include/orion/window/window.h
         include/orion/window/window_props.h
 
+        include/orion/utility/index_of.h
+
         # Source files
         src/core/engine.cpp
         src/core/application.cpp
