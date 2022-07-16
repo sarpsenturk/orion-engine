@@ -4,7 +4,7 @@
 #include "event_handler.h"
 #include "orion/utility/index_of.h"
 
-#include <unordered_map>
+#include <array>
 #include <vector>
 
 namespace orion
@@ -13,7 +13,6 @@ namespace orion
     class EventDispatcher
     {
     public:
-        using EventTypeIndex_t = std::size_t;
         using EventHandlerVec_t = std::vector<IEventHandler*>;
 
     public:
@@ -55,7 +54,7 @@ namespace orion
         event_handlers() const noexcept
         {
             constexpr auto index = detail::index_of_v<EventType, EventTypes...>;
-            return handlers_.at(index);
+            return handlers_[index];
         }
 
         template<typename EventType>
@@ -65,7 +64,7 @@ namespace orion
         }
 
     private:
-        std::unordered_map<EventTypeIndex_t, EventHandlerVec_t> handlers_;
+        std::array<EventHandlerVec_t, sizeof...(EventTypes)> handlers_;
     };
 } // namespace orion
 
