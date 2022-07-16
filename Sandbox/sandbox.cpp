@@ -18,6 +18,7 @@ public:
         window_.attach<orion::WindowCloseEvent>(this);
         window_.attach<orion::WindowMoveEvent>(this);
         window_.attach<orion::WindowResizeEvent>(this);
+        window_.attach<orion::WindowFocusEvent>(this);
     }
 
 private:
@@ -60,6 +61,12 @@ private:
     {
         spdlog::info("Window Resized: {}, width: {}, height: {}",
                      event.window_name, event.size.x(), event.size.y());
+    }
+
+    void process(const orion::WindowFocusEvent& event) override
+    {
+        spdlog::info("Window Focus Changed: {}, is_focused: {}",
+                     event.window_name, event.is_focused);
     }
 
     orion::Window window_;

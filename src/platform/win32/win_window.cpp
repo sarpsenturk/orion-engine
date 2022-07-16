@@ -68,8 +68,6 @@ namespace orion::detail
         }
         ShowWindow(hwnd_, SW_SHOW);
         invalidate_props();
-        spdlog::info("Initialize window '{}' width: {}, height: {}",
-                     props_.name, props_.size.x(), props_.size.y());
     }
 
     void WinWindow::destroy()
@@ -151,6 +149,12 @@ namespace orion::detail
                 invalidate_position(rect);
                 notify(WindowResizeEvent{props_.name, props_.size});
                 notify(WindowMoveEvent{props_.name, props_.position});
+                break;
+            }
+            case WM_ACTIVATE: {
+                bool is_focused =
+                    wparam == WA_ACTIVE || wparam == WA_CLICKACTIVE;
+                notify(WindowFocusEvent{props_.name, is_focused});
                 break;
             }
             default:

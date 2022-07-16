@@ -27,17 +27,24 @@ namespace orion
         Vector2_i size;
     };
 
+    struct WindowFocusEvent {
+        std::string_view window_name;
+        bool is_focused;
+    };
+
     class WindowEventHandler
         : public EventHandler<WindowCreateEvent>
         , public EventHandler<WindowCloseEvent>
         , public EventHandler<WindowMoveEvent>
         , public EventHandler<WindowResizeEvent>
+        , public EventHandler<WindowFocusEvent>
     {
     };
 
     class WindowEventDispatcher
         : public EventDispatcher<WindowCreateEvent, WindowCloseEvent,
-                                 WindowMoveEvent, WindowResizeEvent>
+                                 WindowMoveEvent, WindowResizeEvent,
+                                 WindowFocusEvent>
     {
     };
 } // namespace orion
