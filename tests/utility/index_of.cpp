@@ -4,10 +4,10 @@
 
 namespace
 {
-    TEST(IndexOf, BasicCheck)
+    TEST(Types, IndexOf)
     {
         constexpr auto index =
-            orion::detail::index_of_v<int, float, const int, double, int, char>;
+            orion::types::index_of_v<int, float, const int, double, int, char>;
         EXPECT_EQ(3, index);
     }
 } // namespace

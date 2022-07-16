@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-namespace orion::detail
+namespace orion::types
 {
     template<typename T, typename... Ts>
     struct index_of {

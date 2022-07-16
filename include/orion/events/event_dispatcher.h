@@ -18,14 +18,14 @@ namespace orion
 
     public:
         template<typename EventType>
-            requires detail::contains_v<EventType, EventTypes...>
+            requires types::contains_v<EventType, EventTypes...>
         void attach(EventHandler<EventType>* handler)
         {
             event_handlers<EventType>().push_back(handler);
         }
 
         template<typename EventType>
-            requires detail::contains_v<EventType, EventTypes...>
+            requires types::contains_v<EventType, EventTypes...>
         void detach(EventHandler<EventType>* handler)
         {
             auto& handlers = event_handlers<EventType>();
@@ -36,7 +36,7 @@ namespace orion
         }
 
         template<typename EventType>
-            requires detail::contains_v<EventType, EventTypes...>
+            requires types::contains_v<EventType, EventTypes...>
         void notify(const EventType& event) const
         {
             for (auto handler : event_handlers<EventType>()) {
@@ -47,25 +47,25 @@ namespace orion
         }
 
         template<typename EventType>
-            requires detail::contains_v<EventType, EventTypes...> [
+            requires types::contains_v<EventType, EventTypes...> [
                 [nodiscard]] constexpr EventHandlerVec_t&
             event_handlers() noexcept
         {
-            constexpr auto index = detail::index_of_v<EventType, EventTypes...>;
+            constexpr auto index = types::index_of_v<EventType, EventTypes...>;
             return handlers_[index];
         }
 
         template<typename EventType>
-            requires detail::contains_v<EventType, EventTypes...> [
+            requires types::contains_v<EventType, EventTypes...> [
                 [nodiscard]] constexpr const EventHandlerVec_t&
             event_handlers() const noexcept
         {
-            constexpr auto index = detail::index_of_v<EventType, EventTypes...>;
+            constexpr auto index = types::index_of_v<EventType, EventTypes...>;
             return handlers_[index];
         }
 
         template<typename EventType>
-            requires detail::contains_v<EventType, EventTypes...> [
+            requires types::contains_v<EventType, EventTypes...> [
                 [nodiscard]] bool
             empty() const noexcept
         {
