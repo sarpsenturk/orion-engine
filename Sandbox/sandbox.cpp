@@ -9,8 +9,10 @@ class Sandbox
     , orion::WindowEventHandler
 {
 public:
+    static constexpr orion::Vector2_i kWindowSize{720, 480};
+
     Sandbox()
-        : window_({"Sandbox"})
+        : window_({"Sandbox", kWindowSize})
     {
         window_.attach<orion::WindowCreateEvent>(this);
         window_.attach<orion::WindowCloseEvent>(this);

@@ -8,3 +8,6 @@
 
 # CMake files
 cmake-build-*/
+
+# Auto generated files
+include/orion/config.h

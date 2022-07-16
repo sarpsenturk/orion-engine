@@ -19,6 +19,8 @@ if(WIN32)
             )
 endif()
 
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/orion.config.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/include/orion/config.h")
+
 add_library(orion-engine STATIC
         # Public headers
         include/orion/orion.h
@@ -50,6 +52,38 @@ target_link_libraries(orion-engine
         spdlog arg-parse orion-math
         )
 target_include_directories(orion-engine PUBLIC include/)
+
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /orion/orion.h
+
+        include/orion/core/engine.h
+        include/orion/core/application.h
+        include/orion/core/entry_point.h
+
+        include/orion/window/window.h
+        include/orion/window/window_props.h
+
+        include/orion/events/event_handler.h
+        include/orion/events/event_dispatcher.h
+        include/orion/events/window_event.h
+
+        include/orion/utility/index_of.h
+
+        # Source files
+        src/core/engine.cpp
+        src/core/application.cpp
+
+        # Platform specific sources
+        ${ORION_PLATFORM_SOURCES}
+        )
+
+target_compile_features(orion-engine PUBLIC cxx_std_20)
+target_link_libraries(orion-engine
+        PUBLIC
+        spdlog arg-parse orion-math
+        )
+target_include_directories(orion-engine PUBLIC include/)
+
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 include(EnableGoogleTest)
