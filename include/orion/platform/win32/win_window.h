@@ -1,12 +1,13 @@
 #ifndef ORION_ENGINE_WIN_WINDOW_H
 #define ORION_ENGINE_WIN_WINDOW_H
 
+#include "orion/events/window_event.h"
 #include "orion/window/window_props.h"
 #include "win_include.h"
 
 namespace orion::detail
 {
-    class WinWindow
+    class WinWindow : public WindowEventDispatcher
     {
     public:
         explicit WinWindow(WindowProps props);
@@ -40,6 +41,10 @@ namespace orion::detail
         }
         virtual LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam,
                                              LPARAM lparam);
+        RECT get_window_rect() const;
+        void invalidate_name();
+        void invalidate_position(const RECT& rect);
+        void invalidate_size(const RECT& rect);
         void invalidate_props();
 
     private:

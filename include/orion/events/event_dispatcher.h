@@ -18,13 +18,13 @@ namespace orion
 
     public:
         template<typename EventType>
-        void attach(IEventHandler* handler)
+        void attach(EventHandler<EventType>* handler)
         {
             event_handlers<EventType>().push_back(handler);
         }
 
         template<typename EventType>
-        void detach(IEventHandler* handler)
+        void detach(EventHandler<EventType>* handler)
         {
             auto& handlers = event_handlers<EventType>();
             if (auto it = std::ranges::find(handlers, handler);

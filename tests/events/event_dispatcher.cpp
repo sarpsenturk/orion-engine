@@ -11,7 +11,7 @@ namespace
     class IntHandler final : public orion::EventHandler<int>
     {
     public:
-        void process(const int event) override { event_value = event; }
+        void process(const int& event) override { event_value = event; }
         int value() const noexcept { return event_value; }
 
     private:

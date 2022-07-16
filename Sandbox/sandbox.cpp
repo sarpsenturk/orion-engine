@@ -1,14 +1,21 @@
+#include "orion/events/window_event.h"
 #include "orion/orion.h"
 #include "orion/window/window.h"
 
 #include <spdlog/spdlog.h>
 
-class Sandbox : public orion::Application
+class Sandbox
+    : public orion::Application
+    , orion::WindowEventHandler
 {
 public:
     Sandbox()
         : window_({"Sandbox"})
     {
+        window_.attach<orion::WindowCreateEvent>(this);
+        window_.attach<orion::WindowCloseEvent>(this);
+        window_.attach<orion::WindowMoveEvent>(this);
+        window_.attach<orion::WindowResizeEvent>(this);
     }
 
 private:
@@ -29,6 +36,28 @@ private:
     bool user_should_close() const noexcept override
     {
         return window_.should_close();
+    }
+
+    void process(const orion::WindowCreateEvent& event) override
+    {
+        spdlog::info("Window Created: {}", event.window_name);
+    }
+
+    void process(const orion::WindowCloseEvent& event) override
+    {
+        spdlog::info("Window Closed: {}", event.window_name);
+    }
+
+    void process(const orion::WindowMoveEvent& event) override
+    {
+        spdlog::info("Window Moved: {}, x: {}, y: {}", event.window_name,
+                     event.position.x(), event.position.y());
+    }
+
+    void process(const orion::WindowResizeEvent& event) override
+    {
+        spdlog::info("Window Resized: {}, width: {}, height: {}",
+                     event.window_name, event.size.x(), event.size.y());
     }
 
     orion::Window window_;

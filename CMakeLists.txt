@@ -32,6 +32,7 @@ add_library(orion-engine STATIC
 
         include/orion/events/event_handler.h
         include/orion/events/event_dispatcher.h
+        include/orion/events/window_event.h
 
         include/orion/utility/index_of.h
 

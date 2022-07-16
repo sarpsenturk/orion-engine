@@ -99,26 +99,57 @@ namespace orion::detail
         RegisterClass(&wc);
     }
 
-    void WinWindow::invalidate_props()
+    RECT WinWindow::get_window_rect() const
+    {
+        RECT window_rect{};
+        GetWindowRect(hwnd_, &window_rect);
+        return window_rect;
+    }
+
+    void WinWindow::invalidate_name()
     {
         auto window_text_length = GetWindowTextLength(hwnd_) + 1;
         props_.name.reserve(window_text_length);
         GetWindowText(hwnd_, props_.name.data(), window_text_length);
+    }
 
-        RECT window_rect{};
-        GetWindowRect(hwnd_, &window_rect);
-        props_.size = {window_rect.right - window_rect.left,
-                       window_rect.bottom - window_rect.top};
-        props_.position = {window_rect.left, window_rect.top};
+    void WinWindow::invalidate_position(const RECT& rect)
+    {
+        props_.position = {rect.left, rect.top};
+    }
+
+    void WinWindow::invalidate_size(const RECT& rect)
+    {
+        props_.size = {rect.right - rect.left, rect.bottom - rect.top};
+    }
+
+    void WinWindow::invalidate_props()
+    {
+        invalidate_name();
+        auto window_rect = get_window_rect();
+        invalidate_size(window_rect);
+        invalidate_position(window_rect);
     }
 
     LRESULT WinWindow::window_proc(HWND hwnd, UINT msg, WPARAM wparam,
                                    LPARAM lparam)
     {
         switch (msg) {
+            case WM_CREATE:
+                notify(WindowCreateEvent{props_.name});
+                break;
             case WM_CLOSE:
                 should_close_ = true;
+                notify(WindowCloseEvent{props_.name});
                 break;
+            case WM_EXITSIZEMOVE: {
+                auto rect = get_window_rect();
+                invalidate_size(rect);
+                invalidate_position(rect);
+                notify(WindowResizeEvent{props_.name, props_.size});
+                notify(WindowMoveEvent{props_.name, props_.position});
+                break;
+            }
             default:
                 break;
         }

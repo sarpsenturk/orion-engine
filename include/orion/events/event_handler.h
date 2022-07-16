@@ -14,13 +14,8 @@ namespace orion
     {
     public:
         virtual ~EventHandler() = default;
-        using EventTypeNoRef = std::remove_reference_t<EventType>;
-        using EventTypeLvalueRef = std::add_lvalue_reference_t<EventType>;
-        static constexpr bool kIsTrivialEvent =
-            std::is_trivial_v<EventTypeNoRef>;
-        using EventParam_t = std::conditional_t<kIsTrivialEvent, EventTypeNoRef,
-                                                EventTypeLvalueRef>;
-        virtual void process(const EventParam_t event) = 0;
+        // TODO: Add passing trivial types by value back
+        virtual void process(const EventType& event) = 0;
     };
 } // namespace orion
 
