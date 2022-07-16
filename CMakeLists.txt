@@ -37,6 +37,7 @@ add_library(orion-engine STATIC
         include/orion/events/window_event.h
 
         include/orion/utility/index_of.h
+        include/orion/utility/contains.h
 
         # Source files
         src/core/engine.cpp
