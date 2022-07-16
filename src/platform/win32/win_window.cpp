@@ -138,24 +138,24 @@ namespace orion::detail
         switch (msg) {
             case WM_CREATE:
                 notify(WindowCreateEvent{props_.name});
-                break;
+                return 0;
             case WM_CLOSE:
                 should_close_ = true;
                 notify(WindowCloseEvent{props_.name});
-                break;
+                return 0;
             case WM_EXITSIZEMOVE: {
                 auto rect = get_window_rect();
                 invalidate_size(rect);
                 invalidate_position(rect);
                 notify(WindowResizeEvent{props_.name, props_.size});
                 notify(WindowMoveEvent{props_.name, props_.position});
-                break;
+                return 0;
             }
             case WM_ACTIVATE: {
                 bool is_focused =
                     wparam == WA_ACTIVE || wparam == WA_CLICKACTIVE;
                 notify(WindowFocusEvent{props_.name, is_focused});
-                break;
+                return 0;
             }
             default:
                 break;
