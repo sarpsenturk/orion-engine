@@ -1,5 +1,6 @@
 #include "orion/platform/win32/win_window.h"
 
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace orion::detail
@@ -57,16 +58,18 @@ namespace orion::detail
             props_.position == WindowProps::kDefaultPosition;
         hwnd_ = CreateWindowEx(
             0, win32_class_name(), props_.name.c_str(), WS_OVERLAPPEDWINDOW,
-            is_size_default ? CW_USEDEFAULT : props_.size.x(),
-            is_size_default ? CW_USEDEFAULT : props_.size.y(),
             is_position_default ? CW_USEDEFAULT : props_.position.x(),
-            is_position_default ? CW_USEDEFAULT : props_.position.y(), nullptr,
-            nullptr, GetModuleHandle(nullptr), this);
+            is_position_default ? CW_USEDEFAULT : props_.position.y(),
+            is_size_default ? CW_USEDEFAULT : props_.size.x(),
+            is_size_default ? CW_USEDEFAULT : props_.size.y(), nullptr, nullptr,
+            GetModuleHandle(nullptr), this);
         if (!hwnd_) {
             throw std::runtime_error("Failed to create window");
         }
         ShowWindow(hwnd_, SW_SHOW);
         invalidate_props();
+        spdlog::info("Initialize window '{}' width: {}, height: {}",
+                     props_.name, props_.size.x(), props_.size.y());
     }
 
     void WinWindow::destroy()
