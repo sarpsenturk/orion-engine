@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <windowsx.h> // GET_X_LPARAM & GET_Y_LPARAM
 
 namespace orion::detail
 {
@@ -137,26 +138,34 @@ namespace orion::detail
     {
         switch (msg) {
             case WM_CREATE:
-                notify(WindowCreateEvent{props_.name});
+                window_events_.notify(WindowCreateEvent{props_.name});
                 return 0;
             case WM_CLOSE:
                 should_close_ = true;
-                notify(WindowCloseEvent{props_.name});
+                window_events_.notify(WindowCloseEvent{props_.name});
                 return 0;
             case WM_EXITSIZEMOVE: {
                 auto rect = get_window_rect();
                 invalidate_size(rect);
                 invalidate_position(rect);
-                notify(WindowResizeEvent{props_.name, props_.size});
-                notify(WindowMoveEvent{props_.name, props_.position});
+                window_events_.notify(
+                    WindowResizeEvent{props_.name, props_.size});
+                window_events_.notify(
+                    WindowMoveEvent{props_.name, props_.position});
                 return 0;
             }
             case WM_ACTIVATE: {
                 bool is_focused =
                     wparam == WA_ACTIVE || wparam == WA_CLICKACTIVE;
-                notify(WindowFocusEvent{props_.name, is_focused});
+                window_events_.notify(
+                    WindowFocusEvent{props_.name, is_focused});
                 return 0;
             }
+            case WM_MOUSEMOVE:
+                mouse_.set_position(
+                    {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)});
+                mouse_events_.notify(MouseMoveEvent{mouse_.position()});
+                return 0;
             default:
                 break;
         }

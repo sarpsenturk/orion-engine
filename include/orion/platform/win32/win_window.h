@@ -1,13 +1,15 @@
 #ifndef ORION_ENGINE_WIN_WINDOW_H
 #define ORION_ENGINE_WIN_WINDOW_H
 
+#include "orion/events/mouse_event.h"
 #include "orion/events/window_event.h"
+#include "orion/input/mouse.h"
 #include "orion/window/window_props.h"
 #include "win_include.h"
 
 namespace orion::detail
 {
-    class WinWindow : public WindowEventDispatcher
+    class WinWindow
     {
     public:
         explicit WinWindow(WindowProps props);
@@ -29,6 +31,17 @@ namespace orion::detail
         {
             return hwnd_ != nullptr;
         }
+        [[nodiscard]] auto& window_events() const noexcept
+        {
+            return window_events_;
+        }
+        [[nodiscard]] auto& window_events() noexcept { return window_events_; }
+        [[nodiscard]] auto& mouse_events() const noexcept
+        {
+            return mouse_events_;
+        }
+        [[nodiscard]] auto& mouse_events() noexcept { return mouse_events_; }
+        [[nodiscard]] auto& mouse() const noexcept { return mouse_; }
 
     private:
         static LRESULT CALLBACK main_window_procedure(HWND hwnd, UINT msg,
@@ -51,6 +64,9 @@ namespace orion::detail
         HWND hwnd_ = nullptr;
         bool should_close_ = false;
         WindowProps props_;
+        WindowEventDispatcher window_events_;
+        MouseEventDispatcher mouse_events_;
+        Mouse mouse_;
     };
 } // namespace orion::detail
 

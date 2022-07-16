@@ -7,6 +7,7 @@
 class Sandbox
     : public orion::Application
     , orion::WindowEventHandler
+    , orion::MouseEventHandler
 {
 public:
     static constexpr orion::Vector2_i kWindowSize{720, 480};
@@ -14,11 +15,12 @@ public:
     Sandbox()
         : window_({"Sandbox", kWindowSize})
     {
-        window_.attach<orion::WindowCreateEvent>(this);
-        window_.attach<orion::WindowCloseEvent>(this);
-        window_.attach<orion::WindowMoveEvent>(this);
-        window_.attach<orion::WindowResizeEvent>(this);
-        window_.attach<orion::WindowFocusEvent>(this);
+        window_.window_events().attach<orion::WindowCreateEvent>(this);
+        window_.window_events().attach<orion::WindowCloseEvent>(this);
+        window_.window_events().attach<orion::WindowMoveEvent>(this);
+        window_.window_events().attach<orion::WindowResizeEvent>(this);
+        window_.window_events().attach<orion::WindowFocusEvent>(this);
+        window_.mouse_events().attach<orion::MouseMoveEvent>(this);
     }
 
 private:
@@ -67,6 +69,12 @@ private:
     {
         spdlog::info("Window Focus Changed: {}, is_focused: {}",
                      event.window_name, event.is_focused);
+    }
+
+    void process(const orion::MouseMoveEvent& event) override
+    {
+        spdlog::info("Mouse Moved: x: {}, y: {}", event.position.x(),
+                     event.position.y());
     }
 
     orion::Window window_;

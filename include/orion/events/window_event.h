@@ -41,7 +41,7 @@ namespace orion
     {
     };
 
-    class WindowEventDispatcher
+    class WindowEventDispatcher final
         : public EventDispatcher<WindowCreateEvent, WindowCloseEvent,
                                  WindowMoveEvent, WindowResizeEvent,
                                  WindowFocusEvent>

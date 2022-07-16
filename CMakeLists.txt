@@ -35,6 +35,9 @@ add_library(orion-engine STATIC
         include/orion/events/event_handler.h
         include/orion/events/event_dispatcher.h
         include/orion/events/window_event.h
+        include/orion/events/mouse_event.h
+
+        include/orion/input/mouse.h
 
         include/orion/utility/index_of.h
         include/orion/utility/contains.h

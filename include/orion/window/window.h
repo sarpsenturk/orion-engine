@@ -1,6 +1,7 @@
 #ifndef ORION_ENGINE_WINDOW_H
 #define ORION_ENGINE_WINDOW_H
 
+#include "orion/input/mouse.h"
 #include "window_props.h"
 
 #include <concepts>
@@ -28,6 +29,9 @@ namespace orion::detail
             {
                 window.update()
             };
+            {
+                const_window.mouse()
+                } -> std::convertible_to<const Mouse&>;
         };
 
     template<ValidWindow WindowType>
