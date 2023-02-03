@@ -3,9 +3,6 @@ target_sources(
         orion-core PUBLIC
         FILE_SET public_headers
         FILES
-        platform.h
-        window.h
+        win32_headers.h
+        win32_window.h
 )
-
-# Platform specific implementation headers
-add_subdirectory(platform)

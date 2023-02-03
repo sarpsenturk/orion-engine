@@ -14,7 +14,12 @@ add_library(orion::core ALIAS orion-core)
 target_include_directories(orion-core PUBLIC include/)
 
 # Link with dependencies
-target_link_libraries(orion-core PUBLIC spdlog::spdlog orion-base orion::utils)
+target_link_libraries(
+        orion-core PUBLIC
+        spdlog::spdlog
+        orion-base
+        orion::utils
+        orion::math)
 
 # Set compile time flags for spdlog
 target_compile_definitions(

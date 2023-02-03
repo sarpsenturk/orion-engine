@@ -39,6 +39,7 @@ endif ()
 
 # Add sources for submodules
 add_subdirectory(modules/utils)
+add_subdirectory(modules/math)
 add_subdirectory(modules/core)
 add_subdirectory(modules/engine)
 
