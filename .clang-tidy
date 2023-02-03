@@ -1,0 +1,25 @@
+Checks: "-*,
+         bugprone-*,
+         cert-*,
+         concurrency-*,
+         cppcoreguidelines-*,
+         hicpp-*,
+         misc-*,
+         modernize-*,
+         performance-*,
+         portability-*,
+         readability-*,
+         -cppcoreguidelines-non-private-member-variables-in-classes,
+         -modernize-use-trailing-return-type,
+         -misc-non-private-member-variables-in-classes,
+         -readability-avoid-const-params-in-decls,
+         -readability-else-after-return,
+         -readability-implicit-bool-conversion,
+         -readability-static-accessed-through-instance,
+         -readability-uppercase-literal-suffix,
+         -cert-dcl16-c,
+         -hicpp-uppercase-literal-suffix,
+"
+CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: 2

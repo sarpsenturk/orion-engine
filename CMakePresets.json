@@ -1,0 +1,180 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base-config",
+      "description": "Base configuration to be inherited from",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}"
+    },
+    {
+      "name": "debug-config",
+      "description": "Configuration for debug builds",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-config",
+      "description": "Configuration for release builds with debug info",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "dist-config",
+      "description": "Configuration for distribution builds",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-base",
+      "description": "Base configuration for Windows platforms",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-base",
+      "description": "Base configuration Linux platform",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "msvc-base",
+      "description": "Base configuration to use MSVC",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_CXX_FLAGS": "/W4 /WX /external:anglebrackets /external:W0 /EHs"
+      }
+    },
+    {
+      "name": "clang-base",
+      "description": "Base configuration to use clang",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Werror -Wconversion"
+      }
+    },
+    {
+      "name": "gcc-base",
+      "description": "Base configuration to use gcc",
+      "hidden": true,
+      "inherits": [
+        "base-config"
+      ],
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "windows-msvc-debug",
+      "description": "Windows platform with MSVC, debug build",
+      "inherits": [
+        "windows-base",
+        "msvc-base",
+        "debug-config"
+      ]
+    },
+    {
+      "name": "windows-msvc-release",
+      "description": "Windows platform with MSVC, release build",
+      "inherits": [
+        "windows-base",
+        "msvc-base",
+        "release-config"
+      ]
+    },
+    {
+      "name": "windows-msvc-dist",
+      "description": "Windows platform with MSVC, distribution build",
+      "inherits": [
+        "windows-base",
+        "msvc-base",
+        "dist-config"
+      ]
+    },
+    {
+      "name": "windows-clang-debug",
+      "description": "Windows platform with clang++, debug build",
+      "inherits": [
+        "windows-base",
+        "clang-base",
+        "debug-config"
+      ]
+    },
+    {
+      "name": "linux-gcc-debug",
+      "description": "Linux platform with gcc, debug build",
+      "inherits": [
+        "linux-base",
+        "gcc-base",
+        "debug-config"
+      ]
+    },
+    {
+      "name": "linux-gcc-release",
+      "description": "Linux platform with gcc, release build",
+      "inherits": [
+        "linux-base",
+        "gcc-base",
+        "release-config"
+      ]
+    },
+    {
+      "name": "linux-gcc-dist",
+      "description": "Linux platform with gcc, distribution build",
+      "inherits": [
+        "linux-base",
+        "gcc-base",
+        "dist-config"
+      ]
+    }
+  ]
+}
