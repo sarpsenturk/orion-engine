@@ -1,0 +1,8 @@
+{
+  "name": "orion-engine",
+  "version-semver": "0.1.0",
+  "description": "Game engine written in C++ 20",
+  "dependencies": [
+    "spdlog"
+  ]
+}

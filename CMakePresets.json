@@ -55,6 +55,9 @@
       "inherits": [
         "base-config"
       ],
+      "cacheVariables": {
+        "ORION_PLATFORM_WINDOWS": true
+      },
       "architecture": {
         "value": "x64",
         "strategy": "external"
@@ -72,6 +75,9 @@
       "inherits": [
         "base-config"
       ],
+      "cacheVariables": {
+        "ORION_PLATFORM_LINUX": true
+      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",

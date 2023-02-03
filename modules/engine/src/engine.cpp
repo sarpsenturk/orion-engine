@@ -1,10 +1,16 @@
 #include "orion-engine/engine.h"
 
+#include "orion-core/config.h"
+
+#include <spdlog/spdlog.h> // SPDLOG_*
+
 namespace orion
 {
     Engine::Engine(std::unique_ptr<Application> application)
         : application_(std::move(application))
     {
+        spdlog::set_pattern("[%^%l%$] %v");
+        SPDLOG_INFO("Orion Engine {}", current_platform);
     }
 
     void Engine::main_loop()

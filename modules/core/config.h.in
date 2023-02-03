@@ -1,0 +1,18 @@
+#pragma once
+
+#include "orion-core/platform.h"
+
+#cmakedefine01 ORION_PLATFORM_WINDOWS
+#cmakedefine01 ORION_PLATFORM_LINUX
+
+namespace orion
+{
+#if ORION_PLATFORM_WINDOWS
+    inline constexpr auto current_platform = Platform::Windows;
+#elif ORION_PLATFORM_LINUX
+    inline constexpr auto current_platform = Platform::Linux;
+#else
+    inline constexpr auto current_platform = Platform::Unknown;
+    #warning "You're on unknown/unsupported platform for orion"
+#endif
+} // namespace orion

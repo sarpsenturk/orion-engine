@@ -30,6 +30,7 @@ target_precompile_headers(orion-pch INTERFACE
 add_library(orion-base INTERFACE "")
 target_compile_features(orion-base INTERFACE cxx_std_20)
 target_link_libraries(orion-base INTERFACE orion-pch)
+target_include_directories(orion-base INTERFACE ${CMAKE_BINARY_DIR}/include)
 
 # Enable/disable testing
 if (ORION_ENGINE_TEST)
@@ -37,6 +38,8 @@ if (ORION_ENGINE_TEST)
 endif ()
 
 # Add sources for submodules
+add_subdirectory(modules/utils)
+add_subdirectory(modules/core)
 add_subdirectory(modules/engine)
 
 # Enable/disable sandbox

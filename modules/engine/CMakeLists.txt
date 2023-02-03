@@ -9,7 +9,7 @@ add_library(orion::engine ALIAS orion-engine)
 target_include_directories(orion-engine PUBLIC include/)
 
 # Link with dependencies
-target_link_libraries(orion-engine PUBLIC orion-base)
+target_link_libraries(orion-engine PUBLIC orion-base orion-core)
 
 # Create file set for public headers
 target_sources(orion-engine PUBLIC FILE_SET public_headers TYPE HEADERS)
