@@ -1,12 +1,25 @@
 #pragma once
 
-#include <iterator> // std::next
-#include <span>     // std::span
+#include "orion-core/exception.h"
 
-#define ORION_MAIN(args)                                          \
-    int user_main(std::span<const char* const> args);             \
-    int main(int argc, const char* argv[])                        \
-    {                                                             \
-        return user_main(std::span{argv, std::next(argv, argc)}); \
-    }                                                             \
+#include <cstdio>       // std::puts
+#include <fmt/format.h> // fmt::format
+#include <iterator>     // std::next
+#include <span>         // std::span
+
+#define ORION_MAIN(args)                                                 \
+    int user_main(std::span<const char* const> args);                    \
+    int main(int argc, const char* argv[])                               \
+    {                                                                    \
+        try {                                                            \
+            return user_main(std::span{argv, std::next(argv, argc)});    \
+        } catch (const orion::OrionException& e) {                       \
+            const auto what = fmt::format("{}: {}", e.type(), e.type()); \
+            std::fputs(what.c_str(), stderr);                            \
+            return e.return_code();                                      \
+        } catch (const std::exception& e) {                              \
+            std::fputs(e.what(), stderr);                                \
+            return -1;                                                   \
+        }                                                                \
+    }                                                                    \
     int user_main([[maybe_unused]] std::span<const char* const> args)

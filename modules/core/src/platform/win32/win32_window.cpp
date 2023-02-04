@@ -24,7 +24,9 @@ namespace orion
                     .hInstance = hinstance,
                     .lpszClassName = class_name,
                 };
-                RegisterClass(&wndclass); // TODO: Check return
+                if (!RegisterClass(&wndclass)) {
+                    throw Win32Error();
+                }
                 registered = true;
             }
         }
@@ -65,7 +67,9 @@ namespace orion
                 this_ptr                         // Application data, ptr to Window
             );
 
-            // TODO: Check if hwnd is nullptr
+            if (!hwnd) {
+                throw Win32Error();
+            }
 
             SPDLOG_TRACE("Created HWND ({})", fmt::ptr(hwnd));
 
@@ -118,6 +122,7 @@ namespace orion
                 return {LOWORD(lparam), HIWORD(lparam)};
             };
 
+            // Windows message handler
             switch (msg) {
                 case WM_CLOSE:
                     window->on_close().invoke({});

@@ -4,6 +4,7 @@ target_sources(
         FILE_SET public_headers
         FILES
         event.h
+        exception.h
         platform.h
         window.h
 )
