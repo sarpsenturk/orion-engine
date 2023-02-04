@@ -13,6 +13,12 @@ namespace orion
         [[nodiscard]] auto hwnd() const noexcept { return hwnd_; }
         [[nodiscard]] auto hinstance() const noexcept { return hinstance_; }
 
+        bool resizing = false;
+        bool moving = false;
+
+        WindowSize cached_size{};
+        WindowPosition cached_position{};
+
     private:
         HWND hwnd_;
         HINSTANCE hinstance_;

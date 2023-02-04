@@ -42,7 +42,7 @@ namespace orion
             const auto window_style = WS_OVERLAPPEDWINDOW;
 
             // Adjust the window client area to match user specified size
-            const auto size = [window_style, window_size = window_create_info.size]() {
+            const auto size = [window_size = window_create_info.size]() {
                 RECT wnd_rect{0, 0, static_cast<LONG>(window_size.x()), static_cast<LONG>(window_size.y())};
                 AdjustWindowRect(&wnd_rect, window_style, FALSE);
                 return math::Vector2_t<int>{(wnd_rect.right - wnd_rect.left), (wnd_rect.bottom - wnd_rect.top)};
@@ -104,8 +104,45 @@ namespace orion
                 return DefWindowProc(hwnd, msg, wparam, lparam);
             }
 
-            [[maybe_unused]] auto* window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-            // TODO: Implement message handling with events
+            // Retrieve window ptr on subsequent calls
+            auto* window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+            if (!window) {
+                return DefWindowProc(hwnd, msg, wparam, lparam);
+            }
+
+            // Helper lambdas
+            auto window_size = [](LPARAM lparam) -> WindowSize {
+                return {LOWORD(lparam), HIWORD(lparam)};
+            };
+            auto window_position = [](LPARAM lparam) -> WindowPosition {
+                return {LOWORD(lparam), HIWORD(lparam)};
+            };
+
+            switch (msg) {
+                case WM_CLOSE:
+                    window->on_close().invoke({});
+                    return 0;
+                case WM_DESTROY:
+                    PostQuitMessage(0);
+                    return 0;
+                case WM_SIZE:
+                    window->on_resize().invoke({window_size(lparam)});
+                    return 0;
+                case WM_MOVE:
+                    window->on_move().invoke({window_position(lparam)});
+                    return 0;
+                case WM_EXITSIZEMOVE:
+                    if (window->resizing()) {
+                        window->on_resize_end().invoke({window->size()});
+                    }
+                    if (window->moving()) {
+                        window->on_move_end().invoke({window->position()});
+                    }
+                    return 0;
+                default:
+                    break;
+            }
+
             return DefWindowProc(hwnd, msg, wparam, lparam);
         }
     } // namespace platform

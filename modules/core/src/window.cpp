@@ -8,6 +8,25 @@ namespace orion
         , position_(window_create_info.position)
         , size_(window_create_info.size)
     {
+        // Set up window events handlers
+        // Events are invoked from platform implementations
+        on_move_ += [this](const events::WindowMove& move) {
+            position_ = move.new_position;
+            moving_ = true;
+        };
+        on_move_end_ += [this](const events::WindowMoveEnd&) {
+            moving_ = false;
+        };
+        on_resize_ += [this](const events::WindowResize& resize) {
+            size_ = resize.new_size;
+            resizing_ = true;
+        };
+        on_resize_end_ += [this](const events::WindowResizeEnd&) {
+            resizing_ = false;
+        };
+        on_close_ += [this](const events::WindowClose&) {
+            should_close_ = true;
+        };
     }
 
     void Window::poll_events()
