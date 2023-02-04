@@ -14,7 +14,7 @@
         try {                                                            \
             return user_main(std::span{argv, std::next(argv, argc)});    \
         } catch (const orion::OrionException& e) {                       \
-            const auto what = fmt::format("{}: {}", e.type(), e.type()); \
+            const auto what = fmt::format("[{}]: {}", e.type(), e.what()); \
             std::fputs(what.c_str(), stderr);                            \
             return e.return_code();                                      \
         } catch (const std::exception& e) {                              \

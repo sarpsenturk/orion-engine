@@ -32,7 +32,7 @@ target_compile_definitions(
 # Create file set for public headers
 target_sources(orion-core PUBLIC FILE_SET public_headers TYPE HEADERS)
 
-# Add soruces
+# Add sources
 add_subdirectory(include/orion-core)
 add_subdirectory(src)
 

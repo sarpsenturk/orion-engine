@@ -20,7 +20,7 @@ namespace orion
             nullptr,
             last_error,
             0,
-            buffer,
+            (LPSTR)&buffer,
             0,
             nullptr);
         // TODO: Check if result is 0 recursively?
