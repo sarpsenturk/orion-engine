@@ -30,6 +30,7 @@ namespace orion
     class Module
     {
     public:
+        Module();
         explicit Module(std::string filename);
 
         [[nodiscard]] auto& filename() const noexcept { return filename_; }

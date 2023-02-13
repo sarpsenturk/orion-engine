@@ -5,8 +5,10 @@
 namespace orion
 {
     Renderer::Renderer(const char* backend_module)
-        : backend_module_(backend_module)
     {
+        // Load the backend module
+        backend_module_ = Module(backend_module);
+
         // Load the factory function
         auto pfnCreateBackend = backend_module_.load_symbol<RenderBackend*(void)>("create_render_backend");
         SPDLOG_TRACE("Loaded create_render_backend() (at: {})", fmt::ptr(pfnCreateBackend));
