@@ -3,6 +3,14 @@
 #include <memory> // std::unique_ptr
 #include <string> // std::string
 
+#ifdef _WIN32
+    #define ORION_EXPORT __declspec(dllexport)
+    #define ORION_IMPORT __declspec(dllimport)
+#else
+    #define ORION_EXPORT __attribute__((visibility(default)))
+    #define ORION_IMPORT
+#endif
+
 namespace orion
 {
     // Platform specific library handle
@@ -38,6 +46,4 @@ namespace orion
 
         std::string filename_;
     };
-
-    static_assert(std::is_same_v<decltype(std::declval<Module>().load_symbol<void(int)>("test")), void (*)(int)>);
 } // namespace orion
