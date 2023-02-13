@@ -1,8 +1,19 @@
-//
-// Created by sarp on 2/13/2023.
-//
+#pragma once
 
-#ifndef ORION_ENGINE_RENDERER_H
-#define ORION_ENGINE_RENDERER_H
+#include "orion-renderer/config.h"
+#include "orion-renderer/render_backend.h"
 
-#endif // ORION_ENGINE_RENDERER_H
+#include <memory> // std::unique_ptr
+
+namespace orion
+{
+    class Renderer
+    {
+    public:
+        explicit Renderer(const char* backend_module);
+
+    private:
+        Module backend_module_;
+        std::unique_ptr<RenderBackend> render_backend_;
+    };
+} // namespace orion

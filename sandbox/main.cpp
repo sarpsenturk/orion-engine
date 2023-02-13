@@ -1,12 +1,13 @@
 #include <orion-core/window.h>
 #include <orion-engine/orion-engine.h>
-#include <spdlog/spdlog.h>
+#include <orion-renderer/renderer.h>
 
 class SandboxApp : public orion::Application
 {
 public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = {400, 200}, .size = {800, 600}})
+        , renderer_(ORION_VULKAN_MODULE)
     {
     }
 
@@ -26,6 +27,7 @@ private:
     }
 
     orion::Window window_;
+    orion::Renderer renderer_;
 };
 
 ORION_MAIN(args)

@@ -7,6 +7,9 @@ project(orion-engine
 
 set(ORION_ENGINE_TOP_LEVEL ${PROJECT_IS_TOP_LEVEL})
 
+# Set output directory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # Project configuration options
 option(ORION_ENGINE_SANDBOX "Build the sandbox project" ${ORION_ENGINE_TOP_LEVEL})
 option(ORION_ENGINE_TEST "Build tests for the orion engine" ${ORION_ENGINE_TOP_LEVEL})
