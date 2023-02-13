@@ -7,6 +7,7 @@ target_sources(
         event.h
         exception.h
         platform.h
+        types.h
         window.h
 )
 

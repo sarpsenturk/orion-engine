@@ -4,7 +4,6 @@ target_sources(
         FILE_SET public_headers
         FILES
         application.h
-        engine.h
         entry_point.h
         orion-engine.h
 )

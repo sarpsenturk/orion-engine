@@ -8,9 +8,6 @@ public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = {400, 200}, .size = {800, 600}})
     {
-        window_.on_move_end() += [](const auto& move) { SPDLOG_INFO("{}", move); };
-        window_.on_resize_end() += [](const auto& resize) { SPDLOG_INFO("{}", resize); };
-        window_.on_close() += [](const auto& close) { SPDLOG_INFO("{}", close); };
     }
 
 private:
@@ -33,7 +30,7 @@ private:
 
 ORION_MAIN(args)
 {
-    orion::Engine engine(std::make_unique<SandboxApp>());
-    engine.main_loop();
+    SandboxApp sandbox;
+    sandbox.run();
     return 0;
 }

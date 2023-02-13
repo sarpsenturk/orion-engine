@@ -24,6 +24,7 @@ target_precompile_headers(orion-pch INTERFACE
         <span>
         <vector>
         <algorithm>
+        <type_traits>
         )
 
 # Create a base target for common properties and options

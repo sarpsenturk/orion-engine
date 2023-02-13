@@ -23,7 +23,8 @@
         "base-config"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ORION_DEBUG_BUILD": true
       }
     },
     {

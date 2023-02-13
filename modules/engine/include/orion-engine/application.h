@@ -5,7 +5,7 @@ namespace orion
     class Application
     {
     public:
-        Application() = default;
+        Application();
         Application(const Application&) = delete;
         Application(Application&&) = delete;
         Application& operator=(const Application&) = delete;
@@ -15,6 +15,7 @@ namespace orion
         void on_update();
         void on_render();
         [[nodiscard]] bool should_exit() const noexcept;
+        void run();
 
     private:
         virtual void on_user_update() = 0;
