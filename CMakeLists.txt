@@ -42,6 +42,7 @@ endif ()
 add_subdirectory(modules/utils)
 add_subdirectory(modules/math)
 add_subdirectory(modules/core)
+add_subdirectory(modules/renderer)
 add_subdirectory(modules/engine)
 
 # Enable/disable sandbox
