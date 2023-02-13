@@ -27,6 +27,7 @@ namespace orion
                 if (!RegisterClass(&wndclass)) {
                     throw Win32Error();
                 }
+                SPDLOG_TRACE("Registered WNDCLASS {}", class_name);
                 registered = true;
             }
         }
@@ -71,7 +72,7 @@ namespace orion
                 throw Win32Error();
             }
 
-            SPDLOG_TRACE("Created HWND ({})", fmt::ptr(hwnd));
+            SPDLOG_TRACE("Created HWND {}", fmt::ptr(hwnd));
 
             // Show the window for the first time
             ShowWindow(hwnd, SW_SHOWNORMAL);
@@ -83,7 +84,9 @@ namespace orion
         void destroy_window(PlatformWindow* platform_window)
         {
             if (platform_window) {
-                DestroyWindow(platform_window->hwnd());
+                HWND hwnd = platform_window->hwnd();
+                DestroyWindow(hwnd);
+                SPDLOG_TRACE("Destroyed HWND {}", fmt::ptr(hwnd));
             }
         }
 
@@ -105,6 +108,7 @@ namespace orion
             if (msg == WM_NCCREATE) {
                 auto* create_struct = reinterpret_cast<CREATESTRUCT*>(lparam);
                 SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(create_struct->lpCreateParams));
+                SPDLOG_TRACE("HWND ({}) GWLP_USERDATA set to this ptr", fmt::ptr(hwnd));
                 return DefWindowProc(hwnd, msg, wparam, lparam);
             }
 
