@@ -2,6 +2,7 @@
 add_library(
         ${ORION_VULKAN_MODULE} SHARED
         vulkan_backend.h vulkan_backend.cpp
+        vulkan_headers.h
 )
 
 # Find vulkan dependency

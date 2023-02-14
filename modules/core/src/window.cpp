@@ -1,5 +1,7 @@
 #include "orion-core/window.h"
 
+#include <spdlog/spdlog.h> // SPDLOG_*
+
 namespace orion
 {
     Window::Window(WindowCreateInfo window_create_info)
@@ -27,6 +29,8 @@ namespace orion
         on_close_ += [this](const events::WindowClose&) {
             should_close_ = true;
         };
+
+        SPDLOG_DEBUG("Window \"{}\" created", name_);
     }
 
     void Window::poll_events()
