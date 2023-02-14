@@ -1,0 +1,7 @@
+#pragma once
+
+// clang-format off
+
+#cmakedefine01 ORION_VULKAN_SWAPCHAIN_SUPPORT
+
+// clang-format on

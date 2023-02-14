@@ -2,7 +2,9 @@
 
 #include "orion-core/exception.h" // orion::OrionException
 #include "orion-core/types.h"     // orion::Version
+#include "orion-vulkan/config.h"
 
+#include <string>          // std::string
 #include <vulkan/vulkan.h> // Vk*
 
 namespace orion
@@ -42,13 +44,13 @@ namespace orion
 
         [[nodiscard]] const char* type() const noexcept override { return "VulkanError"; }
         [[nodiscard]] int return_code() const noexcept override { return vk_result_; }
-        [[nodiscard]] const char* what() const override { return result_string_; }
+        [[nodiscard]] const char* what() const override { return result_string_.c_str(); }
 
         [[nodiscard]] auto result() const noexcept { return vk_result_; }
 
     private:
         VkResult vk_result_;
-        const char* result_string_;
+        std::string result_string_;
     };
 
     namespace vulkan
@@ -71,6 +73,12 @@ namespace orion
             if (vk_result != expected) {
                 throw VulkanException(vk_result);
             }
+        }
+
+        inline const VkAllocationCallbacks* alloc_callbacks() noexcept
+        {
+            // Create and return a custom allocator here if needed in the future
+            return nullptr;
         }
     } // namespace vulkan
 } // namespace orion

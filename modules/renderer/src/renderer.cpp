@@ -15,6 +15,10 @@ namespace orion
 
         // Create the backend
         render_backend_ = std::unique_ptr<RenderBackend>(pfnCreateBackend());
+        if (!render_backend_) {
+            throw std::runtime_error("Failed to create render backend");
+        }
+
         SPDLOG_DEBUG("Render backend \"{}\" initialized", render_backend_->name());
     }
 } // namespace orion
