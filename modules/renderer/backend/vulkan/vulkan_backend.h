@@ -21,6 +21,21 @@ namespace orion::vulkan
         static constexpr auto vulkan_api_version = VK_API_VERSION_1_0;
 
     private:
+        void create_debug_messenger();
+
+        static constexpr auto debug_message_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                                                       VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        static constexpr auto debug_message_type = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+                                                   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                                   VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+
+        static VkBool32 debug_message_callback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+            VkDebugUtilsMessageTypeFlagsEXT message_types,
+            const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+            void* user_data);
+
         VkInstance instance_ = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT debug_messenger_ = VK_NULL_HANDLE;
     };
 } // namespace orion::vulkan

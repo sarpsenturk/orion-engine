@@ -79,7 +79,6 @@ namespace orion::vulkan
         };
 
         const auto enabled_layers = get_required_layers();
-
         // Check if all requested layers are supported
         {
             const auto supported_layers = get_supported_layers();
@@ -126,6 +125,10 @@ namespace orion::vulkan
 
         vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance_));
         SPDLOG_TRACE("Created VkInstance {}", fmt::ptr(instance_));
+
+        if constexpr (debug_build) {
+            create_debug_messenger();
+        }
     }
 
     VulkanBackend::VulkanBackend(VulkanBackend&& other) noexcept
@@ -141,7 +144,70 @@ namespace orion::vulkan
 
     VulkanBackend::~VulkanBackend()
     {
+        // Destroy debug messenger
+        if (debug_messenger_) {
+            ORION_ASSERT(instance_ != VK_NULL_HANDLE); // if debug_messenger is valid instance must be valid too
+            static const auto pfn_vkDestroyDebugUtilsMessengerEXT = [this]() {
+                return reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance_, "vkDestroyDebugUtilsMessengerEXT"));
+            }();
+            pfn_vkDestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, alloc_callbacks());
+            SPDLOG_TRACE("Destroyed VkDebugUtilsMessengerEXT {}", fmt::ptr(debug_messenger_));
+        }
+
         vkDestroyInstance(instance_, alloc_callbacks());
         SPDLOG_TRACE("Destroyed VkInstance {}", fmt::ptr(instance_));
+    }
+
+    void VulkanBackend::create_debug_messenger()
+    {
+        ORION_ASSERT(instance_ != VK_NULL_HANDLE); // if instance must be created before debug messenger
+
+        // Get creation function pointer
+        static const auto pfn_vkCreateDebugUtilsMessengerEXT = [this]() {
+            return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance_, "vkCreateDebugUtilsMessengerEXT"));
+        }();
+
+        // Create the debug messenger
+        {
+            const VkDebugUtilsMessengerCreateInfoEXT info{
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                .pNext = nullptr,
+                .flags = 0,
+                .messageSeverity = debug_message_severity,
+                .messageType = debug_message_type,
+                .pfnUserCallback = debug_message_callback,
+                .pUserData = nullptr,
+            };
+            vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance_, &info, alloc_callbacks(), &debug_messenger_));
+            SPDLOG_TRACE("Created VkDebugUtilsMessenger {}", fmt::ptr(debug_messenger_));
+        }
+    }
+
+    VkBool32 VulkanBackend::debug_message_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+                                                   VkDebugUtilsMessageTypeFlagsEXT,
+                                                   const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+                                                   void*)
+    {
+        if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+            SPDLOG_ERROR("=== Vulkan Error ===");
+            SPDLOG_ERROR("{}", callback_data->pMessage);
+            SPDLOG_ERROR("Message ID: {}", callback_data->messageIdNumber);
+            SPDLOG_ERROR("Message ID Name: {}", callback_data->pMessageIdName);
+            SPDLOG_ERROR("=== Vulkan Error ===");
+            SPDLOG_ERROR("Application will most likely crash now");
+        } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            SPDLOG_WARN("=== Vulkan Warning ===");
+            SPDLOG_WARN("{}", callback_data->pMessage);
+            SPDLOG_WARN("Message ID: {}", callback_data->messageIdNumber);
+            SPDLOG_WARN("Message ID Name: {}", callback_data->pMessageIdName);
+            SPDLOG_WARN("=== Vulkan Warning ===");
+        } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+            SPDLOG_INFO("=== Vulkan Info ===");
+            SPDLOG_INFO("{}", callback_data->pMessage);
+            SPDLOG_INFO("Message ID: {}", callback_data->messageIdNumber);
+            SPDLOG_INFO("Message ID Name: {}", callback_data->pMessageIdName);
+            SPDLOG_INFO("=== Vulkan Info ===");
+        }
+        return VK_FALSE;
     }
 } // namespace orion::vulkan
