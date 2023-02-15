@@ -2,14 +2,21 @@
 
 #include "orion-core/config.h"
 
-#include <spdlog/spdlog.h> // spdlog::set_pattern, spdlog::set_level, SPDLOG_*
+#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_*
+#include <spdlog/spdlog.h>                   // spdlog::set_pattern, spdlog::set_level, SPDLOG_*
 
 namespace orion
 {
     Application::Application()
     {
-        spdlog::set_pattern("[%^%l%$] %v");
+        // Set log level and format globally
+        spdlog::set_pattern("[%n] [%^%l%$] %v");
         spdlog::set_level(static_cast<spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
+
+        // Create a new default logger with our name and set it as default
+        auto logger = spdlog::stdout_color_st("orion-application");
+        spdlog::set_default_logger(logger);
+
         SPDLOG_INFO("<Orion Engine> version: {}, platform: {}, debug_build: {}", current_version, current_platform, debug_build);
     }
 

@@ -1,14 +1,22 @@
 #include "vulkan_backend.h"
 
-#include <algorithm>                   // std::find_if, std::all_of
-#include <cstring>                     // std::strcmp
-#include <orion-utils/static_vector.h> // static_vector
-#include <spdlog/spdlog.h>             // SPDLOG_*
-#include <utility>                     // std::exchange
+#include "vulkan_conversion.h"
+
+#include <algorithm>                         // std::find_if, std::all_of
+#include <cstring>                           // std::strcmp
+#include <orion-utils/static_vector.h>       // static_vector
+#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_*
+#include <spdlog/spdlog.h>                   // SPDLOG_*
+#include <utility>                           // std::exchange
 
 extern "C" ORION_EXPORT orion::RenderBackend* create_render_backend()
 {
     try {
+        // Create a new logger specifically for Vulkan
+        auto logger = spdlog::stderr_color_st("orion-vulkan");
+        spdlog::set_default_logger(logger);
+
+        // Initialize the vulkan backend
         return new orion::vulkan::VulkanBackend();
     } catch (const orion::VulkanException& vulkan_error) {
         SPDLOG_ERROR("VulkanInitErr: {} (VkResult: {})", vulkan_error.what(), vulkan_error.result());
@@ -156,6 +164,38 @@ namespace orion::vulkan
 
         vkDestroyInstance(instance_, alloc_callbacks());
         SPDLOG_TRACE("Destroyed VkInstance {}", fmt::ptr(instance_));
+    }
+
+    std::vector<PhysicalDeviceDesc> VulkanBackend::enumerate_physical_devices_api()
+    {
+        ORION_ASSERT(instance_ != VK_NULL_HANDLE);
+
+        // Get the physical devices and descriptions first time
+        if (physical_devices_.empty()) {
+            SPDLOG_TRACE("Enumerating physical devices...");
+            // Enumerate the physical devices
+            {
+                std::uint32_t count = 0;
+                vk_result_check(vkEnumeratePhysicalDevices(instance_, &count, nullptr));
+                physical_devices_.resize(count);
+                vk_result_check(vkEnumeratePhysicalDevices(instance_, &count, physical_devices_.data()));
+            }
+
+            // Enumerate the device properties
+            physical_device_descriptions_.reserve(physical_devices_.size());
+            for (std::uint32_t index = 0; auto physical_device : physical_devices_) {
+                VkPhysicalDeviceProperties properties;
+                vkGetPhysicalDeviceProperties(physical_device, &properties);
+                physical_device_descriptions_.push_back({
+                    .index = index++,
+                    .type = to_orion_type(properties.deviceType),
+                    .name = std::string{properties.deviceName},
+                });
+            }
+        }
+
+        // Generate the descriptions
+        return physical_device_descriptions_;
     }
 
     void VulkanBackend::create_debug_messenger()

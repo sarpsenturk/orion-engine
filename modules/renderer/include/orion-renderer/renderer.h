@@ -1,7 +1,7 @@
 #pragma once
 
+#include "orion-renderapi/render_backend.h"
 #include "orion-renderer/config.h"
-#include "orion-renderer/render_backend.h"
 
 #include <memory> // std::unique_ptr
 

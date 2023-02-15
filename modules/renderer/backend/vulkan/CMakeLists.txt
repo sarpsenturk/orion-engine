@@ -8,6 +8,7 @@ configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-vulkan/config.h)
 add_library(
         ${ORION_VULKAN_MODULE} SHARED
         vulkan_backend.h vulkan_backend.cpp
+        vulkan_conversion.h
         vulkan_headers.h
 )
 
