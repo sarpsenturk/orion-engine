@@ -4,6 +4,7 @@
 #include "orion-core/types.h"     // orion::Version
 #include "orion-vulkan/config.h"
 
+#include <spdlog/spdlog.h> // spdlog::logger
 #include <string>          // std::string
 #include <vulkan/vulkan.h> // Vk*
 
@@ -80,5 +81,9 @@ namespace orion
             // Create and return a custom allocator here if needed in the future
             return nullptr;
         }
+
+        std::shared_ptr<spdlog::logger> logger();
+
+        spdlog::logger* logger_raw();
     } // namespace vulkan
 } // namespace orion

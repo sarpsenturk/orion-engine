@@ -9,17 +9,13 @@
 #include <orion-utils/static_vector.h>       // static_vector
 #include <span>                              // std::span
 #include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_*
-#include <spdlog/spdlog.h>                   // SPDLOG_*
+#include <spdlog/spdlog.h>                   // SPDLOG_LOGGER_*
 #include <unordered_set>                     // std::unordered_set
 #include <utility>                           // std::exchange
 
 extern "C" ORION_EXPORT orion::RenderBackend* create_render_backend()
 {
     try {
-        // Create a new logger specifically for Vulkan
-        auto logger = spdlog::stderr_color_st("orion-vulkan");
-        spdlog::set_default_logger(logger);
-
         // Initialize the vulkan backend
         return new orion::vulkan::VulkanBackend();
     } catch (const orion::VulkanException& vulkan_error) {
@@ -32,6 +28,16 @@ extern "C" ORION_EXPORT orion::RenderBackend* create_render_backend()
 
 namespace orion::vulkan
 {
+    // Initialize the vulkan logger
+    static const auto vulkan_logger = []() {
+        auto logger = spdlog::stdout_color_mt("orion-vulkan");
+        return logger;
+    }();
+
+    std::shared_ptr<spdlog::logger> logger() { return vulkan_logger; }
+
+    spdlog::logger* logger_raw() { return vulkan_logger.get(); }
+
     static constexpr auto get_required_layers() noexcept
     {
         constexpr auto max_layers = 2;
@@ -96,18 +102,18 @@ namespace orion::vulkan
 
     static bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions)
     {
-        SPDLOG_TRACE("Checking support for {} enabled instance extensions...", enabled_extensions.size());
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Checking support for {} enabled instance extensions...", enabled_extensions.size());
         bool all_supported = true;
         for (const char* extension : enabled_extensions) {
             const auto pred = [extension](const VkExtensionProperties& extension_properties) { return std::strcmp(extension, extension_properties.extensionName) == 0; };
             const auto supported = std::ranges::find_if(supported_extensions, pred) != supported_extensions.end();
             if (!supported) {
-                SPDLOG_ERROR("Requested Vulkan extension \"{}\" is not supported", extension);
+                SPDLOG_LOGGER_ERROR(logger_raw(), "Requested Vulkan extension \"{}\" is not supported", extension);
                 all_supported = false;
             }
-            SPDLOG_TRACE("-- {} ... supported", extension);
+            SPDLOG_LOGGER_TRACE(logger_raw(), "-- {} ... supported", extension);
         }
-        SPDLOG_TRACE("All requested extensions supported.");
+        SPDLOG_LOGGER_TRACE(logger_raw(), "All requested extensions supported.");
         return all_supported;
     }
 
@@ -139,7 +145,7 @@ namespace orion::vulkan
 
     VulkanBackend::VulkanBackend()
     {
-        SPDLOG_TRACE("Creating Vulkan instance...");
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Creating Vulkan instance...");
 
         const auto vulkan_version = to_vulkan_version(current_version);
         const VkApplicationInfo application_info{
@@ -156,17 +162,17 @@ namespace orion::vulkan
         // Check if all requested layers are supported
         {
             const auto supported_layers = get_supported_layers();
-            SPDLOG_TRACE("Checking support for {} enabled instance layers...", enabled_layers.size());
+            SPDLOG_LOGGER_TRACE(logger_raw(), "Checking support for {} enabled instance layers...", enabled_layers.size());
             for (const char* layer : enabled_layers) {
                 const auto pred = [layer](const VkLayerProperties& layer_properties) { return std::strcmp(layer, layer_properties.layerName) == 0; };
                 const auto supported = std::ranges::find_if(supported_layers, pred) != supported_layers.end();
                 if (!supported) {
-                    SPDLOG_ERROR("Requested Vulkan instance layer \"{}\" is not supported!", layer);
+                    SPDLOG_LOGGER_ERROR(logger_raw(), "Requested Vulkan instance layer \"{}\" is not supported!", layer);
                     throw VulkanException(VK_ERROR_LAYER_NOT_PRESENT);
                 }
-                SPDLOG_TRACE("-- {} ... supported", layer);
+                SPDLOG_LOGGER_TRACE(logger_raw(), "-- {} ... supported", layer);
             }
-            SPDLOG_TRACE("All requested instance layers supported.");
+            SPDLOG_LOGGER_TRACE(logger_raw(), "All requested instance layers supported.");
         }
 
         const auto enabled_extensions = get_required_extensions();
@@ -190,7 +196,7 @@ namespace orion::vulkan
         };
 
         vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance_));
-        SPDLOG_TRACE("Created VkInstance {}", fmt::ptr(instance_));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkInstance {}", fmt::ptr(instance_));
 
         if constexpr (debug_build) {
             create_debug_messenger();
@@ -217,11 +223,11 @@ namespace orion::vulkan
                 return reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance_, "vkDestroyDebugUtilsMessengerEXT"));
             }();
             pfn_vkDestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, alloc_callbacks());
-            SPDLOG_TRACE("Destroyed VkDebugUtilsMessengerEXT {}", fmt::ptr(debug_messenger_));
+            SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkDebugUtilsMessengerEXT {}", fmt::ptr(debug_messenger_));
         }
 
         vkDestroyInstance(instance_, alloc_callbacks());
-        SPDLOG_TRACE("Destroyed VkInstance {}", fmt::ptr(instance_));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkInstance {}", fmt::ptr(instance_));
     }
 
     std::vector<PhysicalDeviceDesc> VulkanBackend::enumerate_physical_devices_api()
@@ -230,7 +236,7 @@ namespace orion::vulkan
 
         // Get the physical devices and descriptions first time
         if (physical_devices_.empty()) {
-            SPDLOG_TRACE("Enumerating physical devices...");
+            SPDLOG_LOGGER_TRACE(logger_raw(), "Enumerating physical devices...");
             // Enumerate the physical devices
             {
                 std::uint32_t count = 0;
@@ -260,7 +266,7 @@ namespace orion::vulkan
     {
         ORION_ASSERT(physical_device_index < physical_devices_.size());
 
-        SPDLOG_TRACE("Creating VkDevice...");
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Creating VkDevice...");
 
         // Get the selected physical device
         auto physical_device = physical_devices_[physical_device_index];
@@ -268,36 +274,36 @@ namespace orion::vulkan
         // Get the queue families of the physical device
         const auto queue_families = get_queue_family_properties(physical_device);
         ORION_ASSERT(!queue_families.empty());
-        SPDLOG_TRACE("Found {} queue families:", queue_families.size());
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Found {} queue families:", queue_families.size());
         for (std::uint32_t index = 0; const auto& queue_family : queue_families) {
-            SPDLOG_TRACE("-- Queue Family {}:", index);
-            SPDLOG_TRACE("      Flags: {}", to_string(queue_family.queueFlags));
-            SPDLOG_TRACE("      Queue count: {}", queue_family.queueCount);
+            SPDLOG_LOGGER_TRACE(logger_raw(), "-- Queue Family {}:", index);
+            SPDLOG_LOGGER_TRACE(logger_raw(), "      Flags: {}", to_string(queue_family.queueFlags));
+            SPDLOG_LOGGER_TRACE(logger_raw(), "      Queue count: {}", queue_family.queueCount);
         }
 
         // Find the best queue families
         const auto graphics_queue_index = get_best_queue_family(queue_families, VK_QUEUE_GRAPHICS_BIT);
         if (graphics_queue_index == UINT32_MAX) {
-            SPDLOG_ERROR("No queue family supporting Graphics");
+            SPDLOG_LOGGER_ERROR(logger_raw(), "No queue family supporting Graphics");
             throw VulkanException(VK_ERROR_UNKNOWN);
         }
-        SPDLOG_TRACE("Graphics queue: {}", graphics_queue_index);
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Graphics queue: {}", graphics_queue_index);
         const auto compute_queue_index = get_best_queue_family(queue_families, VK_QUEUE_COMPUTE_BIT);
         if (compute_queue_index == UINT32_MAX) {
-            SPDLOG_ERROR("No queue family supporting Compute");
+            SPDLOG_LOGGER_ERROR(logger_raw(), "No queue family supporting Compute");
             throw VulkanException(VK_ERROR_UNKNOWN);
         }
-        SPDLOG_TRACE("Compute queue: {}", compute_queue_index);
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Compute queue: {}", compute_queue_index);
         const auto transfer_queue_index = get_best_queue_family(queue_families, VK_QUEUE_TRANSFER_BIT);
         if (transfer_queue_index == UINT32_MAX) {
-            SPDLOG_ERROR("No queue family supporting Transfer");
+            SPDLOG_LOGGER_ERROR(logger_raw(), "No queue family supporting Transfer");
             throw VulkanException(VK_ERROR_UNKNOWN);
         }
-        SPDLOG_TRACE("Transfer queue: {}", transfer_queue_index);
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Transfer queue: {}", transfer_queue_index);
 
         // Put all queue family indices into set to ensure uniqueness
         const std::unordered_set used_queue_families{graphics_queue_index, compute_queue_index, transfer_queue_index};
-        SPDLOG_TRACE("Using {} unique queue families", used_queue_families.size());
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Using {} unique queue families", used_queue_families.size());
 
         // Must declare here to avoid dangling pointers
         std::vector<float> queue_priorities{1.f};
@@ -342,7 +348,7 @@ namespace orion::vulkan
         };
         VkDevice device = VK_NULL_HANDLE;
         vk_result_check(vkCreateDevice(physical_device, &device_info, alloc_callbacks(), &device));
-        SPDLOG_TRACE("Created VkDevice {}", fmt::ptr(device));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkDevice {}", fmt::ptr(device));
 
         // Get the created queues
         VkQueue graphics_queue;
@@ -391,7 +397,7 @@ namespace orion::vulkan
                 .pUserData = nullptr,
             };
             vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance_, &info, alloc_callbacks(), &debug_messenger_));
-            SPDLOG_TRACE("Created VkDebugUtilsMessenger {}", fmt::ptr(debug_messenger_));
+            SPDLOG_LOGGER_TRACE(logger_raw(), "Created VkDebugUtilsMessenger {}", fmt::ptr(debug_messenger_));
         }
     }
 
@@ -401,24 +407,15 @@ namespace orion::vulkan
                                                    void*)
     {
         if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            SPDLOG_ERROR("=== Vulkan Error ===");
-            SPDLOG_ERROR("{}", callback_data->pMessage);
-            SPDLOG_ERROR("Message ID: {}", callback_data->messageIdNumber);
-            SPDLOG_ERROR("Message ID Name: {}", callback_data->pMessageIdName);
-            SPDLOG_ERROR("=== Vulkan Error ===");
-            SPDLOG_ERROR("Application will most likely crash now");
+            SPDLOG_LOGGER_ERROR(logger_raw(), "Message ID: {}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
+            SPDLOG_LOGGER_ERROR(logger_raw(), "{}", callback_data->pMessage);
+            SPDLOG_LOGGER_ERROR(logger_raw(), "Application will most likely crash now");
         } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            SPDLOG_WARN("=== Vulkan Warning ===");
-            SPDLOG_WARN("{}", callback_data->pMessage);
-            SPDLOG_WARN("Message ID: {}", callback_data->messageIdNumber);
-            SPDLOG_WARN("Message ID Name: {}", callback_data->pMessageIdName);
-            SPDLOG_WARN("=== Vulkan Warning ===");
+            SPDLOG_LOGGER_WARN(logger_raw(), "Message ID: {}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
+            SPDLOG_LOGGER_WARN(logger_raw(), "{}", callback_data->pMessage);
         } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-            SPDLOG_INFO("=== Vulkan Info ===");
-            SPDLOG_INFO("{}", callback_data->pMessage);
-            SPDLOG_INFO("Message ID: {}", callback_data->messageIdNumber);
-            SPDLOG_INFO("Message ID Name: {}", callback_data->pMessageIdName);
-            SPDLOG_INFO("=== Vulkan Info ===");
+            SPDLOG_LOGGER_INFO(logger_raw(), "Message ID: {}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
+            SPDLOG_LOGGER_INFO(logger_raw(), "{}", callback_data->pMessage);
         }
         return VK_FALSE;
     }
