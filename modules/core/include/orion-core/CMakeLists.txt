@@ -6,6 +6,7 @@ target_sources(
         dl_lib.h
         event.h
         exception.h
+        handle.h
         platform.h
         types.h
         window.h
