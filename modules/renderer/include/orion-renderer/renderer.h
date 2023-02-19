@@ -15,5 +15,6 @@ namespace orion
     private:
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
+        std::unique_ptr<RenderDevice> render_device_;
     };
 } // namespace orion

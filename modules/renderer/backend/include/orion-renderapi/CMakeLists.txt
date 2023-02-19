@@ -4,5 +4,6 @@ target_sources(
         FILE_SET public_headers
         FILES
         render_backend.h
+        render_device.h
         types.h
 )

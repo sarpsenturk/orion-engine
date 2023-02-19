@@ -16,6 +16,7 @@ namespace orion
         virtual ~RenderBackend() = default;
 
         [[nodiscard]] std::vector<PhysicalDeviceDesc> enumerate_physical_devices();
+        [[nodiscard]] std::unique_ptr<RenderDevice> create_device(std::uint32_t physical_device_index);
 
         [[nodiscard]] virtual const char* name() const noexcept = 0;
 
@@ -27,6 +28,7 @@ namespace orion
 
     private:
         [[nodiscard]] virtual std::vector<PhysicalDeviceDesc> enumerate_physical_devices_api() = 0;
+        [[nodiscard]] virtual std::unique_ptr<RenderDevice> create_device_api(std::uint32_t physical_device_index) = 0;
     };
 } // namespace orion
 

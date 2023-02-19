@@ -26,6 +26,7 @@ namespace orion::vulkan
     private:
         // Private API overrides
         std::vector<PhysicalDeviceDesc> enumerate_physical_devices_api() override;
+        std::unique_ptr<RenderDevice> create_device_api(std::uint32_t physical_device_index) override;
 
         // Internal helpers
         void create_debug_messenger();

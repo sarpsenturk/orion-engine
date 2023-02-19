@@ -19,6 +19,20 @@ namespace orion
             throw std::runtime_error("Failed to create render backend");
         }
 
+        // Get the physical devices
+        auto physical_devices = render_backend_->enumerate_physical_devices();
+        SPDLOG_DEBUG("Found {} physical devices:", physical_devices.size());
+        for (const auto& physical_device : physical_devices) {
+            SPDLOG_DEBUG("{}", physical_device.name);
+            SPDLOG_DEBUG("-- Type: {}", physical_device.type);
+        }
+
+        // Select the physical device to use
+        auto& selected_physical_device = physical_devices[0]; // TODO: Allow the user to select
+
+        // Create the render device
+        render_device_ = render_backend_->create_device(selected_physical_device.index);
+
         SPDLOG_DEBUG("Render backend \"{}\" initialized", render_backend_->name());
     }
 } // namespace orion

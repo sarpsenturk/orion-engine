@@ -3,6 +3,8 @@
 #include "orion-renderapi/types.h"
 #include "vulkan_headers.h"
 
+#include <string> // std::string
+
 namespace orion::vulkan
 {
     constexpr auto to_orion_type(VkPhysicalDeviceType physical_device_type) -> PhysicalDeviceType
@@ -22,5 +24,24 @@ namespace orion::vulkan
                 break;
         }
         return PhysicalDeviceType::Other;
+    }
+
+    constexpr auto to_string(VkQueueFlags queue_flags) -> std::string
+    {
+        if (!queue_flags) {
+            return {};
+        }
+
+        std::string result;
+        if (queue_flags & VK_QUEUE_GRAPHICS_BIT) {
+            result += "Graphics | ";
+        }
+        if (queue_flags & VK_QUEUE_COMPUTE_BIT) {
+            result += "Compute | ";
+        }
+        if (queue_flags & VK_QUEUE_TRANSFER_BIT) {
+            result += "Transfer | ";
+        }
+        return result.substr(0, result.size() - 3);
     }
 } // namespace orion::vulkan
