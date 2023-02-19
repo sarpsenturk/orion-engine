@@ -4,9 +4,10 @@
 #include "orion-core/types.h"     // orion::Version
 #include "orion-vulkan/config.h"
 
-#include <spdlog/spdlog.h> // spdlog::logger
-#include <string>          // std::string
-#include <vulkan/vulkan.h> // Vk*
+#include <orion-utils/assertion.h> // ORION_ASSERT
+#include <spdlog/spdlog.h>         // spdlog::logger
+#include <string>                  // std::string
+#include <vulkan/vulkan.h>         // Vk*
 
 namespace orion
 {
@@ -85,5 +86,117 @@ namespace orion
         std::shared_ptr<spdlog::logger> logger();
 
         spdlog::logger* logger_raw();
+
+        template<typename Handle, typename Deleter>
+        class UniqueHandle
+        {
+        public:
+            UniqueHandle() = default;
+
+            explicit UniqueHandle(Handle handle, Deleter deleter = {})
+                : handle_(handle)
+                , deleter_(std::move(deleter))
+            {
+            }
+
+            UniqueHandle(std::nullptr_t) {}
+
+            UniqueHandle(const UniqueHandle&) = delete;
+
+            UniqueHandle(UniqueHandle&& other) noexcept
+                : handle_(std::exchange(other.handle_, VK_NULL_HANDLE))
+                , deleter_(std::move(other.deleter_))
+            {
+            }
+
+            UniqueHandle& operator=(const UniqueHandle&) = delete;
+
+            UniqueHandle& operator=(UniqueHandle&& other) noexcept
+            {
+                handle_ = std::exchange(other.handle_, VK_NULL_HANDLE);
+                deleter_ = std::move(other.deleter_);
+                return *this;
+            }
+
+            ~UniqueHandle()
+            {
+                release();
+            }
+
+            [[nodiscard]] auto get() const noexcept { return handle_; }
+
+            [[nodiscard]] auto operator*() const noexcept { return handle_; }
+
+            [[nodiscard]] auto get_address_of() noexcept { return &handle_; }
+
+            [[nodiscard]] auto release_and_get_address_of() noexcept
+            {
+                release();
+                return &handle_;
+            }
+
+            [[nodiscard]] auto operator&() noexcept
+            {
+                return release_and_get_address_of();
+            }
+
+            void reset(Handle handle = VK_NULL_HANDLE) noexcept
+            {
+                release();
+                handle_ = handle;
+            }
+
+            [[nodiscard]] operator bool() const noexcept { return handle_ != VK_NULL_HANDLE; }
+
+            [[nodiscard]] friend bool operator==(const UniqueHandle& lhs, const UniqueHandle& rhs) noexcept = default;
+
+            [[nodiscard]] friend bool operator==(const UniqueHandle& unique_handle, Handle handle) noexcept { return *unique_handle == handle; }
+
+            [[nodiscard]] friend bool operator==(Handle handle, const UniqueHandle& unique_handle) noexcept { return handle == *unique_handle; }
+
+        private:
+            void release()
+            {
+                if (handle_ != VK_NULL_HANDLE) {
+                    deleter_(handle_);
+                }
+            }
+
+            Handle handle_ = VK_NULL_HANDLE;
+            Deleter deleter_ = {};
+        };
+
+        struct InstanceDeleter {
+            void operator()(VkInstance instance) const
+            {
+                vkDestroyInstance(instance, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkInstance {}", fmt::ptr(instance));
+            }
+        };
+
+        struct DeviceDeleter {
+            void operator()(VkDevice device) const
+            {
+                vkDestroyDevice(device, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkDevice {}", fmt::ptr(device));
+            }
+        };
+
+        struct DebugUtilsMessengerDeleter {
+            VkInstance instance;
+            void operator()(VkDebugUtilsMessengerEXT debug_messenger) const
+            {
+                ORION_ASSERT(instance != VK_NULL_HANDLE); // if debug_messenger is valid instance must be valid too
+                static const auto pfn_vkDestroyDebugUtilsMessengerEXT = [this]() {
+                    return reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+                }();
+                pfn_vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkDebugUtilsMessengerEXT {}", fmt::ptr(debug_messenger));
+            }
+        };
+
+        using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
+        using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
+        using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
     } // namespace vulkan
 } // namespace orion

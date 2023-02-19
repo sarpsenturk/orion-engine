@@ -12,11 +12,6 @@ namespace orion::vulkan
     {
     public:
         VulkanBackend();
-        VulkanBackend(const VulkanBackend&) = delete;
-        VulkanBackend(VulkanBackend&& other) noexcept;
-        VulkanBackend& operator=(const VulkanBackend&) = delete;
-        VulkanBackend& operator=(VulkanBackend&& other) noexcept;
-        ~VulkanBackend() override;
 
         // Public API overrides
         [[nodiscard]] const char* name() const noexcept override { return "Vulkan 1.0"; }
@@ -43,8 +38,8 @@ namespace orion::vulkan
             const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
             void* user_data);
 
-        VkInstance instance_ = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT debug_messenger_ = VK_NULL_HANDLE;
+        UniqueVkInstance instance_ = VK_NULL_HANDLE;
+        UniqueVkDebugUtilsMessengerEXT debug_messenger_ = VK_NULL_HANDLE;
 
         std::vector<VkPhysicalDevice> physical_devices_;
         std::vector<PhysicalDeviceDesc> physical_device_descriptions_;

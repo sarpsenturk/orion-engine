@@ -9,15 +9,10 @@ namespace orion::vulkan
     class VulkanDevice : public RenderDevice
     {
     public:
-        VulkanDevice(VkDevice device, VulkanQueues queues);
-        VulkanDevice(const VulkanDevice&) = delete;
-        VulkanDevice(VulkanDevice&& other) noexcept;
-        VulkanDevice& operator=(const VulkanDevice&) = delete;
-        VulkanDevice& operator=(VulkanDevice&&) noexcept;
-        ~VulkanDevice() override;
+        VulkanDevice(UniqueVkDevice device, VulkanQueues queues);
 
     private:
-        VkDevice device_;
+        UniqueVkDevice device_;
         VulkanQueues queues_;
     };
 } // namespace orion::vulkan
