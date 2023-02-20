@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>     // std::int64_t
+#include <fmt/core.h>  // fmt::formatter
 #include <functional>  // std::hash
+#include <memory>      // std::shared_ptr
 #include <type_traits> // std::is_signed
 
 namespace orion
@@ -14,6 +16,8 @@ namespace orion
         static_assert(std::is_signed_v<value_type>, "value_type must be a signed type");
 
         static constexpr value_type invalid = -1;
+
+        static constexpr Handle invalid_handle() noexcept { return Handle{invalid}; };
 
         constexpr Handle() noexcept = default;
 
@@ -44,7 +48,16 @@ struct std::hash<orion::Handle<Tag>> { // NOLINT(cert-dcl58-cpp)
     }
 };
 
+template<typename Tag>
+struct fmt::formatter<orion::Handle<Tag>> : formatter<typename orion::Handle<Tag>::value_type> {
+    auto format(orion::Handle<Tag> handle, auto& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "{}", handle.value());
+    }
+};
+
 // Simple helper macro to define a Handle
-#define ORION_DEFINE_HANDLE(name) \
-    struct name##_tag;            \
-    using name = ::orion::Handle<name##_tag>
+#define ORION_DEFINE_HANDLE(name)             \
+    struct name##_tag;                        \
+    using name = ::orion::Handle<name##_tag>; \
+    using name##Ref = std::shared_ptr<name>;

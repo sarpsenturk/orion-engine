@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>      // std::uint8_t
-#include <fmt/format.h> // fmt::formatter
+#include <cstdint>    // std::uint8_t
+#include <fmt/core.h> // fmt::formatter
 
 namespace orion
 {
