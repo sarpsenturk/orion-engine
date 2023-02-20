@@ -4,6 +4,7 @@
 #include <fmt/core.h>  // fmt::formatter
 #include <functional>  // std::hash
 #include <memory>      // std::shared_ptr
+#include <random>      // std::random_device, std::mt19937_64, std::uniform_int_distribution
 #include <type_traits> // std::is_signed
 
 namespace orion
@@ -12,12 +13,22 @@ namespace orion
     class Handle
     {
     public:
-        using value_type = std::int64_t;
-        static_assert(std::is_signed_v<value_type>, "value_type must be a signed type");
+        using value_type = std::uint64_t;
 
-        static constexpr value_type invalid = -1;
+        static constexpr value_type invalid = std::numeric_limits<value_type>::max();
+        static constexpr value_type min_handle = 0;
+        static constexpr value_type max_handle = invalid - 1;
 
         static constexpr Handle invalid_handle() noexcept { return Handle{invalid}; };
+
+        static Handle generate() noexcept
+        {
+            static thread_local std::random_device random_device;
+            static thread_local std::mt19937_64 mt_19937_64(random_device());
+
+            std::uniform_int_distribution<value_type> distribution(min_handle, max_handle);
+            return distribution(mt_19937_64);
+        }
 
         constexpr Handle() noexcept = default;
 

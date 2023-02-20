@@ -17,7 +17,7 @@ namespace orion
         auto logger = spdlog::stdout_color_st("orion-application");
         spdlog::set_default_logger(logger);
 
-        SPDLOG_INFO("<Orion Engine> version: {}, platform: {}, debug_build: {}", current_version, current_platform, debug_build);
+        SPDLOG_INFO("<Orion Engine> version: {}, platform: {}, debug_build: {}", current_version, to_string(current_platform), debug_build);
     }
 
     void Application::on_update()
