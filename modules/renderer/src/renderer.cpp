@@ -24,7 +24,7 @@ namespace orion
         SPDLOG_DEBUG("Found {} physical devices:", physical_devices.size());
         for (const auto& physical_device : physical_devices) {
             SPDLOG_DEBUG("{}", physical_device.name);
-            SPDLOG_DEBUG("-- Type: {}", physical_device.type);
+            SPDLOG_DEBUG("-- Type: {}", to_string(physical_device.type));
         }
 
         // Select the physical device to use

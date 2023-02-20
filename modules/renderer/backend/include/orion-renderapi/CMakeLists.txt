@@ -6,5 +6,6 @@ target_sources(
         handles.h
         render_backend.h
         render_device.h
+        swapchain.h
         types.h
 )
