@@ -27,7 +27,7 @@ namespace orion
             static thread_local std::mt19937_64 mt_19937_64(random_device());
 
             std::uniform_int_distribution<value_type> distribution(min_handle, max_handle);
-            return distribution(mt_19937_64);
+            return Handle{distribution(mt_19937_64)};
         }
 
         constexpr Handle() noexcept = default;
