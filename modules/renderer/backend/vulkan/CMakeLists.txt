@@ -4,6 +4,13 @@ option(ORION_VULKAN_SWAPCHAIN_SUPPORT "Enable swapchain support the Vulkan backe
 # Create configure file
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-vulkan/config.h)
 
+# Set vulkan platform implementation
+if (ORION_PLATFORM_WINDOWS)
+    set(vulkan_platform_impl vulkan_win32.cpp)
+else ()
+    message(FATAL_ERROR "Unsupported platform for the Vulkan backend")
+endif ()
+
 # Create the vulkan implementation of render-backend interface
 add_library(
         ${ORION_VULKAN_MODULE} SHARED
@@ -11,6 +18,8 @@ add_library(
         vulkan_conversion.h
         vulkan_device.h vulkan_device.cpp
         vulkan_headers.h
+        vulkan_platform.h ${vulkan_platform_impl}
+        vulkan_swapchain.h vulkan_swapchain.cpp
         vulkan_types.h
 )
 

@@ -2,9 +2,10 @@
 
 #include "vulkan_conversion.h"
 #include "vulkan_device.h"
+#include "vulkan_platform.h"
 #include "vulkan_types.h"
 
-#include <algorithm>                         // std::find_if, std::all_of
+#include <algorithm>                         // std::find_if
 #include <cstring>                           // std::strcmp
 #include <orion-utils/static_vector.h>       // static_vector
 #include <span>                              // std::span
@@ -50,13 +51,14 @@ namespace orion::vulkan
 
     static constexpr auto get_required_extensions() noexcept
     {
-        constexpr auto max_extensions = 2;
+        constexpr auto max_extensions = 3;
         static_vector<const char*, max_extensions> extensions;
         if constexpr (debug_build) {
             extensions.push_back("VK_EXT_debug_utils");
         }
         if constexpr (ORION_VULKAN_SWAPCHAIN_SUPPORT) {
             extensions.push_back("VK_KHR_surface");
+            extensions.push_back(platform_surface_ext());
         }
         return extensions;
     }
@@ -346,7 +348,7 @@ namespace orion::vulkan
                 .queue = transfer_queue,
             },
         };
-        return std::make_unique<VulkanDevice>(UniqueVkDevice(device), vulkan_queues);
+        return std::make_unique<VulkanDevice>(*instance_, physical_device, UniqueVkDevice(device), vulkan_queues);
     }
 
     void VulkanBackend::create_debug_messenger()
@@ -384,14 +386,14 @@ namespace orion::vulkan
                                                    void*)
     {
         if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            SPDLOG_LOGGER_ERROR(logger_raw(), "Message ID: {}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
+            SPDLOG_LOGGER_ERROR(logger_raw(), "Message ID: {:#x}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
             SPDLOG_LOGGER_ERROR(logger_raw(), "{}", callback_data->pMessage);
             SPDLOG_LOGGER_ERROR(logger_raw(), "Application will most likely crash now");
         } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            SPDLOG_LOGGER_WARN(logger_raw(), "Message ID: {}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
+            SPDLOG_LOGGER_WARN(logger_raw(), "Message ID: {:#x}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
             SPDLOG_LOGGER_WARN(logger_raw(), "{}", callback_data->pMessage);
         } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-            SPDLOG_LOGGER_INFO(logger_raw(), "Message ID: {}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
+            SPDLOG_LOGGER_INFO(logger_raw(), "Message ID: {:#x}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
             SPDLOG_LOGGER_INFO(logger_raw(), "{}", callback_data->pMessage);
         }
         return VK_FALSE;

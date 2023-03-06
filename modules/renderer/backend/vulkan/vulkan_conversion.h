@@ -3,11 +3,12 @@
 #include "orion-renderapi/types.h"
 #include "vulkan_headers.h"
 
-#include <string> // std::string
+#include <orion-math/vector/vector2.h> // math::Vector2
+#include <string>                      // std::string
 
 namespace orion::vulkan
 {
-    constexpr auto to_orion_type(VkPhysicalDeviceType physical_device_type) -> PhysicalDeviceType
+    constexpr auto to_orion_type(VkPhysicalDeviceType physical_device_type) noexcept -> PhysicalDeviceType
     {
         switch (physical_device_type) {
             case VK_PHYSICAL_DEVICE_TYPE_OTHER:
@@ -43,5 +44,20 @@ namespace orion::vulkan
             result += "Transfer | ";
         }
         return result.substr(0, result.size() - 3);
+    }
+
+    constexpr auto to_vulkan_type(Format format) noexcept -> VkFormat
+    {
+        switch (format) {
+            case Format::B8G8R8A8_SRGB:
+                return VK_FORMAT_B8G8R8A8_SRGB;
+        }
+        return VK_FORMAT_UNDEFINED;
+    }
+
+    template<typename T>
+    constexpr auto to_vulkan_extent(const math::Vector2_t<T>& vec2) noexcept -> VkExtent2D
+    {
+        return {.width = static_cast<std::uint32_t>(vec2.x()), .height = static_cast<std::uint32_t>(vec2.y())};
     }
 } // namespace orion::vulkan

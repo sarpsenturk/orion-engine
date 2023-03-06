@@ -25,7 +25,7 @@ namespace orion
         template<typename HandleType>
         auto make_handle_ref(HandleType value)
         {
-            return std::shared_ptr<HandleType>(new HandleType(value), [this](HandleType handle) { destroy(handle); });
+            return std::shared_ptr<HandleType>(new HandleType(value), [this](HandleType* handle) { destroy(*handle); });
         }
 
         [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) = 0;

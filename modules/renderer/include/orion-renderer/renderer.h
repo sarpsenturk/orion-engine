@@ -12,6 +12,8 @@ namespace orion
     public:
         explicit Renderer(const char* backend_module);
 
+        [[nodiscard]] auto device() const noexcept { return render_device_.get(); }
+
     private:
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;

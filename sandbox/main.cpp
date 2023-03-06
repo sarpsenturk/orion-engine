@@ -9,6 +9,11 @@ public:
         : window_({.name = "Orion Sandbox", .position = {400, 200}, .size = {800, 600}})
         , renderer_(ORION_VULKAN_MODULE)
     {
+        // Get the render device
+        auto device = renderer_.device();
+
+        // Create swapchain
+        swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = window_.size()});
     }
 
 private:
@@ -28,6 +33,7 @@ private:
 
     orion::Window window_;
     orion::Renderer renderer_;
+    orion::Swapchain swapchain_;
 };
 
 ORION_MAIN(args)

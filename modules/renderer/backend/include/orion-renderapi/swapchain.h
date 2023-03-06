@@ -8,6 +8,7 @@ namespace orion
     class Swapchain
     {
     public:
+        Swapchain() = default;
         Swapchain(SwapchainHandleRef handle, SwapchainDesc desc);
 
         [[nodiscard]] auto& handle() const noexcept { return handle_; }

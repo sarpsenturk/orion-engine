@@ -123,6 +123,9 @@ namespace orion
                 release();
             }
 
+            [[nodiscard]] auto& get_deleter() noexcept { return deleter_; }
+            [[nodiscard]] auto& get_deleter() const noexcept { return deleter_; }
+
             [[nodiscard]] auto get() const noexcept { return handle_; }
 
             [[nodiscard]] auto operator*() const noexcept { return handle_; }
@@ -195,8 +198,32 @@ namespace orion
             }
         };
 
+        struct SurfaceDeleter {
+            VkInstance instance;
+
+            void operator()(VkSurfaceKHR surface) const
+            {
+                ORION_ASSERT(instance != VK_NULL_HANDLE);
+                vkDestroySurfaceKHR(instance, surface, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkSurfaceKHR {}", fmt::ptr(surface));
+            }
+        };
+
+        struct SwapchainDeleter {
+            VkDevice device;
+
+            void operator()(VkSwapchainKHR swapchain) const
+            {
+                ORION_ASSERT(device != VK_NULL_HANDLE);
+                vkDestroySwapchainKHR(device, swapchain, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkSwapchainKHR {}", fmt::ptr(swapchain));
+            }
+        };
+
         using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
         using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
         using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
+        using UniqueVkSurfaceKHR = UniqueHandle<VkSurfaceKHR, SurfaceDeleter>;
+        using UniqueVkSwapchainKHR = UniqueHandle<VkSwapchainKHR, SwapchainDeleter>;
     } // namespace vulkan
 } // namespace orion
