@@ -1,6 +1,7 @@
 #pragma once
 
 #include "handles.h"
+#include "render_context.h"
 #include "swapchain.h"
 
 #include <orion-core/window.h> // orion::Window
@@ -14,6 +15,7 @@ namespace orion
         virtual ~RenderDevice() = default;
 
         [[nodiscard]] Swapchain create_swapchain(const Window& window, SwapchainDesc desc);
+        [[nodiscard]] virtual std::unique_ptr<RenderContext> create_render_context() = 0;
 
     protected:
         RenderDevice(const RenderDevice&) = default;

@@ -33,6 +33,9 @@ namespace orion
         // Create the render device
         render_device_ = render_backend_->create_device(selected_physical_device.index);
 
+        // Create the render context
+        render_context_ = render_device_->create_render_context();
+
         SPDLOG_DEBUG("Render backend \"{}\" initialized", render_backend_->name());
     }
 } // namespace orion

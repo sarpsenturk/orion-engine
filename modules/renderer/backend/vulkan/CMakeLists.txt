@@ -19,6 +19,7 @@ add_library(
         vulkan_device.h vulkan_device.cpp
         vulkan_headers.h
         vulkan_platform.h ${vulkan_platform_impl}
+        vulkan_render_context.h vulkan_render_context.cpp
         vulkan_swapchain.h vulkan_swapchain.cpp
         vulkan_types.h
 )

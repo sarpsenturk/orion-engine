@@ -5,6 +5,7 @@ target_sources(
         FILES
         handles.h
         render_backend.h
+        render_context.h
         render_device.h
         swapchain.h
         types.h

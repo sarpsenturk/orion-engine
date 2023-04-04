@@ -231,11 +231,23 @@ namespace orion
             }
         };
 
+        struct CommandPoolDeleter {
+            VkDevice device = VK_NULL_HANDLE;
+
+            void operator()(VkCommandPool command_pool) const
+            {
+                ORION_ASSERT(device != VK_NULL_HANDLE);
+                vkDestroyCommandPool(device, command_pool, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkCommandPool {}", fmt::ptr(command_pool));
+            }
+        };
+
         using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
         using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
         using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
         using UniqueVkSurfaceKHR = UniqueHandle<VkSurfaceKHR, SurfaceDeleter>;
         using UniqueVkSwapchainKHR = UniqueHandle<VkSwapchainKHR, SwapchainDeleter>;
         using UniqueVkImageView = UniqueHandle<VkImageView, ImageViewDeleter>;
+        using UniqueVkCommandPool = UniqueHandle<VkCommandPool, CommandPoolDeleter>;
     } // namespace vulkan
 } // namespace orion

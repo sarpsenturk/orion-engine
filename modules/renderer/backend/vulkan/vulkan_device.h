@@ -14,6 +14,8 @@ namespace orion::vulkan
     public:
         VulkanDevice(VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues);
 
+        std::unique_ptr<RenderContext> create_render_context() override;
+
     private:
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) override;
 

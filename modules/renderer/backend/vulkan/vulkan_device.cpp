@@ -2,6 +2,7 @@
 
 #include "vulkan_conversion.h"
 #include "vulkan_platform.h"
+#include "vulkan_render_context.h"
 
 #include <spdlog/spdlog.h> // SPDLOG_*
 #include <utility>         // std::exchange
@@ -14,6 +15,19 @@ namespace orion::vulkan
         , device_(std::move(device))
         , queues_(queues)
     {
+    }
+
+    std::unique_ptr<RenderContext> VulkanDevice::create_render_context()
+    {
+        const VkCommandPoolCreateInfo command_pool_create_info{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = queues_.graphics.index,
+        };
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        vk_result_check(vkCreateCommandPool(*device_, &command_pool_create_info, alloc_callbacks(), &command_pool));
+        return std::make_unique<VulkanRenderContext>(UniqueVkCommandPool{command_pool, CommandPoolDeleter{*device_}});
     }
 
     SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing)
