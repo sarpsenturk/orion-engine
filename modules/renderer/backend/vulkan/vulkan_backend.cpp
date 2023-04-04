@@ -376,7 +376,7 @@ namespace orion::vulkan
             vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(*instance_, &info, alloc_callbacks(), &debug_messenger));
             SPDLOG_LOGGER_TRACE(logger_raw(), "Created VkDebugUtilsMessenger {}", fmt::ptr(debug_messenger));
 
-            debug_messenger_ = UniqueVkDebugUtilsMessengerEXT(debug_messenger, {.instance = *instance_});
+            debug_messenger_ = UniqueVkDebugUtilsMessengerEXT(debug_messenger, DebugUtilsMessengerDeleter{*instance_});
         }
     }
 

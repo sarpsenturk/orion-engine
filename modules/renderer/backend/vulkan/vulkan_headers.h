@@ -186,7 +186,7 @@ namespace orion
         };
 
         struct DebugUtilsMessengerDeleter {
-            VkInstance instance;
+            VkInstance instance = VK_NULL_HANDLE;
             void operator()(VkDebugUtilsMessengerEXT debug_messenger) const
             {
                 ORION_ASSERT(instance != VK_NULL_HANDLE); // if debug_messenger is valid instance must be valid too
@@ -199,7 +199,7 @@ namespace orion
         };
 
         struct SurfaceDeleter {
-            VkInstance instance;
+            VkInstance instance = VK_NULL_HANDLE;
 
             void operator()(VkSurfaceKHR surface) const
             {
@@ -210,7 +210,7 @@ namespace orion
         };
 
         struct SwapchainDeleter {
-            VkDevice device;
+            VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkSwapchainKHR swapchain) const
             {
@@ -220,10 +220,22 @@ namespace orion
             }
         };
 
+        struct ImageViewDeleter {
+            VkDevice device = VK_NULL_HANDLE;
+
+            void operator()(VkImageView image_view) const
+            {
+                ORION_ASSERT(device != VK_NULL_HANDLE);
+                vkDestroyImageView(device, image_view, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkImageView {}", fmt::ptr(image_view));
+            }
+        };
+
         using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
         using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
         using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
         using UniqueVkSurfaceKHR = UniqueHandle<VkSurfaceKHR, SurfaceDeleter>;
         using UniqueVkSwapchainKHR = UniqueHandle<VkSwapchainKHR, SwapchainDeleter>;
+        using UniqueVkImageView = UniqueHandle<VkImageView, ImageViewDeleter>;
     } // namespace vulkan
 } // namespace orion
