@@ -104,7 +104,7 @@ namespace orion::vulkan
 
     static bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions)
     {
-        SPDLOG_LOGGER_TRACE(logger_raw(), "Checking support for {} enabled instance extensions...", enabled_extensions.size());
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Checking support for {} enabled extensions...", enabled_extensions.size());
         bool all_supported = true;
         for (const char* extension : enabled_extensions) {
             const auto pred = [extension](const VkExtensionProperties& extension_properties) { return std::strcmp(extension, extension_properties.extensionName) == 0; };
@@ -305,6 +305,7 @@ namespace orion::vulkan
         {
             const auto supported_extensions = get_supported_device_extensions(physical_device);
             if (!check_extensions_supported(enabled_extensions, supported_extensions)) {
+                throw VulkanException(VK_ERROR_EXTENSION_NOT_PRESENT);
             }
         }
 
