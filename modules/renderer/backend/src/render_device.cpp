@@ -10,4 +10,11 @@ namespace orion
         SPDLOG_DEBUG("Created swapchain with handle {}", handle);
         return {make_handle_ref(handle), desc};
     }
+
+    RenderPass RenderDevice::create_render_pass(const RenderPassDesc& desc)
+    {
+        auto handle = create_render_pass_api(desc, RenderPassHandle::invalid_handle());
+        SPDLOG_DEBUG("Created render pass with handle {}", handle);
+        return {make_handle_ref(handle)};
+    }
 } // namespace orion

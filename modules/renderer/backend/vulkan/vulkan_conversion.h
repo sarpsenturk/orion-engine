@@ -4,6 +4,7 @@
 #include "vulkan_headers.h"
 
 #include <orion-math/vector/vector2.h> // math::Vector2
+#include <orion-utils/assertion.h>     // ORION_ASSERT
 #include <string>                      // std::string
 
 namespace orion::vulkan
@@ -52,7 +53,48 @@ namespace orion::vulkan
             case Format::B8G8R8A8_SRGB:
                 return VK_FORMAT_B8G8R8A8_SRGB;
         }
-        return VK_FORMAT_UNDEFINED;
+        ORION_ASSERT(!"Invalid Format");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(AttachmentLoadOp load_op) -> VkAttachmentLoadOp
+    {
+        switch (load_op) {
+            case AttachmentLoadOp::Load:
+                return VK_ATTACHMENT_LOAD_OP_LOAD;
+            case AttachmentLoadOp::Clear:
+                return VK_ATTACHMENT_LOAD_OP_CLEAR;
+            case AttachmentLoadOp::DontCare:
+                return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        }
+        ORION_ASSERT(!"Invalid AttachmentLoadOp");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(AttachmentStoreOp store_op) -> VkAttachmentStoreOp
+    {
+        switch (store_op) {
+            case AttachmentStoreOp::Store:
+                return VK_ATTACHMENT_STORE_OP_STORE;
+            case AttachmentStoreOp::DontCare:
+                return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+        ORION_ASSERT(!"Invalid AttachmentStoreOp");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(ImageLayout image_layout) -> VkImageLayout
+    {
+        switch (image_layout) {
+            case ImageLayout::Undefined:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageLayout::ColorAttachment:
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            case ImageLayout::PresentSrc:
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        }
+        ORION_ASSERT(!"Invalid ImageLayout");
+        return {};
     }
 
     template<typename T>

@@ -14,6 +14,21 @@ public:
 
         // Create swapchain
         swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = window_.size()});
+
+        // Create render pass
+        const std::array color_attachments{
+            orion::AttachmentDesc{
+                .format = swapchain_.image_format(),
+                .load_op = orion::AttachmentLoadOp::Clear,
+                .store_op = orion::AttachmentStoreOp::Store,
+                .stencil_load_op = orion::AttachmentLoadOp::DontCare,
+                .stencil_store_op = orion::AttachmentStoreOp::DontCare,
+                .initial_layout = orion::ImageLayout::Undefined,
+                .layout = orion::ImageLayout::ColorAttachment,
+                .final_layout = orion::ImageLayout::PresentSrc,
+            },
+        };
+        render_pass_ = device->create_render_pass({.input_attachments = {}, .color_attachments = color_attachments});
     }
 
 private:
@@ -34,6 +49,7 @@ private:
     orion::Window window_;
     orion::Renderer renderer_;
     orion::Swapchain swapchain_;
+    orion::RenderPass render_pass_;
 };
 
 ORION_MAIN(args)

@@ -7,6 +7,7 @@ target_sources(
         render_backend.h
         render_context.h
         render_device.h
+        render_pass.h
         swapchain.h
         types.h
 )

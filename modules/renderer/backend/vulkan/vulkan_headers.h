@@ -44,11 +44,23 @@ namespace orion
         {
         }
 
-        [[nodiscard]] const char* type() const noexcept override { return "VulkanError"; }
-        [[nodiscard]] int return_code() const noexcept override { return vk_result_; }
-        [[nodiscard]] const char* what() const override { return result_string_.c_str(); }
+        [[nodiscard]] const char* type() const noexcept override
+        {
+            return "VulkanError";
+        }
+        [[nodiscard]] int return_code() const noexcept override
+        {
+            return vk_result_;
+        }
+        [[nodiscard]] const char* what() const override
+        {
+            return result_string_.c_str();
+        }
 
-        [[nodiscard]] auto result() const noexcept { return vk_result_; }
+        [[nodiscard]] auto result() const noexcept
+        {
+            return vk_result_;
+        }
 
     private:
         VkResult vk_result_;
@@ -99,7 +111,9 @@ namespace orion
             {
             }
 
-            UniqueHandle(std::nullptr_t) {}
+            UniqueHandle(std::nullptr_t)
+            {
+            }
 
             UniqueHandle(const UniqueHandle&) = delete;
 
@@ -123,14 +137,29 @@ namespace orion
                 release();
             }
 
-            [[nodiscard]] auto& get_deleter() noexcept { return deleter_; }
-            [[nodiscard]] auto& get_deleter() const noexcept { return deleter_; }
+            [[nodiscard]] auto& get_deleter() noexcept
+            {
+                return deleter_;
+            }
+            [[nodiscard]] auto& get_deleter() const noexcept
+            {
+                return deleter_;
+            }
 
-            [[nodiscard]] auto get() const noexcept { return handle_; }
+            [[nodiscard]] auto get() const noexcept
+            {
+                return handle_;
+            }
 
-            [[nodiscard]] auto operator*() const noexcept { return handle_; }
+            [[nodiscard]] auto operator*() const noexcept
+            {
+                return handle_;
+            }
 
-            [[nodiscard]] auto get_address_of() noexcept { return &handle_; }
+            [[nodiscard]] auto get_address_of() noexcept
+            {
+                return &handle_;
+            }
 
             [[nodiscard]] auto release_and_get_address_of() noexcept
             {
@@ -149,13 +178,22 @@ namespace orion
                 handle_ = handle;
             }
 
-            [[nodiscard]] operator bool() const noexcept { return handle_ != VK_NULL_HANDLE; }
+            [[nodiscard]] operator bool() const noexcept
+            {
+                return handle_ != VK_NULL_HANDLE;
+            }
 
             [[nodiscard]] friend bool operator==(const UniqueHandle& lhs, const UniqueHandle& rhs) noexcept = default;
 
-            [[nodiscard]] friend bool operator==(const UniqueHandle& unique_handle, Handle handle) noexcept { return *unique_handle == handle; }
+            [[nodiscard]] friend bool operator==(const UniqueHandle& unique_handle, Handle handle) noexcept
+            {
+                return *unique_handle == handle;
+            }
 
-            [[nodiscard]] friend bool operator==(Handle handle, const UniqueHandle& unique_handle) noexcept { return handle == *unique_handle; }
+            [[nodiscard]] friend bool operator==(Handle handle, const UniqueHandle& unique_handle) noexcept
+            {
+                return handle == *unique_handle;
+            }
 
         private:
             void release()
@@ -242,6 +280,17 @@ namespace orion
             }
         };
 
+        struct RenderPassDeleter {
+            VkDevice device = VK_NULL_HANDLE;
+
+            void operator()(VkRenderPass render_pass) const
+            {
+                ORION_ASSERT(device != VK_NULL_HANDLE);
+                vkDestroyRenderPass(device, render_pass, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkRenderPass {}", fmt::ptr(render_pass));
+            }
+        };
+
         using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
         using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
         using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -249,5 +298,6 @@ namespace orion
         using UniqueVkSwapchainKHR = UniqueHandle<VkSwapchainKHR, SwapchainDeleter>;
         using UniqueVkImageView = UniqueHandle<VkImageView, ImageViewDeleter>;
         using UniqueVkCommandPool = UniqueHandle<VkCommandPool, CommandPoolDeleter>;
+        using UniqueVkRenderPass = UniqueHandle<VkRenderPass, RenderPassDeleter>;
     } // namespace vulkan
 } // namespace orion
