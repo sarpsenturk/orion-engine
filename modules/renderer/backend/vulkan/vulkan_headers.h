@@ -227,7 +227,7 @@ namespace orion
             VkInstance instance = VK_NULL_HANDLE;
             void operator()(VkDebugUtilsMessengerEXT debug_messenger) const
             {
-                ORION_ASSERT(instance != VK_NULL_HANDLE); // if debug_messenger is valid instance must be valid too
+                ORION_EXPECTS(instance != VK_NULL_HANDLE);
                 static const auto pfn_vkDestroyDebugUtilsMessengerEXT = [this]() {
                     return reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
                 }();
@@ -241,7 +241,7 @@ namespace orion
 
             void operator()(VkSurfaceKHR surface) const
             {
-                ORION_ASSERT(instance != VK_NULL_HANDLE);
+                ORION_EXPECTS(instance != VK_NULL_HANDLE);
                 vkDestroySurfaceKHR(instance, surface, alloc_callbacks());
                 SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkSurfaceKHR {}", fmt::ptr(surface));
             }
@@ -252,7 +252,7 @@ namespace orion
 
             void operator()(VkSwapchainKHR swapchain) const
             {
-                ORION_ASSERT(device != VK_NULL_HANDLE);
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
                 vkDestroySwapchainKHR(device, swapchain, alloc_callbacks());
                 SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkSwapchainKHR {}", fmt::ptr(swapchain));
             }
@@ -263,7 +263,7 @@ namespace orion
 
             void operator()(VkImageView image_view) const
             {
-                ORION_ASSERT(device != VK_NULL_HANDLE);
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
                 vkDestroyImageView(device, image_view, alloc_callbacks());
                 SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkImageView {}", fmt::ptr(image_view));
             }
@@ -274,7 +274,7 @@ namespace orion
 
             void operator()(VkCommandPool command_pool) const
             {
-                ORION_ASSERT(device != VK_NULL_HANDLE);
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
                 vkDestroyCommandPool(device, command_pool, alloc_callbacks());
                 SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkCommandPool {}", fmt::ptr(command_pool));
             }
@@ -285,9 +285,20 @@ namespace orion
 
             void operator()(VkRenderPass render_pass) const
             {
-                ORION_ASSERT(device != VK_NULL_HANDLE);
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
                 vkDestroyRenderPass(device, render_pass, alloc_callbacks());
                 SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkRenderPass {}", fmt::ptr(render_pass));
+            }
+        };
+
+        struct FramebufferDeleter {
+            VkDevice device = VK_NULL_HANDLE;
+
+            void operator()(VkFramebuffer framebuffer) const
+            {
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
+                vkDestroyFramebuffer(device, framebuffer, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkFramebuffer {}", fmt::ptr(framebuffer));
             }
         };
 
@@ -299,5 +310,12 @@ namespace orion
         using UniqueVkImageView = UniqueHandle<VkImageView, ImageViewDeleter>;
         using UniqueVkCommandPool = UniqueHandle<VkCommandPool, CommandPoolDeleter>;
         using UniqueVkRenderPass = UniqueHandle<VkRenderPass, RenderPassDeleter>;
+        using UniqueVkFramebuffer = UniqueHandle<VkFramebuffer, FramebufferDeleter>;
+
+        template<typename HandleType, typename T>
+        HandleType make_unique_device(T vk_obj, VkDevice device)
+        {
+            return HandleType{vk_obj, {device}};
+        }
     } // namespace vulkan
 } // namespace orion

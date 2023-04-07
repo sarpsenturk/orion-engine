@@ -2,6 +2,8 @@
 
 #include "vulkan_headers.h"
 
+#include <vector> // std::vector
+
 namespace orion::vulkan
 {
     class VulkanSwapchain
@@ -9,8 +11,9 @@ namespace orion::vulkan
     public:
         VulkanSwapchain(UniqueVkSurfaceKHR surface,
                         UniqueVkSwapchainKHR swapchain,
+                        UniqueVkRenderPass render_pass,
                         std::vector<UniqueVkImageView> image_views,
-                        UniqueVkRenderPass render_pass);
+                        std::vector<UniqueVkFramebuffer> framebuffers);
 
         [[nodiscard]] auto surface() const noexcept { return surface_.get(); }
         [[nodiscard]] auto swapchain() const noexcept { return swapchain_.get(); }
@@ -18,7 +21,8 @@ namespace orion::vulkan
     private:
         UniqueVkSurfaceKHR surface_;
         UniqueVkSwapchainKHR swapchain_;
-        std::vector<UniqueVkImageView> image_views_;
         UniqueVkRenderPass render_pass_;
+        std::vector<UniqueVkImageView> image_views_;
+        std::vector<UniqueVkFramebuffer> framebuffers_;
     };
 } // namespace orion::vulkan
