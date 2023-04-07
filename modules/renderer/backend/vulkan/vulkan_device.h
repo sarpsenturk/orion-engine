@@ -19,10 +19,8 @@ namespace orion::vulkan
 
     private:
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) override;
-        RenderPassHandle create_render_pass_api(const RenderPassDesc& desc, RenderPassHandle existing) override;
 
         void destroy(SwapchainHandle swapchain_handle) override;
-        void destroy(RenderPassHandle render_pass_handle) override;
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
@@ -30,6 +28,5 @@ namespace orion::vulkan
         VulkanQueues queues_;
 
         std::unordered_map<SwapchainHandle, VulkanSwapchain> swapchains_;
-        std::unordered_map<RenderPassHandle, UniqueVkRenderPass> render_passes_;
     };
 } // namespace orion::vulkan

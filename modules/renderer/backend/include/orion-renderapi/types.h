@@ -56,37 +56,4 @@ namespace orion
         Format image_format;
         math::Vector2_u image_size;
     };
-
-    enum class AttachmentLoadOp {
-        Load,
-        Clear,
-        DontCare
-    };
-
-    enum class AttachmentStoreOp {
-        Store,
-        DontCare
-    };
-
-    enum class ImageLayout {
-        Undefined = 0,
-        ColorAttachment,
-        PresentSrc
-    };
-
-    struct AttachmentDesc {
-        Format format;
-        AttachmentLoadOp load_op;
-        AttachmentStoreOp store_op;
-        AttachmentLoadOp stencil_load_op;
-        AttachmentStoreOp stencil_store_op;
-        ImageLayout initial_layout;
-        ImageLayout layout;
-        ImageLayout final_layout;
-    };
-
-    struct RenderPassDesc {
-        std::span<const AttachmentDesc> input_attachments;
-        std::span<const AttachmentDesc> color_attachments;
-    };
 } // namespace orion
