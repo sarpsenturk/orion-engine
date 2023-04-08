@@ -1,6 +1,7 @@
 #include <orion-core/window.h>
 #include <orion-engine/orion-engine.h>
 #include <orion-renderer/renderer.h>
+#include <orion-renderer/shader_compiler.h>
 
 class SandboxApp : public orion::Application
 {
@@ -14,6 +15,9 @@ public:
 
         // Create swapchain
         swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = window_.size()});
+
+        // Create shader compiler
+        auto shader_compiler = orion::ShaderCompiler();
     }
 
 private:

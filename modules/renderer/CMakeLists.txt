@@ -17,13 +17,19 @@ target_include_directories(orion-renderer PUBLIC include/)
 # Backend interface library
 add_subdirectory(backend)
 
+# Shader compilation library
+include(shaders.cmake)
+
 # Link with dependencies
 target_link_libraries(
-        orion-renderer PUBLIC
+        orion-renderer
+        PUBLIC
         orion-render-backend
         orion::core
         orion::math
         orion::utils
+        PRIVATE
+        dxcompiler
 )
 
 # Create file set for public headers
