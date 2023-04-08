@@ -7,6 +7,12 @@
 #include <memory> // std::unique_ptr
 #include <vector> // std::vector
 
+#ifdef ORION_RENDER_BACKEND_EXPORT
+    #define ORION_RENDER_API ORION_EXPORT
+#else
+    #define ORION_RENDER_API ORION_IMPORT
+#endif
+
 namespace orion
 {
     class RenderBackend
@@ -32,4 +38,4 @@ namespace orion
     };
 } // namespace orion
 
-extern "C" ORION_EXPORT orion::RenderBackend* create_render_backend();
+extern "C" ORION_RENDER_API orion::RenderBackend* create_render_backend();

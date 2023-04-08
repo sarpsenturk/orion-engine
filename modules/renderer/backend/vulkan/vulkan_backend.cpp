@@ -14,7 +14,7 @@
 #include <unordered_set>                     // std::unordered_set
 #include <utility>                           // std::exchange
 
-extern "C" ORION_EXPORT orion::RenderBackend* create_render_backend()
+extern "C" ORION_RENDER_API orion::RenderBackend* create_render_backend()
 {
     try {
         // Initialize the vulkan backend

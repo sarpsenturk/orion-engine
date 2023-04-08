@@ -24,6 +24,9 @@ add_library(
         vulkan_types.h
 )
 
+# Set library to export
+target_compile_definitions(${ORION_VULKAN_MODULE} PRIVATE ORION_RENDER_BACKEND_EXPORT)
+
 # Find vulkan dependency
 find_package(Vulkan REQUIRED)
 
