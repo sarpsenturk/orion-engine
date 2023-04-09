@@ -45,18 +45,6 @@ namespace orion
         return "Other";
     }
 
-    struct PhysicalDeviceDesc {
-        std::uint32_t index;
-        PhysicalDeviceType type;
-        std::string name;
-    };
-
-    struct SwapchainDesc {
-        std::uint32_t image_count;
-        Format image_format;
-        math::Vector2_u image_size;
-    };
-
     enum class ShaderType {
         Vertex,
         Fragment

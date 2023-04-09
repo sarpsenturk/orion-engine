@@ -15,6 +15,12 @@
 
 namespace orion
 {
+    struct PhysicalDeviceDesc {
+        std::uint32_t index;
+        PhysicalDeviceType type;
+        std::string name;
+    };
+
     class RenderBackend
     {
     public:
