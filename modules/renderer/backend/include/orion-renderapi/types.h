@@ -56,4 +56,9 @@ namespace orion
         Format image_format;
         math::Vector2_u image_size;
     };
+
+    enum class ShaderType {
+        Vertex,
+        Fragment
+    };
 } // namespace orion

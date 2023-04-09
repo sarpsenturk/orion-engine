@@ -1,8 +1,14 @@
 #pragma once
 
-#include <memory>                 // std::unique_ptr
+#include "orion-core/config.h"
+#include "orion-renderapi/types.h"
+
+#include <cstddef>                // std::byte
+#include <memory>                 // std::unique_ptr, std::shared_ptr
 #include <orion-core/exception.h> // orion::Exception
-#include <spdlog/spdlog.h>        // SPDLOG_*
+#include <spdlog/logger.h>        // spdlog::logger
+#include <string_view>            // std::string_view
+#include <vector>                 // std::vector
 
 namespace orion
 {
@@ -18,6 +24,23 @@ namespace orion
         long hresult_;
     };
 
+    enum class ShaderCompileError : int {
+        InternalError,
+        CompilationFail
+    };
+
+    class DxcCompileError : public OrionException
+    {
+    public:
+        explicit DxcCompileError(ShaderCompileError compile_error);
+
+        [[nodiscard]] const char* type() const noexcept override { return "DxcCompileError"; }
+        [[nodiscard]] int return_code() const noexcept override { return static_cast<int>(compile_error_); }
+
+    private:
+        ShaderCompileError compile_error_;
+    };
+
     namespace detail
     {
         struct DxcInstance;
@@ -26,10 +49,24 @@ namespace orion
         using DxcInstancePtr = std::unique_ptr<DxcInstance, decltype(&dxc_destroy_instance)>;
     } // namespace detail
 
+    struct ShaderCompileDesc {
+        std::string_view shader_source;
+        const char* entry_point = "main";
+        ShaderType shader_type;
+        bool enable_debug = orion::debug_build;
+    };
+
+    struct ShaderCompileResult {
+        std::vector<std::byte> binary;
+        std::byte hash[16];
+    };
+
     class ShaderCompiler
     {
     public:
         ShaderCompiler();
+
+        ShaderCompileResult compile(const ShaderCompileDesc& compile_desc);
 
         static auto logger() { return s_logger.get(); }
 
