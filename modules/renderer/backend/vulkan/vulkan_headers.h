@@ -302,6 +302,17 @@ namespace orion
             }
         };
 
+        struct ShaderModuleDeleter {
+            VkDevice device = VK_NULL_HANDLE;
+
+            void operator()(VkShaderModule shader_module) const
+            {
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
+                vkDestroyShaderModule(device, shader_module, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkShaderModule {}", fmt::ptr(shader_module));
+            }
+        };
+
         using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
         using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
         using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -311,6 +322,7 @@ namespace orion
         using UniqueVkCommandPool = UniqueHandle<VkCommandPool, CommandPoolDeleter>;
         using UniqueVkRenderPass = UniqueHandle<VkRenderPass, RenderPassDeleter>;
         using UniqueVkFramebuffer = UniqueHandle<VkFramebuffer, FramebufferDeleter>;
+        using UniqueVkShaderModule = UniqueHandle<VkShaderModule, ShaderModuleDeleter>;
 
         template<typename HandleType, typename T>
         HandleType make_unique_device(T vk_obj, VkDevice device)

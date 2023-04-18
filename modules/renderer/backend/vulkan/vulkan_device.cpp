@@ -213,8 +213,35 @@ namespace orion::vulkan
         return handle;
     }
 
+    ShaderModuleHandle VulkanDevice::create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing)
+    {
+        // Convert to std::byte data to uint32_t
+        std::vector<std::uint32_t> spirv(desc.byte_code.size_bytes() / sizeof(std::uint32_t));
+        std::memcpy(spirv.data(), desc.byte_code.data(), desc.byte_code.size_bytes());
+
+        const VkShaderModuleCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .codeSize = desc.byte_code.size_bytes(),
+            .pCode = spirv.data(),
+        };
+        VkShaderModule shader_module = VK_NULL_HANDLE;
+        vk_result_check(vkCreateShaderModule(*device_, &info, alloc_callbacks(), &shader_module));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkShaderModule {}", fmt::ptr(shader_module));
+
+        auto handle = existing.is_valid() ? existing : ShaderModuleHandle::generate();
+        shader_modules_.insert_or_assign(handle, UniqueVkShaderModule{shader_module, ShaderModuleDeleter{*device_}});
+        return handle;
+    }
+
     void VulkanDevice::destroy(SwapchainHandle swapchain_handle)
     {
         swapchains_.erase(swapchain_handle);
+    }
+
+    void VulkanDevice::destroy(ShaderModuleHandle shader_module_handle)
+    {
+        shader_modules_.erase(shader_module_handle);
     }
 } // namespace orion::vulkan

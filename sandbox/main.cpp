@@ -40,8 +40,9 @@ VsOutput main(VsInput input)
     return output;
 }
 )";
-        const auto vs_compile_result = shader_compiler.compile({.shader_source = vs_source, .shader_type = orion::ShaderType::Vertex});
+        const auto vs_compile_result = shader_compiler.compile({.shader_source = vs_source, .shader_type = orion::ShaderType::Vertex, .object_type = orion::ShaderObjectType::SpirV});
         SPDLOG_INFO("Vertex shader binary size: {}", vs_compile_result.binary.size());
+        const auto vs_module = device->create_shader_module({.byte_code = vs_compile_result.binary});
 
         // Compile fragment shader
         const auto fs_source = R"(
@@ -55,8 +56,9 @@ float4 main(FsInput input) : SV_Target
     return input.color;
 }
 )";
-        const auto fs_compile_result = shader_compiler.compile({.shader_source = fs_source, .shader_type = orion::ShaderType::Fragment});
+        const auto fs_compile_result = shader_compiler.compile({.shader_source = fs_source, .shader_type = orion::ShaderType::Fragment, .object_type = orion::ShaderObjectType::SpirV});
         SPDLOG_INFO("Fragment shader binary size: {}", fs_compile_result.binary.size());
+        const auto fs_module = device->create_shader_module({.byte_code = vs_compile_result.binary});
     }
 
 private:
