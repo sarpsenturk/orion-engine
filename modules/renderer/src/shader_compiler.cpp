@@ -1,7 +1,11 @@
 #include "orion-renderer/shader_compiler.h"
 
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEA
+
 #include "dxc_include.h"
 #include "orion-utils/assertion.h"
+#include "orion-utils/static_vector.h"
 
 #include <cstring>                           // std::memcpy
 #include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_mt
@@ -56,8 +60,9 @@ namespace orion
     {
     }
 
-    DxcCompileError::DxcCompileError(ShaderCompileError compile_error)
+    DxcCompileError::DxcCompileError(ShaderCompileError compile_error, const char* msg)
         : compile_error_(compile_error)
+        , msg_(msg)
     {
     }
 
@@ -116,31 +121,37 @@ namespace orion
         const auto entry_point = to_wstring(compile_desc.entry_point);
 
         // Arguments passed to dxc. Must be WSTRING
-        // clang-format off
-        std::array arguments{
-            L"-E", entry_point.c_str(),
-            L"-T", to_shader_profile(compile_desc.shader_type),
-        };
-        // clang-format on
-        ORION_ASSERT(arguments.size() <= UINT32_MAX);
+        static constexpr std::size_t max_arguments = 32;
+        static_vector<const wchar_t*, max_arguments> arguments;
+        arguments.push_back(L"-E");
+        arguments.push_back(entry_point.c_str());
+        arguments.push_back(L"-T");
+        arguments.push_back(to_shader_profile(compile_desc.shader_type));
+        if (compile_desc.object_type == ShaderObjectType::SpirV) {
+            arguments.push_back(L"-spirv");
+            if (compile_desc.shader_type == ShaderType::Vertex) {
+                arguments.push_back(L"-fvk-invert-y");
+            }
+        }
 
+        // Local refs to dxc objects
         auto compiler = dxc_instance_->compiler;
         auto include_handler = dxc_instance_->include_handler;
 
         // Throw internal error exception on hresult failure with on a function call
-        auto hresult_check = [](HRESULT hr) {
+        auto hresult_check = [](HRESULT hr, const char* msg) {
             if (FAILED(hr)) {
-                throw DxcCompileError(ShaderCompileError::InternalError);
+                throw DxcCompileError(ShaderCompileError::InternalError, msg);
             }
         };
 
         // Compile and check for failed HRESULT. Additional error checking is performed after by checking the error buffer
         CComPtr<IDxcResult> results;
-        hresult_check(compiler->Compile(&dxc_buffer, arguments.data(), static_cast<std::uint32_t>(arguments.size()), include_handler.p, IID_PPV_ARGS(&results)));
+        hresult_check(compiler->Compile(&dxc_buffer, arguments.data(), static_cast<std::uint32_t>(arguments.size()), include_handler.p, IID_PPV_ARGS(&results)), "Call to Compile() failed");
 
         // Check error buffer
         CComPtr<IDxcBlobUtf8> errors = nullptr;
-        hresult_check(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr));
+        hresult_check(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr), "GetOutput(DXC_OUT_ERRORS) failed");
         if (errors != nullptr && errors->GetStringLength() != 0) {
             SPDLOG_LOGGER_ERROR(logger(), "Shader compilation errors:");
             SPDLOG_LOGGER_ERROR(logger(), "{}", errors->GetStringPointer());
@@ -148,26 +159,18 @@ namespace orion
 
         // Quit if compilation failed
         HRESULT compilation_status;
-        hresult_check(results->GetStatus(&compilation_status));
+        hresult_check(results->GetStatus(&compilation_status), "GetStatus() failed");
         if (FAILED(compilation_status)) {
             SPDLOG_LOGGER_ERROR(logger(), "Shader compilation failed!");
-            throw DxcCompileError(ShaderCompileError::CompilationFail);
+            throw DxcCompileError(ShaderCompileError::CompilationFail, nullptr);
         }
 
         // The returned compile result
         ShaderCompileResult compile_result;
 
-        // Get the shader hash
-        CComPtr<IDxcBlob> shader_hash = nullptr;
-        hresult_check(results->GetOutput(DXC_OUT_SHADER_HASH, IID_PPV_ARGS(&shader_hash), nullptr));
-        if (shader_hash != nullptr) {
-            auto* hash = reinterpret_cast<DxcShaderHash*>(shader_hash->GetBufferPointer());
-            std::memcpy(compile_result.hash, hash->HashDigest, 16);
-        }
-
         // Get the object code
         CComPtr<IDxcBlob> shader_binary = nullptr;
-        hresult_check(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader_binary), nullptr));
+        hresult_check(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader_binary), nullptr), "GetOutput(DXC_OUT_OBJECT) failed");
         if (shader_binary != nullptr) {
             compile_result.binary.resize(shader_binary->GetBufferSize());
             std::memcpy(compile_result.binary.data(), shader_binary->GetBufferPointer(), shader_binary->GetBufferSize());

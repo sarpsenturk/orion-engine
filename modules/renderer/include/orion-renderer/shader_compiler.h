@@ -32,13 +32,15 @@ namespace orion
     class DxcCompileError : public OrionException
     {
     public:
-        explicit DxcCompileError(ShaderCompileError compile_error);
+        DxcCompileError(ShaderCompileError compile_error, const char* msg = "Shader compilation error");
 
         [[nodiscard]] const char* type() const noexcept override { return "DxcCompileError"; }
         [[nodiscard]] int return_code() const noexcept override { return static_cast<int>(compile_error_); }
+        const char* what() const override { return msg_; }
 
     private:
         ShaderCompileError compile_error_;
+        const char* msg_;
     };
 
     namespace detail
@@ -49,16 +51,21 @@ namespace orion
         using DxcInstancePtr = std::unique_ptr<DxcInstance, decltype(&dxc_destroy_instance)>;
     } // namespace detail
 
+    enum class ShaderObjectType {
+        SpirV,
+        Dxil
+    };
+
     struct ShaderCompileDesc {
         std::string_view shader_source;
         const char* entry_point = "main";
         ShaderType shader_type;
         bool enable_debug = orion::debug_build;
+        ShaderObjectType object_type;
     };
 
     struct ShaderCompileResult {
         std::vector<std::byte> binary;
-        std::byte hash[16];
     };
 
     class ShaderCompiler
