@@ -16,6 +16,8 @@ namespace orion
     public:
         ShaderModule(ShaderModuleHandleRef handle);
 
+        [[nodiscard]] auto handle() const noexcept { return *handle_; }
+
     private:
         ShaderModuleHandleRef handle_;
     };
