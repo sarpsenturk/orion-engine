@@ -14,7 +14,7 @@ namespace orion::vulkan
         const VkCommandBufferAllocateInfo info{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .pNext = nullptr,
-            .commandPool = *command_pool_,
+            .commandPool = command_pool_.get(),
             .level = level,
             .commandBufferCount = 1,
         };
@@ -29,7 +29,7 @@ namespace orion::vulkan
         const VkCommandBufferAllocateInfo info{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .pNext = nullptr,
-            .commandPool = *command_pool_,
+            .commandPool = command_pool_.get(),
             .level = level,
             .commandBufferCount = count,
         };

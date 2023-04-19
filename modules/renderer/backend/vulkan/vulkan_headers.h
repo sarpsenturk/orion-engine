@@ -4,6 +4,7 @@
 #include "orion-core/types.h"     // orion::Version
 #include "orion-vulkan/config.h"
 
+#include <memory>                  // std::unique_ptr
 #include <orion-utils/assertion.h> // ORION_ASSERT
 #include <spdlog/spdlog.h>         // spdlog::logger
 #include <string>                  // std::string
@@ -99,115 +100,9 @@ namespace orion
 
         spdlog::logger* logger_raw();
 
-        template<typename Handle, typename Deleter>
-        class UniqueHandle
-        {
-        public:
-            UniqueHandle() = default;
-
-            explicit UniqueHandle(Handle handle, Deleter deleter = {})
-                : handle_(handle)
-                , deleter_(std::move(deleter))
-            {
-            }
-
-            UniqueHandle(std::nullptr_t)
-            {
-            }
-
-            UniqueHandle(const UniqueHandle&) = delete;
-
-            UniqueHandle(UniqueHandle&& other) noexcept
-                : handle_(std::exchange(other.handle_, VK_NULL_HANDLE))
-                , deleter_(std::move(other.deleter_))
-            {
-            }
-
-            UniqueHandle& operator=(const UniqueHandle&) = delete;
-
-            UniqueHandle& operator=(UniqueHandle&& other) noexcept
-            {
-                handle_ = std::exchange(other.handle_, VK_NULL_HANDLE);
-                deleter_ = std::move(other.deleter_);
-                return *this;
-            }
-
-            ~UniqueHandle()
-            {
-                release();
-            }
-
-            [[nodiscard]] auto& get_deleter() noexcept
-            {
-                return deleter_;
-            }
-            [[nodiscard]] auto& get_deleter() const noexcept
-            {
-                return deleter_;
-            }
-
-            [[nodiscard]] auto get() const noexcept
-            {
-                return handle_;
-            }
-
-            [[nodiscard]] auto operator*() const noexcept
-            {
-                return handle_;
-            }
-
-            [[nodiscard]] auto get_address_of() noexcept
-            {
-                return &handle_;
-            }
-
-            [[nodiscard]] auto release_and_get_address_of() noexcept
-            {
-                release();
-                return &handle_;
-            }
-
-            [[nodiscard]] auto operator&() noexcept
-            {
-                return release_and_get_address_of();
-            }
-
-            void reset(Handle handle = VK_NULL_HANDLE) noexcept
-            {
-                release();
-                handle_ = handle;
-            }
-
-            [[nodiscard]] operator bool() const noexcept
-            {
-                return handle_ != VK_NULL_HANDLE;
-            }
-
-            [[nodiscard]] friend bool operator==(const UniqueHandle& lhs, const UniqueHandle& rhs) noexcept = default;
-
-            [[nodiscard]] friend bool operator==(const UniqueHandle& unique_handle, Handle handle) noexcept
-            {
-                return *unique_handle == handle;
-            }
-
-            [[nodiscard]] friend bool operator==(Handle handle, const UniqueHandle& unique_handle) noexcept
-            {
-                return handle == *unique_handle;
-            }
-
-        private:
-            void release()
-            {
-                if (handle_ != VK_NULL_HANDLE) {
-                    deleter_(handle_);
-                }
-            }
-
-            Handle handle_ = VK_NULL_HANDLE;
-            Deleter deleter_ = {};
-        };
-
         struct InstanceDeleter {
+            using pointer = VkInstance;
+
             void operator()(VkInstance instance) const
             {
                 vkDestroyInstance(instance, alloc_callbacks());
@@ -216,6 +111,8 @@ namespace orion
         };
 
         struct DeviceDeleter {
+            using pointer = VkDevice;
+
             void operator()(VkDevice device) const
             {
                 vkDestroyDevice(device, alloc_callbacks());
@@ -224,7 +121,9 @@ namespace orion
         };
 
         struct DebugUtilsMessengerDeleter {
+            using pointer = VkDebugUtilsMessengerEXT;
             VkInstance instance = VK_NULL_HANDLE;
+
             void operator()(VkDebugUtilsMessengerEXT debug_messenger) const
             {
                 ORION_EXPECTS(instance != VK_NULL_HANDLE);
@@ -237,6 +136,7 @@ namespace orion
         };
 
         struct SurfaceDeleter {
+            using pointer = VkSurfaceKHR;
             VkInstance instance = VK_NULL_HANDLE;
 
             void operator()(VkSurfaceKHR surface) const
@@ -248,6 +148,7 @@ namespace orion
         };
 
         struct SwapchainDeleter {
+            using pointer = VkSwapchainKHR;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkSwapchainKHR swapchain) const
@@ -259,6 +160,7 @@ namespace orion
         };
 
         struct ImageViewDeleter {
+            using pointer = VkImageView;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkImageView image_view) const
@@ -270,6 +172,7 @@ namespace orion
         };
 
         struct CommandPoolDeleter {
+            using pointer = VkCommandPool;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkCommandPool command_pool) const
@@ -281,6 +184,7 @@ namespace orion
         };
 
         struct RenderPassDeleter {
+            using pointer = VkRenderPass;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkRenderPass render_pass) const
@@ -292,6 +196,7 @@ namespace orion
         };
 
         struct FramebufferDeleter {
+            using pointer = VkFramebuffer;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkFramebuffer framebuffer) const
@@ -303,6 +208,7 @@ namespace orion
         };
 
         struct ShaderModuleDeleter {
+            using pointer = VkShaderModule;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkShaderModule shader_module) const
@@ -314,6 +220,7 @@ namespace orion
         };
 
         struct PipelineLayoutDeleter {
+            using pointer = VkPipelineLayout;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkPipelineLayout pipeline_layout) const
@@ -325,6 +232,7 @@ namespace orion
         };
 
         struct PipelineDeleter {
+            using pointer = VkPipeline;
             VkDevice device = VK_NULL_HANDLE;
 
             void operator()(VkPipeline pipeline) const
@@ -335,23 +243,17 @@ namespace orion
             }
         };
 
-        using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
-        using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
-        using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
-        using UniqueVkSurfaceKHR = UniqueHandle<VkSurfaceKHR, SurfaceDeleter>;
-        using UniqueVkSwapchainKHR = UniqueHandle<VkSwapchainKHR, SwapchainDeleter>;
-        using UniqueVkImageView = UniqueHandle<VkImageView, ImageViewDeleter>;
-        using UniqueVkCommandPool = UniqueHandle<VkCommandPool, CommandPoolDeleter>;
-        using UniqueVkRenderPass = UniqueHandle<VkRenderPass, RenderPassDeleter>;
-        using UniqueVkFramebuffer = UniqueHandle<VkFramebuffer, FramebufferDeleter>;
-        using UniqueVkShaderModule = UniqueHandle<VkShaderModule, ShaderModuleDeleter>;
-        using UniqueVkPipelineLayout = UniqueHandle<VkPipelineLayout, PipelineLayoutDeleter>;
-        using UniqueVkPipeline = UniqueHandle<VkPipeline, PipelineDeleter>;
-
-        template<typename HandleType, typename T>
-        HandleType make_unique_device(T vk_obj, VkDevice device)
-        {
-            return HandleType{vk_obj, {device}};
-        }
+        using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
+        using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
+        using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
+        using UniqueVkSurfaceKHR = std::unique_ptr<VkSurfaceKHR, SurfaceDeleter>;
+        using UniqueVkSwapchainKHR = std::unique_ptr<VkSwapchainKHR, SwapchainDeleter>;
+        using UniqueVkImageView = std::unique_ptr<VkImageView, ImageViewDeleter>;
+        using UniqueVkCommandPool = std::unique_ptr<VkCommandPool, CommandPoolDeleter>;
+        using UniqueVkRenderPass = std::unique_ptr<VkRenderPass, RenderPassDeleter>;
+        using UniqueVkFramebuffer = std::unique_ptr<VkFramebuffer, FramebufferDeleter>;
+        using UniqueVkShaderModule = std::unique_ptr<VkShaderModule, ShaderModuleDeleter>;
+        using UniqueVkPipelineLayout = std::unique_ptr<VkPipelineLayout, PipelineLayoutDeleter>;
+        using UniqueVkPipeline = std::unique_ptr<VkPipeline, PipelineDeleter>;
     } // namespace vulkan
 } // namespace orion

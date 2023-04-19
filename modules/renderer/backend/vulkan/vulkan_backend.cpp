@@ -197,8 +197,10 @@ namespace orion::vulkan
             .ppEnabledExtensionNames = enabled_extensions.data(),
         };
 
-        vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance_));
-        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkInstance {}", fmt::ptr(*instance_));
+        VkInstance instance = VK_NULL_HANDLE;
+        vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkInstance {}", fmt::ptr(instance));
+        instance_ = {instance, {}};
 
         if constexpr (debug_build) {
             create_debug_messenger();
@@ -215,9 +217,9 @@ namespace orion::vulkan
             // Enumerate the physical devices
             {
                 std::uint32_t count = 0;
-                vk_result_check(vkEnumeratePhysicalDevices(*instance_, &count, nullptr));
+                vk_result_check(vkEnumeratePhysicalDevices(instance_.get(), &count, nullptr));
                 physical_devices_.resize(count);
-                vk_result_check(vkEnumeratePhysicalDevices(*instance_, &count, physical_devices_.data()));
+                vk_result_check(vkEnumeratePhysicalDevices(instance_.get(), &count, physical_devices_.data()));
             }
 
             // Enumerate the device properties
@@ -349,7 +351,7 @@ namespace orion::vulkan
                 .queue = transfer_queue,
             },
         };
-        return std::make_unique<VulkanDevice>(*instance_, physical_device, UniqueVkDevice(device), vulkan_queues);
+        return std::make_unique<VulkanDevice>(instance_.get(), physical_device, UniqueVkDevice(device), vulkan_queues);
     }
 
     void VulkanBackend::create_debug_messenger()
@@ -358,7 +360,7 @@ namespace orion::vulkan
 
         // Get creation function pointer
         static const auto pfn_vkCreateDebugUtilsMessengerEXT = [this]() {
-            return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(*instance_, "vkCreateDebugUtilsMessengerEXT"));
+            return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance_.get(), "vkCreateDebugUtilsMessengerEXT"));
         }();
 
         // Create the debug messenger
@@ -374,10 +376,10 @@ namespace orion::vulkan
             };
 
             VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
-            vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(*instance_, &info, alloc_callbacks(), &debug_messenger));
+            vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance_.get(), &info, alloc_callbacks(), &debug_messenger));
             SPDLOG_LOGGER_TRACE(logger_raw(), "Created VkDebugUtilsMessenger {}", fmt::ptr(debug_messenger));
 
-            debug_messenger_ = UniqueVkDebugUtilsMessengerEXT(debug_messenger, DebugUtilsMessengerDeleter{*instance_});
+            debug_messenger_ = UniqueVkDebugUtilsMessengerEXT(debug_messenger, DebugUtilsMessengerDeleter{instance_.get()});
         }
     }
 

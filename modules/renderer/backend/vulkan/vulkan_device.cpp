@@ -40,8 +40,8 @@ namespace orion::vulkan
             .queueFamilyIndex = queues_.graphics.index,
         };
         VkCommandPool command_pool = VK_NULL_HANDLE;
-        vk_result_check(vkCreateCommandPool(*device_, &command_pool_create_info, alloc_callbacks(), &command_pool));
-        return std::make_unique<VulkanRenderContext>(UniqueVkCommandPool{command_pool, CommandPoolDeleter{*device_}});
+        vk_result_check(vkCreateCommandPool(device_.get(), &command_pool_create_info, alloc_callbacks(), &command_pool));
+        return std::make_unique<VulkanRenderContext>(UniqueVkCommandPool{command_pool, CommandPoolDeleter{device_.get()}});
     }
 
     SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing)
@@ -55,7 +55,7 @@ namespace orion::vulkan
         // Get the surface capabilities
         const auto surface_capabilities = [this, &surface]() {
             VkSurfaceCapabilitiesKHR surface_capabilities;
-            vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, *surface, &surface_capabilities));
+            vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface.get(), &surface_capabilities));
             return surface_capabilities;
         }();
 
@@ -76,7 +76,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                 .pNext = nullptr,
                 .flags = 0,
-                .surface = *surface,
+                .surface = surface.get(),
                 .minImageCount = desc.image_count,
                 .imageFormat = vk_format,
                 .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
@@ -90,7 +90,7 @@ namespace orion::vulkan
                 .clipped = VK_TRUE,
                 .oldSwapchain = old_swapchain,
             };
-            vk_result_check(vkCreateSwapchainKHR(*device_, &info, alloc_callbacks(), &swapchain));
+            vk_result_check(vkCreateSwapchainKHR(device_.get(), &info, alloc_callbacks(), &swapchain));
             SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkSwapchainKHR {}", fmt::ptr(swapchain));
         }
 
@@ -139,7 +139,7 @@ namespace orion::vulkan
                 .pDependencies = nullptr,
             };
 
-            vk_result_check(vkCreateRenderPass(*device_, &render_pass_info, alloc_callbacks(), &render_pass));
+            vk_result_check(vkCreateRenderPass(device_.get(), &render_pass_info, alloc_callbacks(), &render_pass));
             SPDLOG_LOGGER_DEBUG(logger_raw(), "Created render pass for swapchain", fmt::ptr(render_pass));
         }
 
@@ -148,7 +148,7 @@ namespace orion::vulkan
         std::vector<UniqueVkFramebuffer> framebuffers;
         {
             // Acquire swapchain images
-            auto swapchain_images = get_swapchain_images(*device_, swapchain);
+            auto swapchain_images = get_swapchain_images(device_.get(), swapchain);
 
             image_views.reserve(swapchain_images.size());
             framebuffers.reserve(swapchain_images.size());
@@ -177,8 +177,8 @@ namespace orion::vulkan
                             .layerCount = 1,
                         },
                     };
-                    vk_result_check(vkCreateImageView(*device_, &image_view_info, alloc_callbacks(), &image_view));
-                    image_views.emplace_back(image_view, ImageViewDeleter{*device_});
+                    vk_result_check(vkCreateImageView(device_.get(), &image_view_info, alloc_callbacks(), &image_view));
+                    image_views.emplace_back(image_view, ImageViewDeleter{device_.get()});
                 }
 
                 // Create framebuffer
@@ -195,8 +195,8 @@ namespace orion::vulkan
                         .layers = 1,
                     };
                     VkFramebuffer framebuffer = VK_NULL_HANDLE;
-                    vk_result_check(vkCreateFramebuffer(*device_, &framebuffer_info, alloc_callbacks(), &framebuffer));
-                    framebuffers.emplace_back(framebuffer, FramebufferDeleter{*device_});
+                    vk_result_check(vkCreateFramebuffer(device_.get(), &framebuffer_info, alloc_callbacks(), &framebuffer));
+                    framebuffers.emplace_back(framebuffer, FramebufferDeleter{device_.get()});
                 }
             }
             SPDLOG_LOGGER_DEBUG(logger_raw(), "Created {} image view(s) and framebuffer(s) for swapchain", swapchain_images.size());
@@ -205,8 +205,8 @@ namespace orion::vulkan
         auto handle = existing.is_valid() ? existing : SwapchainHandle::generate();
         swapchains_.insert_or_assign(handle, VulkanSwapchain{
                                                  std::move(surface),
-                                                 UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{*device_}},
-                                                 UniqueVkRenderPass{render_pass, RenderPassDeleter{*device_}},
+                                                 UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device_.get()}},
+                                                 UniqueVkRenderPass{render_pass, RenderPassDeleter{device_.get()}},
                                                  std::move(image_views),
                                                  std::move(framebuffers),
                                              });
@@ -227,18 +227,18 @@ namespace orion::vulkan
             .pCode = spirv.data(),
         };
         VkShaderModule shader_module = VK_NULL_HANDLE;
-        vk_result_check(vkCreateShaderModule(*device_, &info, alloc_callbacks(), &shader_module));
+        vk_result_check(vkCreateShaderModule(device_.get(), &info, alloc_callbacks(), &shader_module));
         SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkShaderModule {}", fmt::ptr(shader_module));
 
         auto handle = existing.is_valid() ? existing : ShaderModuleHandle::generate();
-        shader_modules_.insert_or_assign(handle, UniqueVkShaderModule{shader_module, ShaderModuleDeleter{*device_}});
+        shader_modules_.insert_or_assign(handle, UniqueVkShaderModule{shader_module, ShaderModuleDeleter{device_.get()}});
         return handle;
     }
 
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing)
     {
         // Create VkPipelineLayout
-        const auto vk_pipeline_layout = [device = *device_]() {
+        const auto vk_pipeline_layout = [device = device_.get()]() {
             const VkPipelineLayoutCreateInfo layout_info{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                 .pNext = nullptr,
@@ -444,13 +444,13 @@ namespace orion::vulkan
             .basePipelineIndex = 0,
         };
         VkPipeline vk_pipeline = VK_NULL_HANDLE;
-        vk_result_check(vkCreateGraphicsPipelines(*device_, VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &vk_pipeline));
+        vk_result_check(vkCreateGraphicsPipelines(device_.get(), VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &vk_pipeline));
         SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkPipeline (graphics) {}", fmt::ptr(vk_pipeline));
 
         const auto handle = existing.is_valid() ? existing : PipelineHandle::generate();
         graphics_pipelines_.insert_or_assign(handle, VulkanPipeline{
-                                                         UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{*device_}},
-                                                         UniqueVkPipeline{vk_pipeline, PipelineDeleter{*device_}},
+                                                         UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{device_.get()}},
+                                                         UniqueVkPipeline{vk_pipeline, PipelineDeleter{device_.get()}},
                                                      });
         return handle;
     }
