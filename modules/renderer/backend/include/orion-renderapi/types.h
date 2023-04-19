@@ -8,8 +8,20 @@
 namespace orion
 {
     enum class Format {
-        B8G8R8A8_SRGB
+        B8G8R8A8_SRGB,
+        R32G32B32A32_FLOAT,
     };
+
+    constexpr auto size_of(Format format) -> std::uint32_t
+    {
+        switch (format) {
+            case Format::B8G8R8A8_SRGB:
+                return 32;
+            case Format::R32G32B32A32_FLOAT:
+                return 128;
+        }
+        return UINT32_MAX;
+    }
 
     constexpr auto to_string(Format format) noexcept -> const char*
     {
@@ -48,5 +60,31 @@ namespace orion
     enum class ShaderType {
         Vertex,
         Fragment
+    };
+
+    enum class PrimitiveTopology {
+        TriangleList
+    };
+
+    enum class FillMode {
+        Solid,
+        Wireframe,
+    };
+
+    enum class CullMode {
+        None,
+        Front,
+        Back,
+        FrontAndBack
+    };
+
+    enum class FrontFace {
+        CounterClockWise,
+        ClockWise
+    };
+
+    enum class InputRate {
+        Vertex,
+        Instance
     };
 } // namespace orion

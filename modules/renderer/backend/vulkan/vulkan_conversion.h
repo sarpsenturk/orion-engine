@@ -52,8 +52,84 @@ namespace orion::vulkan
         switch (format) {
             case Format::B8G8R8A8_SRGB:
                 return VK_FORMAT_B8G8R8A8_SRGB;
+            case Format::R32G32B32A32_FLOAT:
+                return VK_FORMAT_R32G32B32A32_SFLOAT;
         }
         ORION_ASSERT(!"Invalid Format");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(ShaderType shader_type) noexcept -> VkShaderStageFlagBits
+    {
+        switch (shader_type) {
+            case ShaderType::Vertex:
+                return VK_SHADER_STAGE_VERTEX_BIT;
+            case ShaderType::Fragment:
+                return VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
+        ORION_ASSERT(!"Invalid shader type");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(InputRate input_rate) noexcept -> VkVertexInputRate
+    {
+        switch (input_rate) {
+            case InputRate::Vertex:
+                return VK_VERTEX_INPUT_RATE_VERTEX;
+            case InputRate::Instance:
+                return VK_VERTEX_INPUT_RATE_INSTANCE;
+        }
+        ORION_ASSERT(!"Invalid input rate");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(PrimitiveTopology topology) noexcept -> VkPrimitiveTopology
+    {
+        switch (topology) {
+            case PrimitiveTopology::TriangleList:
+                return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        }
+        ORION_ASSERT(!"Invalid primitive topology");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(FillMode fill_mode) noexcept -> VkPolygonMode
+    {
+        switch (fill_mode) {
+            case FillMode::Solid:
+                return VK_POLYGON_MODE_FILL;
+            case FillMode::Wireframe:
+                return VK_POLYGON_MODE_LINE;
+        }
+        ORION_ASSERT(!"Invalid fill mode");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(CullMode cull_mode) noexcept -> VkCullModeFlags
+    {
+        switch (cull_mode) {
+            case CullMode::None:
+                return VK_CULL_MODE_NONE;
+            case CullMode::Front:
+                return VK_CULL_MODE_FRONT_BIT;
+            case CullMode::Back:
+                return VK_CULL_MODE_BACK_BIT;
+            case CullMode::FrontAndBack:
+                return VK_CULL_MODE_FRONT_AND_BACK;
+        }
+        ORION_ASSERT(!"Invalid cull mode");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(FrontFace front_face) noexcept -> VkFrontFace
+    {
+        switch (front_face) {
+            case FrontFace::CounterClockWise:
+                return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+            case FrontFace::ClockWise:
+                return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        }
+        ORION_ASSERT(!"Invalid front face");
         return {};
     }
 
