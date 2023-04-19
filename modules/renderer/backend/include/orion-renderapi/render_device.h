@@ -23,6 +23,10 @@ namespace orion
         [[nodiscard]] ShaderModule create_shader_module(const ShaderModuleDesc& desc);
         [[nodiscard]] GraphicsPipeline create_graphics_pipeline(const GraphicsPipelineDesc& desc);
 
+        void destroy(Swapchain swapchain);
+        void destroy(ShaderModule shader_module);
+        void destroy(GraphicsPipeline graphics_pipeline);
+
     protected:
         RenderDevice(const RenderDevice&) = default;
         RenderDevice(RenderDevice&&) noexcept = default;
@@ -30,21 +34,12 @@ namespace orion
         RenderDevice& operator=(RenderDevice&&) noexcept = default;
 
     private:
-        template<typename HandleType>
-        auto make_handle_ref(HandleType value)
-        {
-            return std::shared_ptr<HandleType>(new HandleType(value), [this](HandleType* handle) {
-                destroy(*handle);
-                delete handle;
-            });
-        }
-
         [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) = 0;
-        [[nodiscard]] virtual GraphicsPipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, GraphicsPipelineHandle existing) = 0;
+        [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing) = 0;
 
-        virtual void destroy(SwapchainHandle swapchain_handle) = 0;
-        virtual void destroy(ShaderModuleHandle shader_module_handle) = 0;
-        virtual void destroy(GraphicsPipelineHandle graphics_pipeline_handle) = 0;
+        virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
+        virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
+        virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
     };
 } // namespace orion

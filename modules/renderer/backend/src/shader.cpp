@@ -2,8 +2,8 @@
 
 namespace orion
 {
-    ShaderModule::ShaderModule(ShaderModuleHandleRef handle)
-        : handle_(std::move(handle))
+    ShaderModule::ShaderModule(ShaderModuleHandle handle)
+        : handle_(handle)
     {
     }
 } // namespace orion

@@ -2,8 +2,8 @@
 
 namespace orion
 {
-    Swapchain::Swapchain(SwapchainHandleRef handle, SwapchainDesc desc)
-        : handle_(std::move(handle))
+    Swapchain::Swapchain(SwapchainHandle handle, SwapchainDesc desc)
+        : handle_(handle)
         , desc_(desc)
     {
     }

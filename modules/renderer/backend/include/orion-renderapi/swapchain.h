@@ -15,9 +15,9 @@ namespace orion
     {
     public:
         Swapchain() = default;
-        Swapchain(SwapchainHandleRef handle, SwapchainDesc desc);
+        Swapchain(SwapchainHandle handle, SwapchainDesc desc);
 
-        [[nodiscard]] auto handle() const noexcept { return *handle_; }
+        [[nodiscard]] auto handle() const noexcept { return handle_; }
 
         [[nodiscard]] auto image_count() const noexcept { return desc_.image_count; }
         [[nodiscard]] auto image_format() const noexcept { return desc_.image_format; }
@@ -25,7 +25,7 @@ namespace orion
         [[nodiscard]] auto& desc() const noexcept { return desc_; }
 
     private:
-        SwapchainHandleRef handle_;
+        SwapchainHandle handle_;
 
         SwapchainDesc desc_;
     };

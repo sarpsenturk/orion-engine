@@ -235,7 +235,7 @@ namespace orion::vulkan
         return handle;
     }
 
-    GraphicsPipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, GraphicsPipelineHandle existing)
+    PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing)
     {
         // Create VkPipelineLayout
         const auto vk_pipeline_layout = [device = *device_]() {
@@ -447,7 +447,7 @@ namespace orion::vulkan
         vk_result_check(vkCreateGraphicsPipelines(*device_, VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &vk_pipeline));
         SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkPipeline (graphics) {}", fmt::ptr(vk_pipeline));
 
-        const auto handle = existing.is_valid() ? existing : GraphicsPipelineHandle::generate();
+        const auto handle = existing.is_valid() ? existing : PipelineHandle::generate();
         graphics_pipelines_.insert_or_assign(handle, VulkanPipeline{
                                                          UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{*device_}},
                                                          UniqueVkPipeline{vk_pipeline, PipelineDeleter{*device_}},
@@ -465,17 +465,17 @@ namespace orion::vulkan
         return swapchains_.at(swapchain_handle);
     }
 
-    void VulkanDevice::destroy(SwapchainHandle swapchain_handle)
+    void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
     {
         swapchains_.erase(swapchain_handle);
     }
 
-    void VulkanDevice::destroy(ShaderModuleHandle shader_module_handle)
+    void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)
     {
         shader_modules_.erase(shader_module_handle);
     }
 
-    void VulkanDevice::destroy(GraphicsPipelineHandle graphics_pipeline_handle)
+    void VulkanDevice::destroy_api(PipelineHandle graphics_pipeline_handle)
     {
         graphics_pipelines_.erase(graphics_pipeline_handle);
     }

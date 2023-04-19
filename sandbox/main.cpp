@@ -84,6 +84,9 @@ float4 main(FsInput input) : SV_Target
                 .vertex_bindings = vertex_bindings,
                 .render_target = swapchain_,
             });
+
+            device->destroy(vs_module);
+            device->destroy(fs_module);
         }
     }
 

@@ -14,11 +14,11 @@ namespace orion
     class ShaderModule
     {
     public:
-        ShaderModule(ShaderModuleHandleRef handle);
+        ShaderModule(ShaderModuleHandle handle);
 
-        [[nodiscard]] auto handle() const noexcept { return *handle_; }
+        [[nodiscard]] auto handle() const noexcept { return handle_; }
 
     private:
-        ShaderModuleHandleRef handle_;
+        ShaderModuleHandle handle_;
     };
 } // namespace orion

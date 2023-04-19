@@ -3,7 +3,6 @@
 #include <cstdint>     // std::int64_t
 #include <fmt/core.h>  // fmt::formatter
 #include <functional>  // std::hash
-#include <memory>      // std::shared_ptr
 #include <random>      // std::random_device, std::mt19937_64, std::uniform_int_distribution
 #include <type_traits> // std::is_signed
 
@@ -68,7 +67,6 @@ struct fmt::formatter<orion::Handle<Tag>> : formatter<typename orion::Handle<Tag
 };
 
 // Simple helper macro to define a Handle
-#define ORION_DEFINE_HANDLE(name)             \
-    struct name##_tag;                        \
-    using name = ::orion::Handle<name##_tag>; \
-    using name##Ref = std::shared_ptr<name>;
+#define ORION_DEFINE_HANDLE(name) \
+    struct name##_tag;            \
+    using name = ::orion::Handle<name##_tag>;\

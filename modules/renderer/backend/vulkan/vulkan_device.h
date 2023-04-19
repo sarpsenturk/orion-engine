@@ -24,11 +24,11 @@ namespace orion::vulkan
     private:
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) override;
-        GraphicsPipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, GraphicsPipelineHandle existing) override;
+        PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing) override;
 
-        void destroy(SwapchainHandle swapchain_handle) override;
-        void destroy(ShaderModuleHandle shader_module_handle) override;
-        void destroy(GraphicsPipelineHandle graphics_pipeline_handle) override;
+        void destroy_api(SwapchainHandle swapchain_handle) override;
+        void destroy_api(ShaderModuleHandle shader_module_handle) override;
+        void destroy_api(PipelineHandle graphics_pipeline_handle) override;
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
@@ -37,6 +37,6 @@ namespace orion::vulkan
 
         std::unordered_map<SwapchainHandle, VulkanSwapchain> swapchains_;
         std::unordered_map<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
-        std::unordered_map<GraphicsPipelineHandle, VulkanPipeline> graphics_pipelines_;
+        std::unordered_map<PipelineHandle, VulkanPipeline> graphics_pipelines_;
     };
 } // namespace orion::vulkan

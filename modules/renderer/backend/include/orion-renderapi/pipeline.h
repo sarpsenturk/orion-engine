@@ -62,9 +62,11 @@ namespace orion
     {
     public:
         GraphicsPipeline() = default;
-        GraphicsPipeline(GraphicsPipelineHandleRef handle);
+        GraphicsPipeline(PipelineHandle handle);
+
+        [[nodiscard]] auto handle() const noexcept { return handle_; }
 
     private:
-        GraphicsPipelineHandleRef handle_;
+        PipelineHandle handle_;
     };
 } // namespace orion
