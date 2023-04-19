@@ -20,8 +20,12 @@ public:
         // Create shader compiler
         auto shader_compiler = orion::ShaderCompiler();
 
-        // Compile vertex shader
-        const auto vs_source = R"(
+        // Create graphics pipeline
+        {
+            // Create vertex shader module
+            const auto vs_module = [device, &shader_compiler]() {
+                // Compile vertex shader
+                const auto vs_source = R"(
 struct VsInput {
     float4 position : POSITION;
     float4 color : COLOR;
@@ -40,12 +44,14 @@ VsOutput main(VsInput input)
     return output;
 }
 )";
-        const auto vs_compile_result = shader_compiler.compile({.shader_source = vs_source, .shader_type = orion::ShaderType::Vertex, .object_type = orion::ShaderObjectType::SpirV});
-        SPDLOG_INFO("Vertex shader binary size: {}", vs_compile_result.binary.size());
-        const auto vs_module = device->create_shader_module({.byte_code = vs_compile_result.binary});
+                const auto vs_compile_result = shader_compiler.compile({.shader_source = vs_source, .shader_type = orion::ShaderType::Vertex, .object_type = orion::ShaderObjectType::SpirV});
+                return device->create_shader_module({.byte_code = vs_compile_result.binary});
+            }();
 
-        // Compile fragment shader
-        const auto fs_source = R"(
+            // Create fragment shader module
+            const auto fs_module = [device, &shader_compiler]() {
+                // Compile fragment shader
+                const auto fs_source = R"(
 struct FsInput {
     float4 position : SV_Position;
     float4 color : COLOR;
@@ -56,9 +62,29 @@ float4 main(FsInput input) : SV_Target
     return input.color;
 }
 )";
-        const auto fs_compile_result = shader_compiler.compile({.shader_source = fs_source, .shader_type = orion::ShaderType::Fragment, .object_type = orion::ShaderObjectType::SpirV});
-        SPDLOG_INFO("Fragment shader binary size: {}", fs_compile_result.binary.size());
-        const auto fs_module = device->create_shader_module({.byte_code = vs_compile_result.binary});
+                const auto fs_compile_result = shader_compiler.compile({.shader_source = fs_source, .shader_type = orion::ShaderType::Fragment, .object_type = orion::ShaderObjectType::SpirV});
+                return device->create_shader_module({.byte_code = fs_compile_result.binary});
+            }();
+
+            // Pipeline shaders
+            const std::array shaders{
+                orion::ShaderStageDesc{.module = vs_module, .type = orion::ShaderType::Vertex},
+                orion::ShaderStageDesc{.module = fs_module, .type = orion::ShaderType::Fragment},
+            };
+
+            // Pipeline vertex bindings
+            const std::array vertex_bindings{
+                orion::VertexBinding{{orion::VertexAttributeDesc{.name = "POSITION", .format = orion::Format::R32G32B32A32_FLOAT},
+                                      orion::VertexAttributeDesc{.name = "COLOR", .format = orion::Format::R32G32B32A32_FLOAT}},
+                                     orion::InputRate::Vertex}};
+
+            // Create the graphics pipeline
+            graphics_pipeline_ = device->create_graphics_pipeline(orion::GraphicsPipelineDesc{
+                .shaders = shaders,
+                .vertex_bindings = vertex_bindings,
+                .render_target = swapchain_,
+            });
+        }
     }
 
 private:
@@ -79,6 +105,7 @@ private:
     orion::Window window_;
     orion::Renderer renderer_;
     orion::Swapchain swapchain_;
+    orion::GraphicsPipeline graphics_pipeline_;
 };
 
 ORION_MAIN(args)

@@ -17,4 +17,11 @@ namespace orion
         SPDLOG_DEBUG("Created shader module with handle {}", handle);
         return {make_handle_ref(handle)};
     }
+
+    GraphicsPipeline RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
+    {
+        auto handle = create_graphics_pipeline_api(desc, GraphicsPipelineHandle::invalid_handle());
+        SPDLOG_DEBUG("Created graphics pipeline with handle {}", handle);
+        return {make_handle_ref(handle)};
+    }
 } // namespace orion

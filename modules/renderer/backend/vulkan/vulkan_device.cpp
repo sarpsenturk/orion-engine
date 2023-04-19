@@ -4,7 +4,7 @@
 #include "vulkan_platform.h"
 #include "vulkan_render_context.h"
 
-#include <algorithm>               // std::ranges::transform, std::ranges::for_each
+#include <numeric>                 // std::accumulate
 #include <orion-utils/assertion.h> // ORION_EXPECTS
 #include <spdlog/spdlog.h>         // SPDLOG_*
 #include <utility>                 // std::exchange
@@ -235,6 +235,236 @@ namespace orion::vulkan
         return handle;
     }
 
+    GraphicsPipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, GraphicsPipelineHandle existing)
+    {
+        // Create VkPipelineLayout
+        const auto vk_pipeline_layout = [device = *device_]() {
+            const VkPipelineLayoutCreateInfo layout_info{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .setLayoutCount = 0,
+                .pSetLayouts = nullptr,
+                .pushConstantRangeCount = 0,
+                .pPushConstantRanges = nullptr,
+            };
+            VkPipelineLayout vk_pipeline_layout = VK_NULL_HANDLE;
+            vk_result_check(vkCreatePipelineLayout(device, &layout_info, alloc_callbacks(), &vk_pipeline_layout));
+            return vk_pipeline_layout;
+        }();
+
+        // Convert to VkPipelineShaderStageCreateInfo
+        ORION_EXPECTS(desc.shaders.size() <= UINT32_MAX);
+        const auto vk_stages = [stages = desc.shaders, this]() {
+            std::vector<VkPipelineShaderStageCreateInfo> vk_stages;
+            vk_stages.reserve(stages.size());
+            for (const auto& stage : stages) {
+                vk_stages.push_back({
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .stage = to_vulkan_type(stage.type),
+                    .module = find_shader(stage.module.handle()),
+                    .pName = stage.entry_point,
+                    .pSpecializationInfo = nullptr,
+                });
+            }
+            return vk_stages;
+        }();
+
+        // Convert to VkVertexInputBindingDescription
+        const auto vk_input_bindings = [&vertex_bindings = desc.vertex_bindings]() {
+            std::vector<VkVertexInputBindingDescription> vk_input_bindings;
+            vk_input_bindings.reserve(vertex_bindings.size());
+            for (std::uint32_t index = 0; const auto& binding : vertex_bindings) {
+                vk_input_bindings.push_back({
+                    .binding = index++,
+                    .stride = binding.stride(),
+                    .inputRate = to_vulkan_type(binding.input_rate()),
+                });
+            }
+            return vk_input_bindings;
+        }();
+
+        // Convert to VkVertexInputAttributeDescription
+        const auto vk_attribute_descriptions = [&vertex_bindings = desc.vertex_bindings]() {
+            std::vector<VkVertexInputAttributeDescription> vk_attribute_descriptions;
+            vk_attribute_descriptions.reserve(std::accumulate(vertex_bindings.begin(), vertex_bindings.end(), 0u, [](auto acc, const auto& binding) {
+                return acc + static_cast<std::uint32_t>(binding.attributes().size());
+            }));
+            for (std::uint32_t binding_index = 0; const auto& binding : vertex_bindings) {
+                for (std::uint32_t attr_index = 0; const auto& attribute : binding.attributes()) {
+                    vk_attribute_descriptions.push_back({
+                        .location = attr_index++,
+                        .binding = binding_index,
+                        .format = to_vulkan_type(attribute.format),
+                        .offset = attribute.offset,
+                    });
+                }
+                ++binding_index;
+            }
+            return vk_attribute_descriptions;
+        }();
+
+        // Create VkPipelineVertexInputStateCreateInfo
+        const auto vk_input_state = [&vk_input_bindings, &vk_attribute_descriptions]() {
+            return VkPipelineVertexInputStateCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .vertexBindingDescriptionCount = static_cast<std::uint32_t>(vk_input_bindings.size()),
+                .pVertexBindingDescriptions = vk_input_bindings.data(),
+                .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vk_attribute_descriptions.size()),
+                .pVertexAttributeDescriptions = vk_attribute_descriptions.data(),
+            };
+        }();
+
+        // Convert to VkPipelineInputAssemblyStateCreateInfo
+        const auto vk_input_assembly = [input_assembly = desc.input_assembly]() {
+            return VkPipelineInputAssemblyStateCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .topology = to_vulkan_type(input_assembly.topology),
+                .primitiveRestartEnable = VK_FALSE,
+            };
+        }();
+
+        // Create VkPipelineViewportStateCreateInfo
+        const auto vk_viewport = []() {
+            return VkPipelineViewportStateCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .viewportCount = 1,
+                .scissorCount = 1,
+            };
+        }();
+
+        // Convert to VkPipelineRasterizationStateCreateInfo
+        const auto vk_rasterization = [rasterization = desc.rasterization]() {
+            return VkPipelineRasterizationStateCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .depthClampEnable = VK_FALSE,
+                .rasterizerDiscardEnable = VK_FALSE,
+                .polygonMode = to_vulkan_type(rasterization.fill_mode),
+                .cullMode = to_vulkan_type(rasterization.cull_mode),
+                .frontFace = to_vulkan_type(rasterization.front_face),
+                .depthBiasEnable = VK_FALSE,
+                .depthBiasConstantFactor = 0.f,
+                .depthBiasClamp = 0.f,
+                .depthBiasSlopeFactor = 0.f,
+                .lineWidth = 1.f,
+            };
+        }();
+
+        // Convert to VkPipelineMultisampleStateCreateInfo
+        // Fixed for now. No multisampling support
+        const auto vk_multisample = []() {
+            return VkPipelineMultisampleStateCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+                .sampleShadingEnable = VK_FALSE,
+                .minSampleShading = 1.f,
+                .pSampleMask = nullptr,
+                .alphaToCoverageEnable = VK_FALSE,
+                .alphaToOneEnable = VK_FALSE,
+            };
+        }();
+
+        // Create VkPipelineColorBlendStateCreateInfo
+        const auto vk_color_blend = []() {
+            static VkPipelineColorBlendAttachmentState attachment{
+                .blendEnable = VK_FALSE,
+                .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+                .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+                .colorBlendOp = VK_BLEND_OP_ADD,
+                .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+                .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+                .alphaBlendOp = VK_BLEND_OP_ADD,
+                .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+            };
+            return VkPipelineColorBlendStateCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .logicOpEnable = VK_FALSE,
+                .logicOp = VK_LOGIC_OP_NO_OP,
+                .attachmentCount = 1,
+                .pAttachments = &attachment,
+                .blendConstants = {0.f, 0.f, 0.f, 0.f},
+            };
+        }();
+
+        // Create VkPipelineDynamicStateCreateInfo
+        const auto vk_dynamic_state = []() {
+            static const std::array dynamic_state{
+                VK_DYNAMIC_STATE_VIEWPORT,
+                VK_DYNAMIC_STATE_SCISSOR,
+            };
+            return VkPipelineDynamicStateCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .dynamicStateCount = static_cast<std::uint32_t>(dynamic_state.size()),
+                .pDynamicStates = dynamic_state.data(),
+            };
+        }();
+
+        // Find associated render pass
+        auto find_render_pass = [this](auto&& arg) -> VkRenderPass {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, Swapchain>) {
+                return find_swapchain(arg.handle()).render_pass();
+            } else {
+                return VK_NULL_HANDLE;
+            }
+        };
+        const auto render_pass = std::visit(find_render_pass, desc.render_target);
+
+        const VkGraphicsPipelineCreateInfo pipeline_info{
+            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .stageCount = static_cast<std::uint32_t>(vk_stages.size()),
+            .pStages = vk_stages.data(),
+            .pVertexInputState = &vk_input_state,
+            .pInputAssemblyState = &vk_input_assembly,
+            .pTessellationState = nullptr,
+            .pViewportState = &vk_viewport,
+            .pRasterizationState = &vk_rasterization,
+            .pMultisampleState = &vk_multisample,
+            .pDepthStencilState = nullptr, // No depth stencil support yet
+            .pColorBlendState = &vk_color_blend,
+            .pDynamicState = &vk_dynamic_state,
+            .layout = vk_pipeline_layout,
+            .renderPass = render_pass,
+            .subpass = 0,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = 0,
+        };
+        VkPipeline vk_pipeline = VK_NULL_HANDLE;
+        vk_result_check(vkCreateGraphicsPipelines(*device_, VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &vk_pipeline));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkPipeline (graphics) {}", fmt::ptr(vk_pipeline));
+
+        const auto handle = existing.is_valid() ? existing : GraphicsPipelineHandle::generate();
+        graphics_pipelines_.insert_or_assign(handle, VulkanPipeline{
+                                                         UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{*device_}},
+                                                         UniqueVkPipeline{vk_pipeline, PipelineDeleter{*device_}},
+                                                     });
+        return handle;
+    }
+
+    VkShaderModule VulkanDevice::find_shader(ShaderModuleHandle shader_module_handle)
+    {
+        return shader_modules_.at(shader_module_handle).get();
+    }
+
+    const VulkanSwapchain& VulkanDevice::find_swapchain(SwapchainHandle swapchain_handle)
+    {
+        return swapchains_.at(swapchain_handle);
+    }
+
     void VulkanDevice::destroy(SwapchainHandle swapchain_handle)
     {
         swapchains_.erase(swapchain_handle);
@@ -243,5 +473,10 @@ namespace orion::vulkan
     void VulkanDevice::destroy(ShaderModuleHandle shader_module_handle)
     {
         shader_modules_.erase(shader_module_handle);
+    }
+
+    void VulkanDevice::destroy(GraphicsPipelineHandle graphics_pipeline_handle)
+    {
+        graphics_pipelines_.erase(graphics_pipeline_handle);
     }
 } // namespace orion::vulkan

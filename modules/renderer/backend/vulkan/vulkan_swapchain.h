@@ -17,6 +17,7 @@ namespace orion::vulkan
 
         [[nodiscard]] auto surface() const noexcept { return surface_.get(); }
         [[nodiscard]] auto swapchain() const noexcept { return swapchain_.get(); }
+        [[nodiscard]] auto render_pass() const noexcept { return render_pass_.get(); }
 
     private:
         UniqueVkSurfaceKHR surface_;

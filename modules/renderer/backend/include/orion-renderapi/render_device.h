@@ -2,6 +2,7 @@
 
 #include "handles.h"
 #include "orion-renderapi/types.h"
+#include "pipeline.h"
 #include "render_context.h"
 #include "shader.h"
 #include "swapchain.h"
@@ -20,6 +21,7 @@ namespace orion
 
         [[nodiscard]] Swapchain create_swapchain(const Window& window, SwapchainDesc desc);
         [[nodiscard]] ShaderModule create_shader_module(const ShaderModuleDesc& desc);
+        [[nodiscard]] GraphicsPipeline create_graphics_pipeline(const GraphicsPipelineDesc& desc);
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -39,8 +41,10 @@ namespace orion
 
         [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) = 0;
+        [[nodiscard]] virtual GraphicsPipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, GraphicsPipelineHandle existing) = 0;
 
         virtual void destroy(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy(ShaderModuleHandle shader_module_handle) = 0;
+        virtual void destroy(GraphicsPipelineHandle graphics_pipeline_handle) = 0;
     };
 } // namespace orion

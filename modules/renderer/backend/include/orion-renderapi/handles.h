@@ -11,4 +11,5 @@ namespace orion
 {
     ORION_DEFINE_HANDLE(SwapchainHandle);
     ORION_DEFINE_HANDLE(ShaderModuleHandle);
+    ORION_DEFINE_HANDLE(GraphicsPipelineHandle);
 } // namespace orion

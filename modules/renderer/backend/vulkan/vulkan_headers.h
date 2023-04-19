@@ -313,6 +313,28 @@ namespace orion
             }
         };
 
+        struct PipelineLayoutDeleter {
+            VkDevice device = VK_NULL_HANDLE;
+
+            void operator()(VkPipelineLayout pipeline_layout) const
+            {
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
+                vkDestroyPipelineLayout(device, pipeline_layout, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkPipelineLayout {}", fmt::ptr(pipeline_layout));
+            }
+        };
+
+        struct PipelineDeleter {
+            VkDevice device = VK_NULL_HANDLE;
+
+            void operator()(VkPipeline pipeline) const
+            {
+                ORION_EXPECTS(device != VK_NULL_HANDLE);
+                vkDestroyPipeline(device, pipeline, alloc_callbacks());
+                SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkPipeline {}", fmt::ptr(pipeline));
+            }
+        };
+
         using UniqueVkInstance = UniqueHandle<VkInstance, InstanceDeleter>;
         using UniqueVkDevice = UniqueHandle<VkDevice, DeviceDeleter>;
         using UniqueVkDebugUtilsMessengerEXT = UniqueHandle<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -323,6 +345,8 @@ namespace orion
         using UniqueVkRenderPass = UniqueHandle<VkRenderPass, RenderPassDeleter>;
         using UniqueVkFramebuffer = UniqueHandle<VkFramebuffer, FramebufferDeleter>;
         using UniqueVkShaderModule = UniqueHandle<VkShaderModule, ShaderModuleDeleter>;
+        using UniqueVkPipelineLayout = UniqueHandle<VkPipelineLayout, PipelineLayoutDeleter>;
+        using UniqueVkPipeline = UniqueHandle<VkPipeline, PipelineDeleter>;
 
         template<typename HandleType, typename T>
         HandleType make_unique_device(T vk_obj, VkDevice device)
