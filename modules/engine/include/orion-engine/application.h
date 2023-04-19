@@ -6,16 +6,18 @@ namespace orion
     {
     public:
         Application();
-        Application(const Application&) = delete;
-        Application(Application&&) = delete;
-        Application& operator=(const Application&) = delete;
-        Application& operator=(Application&&) = delete;
         virtual ~Application() = default;
 
         void on_update();
         void on_render();
         [[nodiscard]] bool should_exit() const noexcept;
         void run();
+
+    protected:
+        Application(const Application&) = default;
+        Application(Application&&) noexcept = default;
+        Application& operator=(const Application&) = default;
+        Application& operator=(Application&&) noexcept = default;
 
     private:
         virtual void on_user_update() = 0;
