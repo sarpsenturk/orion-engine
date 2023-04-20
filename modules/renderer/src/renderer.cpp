@@ -1,6 +1,7 @@
 #include "orion-renderer/renderer.h"
 
-#include <spdlog/spdlog.h> // SPDLOG_*
+#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_st
+#include <spdlog/spdlog.h>                   // SPDLOG_LOGGER_*
 
 namespace orion
 {
@@ -11,7 +12,7 @@ namespace orion
 
         // Load the factory function
         auto pfnCreateBackend = backend_module_.load_symbol<RenderBackend*(void)>("create_render_backend");
-        SPDLOG_TRACE("Loaded create_render_backend() (at: {})", fmt::ptr(pfnCreateBackend));
+        SPDLOG_LOGGER_TRACE(logger(), "Loaded create_render_backend() (at: {})", fmt::ptr(pfnCreateBackend));
 
         // Create the backend
         render_backend_ = std::unique_ptr<RenderBackend>(pfnCreateBackend());
@@ -21,10 +22,10 @@ namespace orion
 
         // Get the physical devices
         auto physical_devices = render_backend_->enumerate_physical_devices();
-        SPDLOG_DEBUG("Found {} physical devices:", physical_devices.size());
+        SPDLOG_LOGGER_DEBUG(logger(), "Found {} physical devices:", physical_devices.size());
         for (const auto& physical_device : physical_devices) {
-            SPDLOG_DEBUG("{}", physical_device.name);
-            SPDLOG_DEBUG("-- Type: {}", to_string(physical_device.type));
+            SPDLOG_LOGGER_DEBUG(logger(), "{}", physical_device.name);
+            SPDLOG_LOGGER_DEBUG(logger(), "-- Type: {}", to_string(physical_device.type));
         }
 
         // Select the physical device to use
@@ -33,9 +34,17 @@ namespace orion
         // Create the render device
         render_device_ = render_backend_->create_device(selected_physical_device.index);
 
-        // Create the render context
-        render_context_ = render_device_->create_render_context();
+        SPDLOG_LOGGER_DEBUG(logger(), "Render backend \"{}\" initialized", render_backend_->name());
+    }
 
-        SPDLOG_DEBUG("Render backend \"{}\" initialized", render_backend_->name());
+    spdlog::logger* Renderer::logger()
+    {
+        static const auto renderer_logger = []() {
+            auto logger = spdlog::stdout_color_mt("orion-renderer");
+            logger->set_pattern("[%n] [%^%l%$] %v");
+            logger->set_level(static_cast<spdlog::level::level_enum>(ORION_RENDERER_LOG_LEVEL));
+            return logger;
+        }();
+        return renderer_logger.get();
     }
 } // namespace orion

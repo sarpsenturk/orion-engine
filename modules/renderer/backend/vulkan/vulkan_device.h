@@ -15,7 +15,7 @@ namespace orion::vulkan
     class VulkanDevice : public RenderDevice
     {
     public:
-        VulkanDevice(VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues);
+        VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues);
 
         std::unique_ptr<RenderContext> create_render_context() override;
 

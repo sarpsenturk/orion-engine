@@ -24,6 +24,7 @@ namespace orion::vulkan
 
         // Internal helpers
         void create_debug_messenger();
+        bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions);
 
         static constexpr auto debug_message_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;

@@ -31,7 +31,6 @@ namespace orion::vulkan
     {
         if (vk_buffer_ != VK_NULL_HANDLE && vma_allocation_ != VK_NULL_HANDLE) {
             vmaDestroyBuffer(vma_allocator_, vk_buffer_, vma_allocation_);
-            SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkBuffer {} with allocation {}", fmt::ptr(vk_buffer_), fmt::ptr(vma_allocation_));
         }
     }
 } // namespace orion::vulkan

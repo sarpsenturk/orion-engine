@@ -17,6 +17,7 @@
 
 #include <codecvt>
 #include <locale>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace orion
 {
@@ -65,9 +66,6 @@ namespace orion
         , msg_(msg)
     {
     }
-
-    // Initialize mt spdlog logger for shader compilation
-    const std::shared_ptr<spdlog::logger> ShaderCompiler::s_logger = spdlog::stdout_color_mt("orion-shader-compiler");
 
     ShaderCompiler::ShaderCompiler()
         : dxc_instance_(detail::dxc_create_instance(), &detail::dxc_destroy_instance)
@@ -177,5 +175,16 @@ namespace orion
         }
 
         return compile_result;
+    }
+
+    spdlog::logger* ShaderCompiler::logger()
+    {
+        static const auto dxc_logger = []() {
+            auto logger = spdlog::stdout_color_mt("orion-shader-compiler");
+            logger->set_pattern("[%n] [%^%l%$] %v");
+            logger->set_level(static_cast<spdlog::level::level_enum>(ORION_SHADER_COMPILER_LOG_LEVEL));
+            return logger;
+        }();
+        return dxc_logger.get();
     }
 } // namespace orion

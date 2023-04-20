@@ -24,8 +24,9 @@ namespace orion::vulkan
         }
     } // namespace
 
-    VulkanDevice::VulkanDevice(VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues)
-        : instance_(instance)
+    VulkanDevice::VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues)
+        : RenderDevice(logger)
+        , instance_(instance)
         , physical_device_(physical_device)
         , device_(std::move(device))
         , allocator_(create_allocator())
@@ -48,7 +49,7 @@ namespace orion::vulkan
         };
         VmaAllocator allocator = VK_NULL_HANDLE;
         vk_result_check(vmaCreateAllocator(&allocator_info, &allocator));
-        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VmaAllocator {}", fmt::ptr(allocator));
+        SPDLOG_LOGGER_DEBUG(logger(), "Created VmaAllocator {}", fmt::ptr(allocator));
         return {allocator, {}};
     }
 
@@ -112,7 +113,7 @@ namespace orion::vulkan
                 .oldSwapchain = old_swapchain,
             };
             vk_result_check(vkCreateSwapchainKHR(device_.get(), &info, alloc_callbacks(), &swapchain));
-            SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkSwapchainKHR {}", fmt::ptr(swapchain));
+            SPDLOG_LOGGER_DEBUG(logger(), "Created VkSwapchainKHR {}", fmt::ptr(swapchain));
         }
 
         // Create render pass
@@ -161,7 +162,7 @@ namespace orion::vulkan
             };
 
             vk_result_check(vkCreateRenderPass(device_.get(), &render_pass_info, alloc_callbacks(), &render_pass));
-            SPDLOG_LOGGER_DEBUG(logger_raw(), "Created render pass for swapchain", fmt::ptr(render_pass));
+            SPDLOG_LOGGER_TRACE(logger(), "Created render pass for swapchain", fmt::ptr(render_pass));
         }
 
         // Create image view for each image and framebuffer for each image view
@@ -220,7 +221,7 @@ namespace orion::vulkan
                     framebuffers.emplace_back(framebuffer, FramebufferDeleter{device_.get()});
                 }
             }
-            SPDLOG_LOGGER_DEBUG(logger_raw(), "Created {} image view(s) and framebuffer(s) for swapchain", swapchain_images.size());
+            SPDLOG_LOGGER_TRACE(logger(), "Created {} image view(s) and framebuffer(s) for swapchain", swapchain_images.size());
         }
 
         auto handle = existing.is_valid() ? existing : SwapchainHandle::generate();
@@ -249,7 +250,7 @@ namespace orion::vulkan
         };
         VkShaderModule shader_module = VK_NULL_HANDLE;
         vk_result_check(vkCreateShaderModule(device_.get(), &info, alloc_callbacks(), &shader_module));
-        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkShaderModule {}", fmt::ptr(shader_module));
+        SPDLOG_LOGGER_DEBUG(logger(), "Created VkShaderModule {}", fmt::ptr(shader_module));
 
         auto handle = existing.is_valid() ? existing : ShaderModuleHandle::generate();
         shader_modules_.insert_or_assign(handle, UniqueVkShaderModule{shader_module, ShaderModuleDeleter{device_.get()}});
@@ -466,7 +467,7 @@ namespace orion::vulkan
         };
         VkPipeline vk_pipeline = VK_NULL_HANDLE;
         vk_result_check(vkCreateGraphicsPipelines(device_.get(), VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &vk_pipeline));
-        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkPipeline (graphics) {}", fmt::ptr(vk_pipeline));
+        SPDLOG_LOGGER_DEBUG(logger(), "Created VkPipeline (graphics) {}", fmt::ptr(vk_pipeline));
 
         const auto handle = existing.is_valid() ? existing : PipelineHandle::generate();
         pipelines_.insert_or_assign(handle, VulkanPipeline{
@@ -491,7 +492,7 @@ namespace orion::vulkan
             }
             return queue_indices;
         }();
-        SPDLOG_LOGGER_TRACE(logger_raw(), "Buffer access available to queue families: {}", queue_indices);
+        SPDLOG_LOGGER_TRACE(logger(), "Buffer access available to queue families: {}", queue_indices);
 
         // Buffer create info
         const VkBufferCreateInfo buffer_info{
@@ -520,7 +521,7 @@ namespace orion::vulkan
         VkBuffer buffer = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
         vk_result_check(vmaCreateBuffer(allocator_.get(), &buffer_info, &allocation_info, &buffer, &allocation, nullptr));
-        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkBuffer {} with allocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
+        SPDLOG_LOGGER_DEBUG(logger(), "Created VkBuffer {} with allocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
 
         const auto handle = existing.is_valid() ? existing : GPUBufferHandle::generate();
         buffers_.insert_or_assign(handle, VulkanBuffer{allocator_.get(), buffer, allocation});

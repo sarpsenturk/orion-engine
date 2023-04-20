@@ -3,6 +3,10 @@
 #include "orion-core/config.h"
 #include "orion-renderapi/types.h"
 
+#ifndef ORION_SHADER_COMPILER_LOG_LEVEL
+    #define ORION_SHADER_COMPILER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
+#endif
+
 #include <cstddef>                // std::byte
 #include <memory>                 // std::unique_ptr, std::shared_ptr
 #include <orion-core/exception.h> // orion::Exception
@@ -75,11 +79,9 @@ namespace orion
 
         ShaderCompileResult compile(const ShaderCompileDesc& compile_desc);
 
-        static auto logger() { return s_logger.get(); }
+        static spdlog::logger* logger();
 
     private:
         detail::DxcInstancePtr dxc_instance_;
-
-        static const std::shared_ptr<spdlog::logger> s_logger;
     };
 } // namespace orion

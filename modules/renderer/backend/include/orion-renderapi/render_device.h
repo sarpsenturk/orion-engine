@@ -8,14 +8,17 @@
 #include "shader.h"
 #include "swapchain.h"
 
-#include <orion-core/window.h> // orion::Window
+#include <spdlog/logger.h> // spdlog::logger
 
 namespace orion
 {
+    // Forward declare window class
+    class Window;
+
     class RenderDevice
     {
     public:
-        RenderDevice() = default;
+        RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
 
         [[nodiscard]] virtual std::unique_ptr<RenderContext> create_render_context() = 0;
@@ -29,6 +32,8 @@ namespace orion
         void destroy(ShaderModule shader_module);
         void destroy(GraphicsPipeline graphics_pipeline);
         void destroy(GPUBuffer buffer);
+
+        [[nodiscard]] auto logger() const noexcept { return logger_; }
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -46,5 +51,7 @@ namespace orion
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
+
+        spdlog::logger* logger_;
     };
 } // namespace orion
