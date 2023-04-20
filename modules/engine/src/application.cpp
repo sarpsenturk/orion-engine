@@ -8,16 +8,13 @@
 namespace orion
 {
     Application::Application()
+        : logger_(spdlog::stdout_color_st("orion-application"))
     {
         // Set log level and format globally
-        spdlog::set_pattern("[%n] [%^%l%$] %v");
-        spdlog::set_level(static_cast<spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
+        logger_->set_pattern("[%n] [%^%l%$] %v");
+        logger_->set_level(static_cast<spdlog::level::level_enum>(ORION_APPLICATION_LOG_LEVEL));
 
-        // Create a new default logger with our name and set it as default
-        auto logger = spdlog::stdout_color_st("orion-application");
-        spdlog::set_default_logger(logger);
-
-        SPDLOG_INFO("<Orion Engine> version: {}, platform: {}, debug_build: {}", current_version, to_string(current_platform), debug_build);
+        SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, debug_build: {}", current_version, to_string(current_platform), debug_build);
     }
 
     void Application::on_update()
