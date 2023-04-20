@@ -2,6 +2,7 @@
 
 #include "orion-renderapi/render_context.h"
 #include "vulkan_headers.h"
+#include "vulkan_types.h"
 
 #include <vector> // std::vector
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkan_headers.h"
+#include "vulkan_types.h"
 
 #include <vector> // std::vector
 
