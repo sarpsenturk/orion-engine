@@ -97,6 +97,12 @@ namespace orion::vulkan
         void operator()(VkPipeline pipeline) const;
     };
 
+    struct AllocatorDeleter {
+        using pointer = VmaAllocator;
+
+        void operator()(VmaAllocator allocator) const;
+    };
+
     using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
     using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
     using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -109,4 +115,5 @@ namespace orion::vulkan
     using UniqueVkShaderModule = std::unique_ptr<VkShaderModule, ShaderModuleDeleter>;
     using UniqueVkPipelineLayout = std::unique_ptr<VkPipelineLayout, PipelineLayoutDeleter>;
     using UniqueVkPipeline = std::unique_ptr<VkPipeline, PipelineDeleter>;
+    using UniqueVmaAllocator = std::unique_ptr<VmaAllocator, AllocatorDeleter>;
 } // namespace orion::vulkan

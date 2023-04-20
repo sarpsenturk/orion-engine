@@ -3,6 +3,7 @@ target_sources(
         orion-render-backend PUBLIC
         FILE_SET public_headers
         FILES
+        buffer.h
         handles.h
         pipeline.h
         render_backend.h

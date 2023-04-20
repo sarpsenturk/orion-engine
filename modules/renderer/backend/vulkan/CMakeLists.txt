@@ -14,7 +14,9 @@ endif ()
 # Create the vulkan implementation of render-backend interface
 add_library(
         ${ORION_VULKAN_MODULE} SHARED
+        vma_impl.cpp
         vulkan_backend.h vulkan_backend.cpp
+        vulkan_buffer.h vulkan_buffer.cpp
         vulkan_conversion.h
         vulkan_device.h vulkan_device.cpp
         vulkan_headers.h

@@ -133,6 +133,27 @@ namespace orion::vulkan
         return {};
     }
 
+    constexpr auto to_vulkan_type(GPUBufferUsageFlags buffer_usage) noexcept -> VkBufferUsageFlags
+    {
+        if (!to_bool(buffer_usage)) {
+            return {};
+        }
+        VkBufferUsageFlags usage_flags = {};
+        if (to_bool(buffer_usage & GPUBufferUsageFlags::VertexBuffer)) {
+            usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        }
+        if (to_bool(buffer_usage & GPUBufferUsageFlags::IndexBuffer)) {
+            usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
+        if (to_bool(buffer_usage & GPUBufferUsageFlags::TransferSrc)) {
+            usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        }
+        if (to_bool(buffer_usage & GPUBufferUsageFlags::TransferDst)) {
+            usage_flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        }
+        return usage_flags;
+    }
+
     template<typename T>
     constexpr auto to_vulkan_extent(const math::Vector2_t<T>& vec2) noexcept -> VkExtent2D
     {

@@ -32,11 +32,11 @@ namespace orion
     class DxcCompileError : public OrionException
     {
     public:
-        DxcCompileError(ShaderCompileError compile_error, const char* msg = "Shader compilation error");
+        explicit DxcCompileError(ShaderCompileError compile_error, const char* msg = "Shader compilation error");
 
         [[nodiscard]] const char* type() const noexcept override { return "DxcCompileError"; }
         [[nodiscard]] int return_code() const noexcept override { return static_cast<int>(compile_error_); }
-        const char* what() const override { return msg_; }
+        [[nodiscard]] const char* what() const override { return msg_; }
 
     private:
         ShaderCompileError compile_error_;
@@ -53,7 +53,7 @@ namespace orion
 
     enum class ShaderObjectType {
         SpirV,
-        Dxil
+        DXIL
     };
 
     struct ShaderCompileDesc {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "buffer.h"
 #include "handles.h"
 #include "orion-renderapi/types.h"
 #include "pipeline.h"
@@ -22,10 +23,12 @@ namespace orion
         [[nodiscard]] Swapchain create_swapchain(const Window& window, SwapchainDesc desc);
         [[nodiscard]] ShaderModule create_shader_module(const ShaderModuleDesc& desc);
         [[nodiscard]] GraphicsPipeline create_graphics_pipeline(const GraphicsPipelineDesc& desc);
+        [[nodiscard]] GPUBuffer create_buffer(const GPUBufferDesc& desc);
 
         void destroy(Swapchain swapchain);
         void destroy(ShaderModule shader_module);
         void destroy(GraphicsPipeline graphics_pipeline);
+        void destroy(GPUBuffer buffer);
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -37,9 +40,11 @@ namespace orion
         [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) = 0;
         [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing) = 0;
+        [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc, GPUBufferHandle existing) = 0;
 
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
+        virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
     };
 } // namespace orion

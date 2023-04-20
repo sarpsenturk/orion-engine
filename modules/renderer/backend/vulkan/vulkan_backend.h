@@ -17,8 +17,6 @@ namespace orion::vulkan
         // Public API overrides
         [[nodiscard]] const char* name() const noexcept override { return "Vulkan 1.0"; }
 
-        static constexpr auto vulkan_api_version = VK_API_VERSION_1_0;
-
     private:
         // Private API overrides
         std::vector<PhysicalDeviceDesc> enumerate_physical_devices_api() override;

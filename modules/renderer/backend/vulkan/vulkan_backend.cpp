@@ -147,7 +147,7 @@ namespace orion::vulkan
 
     VulkanBackend::VulkanBackend()
     {
-        SPDLOG_LOGGER_DEBUG(logger_raw(), "Creating Vulkan instance...");
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Creating Vulkan instance...");
 
         const auto vulkan_version = to_vulkan_version(current_version);
         const VkApplicationInfo application_info{
@@ -186,6 +186,7 @@ namespace orion::vulkan
             }
         }
 
+        // Create vulkan instance
         const VkInstanceCreateInfo instance_info{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pNext = nullptr,
@@ -202,6 +203,7 @@ namespace orion::vulkan
         SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkInstance {}", fmt::ptr(instance));
         instance_ = {instance, {}};
 
+        // Create vulkan debug utils if debug mode is enabled
         if constexpr (debug_build) {
             create_debug_messenger();
         }

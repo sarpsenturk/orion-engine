@@ -1,5 +1,6 @@
 #include <orion-core/window.h>
 #include <orion-engine/orion-engine.h>
+#include <orion-math/vector/vector4.h>
 #include <orion-renderer/renderer.h>
 #include <orion-renderer/shader_compiler.h>
 #include <spdlog/spdlog.h>
@@ -7,6 +8,11 @@
 class SandboxApp : public orion::Application
 {
 public:
+    struct Vertex {
+        orion::math::Vector4_f position;
+        orion::math::Vector4_f color;
+    };
+
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = {400, 200}, .size = {800, 600}})
         , renderer_(ORION_VULKAN_MODULE)
@@ -88,6 +94,32 @@ float4 main(FsInput input) : SV_Target
             device->destroy(vs_module);
             device->destroy(fs_module);
         }
+
+        // Create vertex buffer
+        {
+            // Triangle vertices
+            const std::array vertices{
+                Vertex{.position = {0.f, .5f, 0.f, 1.f}, .color = {1.f, 0.f, 0.f, 1.f}},
+                Vertex{.position = {.5f, -.5f, 0.f, 1.f}, .color = {0.f, 1.f, 0.f, 1.f}},
+                Vertex{.position = {-.5f, -.5f, 0.f, 1.f}, .color = {0.f, 0.f, 1.f, 1.f}},
+            };
+            const orion::GPUBufferDesc desc{
+                .size = sizeof(vertices),
+                .usage = orion::GPUBufferUsageFlags::VertexBuffer | orion::GPUBufferUsageFlags::TransferDst,
+            };
+            vertex_buffer_ = device->create_buffer(desc);
+        }
+
+        // Create index buffer
+        {
+            // Triangle indices
+            const std::array indices{0u, 1u, 2u};
+            const orion::GPUBufferDesc desc{
+                .size = sizeof(indices),
+                .usage = orion::GPUBufferUsageFlags::IndexBuffer | orion::GPUBufferUsageFlags::TransferDst,
+            };
+            index_buffer_ = device->create_buffer(desc);
+        }
     }
 
 private:
@@ -109,6 +141,8 @@ private:
     orion::Renderer renderer_;
     orion::Swapchain swapchain_;
     orion::GraphicsPipeline graphics_pipeline_;
+    orion::GPUBuffer vertex_buffer_;
+    orion::GPUBuffer index_buffer_;
 };
 
 ORION_MAIN(args)

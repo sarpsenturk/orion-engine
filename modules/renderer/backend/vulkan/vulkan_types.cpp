@@ -90,4 +90,10 @@ namespace orion::vulkan
         vkDestroyPipeline(device, pipeline, alloc_callbacks());
         SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VkPipeline {}", fmt::ptr(pipeline));
     }
+
+    void AllocatorDeleter::operator()(VmaAllocator allocator) const
+    {
+        vmaDestroyAllocator(allocator);
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Destroyed VmaAllocator {}", fmt::ptr(allocator));
+    }
 } // namespace orion::vulkan

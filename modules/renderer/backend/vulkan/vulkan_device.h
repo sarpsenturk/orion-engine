@@ -2,6 +2,7 @@
 
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/render_device.h"
+#include "vulkan_buffer.h"
 #include "vulkan_headers.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_swapchain.h"
@@ -22,21 +23,28 @@ namespace orion::vulkan
         const VulkanSwapchain& find_swapchain(SwapchainHandle swapchain_handle);
 
     private:
+        [[nodiscard]] UniqueVmaAllocator create_allocator();
+        [[nodiscard]] inline bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept { return queues_.transfer.index != family_index; }
+
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing) override;
+        GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc, GPUBufferHandle existing) override;
 
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
+        void destroy_api(GPUBufferHandle buffer_handle) override;
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         UniqueVkDevice device_;
+        UniqueVmaAllocator allocator_ = VK_NULL_HANDLE;
         VulkanQueues queues_;
 
         std::unordered_map<SwapchainHandle, VulkanSwapchain> swapchains_;
         std::unordered_map<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
-        std::unordered_map<PipelineHandle, VulkanPipeline> graphics_pipelines_;
+        std::unordered_map<PipelineHandle, VulkanPipeline> pipelines_;
+        std::unordered_map<GPUBufferHandle, VulkanBuffer> buffers_;
     };
 } // namespace orion::vulkan

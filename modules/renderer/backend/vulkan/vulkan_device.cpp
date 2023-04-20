@@ -4,10 +4,11 @@
 #include "vulkan_platform.h"
 #include "vulkan_render_context.h"
 
-#include <numeric>                 // std::accumulate
-#include <orion-utils/assertion.h> // ORION_EXPECTS
-#include <spdlog/spdlog.h>         // SPDLOG_*
-#include <utility>                 // std::exchange
+#include <numeric>                     // std::accumulate
+#include <orion-utils/assertion.h>     // ORION_EXPECTS
+#include <orion-utils/static_vector.h> // static_vector
+#include <spdlog/spdlog.h>             // SPDLOG_*
+#include <utility>                     // std::exchange
 
 namespace orion::vulkan
 {
@@ -27,8 +28,28 @@ namespace orion::vulkan
         : instance_(instance)
         , physical_device_(physical_device)
         , device_(std::move(device))
+        , allocator_(create_allocator())
         , queues_(queues)
     {
+    }
+
+    UniqueVmaAllocator VulkanDevice::create_allocator()
+    {
+        const VmaAllocatorCreateInfo allocator_info{
+            .flags = 0,
+            .physicalDevice = physical_device_,
+            .device = device_.get(),
+            .preferredLargeHeapBlockSize = 0,
+            .pHeapSizeLimit = nullptr,
+            .pVulkanFunctions = nullptr,
+            .instance = instance_,
+            .vulkanApiVersion = vulkan_api_version,
+            .pTypeExternalMemoryHandleTypes = nullptr,
+        };
+        VmaAllocator allocator = VK_NULL_HANDLE;
+        vk_result_check(vmaCreateAllocator(&allocator_info, &allocator));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VmaAllocator {}", fmt::ptr(allocator));
+        return {allocator, {}};
     }
 
     std::unique_ptr<RenderContext> VulkanDevice::create_render_context()
@@ -448,10 +469,61 @@ namespace orion::vulkan
         SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkPipeline (graphics) {}", fmt::ptr(vk_pipeline));
 
         const auto handle = existing.is_valid() ? existing : PipelineHandle::generate();
-        graphics_pipelines_.insert_or_assign(handle, VulkanPipeline{
-                                                         UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{device_.get()}},
-                                                         UniqueVkPipeline{vk_pipeline, PipelineDeleter{device_.get()}},
-                                                     });
+        pipelines_.insert_or_assign(handle, VulkanPipeline{
+                                                UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{device_.get()}},
+                                                UniqueVkPipeline{vk_pipeline, PipelineDeleter{device_.get()}},
+                                            });
+        return handle;
+    }
+
+    GPUBufferHandle VulkanDevice::create_buffer_api(const GPUBufferDesc& desc, GPUBufferHandle existing)
+    {
+        // Check if  buffer will be used for transfer ops
+        const bool transfer_src = to_bool(desc.usage & GPUBufferUsageFlags::TransferSrc);
+        const bool transfer_dst = to_bool(desc.usage & GPUBufferUsageFlags::TransferDst);
+
+        // Find set of queue families to be used
+        const auto queue_indices = [transfer_src, transfer_dst, this]() {
+            static_vector<std::uint32_t, 2> queue_indices;
+            queue_indices.push_back(queues_.graphics.index);
+            if ((transfer_src || transfer_dst) && transfer_requires_concurrent(queues_.graphics.index)) {
+                queue_indices.push_back(queues_.transfer.index);
+            }
+            return queue_indices;
+        }();
+        SPDLOG_LOGGER_TRACE(logger_raw(), "Buffer access available to queue families: {}", queue_indices);
+
+        // Buffer create info
+        const VkBufferCreateInfo buffer_info{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .size = desc.size,
+            .usage = to_vulkan_type(desc.usage),
+            .sharingMode = queue_indices.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = queue_indices.size(),
+            .pQueueFamilyIndices = queue_indices.data(),
+        };
+
+        // Allocation info
+        const VmaAllocationCreateInfo allocation_info{
+            .flags = 0,
+            .usage = VMA_MEMORY_USAGE_AUTO,
+            .requiredFlags = 0,
+            .preferredFlags = 0,
+            .pool = VK_NULL_HANDLE,
+            .pUserData = nullptr,
+            .priority = 0.f,
+        };
+
+        // Create the buffer
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        vk_result_check(vmaCreateBuffer(allocator_.get(), &buffer_info, &allocation_info, &buffer, &allocation, nullptr));
+        SPDLOG_LOGGER_DEBUG(logger_raw(), "Created VkBuffer {} with allocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
+
+        const auto handle = existing.is_valid() ? existing : GPUBufferHandle::generate();
+        buffers_.insert_or_assign(handle, VulkanBuffer{allocator_.get(), buffer, allocation});
         return handle;
     }
 
@@ -477,6 +549,11 @@ namespace orion::vulkan
 
     void VulkanDevice::destroy_api(PipelineHandle graphics_pipeline_handle)
     {
-        graphics_pipelines_.erase(graphics_pipeline_handle);
+        pipelines_.erase(graphics_pipeline_handle);
+    }
+
+    void VulkanDevice::destroy_api(GPUBufferHandle buffer_handle)
+    {
+        buffers_.erase(buffer_handle);
     }
 } // namespace orion::vulkan

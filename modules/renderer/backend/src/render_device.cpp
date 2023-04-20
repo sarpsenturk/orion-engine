@@ -25,6 +25,13 @@ namespace orion
         return {handle};
     }
 
+    GPUBuffer RenderDevice::create_buffer(const GPUBufferDesc& desc)
+    {
+        auto handle = create_buffer_api(desc, GPUBufferHandle::invalid_handle());
+        SPDLOG_DEBUG("Created gpu buffer with handle {}", handle);
+        return {handle, desc};
+    }
+
     void RenderDevice::destroy(Swapchain swapchain)
     {
         destroy_api(swapchain.handle());
@@ -38,5 +45,10 @@ namespace orion
     void RenderDevice::destroy(GraphicsPipeline graphics_pipeline)
     {
         destroy_api(graphics_pipeline.handle());
+    }
+
+    void RenderDevice::destroy(GPUBuffer buffer)
+    {
+        destroy_api(buffer.handle());
     }
 } // namespace orion

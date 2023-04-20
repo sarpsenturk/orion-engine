@@ -1,5 +1,6 @@
 target_sources(
         orion-render-backend PRIVATE
+        buffer.cpp
         pipeline.cpp
         render_backend.cpp
         render_device.cpp
