@@ -383,18 +383,24 @@ namespace orion::vulkan
                                                    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
                                                    void* user_data)
     {
+        static constexpr const char* validation_error_format = R"(
+--- Vulkan Validation Error Begin ---
+Message ID: {}, Message ID Name: {}
+{}
+-- Vulkan Validation Error End ---
+)";
         auto* logger = static_cast<spdlog::logger*>(user_data);
-        if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            SPDLOG_LOGGER_ERROR(logger, "Message ID: {:#x}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
-            SPDLOG_LOGGER_ERROR(logger, "{}", callback_data->pMessage);
-            SPDLOG_LOGGER_ERROR(logger, "Application will most likely crash now");
-        } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            SPDLOG_LOGGER_WARN(logger, "Message ID: {:#x}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
-            SPDLOG_LOGGER_WARN(logger, "{}", callback_data->pMessage);
-        } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-            SPDLOG_LOGGER_INFO(logger, "Message ID: {:#x}, Message ID Name: {}", callback_data->messageIdNumber, callback_data->pMessageIdName);
-            SPDLOG_LOGGER_INFO(logger, "{}", callback_data->pMessage);
-        }
+        const auto level = [message_severity]() {
+            if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+                return spdlog::level::err;
+            } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+                return spdlog::level::warn;
+            } else if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+                return spdlog::level::info;
+            }
+            return spdlog::level::level_enum::off;
+        }();
+        SPDLOG_LOGGER_CALL(logger, level, validation_error_format, callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
         return VK_FALSE;
     }
 } // namespace orion::vulkan

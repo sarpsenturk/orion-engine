@@ -3,7 +3,6 @@
 #include <orion-math/vector/vector4.h>
 #include <orion-renderer/renderer.h>
 #include <orion-renderer/shader_compiler.h>
-#include <spdlog/spdlog.h>
 
 class SandboxApp : public orion::Application
 {

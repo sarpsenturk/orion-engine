@@ -10,7 +10,6 @@ namespace orion
     Application::Application()
         : logger_(spdlog::stdout_color_st("orion-application"))
     {
-        // Set log level and format globally
         logger_->set_pattern("[%n] [%^%l%$] %v");
         logger_->set_level(static_cast<spdlog::level::level_enum>(ORION_APPLICATION_LOG_LEVEL));
 
