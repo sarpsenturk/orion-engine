@@ -1,6 +1,6 @@
 #include "orion-core/platform/win32/win32_window.h"
 
-#include <spdlog/spdlog.h> // SPDLOG_*
+#include <spdlog/spdlog.h> // SPDLOG_LOGGER_*
 
 namespace orion
 {
@@ -15,22 +15,25 @@ namespace orion
         // Forward declare window procedure
         LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
-        static void register_wnd_class(const char* class_name, HINSTANCE hinstance)
+        namespace
         {
-            static bool registered = false;
-            if (!registered) {
-                const WNDCLASS wndclass{
-                    .lpfnWndProc = window_proc,
-                    .hInstance = hinstance,
-                    .lpszClassName = class_name,
-                };
-                if (!RegisterClass(&wndclass)) {
-                    throw Win32Error();
+            void register_wnd_class(const char* class_name, HINSTANCE hinstance)
+            {
+                static bool registered = false;
+                if (!registered) {
+                    const WNDCLASS wndclass{
+                        .lpfnWndProc = window_proc,
+                        .hInstance = hinstance,
+                        .lpszClassName = class_name,
+                    };
+                    if (!RegisterClass(&wndclass)) {
+                        throw Win32Error();
+                    }
+                    SPDLOG_LOGGER_TRACE(win32::logger(), "Registered WNDCLASS {}", class_name);
+                    registered = true;
                 }
-                SPDLOG_TRACE("Registered WNDCLASS {}", class_name);
-                registered = true;
             }
-        }
+        } // namespace
 
         PlatformWindow* create_window(Window* this_ptr, const WindowCreateInfo& window_create_info)
         {
@@ -72,7 +75,7 @@ namespace orion
                 throw Win32Error();
             }
 
-            SPDLOG_TRACE("Created HWND {}", fmt::ptr(hwnd));
+            SPDLOG_LOGGER_TRACE(win32::logger(), "Created HWND {}", fmt::ptr(hwnd));
 
             // Show the window for the first time
             ShowWindow(hwnd, SW_SHOWNORMAL);
@@ -86,7 +89,7 @@ namespace orion
             if (platform_window) {
                 HWND hwnd = platform_window->hwnd();
                 DestroyWindow(hwnd);
-                SPDLOG_TRACE("Destroyed HWND {}", fmt::ptr(hwnd));
+                SPDLOG_LOGGER_TRACE(win32::logger(), "Destroyed HWND {}", fmt::ptr(hwnd));
             }
         }
 
@@ -108,7 +111,7 @@ namespace orion
             if (msg == WM_NCCREATE) {
                 auto* create_struct = reinterpret_cast<CREATESTRUCT*>(lparam);
                 SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(create_struct->lpCreateParams));
-                SPDLOG_TRACE("HWND ({}) GWLP_USERDATA set to this ptr", fmt::ptr(hwnd));
+                SPDLOG_LOGGER_TRACE(win32::logger(), "HWND ({}) GWLP_USERDATA set to this ptr", fmt::ptr(hwnd));
                 return DefWindowProc(hwnd, msg, wparam, lparam);
             }
 

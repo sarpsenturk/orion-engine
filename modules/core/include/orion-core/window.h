@@ -2,9 +2,14 @@
 
 #include "orion-core/event.h"
 
-#include <orion-math/vector/formatter.h>
-#include <orion-math/vector/vector2.h>
-#include <orion-utils/enum.h>
+#include <memory>                        // std::shared_ptr
+#include <orion-math/vector/formatter.h> // fmt::formatter<Vector>
+#include <orion-math/vector/vector2.h>   // orion::math::Vector2
+#include <spdlog/logger.h>               // spdlog::logger
+
+#ifndef ORION_WINDOW_LOG_LEVEL
+    #define ORION_WINDOW_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
+#endif
 
 namespace orion
 {
@@ -81,6 +86,8 @@ namespace orion
         [[nodiscard]] auto& on_resize_end() noexcept { return on_resize_end_; }
 
     private:
+        static spdlog::logger* logger();
+
         PlatformWindowPtr platform_window_;
 
         // Window information
