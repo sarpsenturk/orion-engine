@@ -241,6 +241,7 @@ namespace orion::vulkan
                                                  std::move(surface),
                                                  UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device_.get()}},
                                                  UniqueVkRenderPass{render_pass, RenderPassDeleter{device_.get()}},
+                                                 create_semaphore(device_.get()),
                                                  std::move(image_views),
                                                  std::move(framebuffers),
                                              });
