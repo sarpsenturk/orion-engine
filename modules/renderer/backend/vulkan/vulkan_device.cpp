@@ -500,7 +500,13 @@ namespace orion::vulkan
         SPDLOG_LOGGER_TRACE(logger(), "Buffer access available to queue families: {}", queue_indices);
 
         const auto handle = existing.is_valid() ? existing : GPUBufferHandle::generate();
-        buffers_.insert_or_assign(handle, VulkanBuffer::create(device_.get(), allocator_.get(), desc.size, to_vulkan_type(desc.usage), {queue_indices.begin(), queue_indices.end()}, false));
+        const BufferCreateInfo create_info{
+            .size = desc.size,
+            .usage = to_vulkan_type(desc.usage),
+            .queue_indices = {queue_indices.begin(), queue_indices.end()},
+            .host_visible = desc.host_visible,
+        };
+        buffers_.insert_or_assign(handle, VulkanBuffer::create(allocator_.get(), create_info));
         return handle;
     }
 
@@ -523,8 +529,8 @@ namespace orion::vulkan
     {
         auto find_render_pass = [this](auto&& arg) -> VkRenderPass {
             using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, Swapchain>) {
-                return find_swapchain(arg.handle()).render_pass();
+            if constexpr (std::is_same_v<T, SwapchainHandle>) {
+                return find_swapchain(arg).render_pass();
             } else {
                 return VK_NULL_HANDLE;
             }

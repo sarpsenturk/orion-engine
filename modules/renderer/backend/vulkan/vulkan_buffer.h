@@ -6,6 +6,13 @@
 
 namespace orion::vulkan
 {
+    struct BufferCreateInfo {
+        std::size_t size = 0;
+        VkBufferUsageFlags usage = {};
+        std::span<const std::uint32_t> queue_indices = {};
+        bool host_visible = false;
+    };
+
     class VulkanBuffer
     {
     public:
@@ -19,7 +26,7 @@ namespace orion::vulkan
         [[nodiscard]] auto buffer() const noexcept { return vk_buffer_; }
         [[nodiscard]] auto allocation() const noexcept { return vma_allocation_; }
 
-        static VulkanBuffer create(VkDevice device, VmaAllocator allocator, std::size_t size, VkBufferUsageFlags usage, std::span<const std::uint32_t> queue_indices, bool host_visible);
+        static VulkanBuffer create(VmaAllocator allocator, const BufferCreateInfo& create_info);
 
     private:
         VmaAllocator vma_allocator_;

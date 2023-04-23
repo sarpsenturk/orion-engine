@@ -34,23 +34,23 @@ namespace orion::vulkan
         }
     }
 
-    VulkanBuffer VulkanBuffer::create(VkDevice device, VmaAllocator allocator, std::size_t size, VkBufferUsageFlags usage, std::span<const std::uint32_t> queue_indices, bool host_visible)
+    VulkanBuffer VulkanBuffer::create(VmaAllocator allocator, const BufferCreateInfo& create_info)
     {
         // Buffer create info
         const VkBufferCreateInfo buffer_info{
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .size = size,
-            .usage = usage,
-            .sharingMode = queue_indices.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = static_cast<uint32_t>(queue_indices.size()),
-            .pQueueFamilyIndices = queue_indices.data(),
+            .size = create_info.size,
+            .usage = create_info.usage,
+            .sharingMode = create_info.queue_indices.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = static_cast<uint32_t>(create_info.queue_indices.size()),
+            .pQueueFamilyIndices = create_info.queue_indices.data(),
         };
 
         // Allocation info
         const VmaAllocationCreateInfo allocation_info{
-            .flags = host_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
+            .flags = create_info.host_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
             .usage = VMA_MEMORY_USAGE_AUTO,
             .requiredFlags = 0,
             .preferredFlags = 0,
@@ -63,5 +63,6 @@ namespace orion::vulkan
         VkBuffer buffer = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
         vk_result_check(vmaCreateBuffer(allocator, &buffer_info, &allocation_info, &buffer, &allocation, nullptr));
+        return {allocator, buffer, allocation};
     }
 } // namespace orion::vulkan
