@@ -1,7 +1,6 @@
 #pragma once
 
 #include "handles.h"
-#include "render_target.h"
 #include "shader.h"
 #include "types.h"
 
@@ -55,7 +54,7 @@ namespace orion
         std::span<const VertexBinding> vertex_bindings = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
-        RenderTarget render_target;
+        RenderTargetHandle render_target;
     };
 
     class GraphicsPipeline

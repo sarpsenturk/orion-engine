@@ -9,7 +9,6 @@ target_sources(
         render_backend.h
         render_context.h
         render_device.h
-        render_target.h
         shader.h
         swapchain.h
         types.h
