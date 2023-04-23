@@ -62,6 +62,14 @@ namespace orion::vulkan
         void operator()(VkCommandPool command_pool) const;
     };
 
+    struct CommandBufferDeleter {
+        using pointer = VkCommandBuffer;
+        VkDevice device = VK_NULL_HANDLE;
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+
+        void operator()(VkCommandBuffer command_buffer) const;
+    };
+
     struct RenderPassDeleter {
         using pointer = VkRenderPass;
         VkDevice device = VK_NULL_HANDLE;
@@ -124,6 +132,7 @@ namespace orion::vulkan
     using UniqueVkSwapchainKHR = std::unique_ptr<VkSwapchainKHR, SwapchainDeleter>;
     using UniqueVkImageView = std::unique_ptr<VkImageView, ImageViewDeleter>;
     using UniqueVkCommandPool = std::unique_ptr<VkCommandPool, CommandPoolDeleter>;
+    using UniqueVkCommandBuffer = std::unique_ptr<VkCommandBuffer, CommandBufferDeleter>;
     using UniqueVkRenderPass = std::unique_ptr<VkRenderPass, RenderPassDeleter>;
     using UniqueVkFramebuffer = std::unique_ptr<VkFramebuffer, FramebufferDeleter>;
     using UniqueVkShaderModule = std::unique_ptr<VkShaderModule, ShaderModuleDeleter>;

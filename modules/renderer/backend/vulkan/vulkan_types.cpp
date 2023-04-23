@@ -13,6 +13,7 @@ namespace orion::vulkan
 
     void DeviceDeleter::operator()(VkDevice device) const
     {
+        vkDeviceWaitIdle(device);
         vkDestroyDevice(device, alloc_callbacks());
     }
 
@@ -47,6 +48,12 @@ namespace orion::vulkan
     {
         ORION_EXPECTS(device != VK_NULL_HANDLE);
         vkDestroyCommandPool(device, command_pool, alloc_callbacks());
+    }
+
+    void CommandBufferDeleter::operator()(VkCommandBuffer command_buffer) const
+    {
+        ORION_ASSERT(device != VK_NULL_HANDLE && command_pool != VK_NULL_HANDLE);
+        vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
     }
 
     void RenderPassDeleter::operator()(VkRenderPass render_pass) const

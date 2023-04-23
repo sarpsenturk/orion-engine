@@ -104,11 +104,13 @@ float4 main(FsInput input) : SV_Target
         }
 
         // Create staging buffer
-        auto staging_buffer = device->create_buffer({.size = sizeof(vertices) + sizeof(indices), .usage = orion::GPUBufferUsageFlags::TransferSrc, .host_visible = true});
+        auto staging_buffer = device->create_buffer({.size = sizeof(vertices), .usage = orion::GPUBufferUsageFlags::TransferSrc, .host_visible = true});
 
         // Map staging buffer
         void* mapped_memory = device->map(staging_buffer);
-        (void)mapped_memory;
+
+        // Copy vertex data to staging buffer
+        std::memcpy(mapped_memory, vertices.data(), sizeof(vertices));
 
         // Create vertex buffer
         {
@@ -126,6 +128,15 @@ float4 main(FsInput input) : SV_Target
             };
             index_buffer_ = device->create_buffer(desc);
         }
+
+        // Create command buffer to copy data from staging buffer
+        auto command_buffer = device->create_command_buffer<uint8_t>({.queue_type = orion::CommandQueueType::Transfer, .buffer_size = sizeof(orion::CmdBufferCopy)});
+
+        // Add copy command
+        auto* copy_cmd = command_buffer.add_command<orion::CmdBufferCopy>({});
+        copy_cmd->src = staging_buffer.handle();
+        copy_cmd->dst = vertex_buffer_.handle();
+        copy_cmd->size = sizeof(vertices);
 
         // Unmap staging buffer
         device->unmap(staging_buffer);

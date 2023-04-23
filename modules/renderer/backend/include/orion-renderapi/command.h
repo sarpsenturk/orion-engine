@@ -81,6 +81,13 @@ namespace orion
             return command;
         }
 
+        [[nodiscard]] auto handle() const noexcept { return handle_; }
+        [[nodiscard]] auto queue_type() const noexcept { return desc_.queue_type; }
+        [[nodiscard]] auto buffer_size() const noexcept { return desc_.buffer_size; }
+        [[nodiscard]] auto& description() const noexcept { return desc_; }
+
+        [[nodiscard]] auto& commands() const noexcept { return command_packets_; }
+
     private:
         CommandBufferHandle handle_;
         CommandBufferDesc desc_;

@@ -32,6 +32,15 @@ namespace orion::vulkan
         , allocator_(create_allocator())
         , queues_(queues)
     {
+        // Create command pool for each queue
+        auto create_pool_for_queue = [this](std::uint32_t queue_family) {
+            if (!command_pools_.contains(queue_family)) {
+                command_pools_.insert(std::make_pair(queue_family, create_command_pool(device_.get(), queue_family)));
+            }
+        };
+
+        create_pool_for_queue(queues_.graphics.index);
+        create_pool_for_queue(queues_.transfer.index);
     }
 
     UniqueVmaAllocator VulkanDevice::create_allocator()
@@ -55,14 +64,28 @@ namespace orion::vulkan
 
     VkCommandPool VulkanDevice::graphics_command_pool() const
     {
-        static thread_local auto command_pool = create_command_pool(device_.get(), queues_.graphics.index);
-        return command_pool.get();
+        return command_pools_.at(queues_.graphics.index).get();
     }
 
     VkCommandPool VulkanDevice::transfer_command_pool() const
     {
-        static thread_local auto command_pool = create_command_pool(device_.get(), queues_.transfer.index);
-        return command_pool.get();
+        return command_pools_.at(queues_.transfer.index).get();
+    }
+
+    VkCommandPool VulkanDevice::get_command_pool(CommandQueueType queue_type) const
+    {
+        switch (queue_type) {
+            case CommandQueueType::Graphics:
+                return graphics_command_pool();
+            case CommandQueueType::Transfer:
+                return transfer_command_pool();
+            case CommandQueueType::Compute:
+                ORION_ASSERT(!"Vulkan API doesn't currently support compute operations");
+                break;
+            case CommandQueueType::Any:
+                break;
+        }
+        return VK_NULL_HANDLE;
     }
 
     std::unique_ptr<RenderContext> VulkanDevice::create_render_context()
@@ -510,6 +533,27 @@ namespace orion::vulkan
         return handle;
     }
 
+    CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc, CommandBufferHandle existing)
+    {
+        // Find command pool based on queue type
+        auto command_pool = get_command_pool(desc.queue_type);
+
+        // Allocate command buffer
+        const VkCommandBufferAllocateInfo allocate_info{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .commandPool = command_pool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+        };
+        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+        vk_result_check(vkAllocateCommandBuffers(device_.get(), &allocate_info, &command_buffer));
+
+        const auto handle = existing.is_valid() ? existing : CommandBufferHandle::generate();
+        command_buffers_.insert_or_assign(handle, UniqueVkCommandBuffer{command_buffer, CommandBufferDeleter{device_.get(), command_pool}});
+        return handle;
+    }
+
     VkShaderModule VulkanDevice::find_shader(ShaderModuleHandle shader_module_handle) const
     {
         return shader_modules_.at(shader_module_handle).get();
@@ -561,6 +605,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(GPUBufferHandle buffer_handle)
     {
         buffers_.erase(buffer_handle);
+    }
+
+    void VulkanDevice::destroy_api(CommandBufferHandle command_buffer_handle)
+    {
+        command_buffers_.erase(command_buffer_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
