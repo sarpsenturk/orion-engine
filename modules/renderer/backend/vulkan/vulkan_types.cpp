@@ -83,4 +83,40 @@ namespace orion::vulkan
     {
         vmaDestroyAllocator(allocator);
     }
+
+    void SemaphoreDeleter::operator()(VkSemaphore semaphore) const
+    {
+        ORION_EXPECTS(device != VK_NULL_HANDLE);
+        vkDestroySemaphore(device, semaphore, alloc_callbacks());
+    }
+
+    void FenceDeleter::operator()(VkFence fence) const
+    {
+        ORION_EXPECTS(device != VK_NULL_HANDLE);
+        vkDestroyFence(device, fence, alloc_callbacks());
+    }
+
+    UniqueVkSemaphore create_semaphore(VkDevice device)
+    {
+        const VkSemaphoreCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+        };
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        vk_result_check(vkCreateSemaphore(device, &info, alloc_callbacks(), &semaphore));
+        return {semaphore, SemaphoreDeleter{device}};
+    }
+
+    UniqueVkFence create_fence(VkDevice device, VkFenceCreateFlags flags)
+    {
+        const VkFenceCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = flags,
+        };
+        VkFence fence = VK_NULL_HANDLE;
+        vk_result_check(vkCreateFence(device, &info, alloc_callbacks(), &fence));
+        return {fence, FenceDeleter{device}};
+    }
 } // namespace orion::vulkan

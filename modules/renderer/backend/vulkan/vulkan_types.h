@@ -103,6 +103,20 @@ namespace orion::vulkan
         void operator()(VmaAllocator allocator) const;
     };
 
+    struct SemaphoreDeleter {
+        using pointer = VkSemaphore;
+        VkDevice device = VK_NULL_HANDLE;
+
+        void operator()(VkSemaphore semaphore) const;
+    };
+
+    struct FenceDeleter {
+        using pointer = VkFence;
+        VkDevice device = VK_NULL_HANDLE;
+
+        void operator()(VkFence fence) const;
+    };
+
     using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
     using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
     using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -116,4 +130,9 @@ namespace orion::vulkan
     using UniqueVkPipelineLayout = std::unique_ptr<VkPipelineLayout, PipelineLayoutDeleter>;
     using UniqueVkPipeline = std::unique_ptr<VkPipeline, PipelineDeleter>;
     using UniqueVmaAllocator = std::unique_ptr<VmaAllocator, AllocatorDeleter>;
+    using UniqueVkSemaphore = std::unique_ptr<VkSemaphore, SemaphoreDeleter>;
+    using UniqueVkFence = std::unique_ptr<VkFence, FenceDeleter>;
+
+    UniqueVkSemaphore create_semaphore(VkDevice device);
+    UniqueVkFence create_fence(VkDevice device, VkFenceCreateFlags flags = 0);
 } // namespace orion::vulkan
