@@ -105,4 +105,18 @@ namespace orion
         math::Vector2_f position;
         math::Vector2_f size;
     };
+
+    enum class CommandQueueType {
+        Graphics,
+        Transfer,
+        Compute,
+        Any
+    };
+
+    enum class CommandType {
+        BufferCopy,
+        BeginFrame,
+        EndFrame,
+        Draw
+    };
 } // namespace orion
