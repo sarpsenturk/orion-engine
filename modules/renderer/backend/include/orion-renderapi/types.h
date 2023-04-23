@@ -100,4 +100,9 @@ namespace orion
     struct enum_traits<GPUBufferUsageFlags> : default_enum_traits<GPUBufferUsageFlags> {
         static constexpr bool bitwise_enabled = true;
     };
+
+    struct Viewport {
+        math::Vector2_f position;
+        math::Vector2_f size;
+    };
 } // namespace orion

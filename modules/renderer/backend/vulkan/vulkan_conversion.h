@@ -154,6 +154,18 @@ namespace orion::vulkan
         return usage_flags;
     }
 
+    constexpr auto to_vulkan_type(const Viewport& viewport) noexcept -> VkViewport
+    {
+        return {
+            .x = viewport.position.x(),
+            .y = viewport.position.y(),
+            .width = viewport.size.x(),
+            .height = viewport.size.y(),
+            .minDepth = 0.f,
+            .maxDepth = 1.f,
+        };
+    }
+
     template<typename T>
     constexpr auto to_vulkan_extent(const math::Vector2_t<T>& vec2) noexcept -> VkExtent2D
     {
