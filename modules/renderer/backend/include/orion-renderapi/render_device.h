@@ -33,6 +33,9 @@ namespace orion
         void destroy(GraphicsPipeline graphics_pipeline);
         void destroy(GPUBuffer buffer);
 
+        [[nodiscard]] void* map(GPUBuffer buffer);
+        void unmap(GPUBuffer buffer);
+
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
     protected:
@@ -51,6 +54,9 @@ namespace orion
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
+
+        [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
+        [[nodiscard]] virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
 
         spdlog::logger* logger_;
     };

@@ -1,6 +1,7 @@
 #include "orion-renderapi/render_device.h"
 
-#include <spdlog/spdlog.h> // SPDLOG_LOGGER_*
+#include <orion-utils/assertion.h> // ORION_ASSERT
+#include <spdlog/spdlog.h>         // SPDLOG_LOGGER_*
 
 namespace orion
 {
@@ -55,5 +56,16 @@ namespace orion
     void RenderDevice::destroy(GPUBuffer buffer)
     {
         destroy_api(buffer.handle());
+    }
+
+    void* RenderDevice::map(GPUBuffer buffer)
+    {
+        ORION_EXPECTS(buffer.host_visible());
+        return map_api(buffer.handle());
+    }
+
+    void RenderDevice::unmap(GPUBuffer buffer)
+    {
+        return unmap_api(buffer.handle());
     }
 } // namespace orion

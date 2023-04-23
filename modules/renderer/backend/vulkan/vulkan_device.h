@@ -45,6 +45,9 @@ namespace orion::vulkan
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
         void destroy_api(GPUBufferHandle buffer_handle) override;
 
+        void* map_api(GPUBufferHandle buffer_handle) override;
+        void unmap_api(GPUBufferHandle buffer_handle) override;
+
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         UniqueVkDevice device_;

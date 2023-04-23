@@ -1,6 +1,7 @@
 #include <orion-core/window.h>
 #include <orion-engine/orion-engine.h>
 #include <orion-math/vector/vector4.h>
+#include <orion-renderapi/command.h>
 #include <orion-renderer/renderer.h>
 #include <orion-renderer/shader_compiler.h>
 
@@ -12,12 +13,20 @@ public:
         orion::math::Vector4_f color;
     };
 
+    static constexpr std::array vertices{
+        Vertex{.position = {0.f, .5f, 0.f, 1.f}, .color = {1.f, 0.f, 0.f, 1.f}},
+        Vertex{.position = {.5f, -.5f, 0.f, 1.f}, .color = {0.f, 1.f, 0.f, 1.f}},
+        Vertex{.position = {-.5f, -.5f, 0.f, 1.f}, .color = {0.f, 0.f, 1.f, 1.f}},
+    };
+
+    static constexpr const std::array indices{0u, 1u, 2u};
+
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = {400, 200}, .size = {800, 600}})
         , renderer_(ORION_VULKAN_MODULE)
     {
         // Get the render device
-        auto device = renderer_.device();
+        auto* device = renderer_.device();
 
         // Create swapchain
         swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = window_.size()});
@@ -30,7 +39,7 @@ public:
             // Create vertex shader module
             const auto vs_module = [device, &shader_compiler]() {
                 // Compile vertex shader
-                const auto vs_source = R"(
+                const auto* vs_source = R"(
 struct VsInput {
     float4 position : POSITION;
     float4 color : COLOR;
@@ -56,7 +65,7 @@ VsOutput main(VsInput input)
             // Create fragment shader module
             const auto fs_module = [device, &shader_compiler]() {
                 // Compile fragment shader
-                const auto fs_source = R"(
+                const auto* fs_source = R"(
 struct FsInput {
     float4 position : SV_Position;
     float4 color : COLOR;
@@ -87,38 +96,39 @@ float4 main(FsInput input) : SV_Target
             graphics_pipeline_ = device->create_graphics_pipeline(orion::GraphicsPipelineDesc{
                 .shaders = shaders,
                 .vertex_bindings = vertex_bindings,
-                .render_target = swapchain_,
+                .render_target = swapchain_.handle(),
             });
 
             device->destroy(vs_module);
             device->destroy(fs_module);
         }
 
+        // Create staging buffer
+        auto staging_buffer = device->create_buffer({.size = sizeof(vertices) + sizeof(indices), .usage = orion::GPUBufferUsageFlags::TransferSrc, .host_visible = true});
+
+        // Map staging buffer
+        void* mapped_memory = device->map(staging_buffer);
+        (void)mapped_memory;
+
         // Create vertex buffer
         {
-            // Triangle vertices
-            const std::array vertices{
-                Vertex{.position = {0.f, .5f, 0.f, 1.f}, .color = {1.f, 0.f, 0.f, 1.f}},
-                Vertex{.position = {.5f, -.5f, 0.f, 1.f}, .color = {0.f, 1.f, 0.f, 1.f}},
-                Vertex{.position = {-.5f, -.5f, 0.f, 1.f}, .color = {0.f, 0.f, 1.f, 1.f}},
-            };
             const orion::GPUBufferDesc desc{
                 .size = sizeof(vertices),
                 .usage = orion::GPUBufferUsageFlags::VertexBuffer | orion::GPUBufferUsageFlags::TransferDst,
             };
             vertex_buffer_ = device->create_buffer(desc);
         }
-
         // Create index buffer
         {
-            // Triangle indices
-            const std::array indices{0u, 1u, 2u};
             const orion::GPUBufferDesc desc{
                 .size = sizeof(indices),
                 .usage = orion::GPUBufferUsageFlags::IndexBuffer | orion::GPUBufferUsageFlags::TransferDst,
             };
             index_buffer_ = device->create_buffer(desc);
         }
+
+        // Unmap staging buffer
+        device->unmap(staging_buffer);
     }
 
 private:

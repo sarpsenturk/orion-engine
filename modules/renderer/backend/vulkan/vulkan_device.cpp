@@ -562,4 +562,18 @@ namespace orion::vulkan
     {
         buffers_.erase(buffer_handle);
     }
+
+    void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
+    {
+        const auto& vk_buffer = find_buffer(buffer_handle);
+        void* ptr = nullptr;
+        vk_result_check(vmaMapMemory(allocator_.get(), vk_buffer.allocation(), &ptr));
+        SPDLOG_LOGGER_TRACE(logger(), "Mapped VkBuffer {} at memory address {}", fmt::ptr(vk_buffer.buffer()), fmt::ptr(ptr));
+        return ptr;
+    }
+
+    void VulkanDevice::unmap_api(GPUBufferHandle buffer_handle)
+    {
+        vmaUnmapMemory(allocator_.get(), find_buffer(buffer_handle).allocation());
+    }
 } // namespace orion::vulkan
