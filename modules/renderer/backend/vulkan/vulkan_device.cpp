@@ -53,6 +53,18 @@ namespace orion::vulkan
         return {allocator, {}};
     }
 
+    VkCommandPool VulkanDevice::graphics_command_pool() const
+    {
+        static thread_local auto command_pool = create_command_pool(device_.get(), queues_.graphics.index);
+        return command_pool.get();
+    }
+
+    VkCommandPool VulkanDevice::transfer_command_pool() const
+    {
+        static thread_local auto command_pool = create_command_pool(device_.get(), queues_.transfer.index);
+        return command_pool.get();
+    }
+
     std::unique_ptr<RenderContext> VulkanDevice::create_render_context()
     {
         const VkCommandPoolCreateInfo command_pool_create_info{
@@ -434,15 +446,7 @@ namespace orion::vulkan
         }();
 
         // Find associated render pass
-        auto find_render_pass = [this](auto&& arg) -> VkRenderPass {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, Swapchain>) {
-                return find_swapchain(arg.handle()).render_pass();
-            } else {
-                return VK_NULL_HANDLE;
-            }
-        };
-        const auto render_pass = std::visit(find_render_pass, desc.render_target);
+        const auto render_pass = find_render_pass(desc.render_target);
 
         const VkGraphicsPipelineCreateInfo pipeline_info{
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -494,46 +498,17 @@ namespace orion::vulkan
         }();
         SPDLOG_LOGGER_TRACE(logger(), "Buffer access available to queue families: {}", queue_indices);
 
-        // Buffer create info
-        const VkBufferCreateInfo buffer_info{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .size = desc.size,
-            .usage = to_vulkan_type(desc.usage),
-            .sharingMode = queue_indices.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = queue_indices.size(),
-            .pQueueFamilyIndices = queue_indices.data(),
-        };
-
-        // Allocation info
-        const VmaAllocationCreateInfo allocation_info{
-            .flags = 0,
-            .usage = VMA_MEMORY_USAGE_AUTO,
-            .requiredFlags = 0,
-            .preferredFlags = 0,
-            .pool = VK_NULL_HANDLE,
-            .pUserData = nullptr,
-            .priority = 0.f,
-        };
-
-        // Create the buffer
-        VkBuffer buffer = VK_NULL_HANDLE;
-        VmaAllocation allocation = VK_NULL_HANDLE;
-        vk_result_check(vmaCreateBuffer(allocator_.get(), &buffer_info, &allocation_info, &buffer, &allocation, nullptr));
-        SPDLOG_LOGGER_DEBUG(logger(), "Created VkBuffer {} with allocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
-
         const auto handle = existing.is_valid() ? existing : GPUBufferHandle::generate();
-        buffers_.insert_or_assign(handle, VulkanBuffer{allocator_.get(), buffer, allocation});
+        buffers_.insert_or_assign(handle, VulkanBuffer::create(device_.get(), allocator_.get(), desc.size, to_vulkan_type(desc.usage), {queue_indices.begin(), queue_indices.end()}, false));
         return handle;
     }
 
-    VkShaderModule VulkanDevice::find_shader(ShaderModuleHandle shader_module_handle)
+    VkShaderModule VulkanDevice::find_shader(ShaderModuleHandle shader_module_handle) const
     {
         return shader_modules_.at(shader_module_handle).get();
     }
 
-    const VulkanSwapchain& VulkanDevice::find_swapchain(SwapchainHandle swapchain_handle)
+    const VulkanSwapchain& VulkanDevice::find_swapchain(SwapchainHandle swapchain_handle) const
     {
         return swapchains_.at(swapchain_handle);
     }

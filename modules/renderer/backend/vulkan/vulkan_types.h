@@ -133,6 +133,7 @@ namespace orion::vulkan
     using UniqueVkSemaphore = std::unique_ptr<VkSemaphore, SemaphoreDeleter>;
     using UniqueVkFence = std::unique_ptr<VkFence, FenceDeleter>;
 
+    UniqueVkCommandPool create_command_pool(VkDevice device, std::uint32_t queue_family, VkCommandPoolCreateFlags flags = 0);
     UniqueVkSemaphore create_semaphore(VkDevice device);
     UniqueVkFence create_fence(VkDevice device, VkFenceCreateFlags flags = 0);
 } // namespace orion::vulkan

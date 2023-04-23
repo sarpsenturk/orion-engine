@@ -26,6 +26,9 @@ namespace orion::vulkan
         [[nodiscard]] UniqueVmaAllocator create_allocator();
         [[nodiscard]] inline bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept { return queues_.transfer.index != family_index; }
 
+        [[nodiscard]] VkCommandPool graphics_command_pool() const;
+        [[nodiscard]] VkCommandPool transfer_command_pool() const;
+
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing) override;

@@ -96,6 +96,18 @@ namespace orion::vulkan
         vkDestroyFence(device, fence, alloc_callbacks());
     }
 
+    UniqueVkCommandPool create_command_pool(VkDevice device, std::uint32_t queue_family, VkCommandPoolCreateFlags flags)
+    {
+        const VkCommandPoolCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = flags,
+            .queueFamilyIndex = queue_family};
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        vk_result_check(vkCreateCommandPool(device, &info, alloc_callbacks(), &command_pool));
+        return {command_pool, CommandPoolDeleter{device}};
+    }
+
     UniqueVkSemaphore create_semaphore(VkDevice device)
     {
         const VkSemaphoreCreateInfo info{
