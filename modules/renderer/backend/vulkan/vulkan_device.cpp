@@ -514,6 +514,29 @@ namespace orion::vulkan
         return swapchains_.at(swapchain_handle);
     }
 
+    const VulkanBuffer& VulkanDevice::find_buffer(GPUBufferHandle buffer_handle) const
+    {
+        return buffers_.at(buffer_handle);
+    }
+
+    VkRenderPass VulkanDevice::find_render_pass(RenderTargetHandle render_target_handle) const
+    {
+        auto find_render_pass = [this](auto&& arg) -> VkRenderPass {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, Swapchain>) {
+                return find_swapchain(arg.handle()).render_pass();
+            } else {
+                return VK_NULL_HANDLE;
+            }
+        };
+        return std::visit(find_render_pass, render_target_handle);
+    }
+
+    VkPipeline VulkanDevice::find_pipeline(PipelineHandle pipeline_handle) const
+    {
+        return pipelines_.at(pipeline_handle).pipeline();
+    }
+
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
     {
         swapchains_.erase(swapchain_handle);

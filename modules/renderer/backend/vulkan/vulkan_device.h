@@ -19,8 +19,14 @@ namespace orion::vulkan
 
         std::unique_ptr<RenderContext> create_render_context() override;
 
-        VkShaderModule find_shader(ShaderModuleHandle shader_module_handle);
-        const VulkanSwapchain& find_swapchain(SwapchainHandle swapchain_handle);
+        VkShaderModule find_shader(ShaderModuleHandle shader_module_handle) const;
+        const VulkanSwapchain& find_swapchain(SwapchainHandle swapchain_handle) const;
+        const VulkanBuffer& find_buffer(GPUBufferHandle buffer_handle) const;
+        VkRenderPass find_render_pass(RenderTargetHandle render_target_handle) const;
+        VkPipeline find_pipeline(PipelineHandle pipeline_handle) const;
+
+        [[nodiscard]] auto device() const noexcept { return device_.get(); }
+        [[nodiscard]] auto allocator() const noexcept { return allocator_.get(); }
 
     private:
         [[nodiscard]] UniqueVmaAllocator create_allocator();
