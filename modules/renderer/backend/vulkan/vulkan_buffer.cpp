@@ -33,4 +33,35 @@ namespace orion::vulkan
             vmaDestroyBuffer(vma_allocator_, vk_buffer_, vma_allocation_);
         }
     }
+
+    VulkanBuffer VulkanBuffer::create(VkDevice device, VmaAllocator allocator, std::size_t size, VkBufferUsageFlags usage, std::span<const std::uint32_t> queue_indices, bool host_visible)
+    {
+        // Buffer create info
+        const VkBufferCreateInfo buffer_info{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .size = size,
+            .usage = usage,
+            .sharingMode = queue_indices.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = static_cast<uint32_t>(queue_indices.size()),
+            .pQueueFamilyIndices = queue_indices.data(),
+        };
+
+        // Allocation info
+        const VmaAllocationCreateInfo allocation_info{
+            .flags = host_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
+            .usage = VMA_MEMORY_USAGE_AUTO,
+            .requiredFlags = 0,
+            .preferredFlags = 0,
+            .pool = VK_NULL_HANDLE,
+            .pUserData = nullptr,
+            .priority = 0.f,
+        };
+
+        // Create the buffer
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        vk_result_check(vmaCreateBuffer(allocator, &buffer_info, &allocation_info, &buffer, &allocation, nullptr));
+    }
 } // namespace orion::vulkan
