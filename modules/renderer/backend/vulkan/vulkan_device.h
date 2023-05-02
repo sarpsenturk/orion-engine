@@ -49,7 +49,6 @@ namespace orion::vulkan
         [[nodiscard]] auto allocator() const noexcept { return allocator_.get(); }
 
     private:
-        [[nodiscard]] UniqueVmaAllocator create_allocator();
         [[nodiscard]] inline bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept { return queues_.transfer.index != family_index; }
 
         [[nodiscard]] VkCommandPool graphics_command_pool() const { return command_pools_.at(queues_.graphics.index).get(); }
@@ -62,14 +61,15 @@ namespace orion::vulkan
         [[nodiscard]] VkCommandPool get_command_pool(CommandQueueType queue_type) const;
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
 
+        // Vulkan command translation functions
         void compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission);
 
-        // Vulkan command translation functions
         void cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data);
         VkSemaphore cmd_begin_frame(VkCommandBuffer command_buffer, const void* data);
         void cmd_end_frame(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
 
+        // Interface Overrides
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;

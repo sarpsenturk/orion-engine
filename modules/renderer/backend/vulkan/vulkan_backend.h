@@ -23,9 +23,6 @@ namespace orion::vulkan
         std::unique_ptr<RenderDevice> create_device_api(std::uint32_t physical_device_index) override;
 
         // Internal helpers
-        void create_debug_messenger();
-        bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions);
-
         static constexpr auto debug_message_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                                                        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
         static constexpr auto debug_message_type = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
