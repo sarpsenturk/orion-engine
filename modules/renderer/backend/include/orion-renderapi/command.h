@@ -29,19 +29,27 @@ namespace orion
     class CommandAllocator
     {
     public:
-        explicit CommandAllocator(std::size_t max_size)
-            : buffer_(max_size)
-            , mbr_(buffer_.data(), buffer_.size())
-            , allocator_(&mbr_)
-        {
-        }
+        CommandAllocator() = default;
+        virtual ~CommandAllocator() = default;
 
-        template<typename Command>
-            requires(is_valid_cmd_type<std::remove_cvref_t<Command>>::value)
-        Command* allocate()
-        {
-            return allocator_.new_object<Command>();
-        }
+        virtual void* allocate(std::size_t bytes, std::size_t alignment) = 0;
+        virtual void reset() = 0;
+
+    protected:
+        CommandAllocator(const CommandAllocator&) = default;
+        CommandAllocator(CommandAllocator&&) noexcept = default;
+        CommandAllocator& operator=(const CommandAllocator&) = default;
+        CommandAllocator& operator=(CommandAllocator&&) = default;
+    };
+
+    class LinearCommandAllocator final : public CommandAllocator
+    {
+    public:
+        LinearCommandAllocator() = default;
+        explicit LinearCommandAllocator(std::size_t max_size);
+
+        void* allocate(std::size_t bytes, std::size_t alignment) override;
+        void reset() override;
 
     private:
         std::vector<char> buffer_;
@@ -49,41 +57,34 @@ namespace orion
         std::pmr::polymorphic_allocator<> allocator_;
     };
 
-    template<typename Key>
     struct CommandPacket {
-        Key key;
+        std::uint64_t key;
+        CommandType command_type;
         const void* data;
     };
 
     struct CommandBufferDesc {
         CommandQueueType queue_type = {};
-        std::size_t buffer_size{};
     };
 
-    template<typename Key>
     class CommandBuffer
     {
     public:
-        using key_type = Key;
-
-        CommandBuffer(CommandBufferHandle handle, CommandBufferDesc desc)
-            : handle_(handle)
-            , desc_(desc)
-            , command_allocator_(desc.buffer_size)
-        {
-        }
+        CommandBuffer() = default;
+        CommandBuffer(CommandBufferHandle handle, CommandBufferDesc desc, std::unique_ptr<CommandAllocator> command_allocator);
 
         template<typename Command>
-        Command* add_command(key_type key)
+        Command* add_command(std::uint64_t key)
         {
-            auto* command = command_allocator_.allocate<Command>();
-            command_packets_.emplace_back(key, command);
+            auto* command = static_cast<Command*>(command_allocator_->allocate(sizeof(Command), alignof(Command)));
+            command_packets_.emplace_back(key, Command::command_type, command);
             return command;
         }
 
+        void reset();
+
         [[nodiscard]] auto handle() const noexcept { return handle_; }
         [[nodiscard]] auto queue_type() const noexcept { return desc_.queue_type; }
-        [[nodiscard]] auto buffer_size() const noexcept { return desc_.buffer_size; }
         [[nodiscard]] auto& description() const noexcept { return desc_; }
 
         [[nodiscard]] auto& commands() const noexcept { return command_packets_; }
@@ -91,13 +92,10 @@ namespace orion
     private:
         CommandBufferHandle handle_;
         CommandBufferDesc desc_;
+        std::unique_ptr<CommandAllocator> command_allocator_;
 
-        std::vector<CommandPacket<key_type>> command_packets_;
-        CommandAllocator command_allocator_;
+        std::vector<CommandPacket> command_packets_;
     };
-
-    using TransferCommandBuffer = CommandBuffer<std::uint8_t>;
-    using GraphicsCommandBuffer = CommandBuffer<std::uint32_t>;
 
     // All available commands
     template<CommandType CommandType, CommandQueueType QueueType>
@@ -114,6 +112,7 @@ namespace orion
 
     struct CmdBeginFrame : CmdBase<CommandType::BeginFrame, CommandQueueType::Graphics> {
         RenderTargetHandle render_target;
+        math::Vector2_u render_area;
         math::Vector4_f clear_color;
     };
 
@@ -123,5 +122,8 @@ namespace orion
     struct CmdDraw : CmdBase<CommandType::Draw, CommandQueueType::Graphics> {
         GPUBufferHandle vertex_buffer;
         PipelineHandle graphics_pipeline;
+        Viewport viewport;
+        std::uint32_t vertex_count;
+        std::uint32_t first_vertex;
     };
 } // namespace orion

@@ -38,6 +38,11 @@ namespace orion
         return {handle, desc};
     }
 
+    CommandBuffer RenderDevice::create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator)
+    {
+        return {create_command_buffer_api(desc, CommandBufferHandle::invalid_handle()), desc, std::move(allocator)};
+    }
+
     void RenderDevice::destroy(Swapchain swapchain)
     {
         destroy_api(swapchain.handle());

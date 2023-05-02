@@ -28,11 +28,7 @@ namespace orion
         [[nodiscard]] ShaderModule create_shader_module(const ShaderModuleDesc& desc);
         [[nodiscard]] GraphicsPipeline create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         [[nodiscard]] GPUBuffer create_buffer(const GPUBufferDesc& desc);
-        template<typename T>
-        [[nodiscard]] CommandBuffer<T> create_command_buffer(const CommandBufferDesc& desc)
-        {
-            return {create_command_buffer_api(desc, CommandBufferHandle::invalid_handle()), desc};
-        }
+        [[nodiscard]] CommandBuffer create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator);
 
         void destroy(Swapchain swapchain);
         void destroy(ShaderModule shader_module);
