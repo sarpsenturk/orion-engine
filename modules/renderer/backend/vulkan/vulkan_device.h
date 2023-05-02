@@ -96,6 +96,7 @@ namespace orion::vulkan
         UniqueVmaAllocator allocator_ = VK_NULL_HANDLE;
         VulkanQueues queues_;
 
+        std::unordered_map<SwapchainHandle, UniqueVkSurfaceKHR> surfaces_;
         std::unordered_map<SwapchainHandle, VulkanSwapchain> swapchains_;
         std::unordered_map<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
         std::unordered_map<PipelineHandle, VulkanPipeline> pipelines_;

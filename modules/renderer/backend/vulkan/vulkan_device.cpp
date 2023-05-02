@@ -11,18 +11,6 @@
 
 namespace orion::vulkan
 {
-    namespace
-    {
-        std::vector<VkImage> get_swapchain_images(VkDevice device, VkSwapchainKHR swapchain)
-        {
-            std::uint32_t image_count = 0;
-            vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr));
-            std::vector<VkImage> swapchain_images(image_count);
-            vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, swapchain_images.data()));
-            return swapchain_images;
-        }
-    } // namespace
-
     VulkanDevice::VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues)
         : RenderDevice(logger)
         , instance_(instance)
@@ -99,74 +87,8 @@ namespace orion::vulkan
         };
         auto swapchain = create_vk_swapchain(device_.get(), physical_device_, swapchain_info);
 
-        // Create render pass
-        auto render_pass = [vk_format, device = device_.get()]() {
-            const std::array attachments{
-                VkAttachmentDescription{
-                    .flags = 0,
-                    .format = vk_format,
-                    .samples = VK_SAMPLE_COUNT_1_BIT,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                    .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                },
-            };
-
-            const std::array color_attachments{
-                VkAttachmentReference{
-                    .attachment = 0,
-                    .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                },
-            };
-
-            const std::array subpass_dependencies{
-                VkSubpassDependency{
-                    .srcSubpass = VK_SUBPASS_EXTERNAL,
-                    .dstSubpass = 0,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .srcAccessMask = 0,
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    .dependencyFlags = 0,
-                },
-            };
-            return create_vk_render_pass(device, VK_PIPELINE_BIND_POINT_GRAPHICS, attachments, color_attachments, subpass_dependencies);
-        }();
-
-        // Create image view for each image and framebuffer for each image view
-        std::vector<UniqueVkImageView> image_views;
-        std::vector<UniqueVkFramebuffer> framebuffers;
-        {
-            // Acquire swapchain images
-            auto swapchain_images = get_swapchain_images(device_.get(), swapchain.get());
-
-            image_views.reserve(swapchain_images.size());
-            framebuffers.reserve(swapchain_images.size());
-            for (VkImage image : swapchain_images) {
-                // Create image view
-                VkImageView image_view = VK_NULL_HANDLE;
-                {
-                    image_views.push_back(create_vk_image_view(device_.get(), image, VK_IMAGE_VIEW_TYPE_2D, vk_format));
-                    image_view = image_views.back().get();
-                }
-
-                // Create framebuffer
-                framebuffers.emplace_back(create_vk_framebuffer(device_.get(), render_pass.get(), desc.image_size, {&image_view, 1}));
-            }
-        }
-
         auto handle = SwapchainHandle::generate();
-        swapchains_.insert(std::make_pair(handle, VulkanSwapchain{
-                                                      std::move(surface),
-                                                      std::move(swapchain),
-                                                      std::move(render_pass),
-                                                      create_vk_semaphore(device_.get()),
-                                                      std::move(image_views),
-                                                      std::move(framebuffers),
-                                                  }));
+        swapchains_.insert(std::make_pair(handle, VulkanSwapchain{device_.get(), surface.get(), std::move(swapchain), vk_format, desc.image_size}));
         return handle;
     }
 
