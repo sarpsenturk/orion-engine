@@ -17,9 +17,9 @@ namespace orion
     {
         switch (format) {
             case Format::B8G8R8A8_SRGB:
-                return 32;
+                return sizeof(uint8_t) * 4;
             case Format::R32G32B32A32_FLOAT:
-                return 128;
+                return sizeof(float) * 4;
         }
         return UINT32_MAX;
     }
