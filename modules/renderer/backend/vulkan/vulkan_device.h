@@ -70,11 +70,11 @@ namespace orion::vulkan
         void cmd_end_frame(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
 
-        SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) override;
-        ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) override;
-        PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing) override;
-        GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc, GPUBufferHandle existing) override;
-        CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc, CommandBufferHandle existing) override;
+        SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
+        ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
+        PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
+        GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
+        CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
 
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;

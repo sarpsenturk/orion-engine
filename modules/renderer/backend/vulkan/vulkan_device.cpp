@@ -97,7 +97,7 @@ namespace orion::vulkan
         return VK_NULL_HANDLE;
     }
 
-    SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing)
+    SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc)
     {
         // Create the surface
         auto surface = create_surface(instance_, window);
@@ -113,13 +113,6 @@ namespace orion::vulkan
         }();
 
         // Get the old swapchain
-        VkSwapchainKHR old_swapchain = [this, existing]() -> VkSwapchainKHR {
-            if (existing.is_valid()) {
-                return swapchains_.at(existing).swapchain();
-            }
-            return VK_NULL_HANDLE;
-        }();
-
         const VkFormat vk_format = to_vulkan_type(desc.image_format);
 
         // Create the swapchain
@@ -141,7 +134,7 @@ namespace orion::vulkan
                 .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
                 .presentMode = present_mode,
                 .clipped = VK_TRUE,
-                .oldSwapchain = old_swapchain,
+                .oldSwapchain = VK_NULL_HANDLE,
             };
             vk_result_check(vkCreateSwapchainKHR(device_.get(), &info, alloc_callbacks(), &swapchain));
             SPDLOG_LOGGER_DEBUG(logger(), "Created VkSwapchainKHR {}", fmt::ptr(swapchain));
@@ -265,19 +258,19 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created {} image view(s) and framebuffer(s) for swapchain", swapchain_images.size());
         }
 
-        auto handle = existing.is_valid() ? existing : SwapchainHandle::generate();
-        swapchains_.insert_or_assign(handle, VulkanSwapchain{
-                                                 std::move(surface),
-                                                 UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device_.get()}},
-                                                 UniqueVkRenderPass{render_pass, RenderPassDeleter{device_.get()}},
-                                                 create_semaphore(device_.get()),
-                                                 std::move(image_views),
-                                                 std::move(framebuffers),
-                                             });
+        auto handle = SwapchainHandle::generate();
+        swapchains_.insert(std::make_pair(handle, VulkanSwapchain{
+                                                      std::move(surface),
+                                                      UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device_.get()}},
+                                                      UniqueVkRenderPass{render_pass, RenderPassDeleter{device_.get()}},
+                                                      create_semaphore(device_.get()),
+                                                      std::move(image_views),
+                                                      std::move(framebuffers),
+                                                  }));
         return handle;
     }
 
-    ShaderModuleHandle VulkanDevice::create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing)
+    ShaderModuleHandle VulkanDevice::create_shader_module_api(const ShaderModuleDesc& desc)
     {
         // Convert to std::byte data to uint32_t
         std::vector<std::uint32_t> spirv(desc.byte_code.size_bytes() / sizeof(std::uint32_t));
@@ -294,12 +287,12 @@ namespace orion::vulkan
         vk_result_check(vkCreateShaderModule(device_.get(), &info, alloc_callbacks(), &shader_module));
         SPDLOG_LOGGER_DEBUG(logger(), "Created VkShaderModule {}", fmt::ptr(shader_module));
 
-        auto handle = existing.is_valid() ? existing : ShaderModuleHandle::generate();
-        shader_modules_.insert_or_assign(handle, UniqueVkShaderModule{shader_module, ShaderModuleDeleter{device_.get()}});
+        auto handle = ShaderModuleHandle::generate();
+        shader_modules_.insert(std::make_pair(handle, UniqueVkShaderModule{shader_module, ShaderModuleDeleter{device_.get()}}));
         return handle;
     }
 
-    PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing)
+    PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
         // Create VkPipelineLayout
         const auto vk_pipeline_layout = [device = device_.get()]() {
@@ -503,15 +496,15 @@ namespace orion::vulkan
         vk_result_check(vkCreateGraphicsPipelines(device_.get(), VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &vk_pipeline));
         SPDLOG_LOGGER_DEBUG(logger(), "Created VkPipeline (graphics) {}", fmt::ptr(vk_pipeline));
 
-        const auto handle = existing.is_valid() ? existing : PipelineHandle::generate();
-        pipelines_.insert_or_assign(handle, VulkanPipeline{
-                                                UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{device_.get()}},
-                                                UniqueVkPipeline{vk_pipeline, PipelineDeleter{device_.get()}},
-                                            });
+        const auto handle = PipelineHandle::generate();
+        pipelines_.insert(std::make_pair(handle, VulkanPipeline{
+                                                     UniqueVkPipelineLayout{vk_pipeline_layout, PipelineLayoutDeleter{device_.get()}},
+                                                     UniqueVkPipeline{vk_pipeline, PipelineDeleter{device_.get()}},
+                                                 }));
         return handle;
     }
 
-    GPUBufferHandle VulkanDevice::create_buffer_api(const GPUBufferDesc& desc, GPUBufferHandle existing)
+    GPUBufferHandle VulkanDevice::create_buffer_api(const GPUBufferDesc& desc)
     {
         // Check if  buffer will be used for transfer ops
         const bool transfer_src = to_bool(desc.usage & GPUBufferUsageFlags::TransferSrc);
@@ -527,18 +520,18 @@ namespace orion::vulkan
             return queue_indices;
         }();
 
-        const auto handle = existing.is_valid() ? existing : GPUBufferHandle::generate();
+        const auto handle = GPUBufferHandle::generate();
         const BufferCreateInfo create_info{
             .size = desc.size,
             .usage = to_vulkan_type(desc.usage),
             .queue_indices = {queue_indices.begin(), queue_indices.end()},
             .host_visible = desc.host_visible,
         };
-        buffers_.insert_or_assign(handle, VulkanBuffer::create(allocator_.get(), create_info));
+        buffers_.insert(std::make_pair(handle, VulkanBuffer::create(allocator_.get(), create_info)));
         return handle;
     }
 
-    CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc, CommandBufferHandle existing)
+    CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
     {
         // Find command pool based on queue type
         auto command_pool = get_command_pool(desc.queue_type);
@@ -554,8 +547,8 @@ namespace orion::vulkan
         VkCommandBuffer command_buffer = VK_NULL_HANDLE;
         vk_result_check(vkAllocateCommandBuffers(device_.get(), &allocate_info, &command_buffer));
 
-        const auto handle = existing.is_valid() ? existing : CommandBufferHandle::generate();
-        command_buffers_.insert_or_assign(handle, UniqueVkCommandBuffer{command_buffer, CommandBufferDeleter{device_.get(), command_pool}});
+        const auto handle = CommandBufferHandle::generate();
+        command_buffers_.insert(std::make_pair(handle, UniqueVkCommandBuffer{command_buffer, CommandBufferDeleter{device_.get(), command_pool}}));
         return handle;
     }
 

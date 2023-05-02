@@ -50,11 +50,11 @@ namespace orion
         RenderDevice& operator=(RenderDevice&&) noexcept = default;
 
     private:
-        [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc, SwapchainHandle existing) = 0;
-        [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc, ShaderModuleHandle existing) = 0;
-        [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc, PipelineHandle existing) = 0;
-        [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc, GPUBufferHandle existing) = 0;
-        [[nodiscard]] virtual CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc, CommandBufferHandle existing) = 0;
+        [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) = 0;
+        [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;
+        [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
+        [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) = 0;
+        [[nodiscard]] virtual CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) = 0;
 
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;

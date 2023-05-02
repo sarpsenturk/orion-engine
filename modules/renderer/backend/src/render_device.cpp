@@ -12,35 +12,35 @@ namespace orion
 
     Swapchain RenderDevice::create_swapchain(const Window& window, SwapchainDesc desc)
     {
-        auto handle = create_swapchain_api(window, desc, SwapchainHandle::invalid_handle());
+        auto handle = create_swapchain_api(window, desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain with handle {}", handle);
         return {handle, desc};
     }
 
     ShaderModule RenderDevice::create_shader_module(const ShaderModuleDesc& desc)
     {
-        auto handle = create_shader_module_api(desc, ShaderModuleHandle::invalid_handle());
+        auto handle = create_shader_module_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created shader module with handle {}", handle);
         return {handle};
     }
 
     GraphicsPipeline RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
     {
-        auto handle = create_graphics_pipeline_api(desc, PipelineHandle::invalid_handle());
+        auto handle = create_graphics_pipeline_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created graphics pipeline with handle {}", handle);
         return {handle};
     }
 
     GPUBuffer RenderDevice::create_buffer(const GPUBufferDesc& desc)
     {
-        auto handle = create_buffer_api(desc, GPUBufferHandle::invalid_handle());
+        auto handle = create_buffer_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created gpu buffer with handle {}", handle);
         return {handle, desc};
     }
 
     CommandBuffer RenderDevice::create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator)
     {
-        return {create_command_buffer_api(desc, CommandBufferHandle::invalid_handle()), desc, std::move(allocator)};
+        return {create_command_buffer_api(desc), desc, std::move(allocator)};
     }
 
     void RenderDevice::destroy(SwapchainHandle swapchain_handle)
