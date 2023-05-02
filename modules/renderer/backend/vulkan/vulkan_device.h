@@ -16,6 +16,11 @@ namespace orion::vulkan
     {
     public:
         VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues);
+        ~VulkanDevice();
+        VulkanDevice(const VulkanDevice&) = default;
+        VulkanDevice(VulkanDevice&&) noexcept = default;
+        VulkanDevice& operator=(const VulkanDevice&) = default;
+        VulkanDevice& operator=(VulkanDevice&&) noexcept = default;
 
         std::unique_ptr<RenderContext> create_render_context() override;
 

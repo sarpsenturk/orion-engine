@@ -43,6 +43,11 @@ namespace orion::vulkan
         create_pool_for_queue(queues_.transfer.index);
     }
 
+    VulkanDevice::~VulkanDevice()
+    {
+        vkDeviceWaitIdle(device_.get());
+    }
+
     UniqueVmaAllocator VulkanDevice::create_allocator()
     {
         const VmaAllocatorCreateInfo allocator_info{
