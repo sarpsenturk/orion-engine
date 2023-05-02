@@ -184,6 +184,16 @@ namespace orion::vulkan
                 .pPreserveAttachments = nullptr,
             };
 
+            const VkSubpassDependency subpass_dependency{
+                .srcSubpass = VK_SUBPASS_EXTERNAL,
+                .dstSubpass = 0,
+                .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .srcAccessMask = 0,
+                .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                .dependencyFlags = 0,
+            };
+
             const VkRenderPassCreateInfo render_pass_info{
                 .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
                 .pNext = nullptr,
@@ -192,8 +202,8 @@ namespace orion::vulkan
                 .pAttachments = &color_attachment,
                 .subpassCount = 1,
                 .pSubpasses = &subpass,
-                .dependencyCount = 0,
-                .pDependencies = nullptr,
+                .dependencyCount = 1,
+                .pDependencies = &subpass_dependency,
             };
 
             vk_result_check(vkCreateRenderPass(device_.get(), &render_pass_info, alloc_callbacks(), &render_pass));
