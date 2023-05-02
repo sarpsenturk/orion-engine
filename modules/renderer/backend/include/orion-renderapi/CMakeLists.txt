@@ -8,7 +8,6 @@ target_sources(
         handles.h
         pipeline.h
         render_backend.h
-        render_context.h
         render_device.h
         shader.h
         swapchain.h

@@ -5,7 +5,6 @@
 #include "handles.h"
 #include "orion-renderapi/types.h"
 #include "pipeline.h"
-#include "render_context.h"
 #include "shader.h"
 #include "swapchain.h"
 
@@ -21,8 +20,6 @@ namespace orion
     public:
         RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
-
-        [[nodiscard]] virtual std::unique_ptr<RenderContext> create_render_context() = 0;
 
         [[nodiscard]] Swapchain create_swapchain(const Window& window, SwapchainDesc desc);
         [[nodiscard]] ShaderModule create_shader_module(const ShaderModuleDesc& desc);

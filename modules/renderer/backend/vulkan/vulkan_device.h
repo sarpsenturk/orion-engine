@@ -34,8 +34,6 @@ namespace orion::vulkan
         VulkanDevice& operator=(const VulkanDevice&) = default;
         VulkanDevice& operator=(VulkanDevice&&) noexcept = default;
 
-        std::unique_ptr<RenderContext> create_render_context() override;
-
         [[nodiscard]] VkShaderModule find_shader(ShaderModuleHandle shader_module_handle) const;
         [[nodiscard]] VulkanSwapchain& find_swapchain(SwapchainHandle swapchain_handle);
         [[nodiscard]] VulkanBuffer& find_buffer(GPUBufferHandle buffer_handle);
