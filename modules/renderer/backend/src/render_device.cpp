@@ -63,6 +63,16 @@ namespace orion
         destroy_api(buffer.handle());
     }
 
+    void RenderDevice::destroy(const CommandBuffer& command_buffer)
+    {
+        destroy_api(command_buffer.handle());
+    }
+
+    void RenderDevice::destroy(SubmissionHandle submission_handle)
+    {
+        destroy_api(submission_handle);
+    }
+
     void* RenderDevice::map(GPUBuffer buffer)
     {
         ORION_EXPECTS(buffer.host_visible());
@@ -72,5 +82,22 @@ namespace orion
     void RenderDevice::unmap(GPUBuffer buffer)
     {
         return unmap_api(buffer.handle());
+    }
+
+    SubmissionHandle RenderDevice::submit(const CommandBuffer& command_buffer, SubmissionHandle existing)
+    {
+        return submit_api(command_buffer, existing);
+    }
+
+    void RenderDevice::wait(SubmissionHandle submission_handle)
+    {
+        if (submission_handle.is_valid()) {
+            wait_api(submission_handle);
+        }
+    }
+
+    void RenderDevice::present(Swapchain swapchain, SubmissionHandle wait)
+    {
+        present_api(swapchain.handle(), wait);
     }
 } // namespace orion

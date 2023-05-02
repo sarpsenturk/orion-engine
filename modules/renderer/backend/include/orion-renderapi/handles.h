@@ -16,6 +16,7 @@ namespace orion
     ORION_DEFINE_HANDLE(PipelineHandle);
     ORION_DEFINE_HANDLE(GPUBufferHandle);
     ORION_DEFINE_HANDLE(CommandBufferHandle);
+    ORION_DEFINE_HANDLE(SubmissionHandle);
 
     using RenderTargetHandle = std::variant<SwapchainHandle>;
 } // namespace orion

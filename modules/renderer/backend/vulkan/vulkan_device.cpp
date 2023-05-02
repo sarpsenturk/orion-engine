@@ -35,7 +35,7 @@ namespace orion::vulkan
         // Create command pool for each queue
         auto create_pool_for_queue = [this](std::uint32_t queue_family) {
             if (!command_pools_.contains(queue_family)) {
-                command_pools_.insert(std::make_pair(queue_family, create_command_pool(device_.get(), queue_family)));
+                command_pools_.insert(std::make_pair(queue_family, create_command_pool(device_.get(), queue_family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)));
             }
         };
 
@@ -67,16 +67,6 @@ namespace orion::vulkan
         return {allocator, {}};
     }
 
-    VkCommandPool VulkanDevice::graphics_command_pool() const
-    {
-        return command_pools_.at(queues_.graphics.index).get();
-    }
-
-    VkCommandPool VulkanDevice::transfer_command_pool() const
-    {
-        return command_pools_.at(queues_.transfer.index).get();
-    }
-
     VkCommandPool VulkanDevice::get_command_pool(CommandQueueType queue_type) const
     {
         switch (queue_type) {
@@ -89,6 +79,21 @@ namespace orion::vulkan
                 break;
             case CommandQueueType::Any:
                 break;
+        }
+        return VK_NULL_HANDLE;
+    }
+
+    VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
+    {
+        switch (queue_type) {
+            case CommandQueueType::Transfer:
+                return transfer_queue();
+            case CommandQueueType::Compute:
+                return compute_queue();
+            case CommandQueueType::Graphics:
+                [[fallthrough]];
+            case CommandQueueType::Any:
+                return graphics_queue();
         }
         return VK_NULL_HANDLE;
     }
@@ -447,7 +452,7 @@ namespace orion::vulkan
 
         // Create VkPipelineColorBlendStateCreateInfo
         const auto vk_color_blend = []() {
-            static VkPipelineColorBlendAttachmentState attachment{
+            static const VkPipelineColorBlendAttachmentState attachment{
                 .blendEnable = VK_FALSE,
                 .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
                 .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
@@ -462,7 +467,7 @@ namespace orion::vulkan
                 .pNext = nullptr,
                 .flags = 0,
                 .logicOpEnable = VK_FALSE,
-                .logicOp = VK_LOGIC_OP_NO_OP,
+                .logicOp = VK_LOGIC_OP_COPY,
                 .attachmentCount = 1,
                 .pAttachments = &attachment,
                 .blendConstants = {0.f, 0.f, 0.f, 0.f},
@@ -485,7 +490,7 @@ namespace orion::vulkan
         }();
 
         // Find associated render pass
-        const auto render_pass = find_render_pass(desc.render_target);
+        auto* const render_pass = find_render_pass(desc.render_target);
 
         const VkGraphicsPipelineCreateInfo pipeline_info{
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -574,17 +579,17 @@ namespace orion::vulkan
         return shader_modules_.at(shader_module_handle).get();
     }
 
-    const VulkanSwapchain& VulkanDevice::find_swapchain(SwapchainHandle swapchain_handle) const
+    VulkanSwapchain& VulkanDevice::find_swapchain(SwapchainHandle swapchain_handle)
     {
         return swapchains_.at(swapchain_handle);
     }
 
-    const VulkanBuffer& VulkanDevice::find_buffer(GPUBufferHandle buffer_handle) const
+    VulkanBuffer& VulkanDevice::find_buffer(GPUBufferHandle buffer_handle)
     {
         return buffers_.at(buffer_handle);
     }
 
-    VkRenderPass VulkanDevice::find_render_pass(RenderTargetHandle render_target_handle) const
+    VkRenderPass VulkanDevice::find_render_pass(RenderTargetHandle render_target_handle)
     {
         auto find_render_pass = [this](auto&& arg) -> VkRenderPass {
             using T = std::decay_t<decltype(arg)>;
@@ -597,9 +602,44 @@ namespace orion::vulkan
         return std::visit(find_render_pass, render_target_handle);
     }
 
+    FindFramebufferResult VulkanDevice::find_framebuffer(RenderTargetHandle render_target_handle)
+    {
+        auto find_framebuffer = [this](auto&& arg) -> FindFramebufferResult {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, SwapchainHandle>) {
+                auto& swapchain = find_swapchain(arg);
+                VkSemaphore image_available = swapchain.image_semaphore();
+                return {.framebuffer = swapchain.framebuffer(swapchain.next_image_index()), .available_semaphore = image_available};
+            } else {
+                return {};
+            }
+        };
+        return std::visit(find_framebuffer, render_target_handle);
+    }
+
     VkPipeline VulkanDevice::find_pipeline(PipelineHandle pipeline_handle) const
     {
         return pipelines_.at(pipeline_handle).pipeline();
+    }
+
+    VkCommandBuffer VulkanDevice::find_command_buffer(CommandBufferHandle command_buffer_handle) const
+    {
+        return command_buffers_.at(command_buffer_handle).get();
+    }
+
+    VulkanSubmission& VulkanDevice::find_submission(SubmissionHandle submission_handle)
+    {
+        return submissions_.at(submission_handle);
+    }
+
+    VkFence VulkanDevice::find_fence(SubmissionHandle submission_handle) const
+    {
+        return submissions_.at(submission_handle).fence.get();
+    }
+
+    VkSemaphore VulkanDevice::find_semaphore(SubmissionHandle submission_handle) const
+    {
+        return submissions_.at(submission_handle).semaphore.get();
     }
 
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
@@ -627,6 +667,11 @@ namespace orion::vulkan
         command_buffers_.erase(command_buffer_handle);
     }
 
+    void VulkanDevice::destroy_api(SubmissionHandle submission_handle)
+    {
+        submissions_.erase(submission_handle);
+    }
+
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
     {
         const auto& vk_buffer = find_buffer(buffer_handle);
@@ -639,5 +684,193 @@ namespace orion::vulkan
     void VulkanDevice::unmap_api(GPUBufferHandle buffer_handle)
     {
         vmaUnmapMemory(allocator_.get(), find_buffer(buffer_handle).allocation());
+    }
+
+    SubmissionHandle VulkanDevice::submit_api(const CommandBuffer& command_buffer, SubmissionHandle existing)
+    {
+        // Find and reset command buffer
+        VkCommandBuffer vk_command_buffer = find_command_buffer(command_buffer.handle());
+        vkResetCommandBuffer(vk_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+
+        // Begin command buffer recording
+        const auto begin_flags = [queue_type = command_buffer.queue_type()]() -> VkCommandBufferUsageFlags {
+            if (queue_type == CommandQueueType::Transfer) {
+                return VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            }
+            return {};
+        }();
+        const VkCommandBufferBeginInfo begin_info{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = begin_flags,
+            .pInheritanceInfo = nullptr,
+        };
+        vk_result_check(vkBeginCommandBuffer(vk_command_buffer, &begin_info));
+
+        // Find existing or create new submission
+        SubmissionHandle submission_handle = existing;
+        auto& submission = [this, &submission_handle]() -> VulkanSubmission& {
+            if (submission_handle.is_valid()) {
+                return find_submission(submission_handle);
+            }
+            submission_handle = SubmissionHandle::generate();
+            auto [iter, _] = submissions_.insert(std::make_pair(submission_handle,
+                                                                VulkanSubmission{.fence = create_fence(device_.get()), .semaphore = create_semaphore(device_.get())}));
+            return iter->second;
+        }();
+
+        // Compile orion commands to vulkan commands
+        compile_commands(vk_command_buffer, command_buffer.commands(), submission);
+
+        // End command buffer recording
+        vk_result_check(vkEndCommandBuffer(vk_command_buffer));
+
+        // Submit command buffer
+        const auto& wait_semaphores = submission.wait_semaphores;
+        VkSemaphore signal_semaphore = submission.semaphore.get();
+        VkFence signal_fence = submission.fence.get();
+        const VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        const VkSubmitInfo submit_info{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores.size()),
+            .pWaitSemaphores = wait_semaphores.data(),
+            .pWaitDstStageMask = &wait_stage,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &vk_command_buffer,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &signal_semaphore,
+        };
+        vk_result_check(vkQueueSubmit(get_queue(command_buffer.queue_type()), 1, &submit_info, signal_fence));
+        return submission_handle;
+    }
+
+    void VulkanDevice::wait_api(SubmissionHandle submission_handle)
+    {
+        // We allow for invalid submission handles to handle first frame submissions
+        if (VkFence fence = find_fence(submission_handle)) {
+            vk_result_check(vkWaitForFences(device_.get(), 1, &fence, VK_TRUE, UINT64_MAX));
+            vkResetFences(device_.get(), 1, &fence);
+        }
+    }
+
+    void VulkanDevice::present_api(SwapchainHandle swapchain_handle, SubmissionHandle wait)
+    {
+        // Find presentation queue
+        VkQueue present_queue = get_queue(CommandQueueType::Graphics);
+
+        // Find swapchain and resources
+        auto& swapchain = find_swapchain(swapchain_handle);
+        VkSwapchainKHR vk_swapchain = swapchain.swapchain();
+        const std::uint32_t image_index = swapchain.current_image_index();
+
+        // Find submission (if any) to wait for
+        VkSemaphore semaphore = [this, wait]() -> VkSemaphore {
+            if (wait.is_valid()) {
+                return find_semaphore(wait);
+            }
+            return VK_NULL_HANDLE;
+        }();
+
+        // Present image
+        const VkPresentInfoKHR present_info{
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .pNext = nullptr,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &semaphore,
+            .swapchainCount = 1,
+            .pSwapchains = &vk_swapchain,
+            .pImageIndices = &image_index,
+            .pResults = nullptr,
+        };
+        vk_result_check(vkQueuePresentKHR(present_queue, &present_info));
+    }
+
+    void VulkanDevice::compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission)
+    {
+        submission.wait_semaphores.clear();
+        for (auto command : commands) {
+            switch (command.command_type) {
+                case CommandType::BufferCopy:
+                    cmd_buffer_copy(command_buffer, command.data);
+                    break;
+                case CommandType::BeginFrame:
+                    if (VkSemaphore semaphore = cmd_begin_frame(command_buffer, command.data)) {
+                        submission.wait_semaphores.push_back(semaphore);
+                    }
+                    break;
+                case CommandType::EndFrame:
+                    cmd_end_frame(command_buffer, command.data);
+                    break;
+                case CommandType::Draw:
+                    cmd_draw(command_buffer, command.data);
+                    break;
+            }
+        }
+    }
+
+    void VulkanDevice::cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* const cmd_buffer_copy = static_cast<const CmdBufferCopy*>(data);
+        VkBuffer src_buffer = find_buffer(cmd_buffer_copy->src).buffer();
+        VkBuffer dst_buffer = find_buffer(cmd_buffer_copy->dst).buffer();
+        const std::array buffer_copy{
+            VkBufferCopy{
+                .srcOffset = 0,
+                .dstOffset = 0,
+                .size = cmd_buffer_copy->size,
+            },
+        };
+        vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, buffer_copy.data());
+    }
+
+    VkSemaphore VulkanDevice::cmd_begin_frame(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* const cmd_begin_frame = static_cast<const CmdBeginFrame*>(data);
+        // Clear values
+        const VkClearColorValue clear_color = {cmd_begin_frame->clear_color.x(), cmd_begin_frame->clear_color.y(), cmd_begin_frame->clear_color.z(), cmd_begin_frame->clear_color.w()};
+        const std::array clear_values{VkClearValue{.color = clear_color}};
+
+        // Find framebuffer
+        const auto framebuffer = find_framebuffer(cmd_begin_frame->render_target);
+        const VkRenderPassBeginInfo begin_info{
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .pNext = nullptr,
+            .renderPass = find_render_pass(cmd_begin_frame->render_target),
+            .framebuffer = framebuffer.framebuffer,
+            .renderArea = {.offset = {}, .extent = to_vulkan_extent(cmd_begin_frame->render_area)},
+            .clearValueCount = static_cast<std::uint32_t>(clear_values.size()),
+            .pClearValues = clear_values.data(),
+        };
+        vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+        return framebuffer.available_semaphore;
+    }
+
+    void VulkanDevice::cmd_end_frame(VkCommandBuffer command_buffer, const void* data)
+    {
+        (void)data;
+        vkCmdEndRenderPass(command_buffer);
+    }
+
+    void VulkanDevice::cmd_draw(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* const cmd_draw = static_cast<const CmdDraw*>(data);
+
+        // Bind graphics pipeline
+        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, find_pipeline(cmd_draw->graphics_pipeline));
+
+        // Bind vertex buffer
+        VkBuffer vertex_buffer = find_buffer(cmd_draw->vertex_buffer).buffer();
+        const std::array offsets{VkDeviceSize{0}};
+        vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, offsets.data());
+
+        // Set viewport and scissor
+        const VkViewport viewport = to_vulkan_type(cmd_draw->viewport);
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+        const VkRect2D scissor{.offset = {0, 0}, .extent = {static_cast<uint32_t>(viewport.width), static_cast<uint32_t>(viewport.height)}};
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+        // Issue draw command
+        vkCmdDraw(command_buffer, cmd_draw->vertex_count, 1, cmd_draw->first_vertex, 0);
     }
 } // namespace orion::vulkan

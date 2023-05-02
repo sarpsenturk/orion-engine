@@ -34,14 +34,15 @@ namespace orion
         void destroy(ShaderModule shader_module);
         void destroy(GraphicsPipeline graphics_pipeline);
         void destroy(GPUBuffer buffer);
-        template<typename T>
-        void destroy(const CommandBuffer<T>& command_buffer)
-        {
-            destroy_api(command_buffer.handle());
-        }
+        void destroy(const CommandBuffer& command_buffer);
+        void destroy(SubmissionHandle submission_handle);
 
         [[nodiscard]] void* map(GPUBuffer buffer);
         void unmap(GPUBuffer buffer);
+
+        [[nodiscard]] SubmissionHandle submit(const CommandBuffer& command_buffer, SubmissionHandle existing = SubmissionHandle::invalid_handle());
+        void wait(SubmissionHandle submission_handle);
+        void present(Swapchain swapchain, SubmissionHandle wait);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
@@ -63,9 +64,14 @@ namespace orion
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
         virtual void destroy_api(CommandBufferHandle command_buffer_handle) = 0;
+        virtual void destroy_api(SubmissionHandle submission_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
+
+        [[nodiscard]] virtual SubmissionHandle submit_api(const CommandBuffer& command_buffer, SubmissionHandle existing) = 0;
+        virtual void wait_api(SubmissionHandle submission_handle) = 0;
+        virtual void present_api(SwapchainHandle swapchain_handle, SubmissionHandle wait) = 0;
 
         spdlog::logger* logger_;
     };

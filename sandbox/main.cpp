@@ -130,7 +130,7 @@ float4 main(FsInput input) : SV_Target
         }
 
         // Create command buffer to copy data from staging buffer
-        auto command_buffer = device->create_command_buffer<uint8_t>({.queue_type = orion::CommandQueueType::Transfer, .buffer_size = sizeof(orion::CmdBufferCopy)});
+        auto command_buffer = device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer}, std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy)));
 
         // Add copy command
         auto* copy_cmd = command_buffer.add_command<orion::CmdBufferCopy>({});
@@ -138,8 +138,21 @@ float4 main(FsInput input) : SV_Target
         copy_cmd->dst = vertex_buffer_.handle();
         copy_cmd->size = sizeof(vertices);
 
+        // Submit the copy command
+        auto submission = device->submit(command_buffer);
+
         // Unmap staging buffer
         device->unmap(staging_buffer);
+
+        // Create the render command buffer
+        render_command_ = device->create_command_buffer({.queue_type = orion::CommandQueueType::Graphics}, std::make_unique<orion::LinearCommandAllocator>(render_command_size));
+
+        // Wait until copy is completed
+        device->wait(submission);
+
+        // Destroy copy submission and staging buffer
+        device->destroy(submission);
+        device->destroy(staging_buffer);
     }
 
 private:
@@ -150,6 +163,42 @@ private:
 
     void on_user_render() override
     {
+        // Get device
+        auto* device = renderer_.device();
+
+        // Reset command buffer
+        render_command_.reset();
+
+        // Wait until last frame is finished
+        // When called during the first frame the handle will be invalid, therefore
+        device->wait(render_submission_);
+
+        // Begin new frame
+        {
+            auto* begin_frame = render_command_.add_command<orion::CmdBeginFrame>({});
+            begin_frame->render_target = swapchain_.handle();
+            begin_frame->render_area = swapchain_.image_size();
+            begin_frame->clear_color = {1.f, 0.f, 1.f, 1.f};
+        }
+
+        // Draw the triangle
+        {
+            auto* draw = render_command_.add_command<orion::CmdDraw>({});
+            draw->vertex_buffer = vertex_buffer_.handle();
+            draw->graphics_pipeline = graphics_pipeline_.handle();
+            draw->viewport = {.position = {0.f, 0.f}, .size = orion::math::vector_cast<float>(swapchain_.image_size())};
+            draw->vertex_count = static_cast<std::uint32_t>(vertices.size());
+            draw->first_vertex = 0;
+        }
+
+        // End the frame
+        render_command_.add_command<orion::CmdEndFrame>({});
+
+        // Submit the commands
+        render_submission_ = device->submit(render_command_, render_submission_);
+
+        // Present
+        device->present(swapchain_, render_submission_);
     }
 
     [[nodiscard]] bool user_should_exit() const noexcept override
@@ -157,12 +206,16 @@ private:
         return window_.should_close();
     }
 
+    static constexpr auto render_command_size = 2048;
+
     orion::Window window_;
     orion::Renderer renderer_;
     orion::Swapchain swapchain_;
     orion::GraphicsPipeline graphics_pipeline_;
     orion::GPUBuffer vertex_buffer_;
     orion::GPUBuffer index_buffer_;
+    orion::CommandBuffer render_command_;
+    orion::SubmissionHandle render_submission_;
 };
 
 ORION_MAIN(args)
