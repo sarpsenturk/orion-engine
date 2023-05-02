@@ -27,19 +27,19 @@ namespace orion
         [[nodiscard]] GPUBuffer create_buffer(const GPUBufferDesc& desc);
         [[nodiscard]] CommandBuffer create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator);
 
-        void destroy(Swapchain swapchain);
-        void destroy(ShaderModule shader_module);
-        void destroy(GraphicsPipeline graphics_pipeline);
-        void destroy(GPUBuffer buffer);
-        void destroy(const CommandBuffer& command_buffer);
+        void destroy(SwapchainHandle swapchain_handle);
+        void destroy(ShaderModuleHandle shader_module_handle);
+        void destroy(PipelineHandle pipeline_handle);
+        void destroy(GPUBufferHandle buffer_handle);
+        void destroy(CommandBufferHandle command_buffer_handle);
         void destroy(SubmissionHandle submission_handle);
 
-        [[nodiscard]] void* map(GPUBuffer buffer);
-        void unmap(GPUBuffer buffer);
+        [[nodiscard]] void* map(const GPUBuffer& buffer);
+        void unmap(const GPUBuffer& buffer);
 
         [[nodiscard]] SubmissionHandle submit(const CommandBuffer& command_buffer, SubmissionHandle existing = SubmissionHandle::invalid_handle());
         void wait(SubmissionHandle submission_handle);
-        void present(Swapchain swapchain, SubmissionHandle wait);
+        void present(const Swapchain& swapchain, SubmissionHandle wait);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 

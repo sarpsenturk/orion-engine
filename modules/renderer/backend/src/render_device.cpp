@@ -43,29 +43,29 @@ namespace orion
         return {create_command_buffer_api(desc, CommandBufferHandle::invalid_handle()), desc, std::move(allocator)};
     }
 
-    void RenderDevice::destroy(Swapchain swapchain)
+    void RenderDevice::destroy(SwapchainHandle swapchain_handle)
     {
-        destroy_api(swapchain.handle());
+        destroy_api(swapchain_handle);
     }
 
-    void RenderDevice::destroy(ShaderModule shader_module)
+    void RenderDevice::destroy(ShaderModuleHandle shader_module_handle)
     {
-        destroy_api(shader_module.handle());
+        destroy_api(shader_module_handle);
     }
 
-    void RenderDevice::destroy(GraphicsPipeline graphics_pipeline)
+    void RenderDevice::destroy(PipelineHandle pipeline_handle)
     {
-        destroy_api(graphics_pipeline.handle());
+        destroy_api(pipeline_handle);
     }
 
-    void RenderDevice::destroy(GPUBuffer buffer)
+    void RenderDevice::destroy(GPUBufferHandle buffer_handle)
     {
-        destroy_api(buffer.handle());
+        destroy_api(buffer_handle);
     }
 
-    void RenderDevice::destroy(const CommandBuffer& command_buffer)
+    void RenderDevice::destroy(CommandBufferHandle command_buffer_handle)
     {
-        destroy_api(command_buffer.handle());
+        destroy_api(command_buffer_handle);
     }
 
     void RenderDevice::destroy(SubmissionHandle submission_handle)
@@ -73,13 +73,13 @@ namespace orion
         destroy_api(submission_handle);
     }
 
-    void* RenderDevice::map(GPUBuffer buffer)
+    void* RenderDevice::map(const GPUBuffer& buffer)
     {
         ORION_EXPECTS(buffer.host_visible());
         return map_api(buffer.handle());
     }
 
-    void RenderDevice::unmap(GPUBuffer buffer)
+    void RenderDevice::unmap(const GPUBuffer& buffer)
     {
         return unmap_api(buffer.handle());
     }
@@ -96,7 +96,7 @@ namespace orion
         }
     }
 
-    void RenderDevice::present(Swapchain swapchain, SubmissionHandle wait)
+    void RenderDevice::present(const Swapchain& swapchain, SubmissionHandle wait)
     {
         present_api(swapchain.handle(), wait);
     }

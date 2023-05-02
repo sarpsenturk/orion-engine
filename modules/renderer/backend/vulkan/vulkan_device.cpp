@@ -526,7 +526,6 @@ namespace orion::vulkan
             }
             return queue_indices;
         }();
-        SPDLOG_LOGGER_TRACE(logger(), "Buffer access available to queue families: {}", queue_indices);
 
         const auto handle = existing.is_valid() ? existing : GPUBufferHandle::generate();
         const BufferCreateInfo create_info{

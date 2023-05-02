@@ -99,8 +99,8 @@ float4 main(FsInput input) : SV_Target
                 .render_target = swapchain_.handle(),
             });
 
-            device->destroy(vs_module);
-            device->destroy(fs_module);
+            device->destroy(vs_module.handle());
+            device->destroy(fs_module.handle());
         }
 
         // Create staging buffer
@@ -130,16 +130,16 @@ float4 main(FsInput input) : SV_Target
         }
 
         // Create command buffer to copy data from staging buffer
-        auto command_buffer = device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer}, std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy)));
+        auto copy_command_buffer = device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer}, std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy)));
 
         // Add copy command
-        auto* copy_cmd = command_buffer.add_command<orion::CmdBufferCopy>({});
+        auto* copy_cmd = copy_command_buffer.add_command<orion::CmdBufferCopy>({});
         copy_cmd->src = staging_buffer.handle();
         copy_cmd->dst = vertex_buffer_.handle();
         copy_cmd->size = sizeof(vertices);
 
         // Submit the copy command
-        auto submission = device->submit(command_buffer);
+        auto submission = device->submit(copy_command_buffer);
 
         // Unmap staging buffer
         device->unmap(staging_buffer);
@@ -150,9 +150,10 @@ float4 main(FsInput input) : SV_Target
         // Wait until copy is completed
         device->wait(submission);
 
-        // Destroy copy submission and staging buffer
+        // Destroy copy submission, staging buffer and command buffer
         device->destroy(submission);
-        device->destroy(staging_buffer);
+        device->destroy(staging_buffer.handle());
+        device->destroy(copy_command_buffer.handle());
     }
 
 private:
