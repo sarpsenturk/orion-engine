@@ -16,4 +16,11 @@ namespace orion::vulkan
         , framebuffers_(std::move(framebuffers))
     {
     }
+
+    std::uint32_t VulkanSwapchain::next_image_index()
+    {
+        VkDevice device = swapchain_.get_deleter().device;
+        vk_result_check(vkAcquireNextImageKHR(device, swapchain(), UINT64_MAX, image_semaphore(), VK_NULL_HANDLE, &available_image_));
+        return available_image_;
+    }
 } // namespace orion::vulkan
