@@ -127,7 +127,7 @@ namespace orion::vulkan
             case FrontFace::CounterClockWise:
                 return VK_FRONT_FACE_COUNTER_CLOCKWISE;
             case FrontFace::ClockWise:
-                return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+                return VK_FRONT_FACE_CLOCKWISE;
         }
         ORION_ASSERT(!"Invalid front face");
         return {};
