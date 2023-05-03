@@ -125,7 +125,7 @@ namespace orion::vulkan
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                     .pNext = nullptr,
                     .stage = to_vulkan_type(stage.type),
-                    .module = find_shader(stage.module.handle()),
+                    .module = find_shader(stage.module),
                     .pName = stage.entry_point,
                     .pSpecializationInfo = nullptr,
                 });

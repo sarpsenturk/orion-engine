@@ -32,7 +32,7 @@ public:
         swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = window_.size()});
 
         // Register callback on window resize to recreate swapchain
-        window_.on_resize_end().subscribe([device, swapchain = swapchain_.handle()](const orion::events::WindowResizeEnd& resize_end) {
+        window_.on_resize_end().subscribe([device, swapchain = swapchain_](const orion::events::WindowResizeEnd& resize_end) {
             device->recreate(swapchain, orion::SwapchainDesc{.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = resize_end.final_size});
         });
 
@@ -101,11 +101,11 @@ float4 main(FsInput input) : SV_Target
             graphics_pipeline_ = device->create_graphics_pipeline(orion::GraphicsPipelineDesc{
                 .shaders = shaders,
                 .vertex_bindings = vertex_bindings,
-                .render_target = swapchain_.handle(),
+                .render_target = swapchain_,
             });
 
-            device->destroy(vs_module.handle());
-            device->destroy(fs_module.handle());
+            device->destroy(vs_module);
+            device->destroy(fs_module);
         }
 
         // Create staging buffer
@@ -139,8 +139,8 @@ float4 main(FsInput input) : SV_Target
 
         // Add copy command
         auto* copy_cmd = copy_command_buffer.add_command<orion::CmdBufferCopy>({});
-        copy_cmd->src = staging_buffer.handle();
-        copy_cmd->dst = vertex_buffer_.handle();
+        copy_cmd->src = staging_buffer;
+        copy_cmd->dst = vertex_buffer_;
         copy_cmd->size = sizeof(vertices);
 
         // Submit the copy command
@@ -157,7 +157,7 @@ float4 main(FsInput input) : SV_Target
 
         // Destroy copy submission, staging buffer and command buffer
         device->destroy(submission);
-        device->destroy(staging_buffer.handle());
+        device->destroy(staging_buffer);
         device->destroy(copy_command_buffer.handle());
     }
 
@@ -182,7 +182,7 @@ private:
         // Begin new frame
         {
             auto* begin_frame = render_command_.add_command<orion::CmdBeginFrame>({});
-            begin_frame->render_target = swapchain_.handle();
+            begin_frame->render_target = swapchain_;
             begin_frame->render_area = window_.size();
             begin_frame->clear_color = {1.f, 0.f, 1.f, 1.f};
         }
@@ -190,8 +190,8 @@ private:
         // Draw the triangle
         {
             auto* draw = render_command_.add_command<orion::CmdDraw>({});
-            draw->vertex_buffer = vertex_buffer_.handle();
-            draw->graphics_pipeline = graphics_pipeline_.handle();
+            draw->vertex_buffer = vertex_buffer_;
+            draw->graphics_pipeline = graphics_pipeline_;
             draw->viewport = {.position = {0.f, 0.f}, .size = orion::math::vector_cast<float>(window_.size())};
             draw->vertex_count = static_cast<std::uint32_t>(vertices.size());
             draw->first_vertex = 0;
@@ -216,10 +216,10 @@ private:
 
     orion::Window window_;
     orion::Renderer renderer_;
-    orion::Swapchain swapchain_;
-    orion::GraphicsPipeline graphics_pipeline_;
-    orion::GPUBuffer vertex_buffer_;
-    orion::GPUBuffer index_buffer_;
+    orion::SwapchainHandle swapchain_;
+    orion::PipelineHandle graphics_pipeline_;
+    orion::GPUBufferHandle vertex_buffer_;
+    orion::GPUBufferHandle index_buffer_;
     orion::CommandBuffer render_command_;
     orion::SubmissionHandle render_submission_;
 };

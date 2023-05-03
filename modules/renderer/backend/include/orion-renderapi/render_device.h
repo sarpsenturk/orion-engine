@@ -21,10 +21,10 @@ namespace orion
         RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
 
-        [[nodiscard]] Swapchain create_swapchain(const Window& window, SwapchainDesc desc);
-        [[nodiscard]] ShaderModule create_shader_module(const ShaderModuleDesc& desc);
-        [[nodiscard]] GraphicsPipeline create_graphics_pipeline(const GraphicsPipelineDesc& desc);
-        [[nodiscard]] GPUBuffer create_buffer(const GPUBufferDesc& desc);
+        [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, SwapchainDesc desc);
+        [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
+        [[nodiscard]] PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
+        [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
         [[nodiscard]] CommandBuffer create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
@@ -36,12 +36,12 @@ namespace orion
         void destroy(CommandBufferHandle command_buffer_handle);
         void destroy(SubmissionHandle submission_handle);
 
-        [[nodiscard]] void* map(const GPUBuffer& buffer);
-        void unmap(const GPUBuffer& buffer);
+        [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
+        void unmap(GPUBufferHandle buffer_handle);
 
         [[nodiscard]] SubmissionHandle submit(const CommandBuffer& command_buffer, SubmissionHandle existing = SubmissionHandle::invalid_handle());
         void wait(SubmissionHandle submission_handle);
-        void present(const Swapchain& swapchain, SubmissionHandle wait);
+        void present(SwapchainHandle swapchain_handle, SubmissionHandle wait);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 

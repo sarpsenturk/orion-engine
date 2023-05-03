@@ -10,32 +10,32 @@ namespace orion
     {
     }
 
-    Swapchain RenderDevice::create_swapchain(const Window& window, SwapchainDesc desc)
+    SwapchainHandle RenderDevice::create_swapchain(const Window& window, SwapchainDesc desc)
     {
         auto handle = create_swapchain_api(window, desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain with handle {}", handle);
-        return {handle, desc};
+        return handle;
     }
 
-    ShaderModule RenderDevice::create_shader_module(const ShaderModuleDesc& desc)
+    ShaderModuleHandle RenderDevice::create_shader_module(const ShaderModuleDesc& desc)
     {
         auto handle = create_shader_module_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created shader module with handle {}", handle);
-        return {handle};
+        return handle;
     }
 
-    GraphicsPipeline RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
+    PipelineHandle RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
     {
         auto handle = create_graphics_pipeline_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created graphics pipeline with handle {}", handle);
-        return {handle};
+        return handle;
     }
 
-    GPUBuffer RenderDevice::create_buffer(const GPUBufferDesc& desc)
+    GPUBufferHandle RenderDevice::create_buffer(const GPUBufferDesc& desc)
     {
         auto handle = create_buffer_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created gpu buffer with handle {}", handle);
-        return {handle, desc};
+        return handle;
     }
 
     CommandBuffer RenderDevice::create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator)
@@ -78,15 +78,14 @@ namespace orion
         destroy_api(submission_handle);
     }
 
-    void* RenderDevice::map(const GPUBuffer& buffer)
+    void* RenderDevice::map(GPUBufferHandle buffer_handle)
     {
-        ORION_EXPECTS(buffer.host_visible());
-        return map_api(buffer.handle());
+        return map_api(buffer_handle);
     }
 
-    void RenderDevice::unmap(const GPUBuffer& buffer)
+    void RenderDevice::unmap(GPUBufferHandle buffer_handle)
     {
-        return unmap_api(buffer.handle());
+        return unmap_api(buffer_handle);
     }
 
     SubmissionHandle RenderDevice::submit(const CommandBuffer& command_buffer, SubmissionHandle existing)
@@ -101,8 +100,8 @@ namespace orion
         }
     }
 
-    void RenderDevice::present(const Swapchain& swapchain, SubmissionHandle wait)
+    void RenderDevice::present(SwapchainHandle swapchain_handle, SubmissionHandle wait)
     {
-        present_api(swapchain.handle(), wait);
+        present_api(swapchain_handle, wait);
     }
 } // namespace orion

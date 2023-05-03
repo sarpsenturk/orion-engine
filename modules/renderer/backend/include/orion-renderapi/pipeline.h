@@ -11,7 +11,7 @@
 namespace orion
 {
     struct ShaderStageDesc {
-        ShaderModule module;
+        ShaderModuleHandle module;
         ShaderType type;
         const char* entry_point = "main";
     };
@@ -55,17 +55,5 @@ namespace orion
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
         RenderTargetHandle render_target;
-    };
-
-    class GraphicsPipeline
-    {
-    public:
-        GraphicsPipeline() = default;
-        GraphicsPipeline(PipelineHandle handle);
-
-        [[nodiscard]] auto handle() const noexcept { return handle_; }
-
-    private:
-        PipelineHandle handle_;
     };
 } // namespace orion

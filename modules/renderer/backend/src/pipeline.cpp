@@ -18,9 +18,4 @@ namespace orion
         }
         return offset;
     }
-
-    GraphicsPipeline::GraphicsPipeline(PipelineHandle handle)
-        : handle_(handle)
-    {
-    }
 } // namespace orion
