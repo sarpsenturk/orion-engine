@@ -597,6 +597,9 @@ namespace orion::vulkan
                 case CommandType::Draw:
                     cmd_draw(command_buffer, command.data);
                     break;
+                case CommandType::DrawIndexed:
+                    cmd_draw_indexed(command_buffer, command.data);
+                    break;
             }
         }
     }
@@ -608,8 +611,8 @@ namespace orion::vulkan
         VkBuffer dst_buffer = find_buffer(cmd_buffer_copy->dst).buffer();
         const std::array buffer_copy{
             VkBufferCopy{
-                .srcOffset = 0,
-                .dstOffset = 0,
+                .srcOffset = cmd_buffer_copy->src_offset,
+                .dstOffset = cmd_buffer_copy->dst_offset,
                 .size = cmd_buffer_copy->size,
             },
         };
@@ -664,5 +667,31 @@ namespace orion::vulkan
 
         // Issue draw command
         vkCmdDraw(command_buffer, cmd_draw->vertex_count, 1, cmd_draw->first_vertex, 0);
+    }
+
+    void VulkanDevice::cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* const cmd_draw_indexed = static_cast<const CmdDrawIndexed*>(data);
+
+        // Bind graphics pipeline
+        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, find_pipeline(cmd_draw_indexed->graphics_pipeline));
+
+        // Bind vertex buffer
+        VkBuffer vertex_buffer = find_buffer(cmd_draw_indexed->vertex_buffer).buffer();
+        const std::array offsets{VkDeviceSize{0}};
+        vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, offsets.data());
+
+        // Bind index buffer
+        VkBuffer index_buffer = find_buffer(cmd_draw_indexed->index_buffer).buffer();
+        vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT32);
+
+        // Set viewport and scissor
+        const VkViewport viewport = to_vulkan_type(cmd_draw_indexed->viewport);
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+        const VkRect2D scissor{.offset = {0, 0}, .extent = {static_cast<uint32_t>(viewport.width), static_cast<uint32_t>(viewport.height)}};
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+        // Issue draw command
+        vkCmdDrawIndexed(command_buffer, cmd_draw_indexed->index_count, 1, 0, 0, 0);
     }
 } // namespace orion::vulkan

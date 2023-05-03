@@ -68,6 +68,7 @@ namespace orion::vulkan
         VkSemaphore cmd_begin_frame(VkCommandBuffer command_buffer, const void* data);
         void cmd_end_frame(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
+        void cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data);
 
         // Interface Overrides
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;

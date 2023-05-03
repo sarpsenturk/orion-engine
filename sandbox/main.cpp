@@ -14,12 +14,13 @@ public:
     };
 
     static constexpr std::array vertices{
-        Vertex{.position = {0.f, .5f, 0.f, 1.f}, .color = {1.f, 0.f, 0.f, 1.f}},
-        Vertex{.position = {.5f, -.5f, 0.f, 1.f}, .color = {0.f, 1.f, 0.f, 1.f}},
-        Vertex{.position = {-.5f, -.5f, 0.f, 1.f}, .color = {0.f, 0.f, 1.f, 1.f}},
+        Vertex{.position = {-.5f, .5f, 0.f, 1.f}, .color = {1.f, 0.f, 0.f, 1.f}},
+        Vertex{.position = {.5f, .5f, 0.f, 1.f}, .color = {0.f, 1.f, 0.f, 1.f}},
+        Vertex{.position = {.5f, -.5f, 0.f, 1.f}, .color = {0.f, 0.f, 1.f, 1.f}},
+        Vertex{.position = {-.5f, -.5f, 0.f, 1.f}, .color = {.5f, 0.f, .5f, 1.f}},
     };
 
-    static constexpr const std::array indices{0u, 1u, 2u};
+    static constexpr const std::array indices{0u, 1u, 2u, 2u, 3u, 0u};
 
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = {400, 200}, .size = {800, 600}})
@@ -109,13 +110,15 @@ float4 main(FsInput input) : SV_Target
         }
 
         // Create staging buffer
-        auto staging_buffer = device->create_buffer({.size = sizeof(vertices), .usage = orion::GPUBufferUsageFlags::TransferSrc, .host_visible = true});
+        auto staging_buffer = device->create_buffer({.size = sizeof(vertices) + sizeof(indices), .usage = orion::GPUBufferUsageFlags::TransferSrc, .host_visible = true});
 
         // Map staging buffer
         void* mapped_memory = device->map(staging_buffer);
 
-        // Copy vertex data to staging buffer
+        // Copy vertex & index data to staging buffer
         std::memcpy(mapped_memory, vertices.data(), sizeof(vertices));
+        mapped_memory = static_cast<char*>(mapped_memory) + sizeof(vertices);
+        std::memcpy(mapped_memory, indices.data(), sizeof(indices));
 
         // Create vertex buffer
         {
@@ -137,11 +140,25 @@ float4 main(FsInput input) : SV_Target
         // Create command buffer to copy data from staging buffer
         auto copy_command_buffer = device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer}, std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy)));
 
-        // Add copy command
-        auto* copy_cmd = copy_command_buffer.add_command<orion::CmdBufferCopy>({});
-        copy_cmd->src = staging_buffer;
-        copy_cmd->dst = vertex_buffer_;
-        copy_cmd->size = sizeof(vertices);
+        // Issue command to copy vertex data
+        {
+            auto* copy_cmd = copy_command_buffer.add_command<orion::CmdBufferCopy>({});
+            copy_cmd->dst = vertex_buffer_;
+            copy_cmd->dst_offset = 0;
+            copy_cmd->src = staging_buffer;
+            copy_cmd->src_offset = 0;
+            copy_cmd->size = sizeof(vertices);
+        }
+
+        // Issue command to copy index data
+        {
+            auto* copy_cmd = copy_command_buffer.add_command<orion::CmdBufferCopy>({});
+            copy_cmd->dst = index_buffer_;
+            copy_cmd->dst_offset = 0;
+            copy_cmd->src = staging_buffer;
+            copy_cmd->src_offset = sizeof(vertices);
+            copy_cmd->size = sizeof(indices);
+        }
 
         // Submit the copy command
         auto submission = device->submit(copy_command_buffer);
@@ -187,14 +204,14 @@ private:
             begin_frame->clear_color = {1.f, 0.f, 1.f, 1.f};
         }
 
-        // Draw the triangle
+        // Draw quad
         {
-            auto* draw = render_command_.add_command<orion::CmdDraw>({});
+            auto* draw = render_command_.add_command<orion::CmdDrawIndexed>({});
             draw->vertex_buffer = vertex_buffer_;
+            draw->index_buffer = index_buffer_;
             draw->graphics_pipeline = graphics_pipeline_;
             draw->viewport = {.position = {0.f, 0.f}, .size = orion::math::vector_cast<float>(window_.size())};
-            draw->vertex_count = static_cast<std::uint32_t>(vertices.size());
-            draw->first_vertex = 0;
+            draw->index_count = static_cast<std::uint32_t>(indices.size());
         }
 
         // End the frame

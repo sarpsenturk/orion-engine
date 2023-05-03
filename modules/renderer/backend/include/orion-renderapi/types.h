@@ -117,6 +117,7 @@ namespace orion
         BufferCopy,
         BeginFrame,
         EndFrame,
-        Draw
+        Draw,
+        DrawIndexed,
     };
 } // namespace orion

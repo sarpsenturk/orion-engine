@@ -74,6 +74,7 @@ namespace orion
         CommandBuffer(CommandBufferHandle handle, CommandBufferDesc desc, std::unique_ptr<CommandAllocator> command_allocator);
 
         template<typename Command>
+            requires(is_valid_cmd_type<Command>::value)
         Command* add_command(std::uint64_t key)
         {
             auto* command = static_cast<Command*>(command_allocator_->allocate(sizeof(Command), alignof(Command)));
@@ -105,8 +106,10 @@ namespace orion
     };
 
     struct CmdBufferCopy : CmdBase<CommandType::BufferCopy, CommandQueueType::Transfer> {
-        GPUBufferHandle src;
         GPUBufferHandle dst;
+        std::size_t dst_offset;
+        GPUBufferHandle src;
+        std::size_t src_offset;
         std::size_t size;
     };
 
@@ -125,5 +128,13 @@ namespace orion
         Viewport viewport;
         std::uint32_t vertex_count;
         std::uint32_t first_vertex;
+    };
+
+    struct CmdDrawIndexed : CmdBase<CommandType::DrawIndexed, CommandQueueType::Graphics> {
+        GPUBufferHandle vertex_buffer;
+        GPUBufferHandle index_buffer;
+        PipelineHandle graphics_pipeline;
+        Viewport viewport;
+        std::uint32_t index_count;
     };
 } // namespace orion
