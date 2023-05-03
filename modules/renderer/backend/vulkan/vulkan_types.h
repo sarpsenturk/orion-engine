@@ -151,6 +151,7 @@ namespace orion::vulkan
         VkFormat image_format;
         VkExtent2D image_size;
         VkPresentModeKHR present_mode;
+        VkSwapchainKHR old_swapchain;
     };
 
     UniqueVkInstance create_vk_instance(std::span<const char* const> enabled_layers, std::span<const char* const> enabled_extensions);

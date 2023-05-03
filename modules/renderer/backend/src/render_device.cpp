@@ -43,6 +43,11 @@ namespace orion
         return {create_command_buffer_api(desc), desc, std::move(allocator)};
     }
 
+    void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
+    {
+        return recreate_api(swapchain_handle, desc);
+    }
+
     void RenderDevice::destroy(SwapchainHandle swapchain_handle)
     {
         destroy_api(swapchain_handle);

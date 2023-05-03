@@ -76,6 +76,8 @@ namespace orion::vulkan
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
         CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
 
+        void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
+
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;

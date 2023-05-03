@@ -31,6 +31,11 @@ public:
         // Create swapchain
         swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = window_.size()});
 
+        // Register callback on window resize to recreate swapchain
+        window_.on_resize_end().subscribe([device, swapchain = swapchain_.handle()](const orion::events::WindowResizeEnd& resize_end) {
+            device->recreate(swapchain, orion::SwapchainDesc{.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = resize_end.final_size});
+        });
+
         // Create shader compiler
         auto shader_compiler = orion::ShaderCompiler();
 
@@ -178,7 +183,7 @@ private:
         {
             auto* begin_frame = render_command_.add_command<orion::CmdBeginFrame>({});
             begin_frame->render_target = swapchain_.handle();
-            begin_frame->render_area = swapchain_.image_size();
+            begin_frame->render_area = window_.size();
             begin_frame->clear_color = {1.f, 0.f, 1.f, 1.f};
         }
 
@@ -187,7 +192,7 @@ private:
             auto* draw = render_command_.add_command<orion::CmdDraw>({});
             draw->vertex_buffer = vertex_buffer_.handle();
             draw->graphics_pipeline = graphics_pipeline_.handle();
-            draw->viewport = {.position = {0.f, 0.f}, .size = orion::math::vector_cast<float>(swapchain_.image_size())};
+            draw->viewport = {.position = {0.f, 0.f}, .size = orion::math::vector_cast<float>(window_.size())};
             draw->vertex_count = static_cast<std::uint32_t>(vertices.size());
             draw->first_vertex = 0;
         }

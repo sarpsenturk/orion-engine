@@ -68,8 +68,16 @@ namespace orion::vulkan
 
     SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc)
     {
+        // Generate handle for swapchain and surface
+        auto handle = SwapchainHandle::generate();
+
         // Create the surface
-        auto surface = create_surface(instance_, window);
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        {
+            auto unique_surface = create_surface(instance_, window);
+            surface = unique_surface.get();
+            surfaces_.insert(std::make_pair(handle, std::move(unique_surface)));
+        }
 
         // Chose present mode TODO: Allow user to select this
         const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
@@ -79,7 +87,7 @@ namespace orion::vulkan
 
         // Create the swapchain
         const SwapchainCreateInfo swapchain_info{
-            .surface = surface.get(),
+            .surface = surface,
             .image_count = desc.image_count,
             .image_format = to_vulkan_type(desc.image_format),
             .image_size = to_vulkan_extent(desc.image_size),
@@ -87,8 +95,7 @@ namespace orion::vulkan
         };
         auto swapchain = create_vk_swapchain(device_.get(), physical_device_, swapchain_info);
 
-        auto handle = SwapchainHandle::generate();
-        swapchains_.insert(std::make_pair(handle, VulkanSwapchain{device_.get(), surface.get(), std::move(swapchain), vk_format, desc.image_size}));
+        swapchains_.insert(std::make_pair(handle, VulkanSwapchain{device_.get(), surface, std::move(swapchain), vk_format, desc.image_size}));
         return handle;
     }
 
@@ -323,6 +330,31 @@ namespace orion::vulkan
         return handle;
     }
 
+    void VulkanDevice::recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
+    {
+        // Find existing swapchain
+        auto& swapchain = find_swapchain(swapchain_handle);
+
+        // Wait until graphics/presentation queue is idle
+        vkQueueWaitIdle(graphics_queue());
+
+        // Chose present mode TODO: Allow user to select this
+        const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
+
+        // Recreate swapchain
+        const auto format = to_vulkan_type(desc.image_format);
+        const SwapchainCreateInfo info{
+            .surface = swapchain.surface(),
+            .image_count = desc.image_count,
+            .image_format = format,
+            .image_size = to_vulkan_extent(desc.image_size),
+            .present_mode = present_mode,
+            .old_swapchain = swapchain.swapchain(),
+        };
+        auto new_swapchain = create_vk_swapchain(device_.get(), physical_device_, info);
+        swapchains_.insert_or_assign(swapchain_handle, VulkanSwapchain{device_.get(), swapchain.surface(), std::move(new_swapchain), format, desc.image_size});
+    }
+
     CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
     {
         // Find command pool based on queue type
@@ -404,6 +436,7 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
     {
         swapchains_.erase(swapchain_handle);
+        surfaces_.erase(swapchain_handle);
     }
 
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)
