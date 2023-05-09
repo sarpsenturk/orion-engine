@@ -6,7 +6,6 @@
 
 /*
  * All handles to be used in the render backend should be defined here.
- * This is to ensure we don't get odr violations.
  */
 
 namespace orion

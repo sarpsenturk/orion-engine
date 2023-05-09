@@ -23,7 +23,7 @@ public:
     static constexpr const std::array indices{0u, 1u, 2u, 2u, 3u, 0u};
 
     SandboxApp()
-        : window_({.name = "Orion Sandbox", .position = {400, 200}, .size = {800, 600}})
+        : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_(ORION_VULKAN_MODULE)
     {
         // Get the render device
@@ -45,7 +45,7 @@ public:
             // Create vertex shader module
             const auto vs_module = [device, &shader_compiler]() {
                 // Compile vertex shader
-                const auto* vs_source = R"(
+                const auto* vs_source = R"hlsl(
 struct VsInput {
     float4 position : POSITION;
     float4 color : COLOR;
@@ -63,15 +63,20 @@ VsOutput main(VsInput input)
     output.color = input.color;
     return output;
 }
-)";
-                const auto vs_compile_result = shader_compiler.compile({.shader_source = vs_source, .shader_type = orion::ShaderType::Vertex, .object_type = orion::ShaderObjectType::SpirV});
+)hlsl";
+                const auto compile_desc = orion::ShaderCompileDesc{
+                    .shader_source = vs_source,
+                    .shader_type = orion::ShaderType::Vertex,
+                    .object_type = orion::ShaderObjectType::SpirV,
+                };
+                const auto vs_compile_result = shader_compiler.compile(compile_desc);
                 return device->create_shader_module({.byte_code = vs_compile_result.binary});
             }();
 
             // Create fragment shader module
             const auto fs_module = [device, &shader_compiler]() {
                 // Compile fragment shader
-                const auto* fs_source = R"(
+                const auto* fs_source = R"hlsl(
 struct FsInput {
     float4 position : SV_Position;
     float4 color : COLOR;
@@ -81,8 +86,13 @@ float4 main(FsInput input) : SV_Target
 {
     return input.color;
 }
-)";
-                const auto fs_compile_result = shader_compiler.compile({.shader_source = fs_source, .shader_type = orion::ShaderType::Fragment, .object_type = orion::ShaderObjectType::SpirV});
+)hlsl";
+                const auto compile_desc = orion::ShaderCompileDesc{
+                    .shader_source = fs_source,
+                    .shader_type = orion::ShaderType::Fragment,
+                    .object_type = orion::ShaderObjectType::SpirV,
+                };
+                const auto fs_compile_result = shader_compiler.compile(compile_desc);
                 return device->create_shader_module({.byte_code = fs_compile_result.binary});
             }();
 
@@ -105,6 +115,7 @@ float4 main(FsInput input) : SV_Target
                 .render_target = swapchain_,
             });
 
+            // Destroy shader modules after pipeline creation
             device->destroy(vs_module);
             device->destroy(fs_module);
         }
@@ -138,7 +149,8 @@ float4 main(FsInput input) : SV_Target
         }
 
         // Create command buffer to copy data from staging buffer
-        auto copy_command_buffer = device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer}, std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy)));
+        auto copy_command_buffer = device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer},
+                                                                 std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy) * 2));
 
         // Issue command to copy vertex data
         {
@@ -229,6 +241,8 @@ private:
         return window_.should_close();
     }
 
+    static constexpr auto window_position = orion::WindowPosition{400, 200};
+    static constexpr auto window_size = orion::WindowSize{800, 600};
     static constexpr auto render_command_size = 2048;
 
     orion::Window window_;
