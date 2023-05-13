@@ -7,181 +7,76 @@
   },
   "configurePresets": [
     {
-      "name": "base-config",
-      "description": "Base configuration to be inherited from",
-      "hidden": true,
-      "generator": "Ninja",
+      "name": "default-conf",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "enableClangTidyCodeAnalysis": true
+        }
+      },
+      "displayName": "Default",
+      "description": "Default configuration",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
-      "installDir": "${sourceDir}/install/${presetName}"
-    },
-    {
-      "name": "debug-config",
-      "description": "Configuration for debug builds",
-      "hidden": true,
-      "inherits": [
-        "base-config"
-      ],
+      "installDir": "${sourceDir}/build/${presetName}/install",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "ORION_DEBUG_BUILD": true
+        "VCPKG_LIBRARY_LINKAGE": "static"
       }
     },
     {
-      "name": "release-config",
-      "description": "Configuration for release builds with debug info",
-      "hidden": true,
+      "name": "msvc",
       "inherits": [
-        "base-config"
+        "default-conf"
       ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-      }
-    },
-    {
-      "name": "dist-config",
-      "description": "Configuration for distribution builds",
-      "hidden": true,
-      "inherits": [
-        "base-config"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "windows-base",
-      "description": "Base configuration for Windows platforms",
-      "hidden": true,
-      "inherits": [
-        "base-config"
-      ],
-      "cacheVariables": {
-        "ORION_PLATFORM_WINDOWS": true
-      },
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
-      }
-    },
-    {
-      "name": "linux-base",
-      "description": "Base configuration Linux platform",
-      "hidden": true,
-      "inherits": [
-        "base-config"
-      ],
-      "cacheVariables": {
-        "ORION_PLATFORM_LINUX": true
       },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      }
-    },
-    {
-      "name": "msvc-base",
-      "description": "Base configuration to use MSVC",
-      "hidden": true,
-      "inherits": [
-        "base-config"
-      ],
+      "vendor": {
+        "hostOS": "Windows",
+        "intelliSenseMode": "windows-msvc-x64",
+        "enableClangTidyCodeAnalysis": true
+      },
+      "displayName": "MSVC",
+      "description": "Microsoft Visual C++ compiler",
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "cl",
-        "CMAKE_CXX_FLAGS": "/W4 /WX /external:anglebrackets /external:W0 /EHs"
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_FLAGS": "/permissive- /W4 /external:anglebrackets /external:W0 /EHs",
+        "CXX_SANITIZE_ADDRESS": "/fsanitize=address",
+        "CXX_SANITIZE_UNDEFINED": ""
       }
     },
     {
-      "name": "clang-base",
-      "description": "Base configuration to use clang",
-      "hidden": true,
+      "name": "gcc",
       "inherits": [
-        "base-config"
+        "default-conf"
       ],
+      "displayName": "GCC",
+      "description": "GCC compiler",
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic -Werror -Wconversion"
+        "CMAKE_CXX_COMPILER": "gcc",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wshadow -Wconversion -Wsign-conversion -Wnon-virtual-dtor -pedantic",
+        "CXX_SANITIZE_ADDRESS": "-fsanitize=address",
+        "CXX_SANITIZE_UNDEFINED": "-fsanitize=undefined"
       }
     },
     {
-      "name": "gcc-base",
-      "description": "Base configuration to use gcc",
-      "hidden": true,
+      "name": "clang",
       "inherits": [
-        "base-config"
+        "default-conf"
       ],
+      "displayName": "Clang",
+      "description": "Clang compiler",
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "g++"
+        "CMAKE_CXX_COMPILER": "clang",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wshadow -Wconversion -Wsign-conversion -Wlifetime -Wnon-virtual-dtor -pedantic",
+        "CXX_SANITIZE_ADDRESS": "-fsanitize=address",
+        "CXX_SANITIZE_UNDEFINED": "-fsanitize=undefined"
       }
-    },
-    {
-      "name": "windows-msvc-debug",
-      "description": "Windows platform with MSVC, debug build",
-      "inherits": [
-        "windows-base",
-        "msvc-base",
-        "debug-config"
-      ]
-    },
-    {
-      "name": "windows-msvc-release",
-      "description": "Windows platform with MSVC, release build",
-      "inherits": [
-        "windows-base",
-        "msvc-base",
-        "release-config"
-      ]
-    },
-    {
-      "name": "windows-msvc-dist",
-      "description": "Windows platform with MSVC, distribution build",
-      "inherits": [
-        "windows-base",
-        "msvc-base",
-        "dist-config"
-      ]
-    },
-    {
-      "name": "windows-clang-debug",
-      "description": "Windows platform with clang++, debug build",
-      "inherits": [
-        "windows-base",
-        "clang-base",
-        "debug-config"
-      ]
-    },
-    {
-      "name": "linux-gcc-debug",
-      "description": "Linux platform with gcc, debug build",
-      "inherits": [
-        "linux-base",
-        "gcc-base",
-        "debug-config"
-      ]
-    },
-    {
-      "name": "linux-gcc-release",
-      "description": "Linux platform with gcc, release build",
-      "inherits": [
-        "linux-base",
-        "gcc-base",
-        "release-config"
-      ]
-    },
-    {
-      "name": "linux-gcc-dist",
-      "description": "Linux platform with gcc, distribution build",
-      "inherits": [
-        "linux-base",
-        "gcc-base",
-        "dist-config"
-      ]
     }
   ]
 }

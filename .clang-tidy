@@ -1,25 +1,33 @@
-Checks: "-*,
-         bugprone-*,
-         cert-*,
-         concurrency-*,
-         cppcoreguidelines-*,
-         hicpp-*,
-         misc-*,
-         modernize-*,
-         performance-*,
-         portability-*,
-         readability-*,
-         -cppcoreguidelines-non-private-member-variables-in-classes,
-         -modernize-use-trailing-return-type,
-         -misc-non-private-member-variables-in-classes,
-         -readability-avoid-const-params-in-decls,
-         -readability-else-after-return,
-         -readability-implicit-bool-conversion,
-         -readability-static-accessed-through-instance,
-         -readability-uppercase-literal-suffix,
-         -cert-dcl16-c,
-         -hicpp-uppercase-literal-suffix,
-"
+Checks:
+  -*
+  bugprone-*
+  cert-*
+  concurrency-*
+  cppcoreguidelines-*
+  hicpp-*
+  misc-*
+  modernize-*
+  -modernize-use-trailing-return-type
+  performance-*
+  portability-*
+  readability-*
+  -readability-uppercase-literal-suffix
+
+
 CheckOptions:
-  - key: readability-braces-around-statements.ShortStatementLines
-    value: 2
+  bugprone-dangling-handle.HandleClasses: std::basic_string_view;std::span
+  cppcoreguidelines-avoid-do-while.IgnoreMacros: true
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.EnumConstantCase: CamelCase
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.MemberCase: lower_case
+  readability-identifier-naming.MethodCase: lower_case
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: _
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.TemplateParameterCase: CamelCase
+  readability-identifier-naming.TypeAliasCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case
