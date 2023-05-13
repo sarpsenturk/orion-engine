@@ -88,6 +88,16 @@ namespace orion
     private:
         static spdlog::logger* logger();
 
+        // Event dispatchers
+        // These must be initialized before the platform window
+        // because platform::create_window() may result in events being invoked
+        // on certain platforms
+        EventDispatcher<void(const events::WindowClose&)> on_close_;
+        EventDispatcher<void(const events::WindowMove&)> on_move_;
+        EventDispatcher<void(const events::WindowMoveEnd&)> on_move_end_;
+        EventDispatcher<void(const events::WindowResize&)> on_resize_;
+        EventDispatcher<void(const events::WindowResizeEnd&)> on_resize_end_;
+
         PlatformWindowPtr platform_window_;
 
         // Window information
@@ -99,13 +109,6 @@ namespace orion
         // Window state information
         bool resizing_ = false;
         bool moving_ = false;
-
-        // Event dispatchers
-        EventDispatcher<void(const events::WindowClose&)> on_close_;
-        EventDispatcher<void(const events::WindowMove&)> on_move_;
-        EventDispatcher<void(const events::WindowMoveEnd&)> on_move_end_;
-        EventDispatcher<void(const events::WindowResize&)> on_resize_;
-        EventDispatcher<void(const events::WindowResizeEnd&)> on_resize_end_;
     };
 } // namespace orion
 

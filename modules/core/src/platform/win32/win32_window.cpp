@@ -63,8 +63,10 @@ namespace orion
                 wnd_class_name,                  // Window class
                 window_create_info.name.c_str(), // Window name
                 window_style,                    // Window style
-                position.x(), position.y(),      // Window position
-                size.x(), size.y(),              // Window size
+                position.x(),                    // Window position x
+                position.y(),                    // Window position y
+                size.x(),                        // Window width
+                size.y(),                        // Window height
                 nullptr,                         // Parent window
                 nullptr,                         // Menu
                 hinstance,                       // Instance handle
@@ -154,7 +156,6 @@ namespace orion
                 default:
                     break;
             }
-
             return DefWindowProc(hwnd, msg, wparam, lparam);
         }
     } // namespace platform
