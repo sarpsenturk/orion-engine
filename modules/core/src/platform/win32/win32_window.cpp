@@ -141,15 +141,34 @@ namespace orion
                     return 0;
                 case WM_SIZE:
                     window->on_resize().invoke({window_size(lparam)});
+                    // WM_EXITSIZEMOVE is not sent after SIZE_MINIMIZED & SIZE_MAXIMIZED
+                    switch (wparam) {
+                        case SIZE_MINIMIZED:
+                            window->on_resize_end().invoke({window->size()});
+                            window->on_minimize().invoke({});
+                            break;
+                        case SIZE_MAXIMIZED:
+                            window->on_resize_end().invoke({window->size()});
+                            window->on_maximize().invoke({});
+                            break;
+                        case SIZE_RESTORED:
+                            if (window->is_maximized() || window->is_minimized()) {
+                                window->on_resize_end().invoke({window->size()});
+                            }
+                            window->on_restore().invoke({});
+                            break;
+                        default:
+                            break;
+                    }
                     return 0;
                 case WM_MOVE:
                     window->on_move().invoke({window_position(lparam)});
                     return 0;
                 case WM_EXITSIZEMOVE:
-                    if (window->resizing()) {
+                    if (window->is_resizing()) {
                         window->on_resize_end().invoke({window->size()});
                     }
-                    if (window->moving()) {
+                    if (window->is_moving()) {
                         window->on_move_end().invoke({window->position()});
                     }
                     return 0;

@@ -34,7 +34,7 @@ public:
 
         // Register callback on window resize to recreate swapchain
         window_.on_resize_end().subscribe([device, swapchain = swapchain_](const orion::events::WindowResizeEnd& resize_end) {
-            device->recreate(swapchain, orion::SwapchainDesc{.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = resize_end.final_size});
+            device->recreate(swapchain, orion::SwapchainDesc{.image_count = 2, .image_format = orion::Format::B8G8R8A8_SRGB, .image_size = resize_end.size});
         });
 
         // Create shader compiler
@@ -198,6 +198,11 @@ private:
 
     void on_user_render() override
     {
+        // Do not render if window is minimized
+        if (window_.is_minimized()) {
+            return;
+        }
+
         // Get device
         auto* device = renderer_.device();
 

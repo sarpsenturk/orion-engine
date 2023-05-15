@@ -13,22 +13,34 @@ namespace orion
     {
         // Set up window events handlers
         // Events are invoked from platform implementations
-        on_move_ += [this](const events::WindowMove& move) {
-            position_ = move.new_position;
-            moving_ = true;
+        on_move_ += [this](const auto& move) {
+            position_ = move.position;
+            is_moving_ = true;
         };
-        on_move_end_ += [this](const events::WindowMoveEnd&) {
-            moving_ = false;
+        on_move_end_ += [this](auto&) {
+            is_moving_ = false;
         };
-        on_resize_ += [this](const events::WindowResize& resize) {
-            size_ = resize.new_size;
-            resizing_ = true;
+        on_resize_ += [this](const auto& resize) {
+            size_ = resize.size;
+            is_resizing_ = true;
         };
-        on_resize_end_ += [this](const events::WindowResizeEnd&) {
-            resizing_ = false;
+        on_resize_end_ += [this](const auto&) {
+            is_resizing_ = false;
         };
-        on_close_ += [this](const events::WindowClose&) {
+        on_close_ += [this](const auto&) {
             should_close_ = true;
+        };
+        on_maximize_ += [this](const auto&) {
+            is_maximized_ = true;
+            is_minimized_ = false;
+        };
+        on_minimize_ += [this](const auto&) {
+            is_minimized_ = true;
+            is_maximized_ = false;
+        };
+        on_restore_ += [this](const auto&) {
+            is_maximized_ = false;
+            is_minimized_ = false;
         };
 
         SPDLOG_LOGGER_DEBUG(logger(), "Window \"{}\" created", name_);

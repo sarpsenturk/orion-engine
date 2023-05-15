@@ -47,19 +47,28 @@ namespace orion
         };
 
         struct WindowMove {
-            WindowPosition new_position;
+            WindowPosition position;
         };
 
         struct WindowMoveEnd {
-            WindowPosition final_position;
+            WindowPosition position;
         };
 
         struct WindowResize {
-            WindowSize new_size;
+            WindowSize size;
         };
 
         struct WindowResizeEnd {
-            WindowSize final_size;
+            WindowSize size;
+        };
+
+        struct WindowMaximize {
+        };
+
+        struct WindowMinimize {
+        };
+
+        struct WindowRestore {
         };
     } // namespace events
 
@@ -76,14 +85,19 @@ namespace orion
         [[nodiscard]] auto& size() const noexcept { return size_; }
         [[nodiscard]] auto should_close() const noexcept { return should_close_; }
 
-        [[nodiscard]] bool resizing() const noexcept { return resizing_; }
-        [[nodiscard]] bool moving() const noexcept { return moving_; }
+        [[nodiscard]] bool is_resizing() const noexcept { return is_resizing_; }
+        [[nodiscard]] bool is_moving() const noexcept { return is_moving_; }
+        [[nodiscard]] bool is_maximized() const noexcept { return is_maximized_; }
+        [[nodiscard]] bool is_minimized() const noexcept { return is_minimized_; }
 
         [[nodiscard]] auto& on_close() noexcept { return on_close_; }
         [[nodiscard]] auto& on_move() noexcept { return on_move_; }
         [[nodiscard]] auto& on_move_end() noexcept { return on_move_end_; }
         [[nodiscard]] auto& on_resize() noexcept { return on_resize_; }
         [[nodiscard]] auto& on_resize_end() noexcept { return on_resize_end_; }
+        [[nodiscard]] auto& on_maximize() noexcept { return on_maximize_; }
+        [[nodiscard]] auto& on_minimize() noexcept { return on_minimize_; }
+        [[nodiscard]] auto& on_restore() noexcept { return on_restore_; }
 
     private:
         static spdlog::logger* logger();
@@ -97,6 +111,9 @@ namespace orion
         EventDispatcher<void(const events::WindowMoveEnd&)> on_move_end_;
         EventDispatcher<void(const events::WindowResize&)> on_resize_;
         EventDispatcher<void(const events::WindowResizeEnd&)> on_resize_end_;
+        EventDispatcher<void(const events::WindowMaximize&)> on_maximize_;
+        EventDispatcher<void(const events::WindowMinimize&)> on_minimize_;
+        EventDispatcher<void(const events::WindowRestore&)> on_restore_;
 
         PlatformWindowPtr platform_window_;
 
@@ -107,8 +124,10 @@ namespace orion
         bool should_close_ = false;
 
         // Window state information
-        bool resizing_ = false;
-        bool moving_ = false;
+        bool is_resizing_ = false;
+        bool is_moving_ = false;
+        bool is_maximized_ = false;
+        bool is_minimized_ = false;
     };
 } // namespace orion
 
@@ -127,7 +146,7 @@ struct fmt::formatter<orion::events::WindowMove> : formatter<string_view> {
     template<typename FormatContext>
     auto format(const orion::events::WindowMove& move, FormatContext& ctx) const
     {
-        return fmt::format_to(ctx.out(), "(event) OnWindowMove {{ position: {} }}", move.new_position);
+        return fmt::format_to(ctx.out(), "(event) OnWindowMove {{ position: {} }}", move.position);
     }
 };
 
@@ -136,7 +155,7 @@ struct fmt::formatter<orion::events::WindowMoveEnd> : formatter<string_view> {
     template<typename FormatContext>
     auto format(const orion::events::WindowMoveEnd& move, FormatContext& ctx) const
     {
-        return fmt::format_to(ctx.out(), "(event) OnWindowMoveEnd {{ final_position: {} }}", move.final_position);
+        return fmt::format_to(ctx.out(), "(event) OnWindowMoveEnd {{ final_position: {} }}", move.position);
     }
 };
 
@@ -145,7 +164,7 @@ struct fmt::formatter<orion::events::WindowResize> : formatter<string_view> {
     template<typename FormatContext>
     auto format(const orion::events::WindowResize& resize, FormatContext& ctx) const
     {
-        return fmt::format_to(ctx.out(), "(event) OnWindowResize {{ size: {} }}", resize.new_size);
+        return fmt::format_to(ctx.out(), "(event) OnWindowResize {{ size: {} }}", resize.size);
     }
 };
 
@@ -154,6 +173,33 @@ struct fmt::formatter<orion::events::WindowResizeEnd> : formatter<string_view> {
     template<typename FormatContext>
     auto format(const orion::events::WindowResizeEnd& resize, FormatContext& ctx) const
     {
-        return fmt::format_to(ctx.out(), "(event) OnWindowResizeEnd {{ final_size: {} }}", resize.final_size);
+        return fmt::format_to(ctx.out(), "(event) OnWindowResizeEnd {{ final_size: {} }}", resize.size);
+    }
+};
+
+template<>
+struct fmt::formatter<orion::events::WindowMaximize> : formatter<string_view> {
+    template<typename FormatContext>
+    auto format(const orion::events::WindowMaximize&, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "(event) OnWindowMaximize");
+    }
+};
+
+template<>
+struct fmt::formatter<orion::events::WindowMinimize> : formatter<string_view> {
+    template<typename FormatContext>
+    auto format(const orion::events::WindowMinimize&, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "(event) OnWindowMinimize");
+    }
+};
+
+template<>
+struct fmt::formatter<orion::events::WindowRestore> : formatter<string_view> {
+    template<typename FormatContext>
+    auto format(const orion::events::WindowRestore&, FormatContext& ctx) const
+    {
+        return fmt::format_to(ctx.out(), "(event) OnWindowRestore");
     }
 };
