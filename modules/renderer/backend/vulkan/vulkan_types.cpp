@@ -171,7 +171,7 @@ namespace orion::vulkan
                 const auto pred = [layer](const VkLayerProperties& layer_properties) { return std::strcmp(layer, layer_properties.layerName) == 0; };
                 const auto supported = std::ranges::find_if(supported_layers, pred) != supported_layers.end();
                 if (!supported) {
-                    throw VulkanException(VK_ERROR_LAYER_NOT_PRESENT);
+                    vk_result_check(VK_ERROR_LAYER_NOT_PRESENT);
                 }
             }
         }
@@ -180,7 +180,7 @@ namespace orion::vulkan
         {
             const auto supported_extensions = get_supported_extensions();
             if (!check_extensions_supported(enabled_extensions, supported_extensions)) {
-                throw VulkanException(VK_ERROR_EXTENSION_NOT_PRESENT);
+                vk_result_check(VK_ERROR_EXTENSION_NOT_PRESENT);
             }
         }
 
@@ -232,7 +232,7 @@ namespace orion::vulkan
         {
             const auto supported_extensions = get_supported_device_extensions(physical_device);
             if (!check_extensions_supported(enabled_extensions, supported_extensions)) {
-                throw VulkanException(VK_ERROR_EXTENSION_NOT_PRESENT);
+                vk_result_check(VK_ERROR_EXTENSION_NOT_PRESENT);
             }
         }
 

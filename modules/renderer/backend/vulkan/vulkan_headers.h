@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion-core/defs.h"
 #include "orion-core/exception.h" // orion::OrionException
 #include "orion-core/types.h"     // orion::Version
 #include "orion-vulkan/config.h"
@@ -10,6 +11,8 @@
 
 #include <vma/vk_mem_alloc.h> // Vma*
 #include <vulkan/vulkan.h>    // Vk*
+
+#include <spdlog/spdlog.h>
 
 namespace orion
 {
@@ -37,38 +40,6 @@ namespace orion
         return "Unknown VkResult";
     }
 
-    class VulkanException : public OrionException
-    {
-    public:
-        explicit VulkanException(VkResult vk_result)
-            : vk_result_(vk_result)
-            , result_string_(to_string(vk_result))
-        {
-        }
-
-        [[nodiscard]] const char* type() const noexcept override
-        {
-            return "VulkanError";
-        }
-        [[nodiscard]] int return_code() const noexcept override
-        {
-            return vk_result_;
-        }
-        [[nodiscard]] const char* what() const override
-        {
-            return result_string_.c_str();
-        }
-
-        [[nodiscard]] auto result() const noexcept
-        {
-            return vk_result_;
-        }
-
-    private:
-        VkResult vk_result_;
-        std::string result_string_;
-    };
-
     namespace vulkan
     {
         inline constexpr auto vulkan_api_version = VK_API_VERSION_1_0;
@@ -89,7 +60,8 @@ namespace orion
         inline void vk_result_check(VkResult vk_result, VkResult expected = VK_SUCCESS)
         {
             if (vk_result != expected) {
-                throw VulkanException(vk_result);
+                SPDLOG_ERROR("Expected VkResult: {}, got: {}", to_string(expected), to_string(vk_result));
+                ORION_DEBUG_BREAK();
             }
         }
 

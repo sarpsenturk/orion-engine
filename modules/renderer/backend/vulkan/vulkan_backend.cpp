@@ -18,10 +18,8 @@ extern "C" ORION_RENDER_API orion::RenderBackend* create_render_backend()
     try {
         // Initialize the vulkan backend
         return new orion::vulkan::VulkanBackend();
-    } catch (const orion::VulkanException& vulkan_error) {
-        SPDLOG_ERROR("VulkanInitErr: {} (VkResult: {})", vulkan_error.what(), vulkan_error.result());
-    } catch (const std::runtime_error& err) {
-        SPDLOG_ERROR("runtime_error: {}", err.what());
+    } catch (const std::exception& err) {
+        SPDLOG_ERROR("std::exception: {}", err.what());
     }
     return nullptr;
 }
@@ -156,19 +154,19 @@ namespace orion::vulkan
         const auto graphics_queue_index = get_best_queue_family(queue_families, VK_QUEUE_GRAPHICS_BIT);
         if (graphics_queue_index == UINT32_MAX) {
             SPDLOG_LOGGER_ERROR(logger(), "No queue family supporting Graphics");
-            throw VulkanException(VK_ERROR_UNKNOWN);
+            ORION_DEBUG_BREAK();
         }
         SPDLOG_LOGGER_TRACE(logger(), "Graphics queue: {}", graphics_queue_index);
         const auto compute_queue_index = get_best_queue_family(queue_families, VK_QUEUE_COMPUTE_BIT);
         if (compute_queue_index == UINT32_MAX) {
             SPDLOG_LOGGER_ERROR(logger(), "No queue family supporting Compute");
-            throw VulkanException(VK_ERROR_UNKNOWN);
+            ORION_DEBUG_BREAK();
         }
         SPDLOG_LOGGER_TRACE(logger(), "Compute queue: {}", compute_queue_index);
         const auto transfer_queue_index = get_best_queue_family(queue_families, VK_QUEUE_TRANSFER_BIT);
         if (transfer_queue_index == UINT32_MAX) {
             SPDLOG_LOGGER_ERROR(logger(), "No queue family supporting Transfer");
-            throw VulkanException(VK_ERROR_UNKNOWN);
+            ORION_DEBUG_BREAK();
         }
         SPDLOG_LOGGER_TRACE(logger(), "Transfer queue: {}", transfer_queue_index);
 
