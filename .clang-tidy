@@ -12,6 +12,7 @@ Checks:
   portability-*
   readability-*
   -readability-uppercase-literal-suffix
+  -hicpp-uppercase-literal-suffix
 
 
 CheckOptions:

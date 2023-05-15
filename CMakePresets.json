@@ -33,11 +33,6 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
-      "vendor": {
-        "hostOS": "Windows",
-        "intelliSenseMode": "windows-msvc-x64",
-        "enableClangTidyCodeAnalysis": true
-      },
       "displayName": "MSVC",
       "description": "Microsoft Visual C++ compiler",
       "cacheVariables": {
