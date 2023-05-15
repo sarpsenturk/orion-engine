@@ -581,7 +581,7 @@ namespace orion::vulkan
     void VulkanDevice::compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission)
     {
         submission.wait_semaphores.clear();
-        for (auto command : commands) {
+        for (auto& command : commands) {
             switch (command.command_type) {
                 case CommandType::BufferCopy:
                     cmd_buffer_copy(command_buffer, command.data);

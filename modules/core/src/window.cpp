@@ -53,7 +53,7 @@ namespace orion
 
     spdlog::logger* Window::logger()
     {
-        const auto window_logger = []() {
+        static const auto window_logger = []() {
             auto logger = spdlog::stdout_color_st("orion-window");
             logger->set_pattern("[%n] [%^%l%$] %v");
             logger->set_level(static_cast<spdlog::level::level_enum>(ORION_WINDOW_LOG_LEVEL));
