@@ -62,11 +62,11 @@ if (ORION_ENGINE_TEST)
 endif ()
 
 # Add sources for submodules
-add_subdirectory(modules/utils)
-add_subdirectory(modules/math)
-add_subdirectory(modules/core)
-add_subdirectory(modules/renderer)
-add_subdirectory(modules/engine)
+add_subdirectory(utils)
+add_subdirectory(math)
+add_subdirectory(core)
+add_subdirectory(renderer)
+add_subdirectory(engine)
 
 # Enable/disable sandbox
 if (ORION_ENGINE_SANDBOX)

@@ -1,6 +1,6 @@
 [submodule "modules/utils"]
-	path = modules/utils
+	path = utils
 	url = https://github.com/sarpsenturk/orion-utils.git
 [submodule "modules/math"]
-	path = modules/math
+	path = math
 	url = https://github.com/sarpsenturk/orion-math.git
