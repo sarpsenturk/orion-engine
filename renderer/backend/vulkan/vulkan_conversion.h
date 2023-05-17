@@ -50,9 +50,11 @@ namespace orion::vulkan
     constexpr auto to_vulkan_type(Format format) noexcept -> VkFormat
     {
         switch (format) {
-            case Format::B8G8R8A8_SRGB:
+            case Format::B8G8R8A8_Srgb:
                 return VK_FORMAT_B8G8R8A8_SRGB;
-            case Format::R32G32B32A32_FLOAT:
+            case Format::R32G32B32_Float:
+                return VK_FORMAT_R32G32B32_SFLOAT;
+            case Format::R32G32B32A32_Float:
                 return VK_FORMAT_R32G32B32A32_SFLOAT;
         }
         ORION_ASSERT(!"Invalid Format");
