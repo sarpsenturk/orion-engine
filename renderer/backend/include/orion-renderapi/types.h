@@ -10,6 +10,7 @@ namespace orion
 {
     enum class Format {
         B8G8R8A8_Srgb,
+        R32G32_Float,
         R32G32B32_Float,
         R32G32B32A32_Float,
     };
@@ -19,6 +20,8 @@ namespace orion
         switch (format) {
             case Format::B8G8R8A8_Srgb:
                 return sizeof(uint8_t) * 4;
+            case Format::R32G32_Float:
+                return sizeof(float) * 2;
             case Format::R32G32B32_Float:
                 return sizeof(float) * 3;
             case Format::R32G32B32A32_Float:
@@ -32,6 +35,8 @@ namespace orion
         switch (format) {
             case Format::B8G8R8A8_Srgb:
                 return "B8G8R8A8_Srgb";
+            case Format::R32G32_Float:
+                return "R32G32_Float";
             case Format::R32G32B32_Float:
                 return "R32G32B32_Float";
             case Format::R32G32B32A32_Float:
