@@ -2,6 +2,13 @@
 
 namespace orion
 {
+    VertexBinding::VertexBinding(std::span<const VertexAttributeDesc> attributes, InputRate input_rate)
+        : attributes_(attributes.begin(), attributes.end())
+        , input_rate_(input_rate_)
+        , stride_(calculate_stride_and_offsets())
+    {
+    }
+
     VertexBinding::VertexBinding(std::initializer_list<VertexAttributeDesc> attributes, InputRate input_rate)
         : attributes_(attributes)
         , input_rate_(input_rate)
