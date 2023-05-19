@@ -25,15 +25,34 @@ namespace orion
     class VertexBinding
     {
     public:
-        constexpr VertexBinding(std::span<const VertexAttributeDesc> attributes, InputRate input_rate);
-        constexpr VertexBinding(std::initializer_list<VertexAttributeDesc> attributes, InputRate input_rate);
+        constexpr VertexBinding(std::span<const VertexAttributeDesc> attributes, InputRate input_rate)
+            : attributes_(attributes.begin(), attributes.end())
+            , input_rate_(input_rate)
+            , stride_(calculate_stride_and_offsets())
+        {
+        }
+
+        constexpr VertexBinding(std::initializer_list<VertexAttributeDesc> attributes, InputRate input_rate)
+            : attributes_(attributes)
+            , input_rate_(input_rate)
+            , stride_(calculate_stride_and_offsets())
+        {
+        }
 
         [[nodiscard]] constexpr auto& attributes() const noexcept { return attributes_; }
         [[nodiscard]] constexpr auto input_rate() const noexcept { return input_rate_; }
         [[nodiscard]] constexpr auto stride() const noexcept { return stride_; }
 
     private:
-        constexpr std::uint32_t calculate_stride_and_offsets() noexcept;
+        constexpr std::uint32_t calculate_stride_and_offsets() noexcept
+        {
+            std::uint32_t offset = 0;
+            for (auto& attribute : attributes_) {
+                attribute.offset = offset;
+                offset += size_of(attribute.format);
+            }
+            return offset;
+        }
 
         std::vector<VertexAttributeDesc> attributes_;
         InputRate input_rate_;
