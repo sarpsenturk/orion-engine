@@ -70,6 +70,23 @@ namespace orion
         return "Other";
     }
 
+    enum class AttachmentLoadOp {
+        Load,
+        Clear,
+        DontCare
+    };
+
+    enum class AttachmentStoreOp {
+        Store,
+        DontCare
+    };
+
+    enum class ImageLayout {
+        Undefined = 0,
+        ColorAttachment,
+        PresentSrc
+    };
+
     enum class ShaderType {
         Vertex,
         Fragment

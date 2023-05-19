@@ -99,6 +99,71 @@ namespace orion::vulkan
         return handle;
     }
 
+    RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
+    {
+        std::vector<VkAttachmentDescription> attachments;
+        auto to_vulkan_attachments = [&attachments, attachment_index = 0u](auto input) mutable {
+            // Reserve space for new attachment descriptions
+            attachments.reserve(attachments.size() + input.size());
+
+            // Return new attachment references
+            std::vector<VkAttachmentReference> attachment_refs;
+            attachment_refs.reserve(input.size());
+            for (const auto& attachment : input) {
+                // Create new VkAttachmentDescription
+                attachments.push_back({
+                    .flags = 0,
+                    .format = to_vulkan_type(attachment.format),
+                    .samples = VK_SAMPLE_COUNT_1_BIT,
+                    .loadOp = to_vulkan_type(attachment.load_op),
+                    .storeOp = to_vulkan_type(attachment.store_op),
+                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout = to_vulkan_type(attachment.initial_layout),
+                    .finalLayout = to_vulkan_type(attachment.final_layout),
+                });
+                // Create new VkAttachmentReference
+                attachment_refs.push_back({
+                    .attachment = attachment_index++,
+                    .layout = to_vulkan_type(attachment.layout),
+                });
+            }
+            return attachment_refs;
+        };
+
+        // Attachment references for subpass
+        const auto color_attachments = to_vulkan_attachments(desc.color_attachments);
+
+        const VkSubpassDescription subpass{
+            .flags = 0,
+            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .inputAttachmentCount = 0,
+            .pInputAttachments = nullptr,
+            .colorAttachmentCount = static_cast<std::uint32_t>(color_attachments.size()),
+            .pColorAttachments = color_attachments.data(),
+            .pResolveAttachments = nullptr,
+            .pDepthStencilAttachment = nullptr,
+            .preserveAttachmentCount = 0,
+            .pPreserveAttachments = nullptr,
+        };
+
+        const VkRenderPassCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .attachmentCount = static_cast<std::uint32_t>(attachments.size()),
+            .pAttachments = attachments.data(),
+            .subpassCount = 1,
+            .pSubpasses = &subpass,
+        };
+        VkRenderPass render_pass = VK_NULL_HANDLE;
+        vk_result_check(vkCreateRenderPass(device_.get(), &info, alloc_callbacks(), &render_pass));
+
+        auto handle = RenderPassHandle::generate();
+        render_passes_.insert(std::make_pair(handle, make_unique(device_.get(), render_pass)));
+        return handle;
+    }
+
     ShaderModuleHandle VulkanDevice::create_shader_module_api(const ShaderModuleDesc& desc)
     {
         // Convert to std::byte data to uint32_t
@@ -437,6 +502,11 @@ namespace orion::vulkan
     {
         swapchains_.erase(swapchain_handle);
         surfaces_.erase(swapchain_handle);
+    }
+
+    void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
+    {
+        render_passes_.erase(render_pass_handle);
     }
 
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)

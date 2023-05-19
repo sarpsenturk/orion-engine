@@ -63,6 +63,46 @@ namespace orion::vulkan
         return {};
     }
 
+    constexpr auto to_vulkan_type(AttachmentLoadOp load_op) noexcept -> VkAttachmentLoadOp
+    {
+        switch (load_op) {
+            case AttachmentLoadOp::Load:
+                return VK_ATTACHMENT_LOAD_OP_LOAD;
+            case AttachmentLoadOp::Clear:
+                return VK_ATTACHMENT_LOAD_OP_CLEAR;
+            case AttachmentLoadOp::DontCare:
+                return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        }
+        ORION_ASSERT(!"Invalid load op");
+        return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
+    }
+
+    constexpr auto to_vulkan_type(AttachmentStoreOp store_op) noexcept -> VkAttachmentStoreOp
+    {
+        switch (store_op) {
+            case AttachmentStoreOp::Store:
+                return VK_ATTACHMENT_STORE_OP_STORE;
+            case AttachmentStoreOp::DontCare:
+                return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+        ORION_ASSERT(!"Invalid store op");
+        return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
+    }
+
+    constexpr auto to_vulkan_type(ImageLayout image_layout) noexcept -> VkImageLayout
+    {
+        switch (image_layout) {
+            case ImageLayout::Undefined:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageLayout::ColorAttachment:
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            case ImageLayout::PresentSrc:
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        }
+        ORION_ASSERT(!"Invalid image layout");
+        return VK_IMAGE_LAYOUT_MAX_ENUM;
+    }
+
     constexpr auto to_vulkan_type(ShaderType shader_type) noexcept -> VkShaderStageFlagBits
     {
         switch (shader_type) {

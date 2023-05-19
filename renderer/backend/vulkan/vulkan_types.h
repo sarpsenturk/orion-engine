@@ -145,6 +145,11 @@ namespace orion::vulkan
     using UniqueVkSemaphore = std::unique_ptr<VkSemaphore, SemaphoreDeleter>;
     using UniqueVkFence = std::unique_ptr<VkFence, FenceDeleter>;
 
+    inline auto make_unique(VkDevice device, VkRenderPass render_pass)
+    {
+        return UniqueVkRenderPass{render_pass, RenderPassDeleter{device}};
+    }
+
     struct SwapchainCreateInfo {
         VkSurfaceKHR surface;
         std::uint32_t image_count;

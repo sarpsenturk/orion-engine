@@ -37,11 +37,25 @@ public:
             device->recreate(swapchain, orion::SwapchainDesc{.image_count = 2, .image_format = orion::Format::B8G8R8A8_Srgb, .image_size = resize_end.size});
         });
 
-        // Create shader compiler
-        auto shader_compiler = orion::ShaderCompiler();
+        // Create render pass
+        {
+            const std::array color_attachments{
+                orion::AttachmentDesc{
+                    .load_op = orion::AttachmentLoadOp::Clear,
+                    .store_op = orion::AttachmentStoreOp::Store,
+                    .initial_layout = orion::ImageLayout::Undefined,
+                    .layout = orion::ImageLayout::ColorAttachment,
+                    .final_layout = orion::ImageLayout::PresentSrc,
+                },
+            };
+            render_pass_ = device->create_render_pass({.color_attachments = color_attachments});
+        }
 
         // Create graphics pipeline
         {
+            // Create shader compiler
+            auto shader_compiler = orion::ShaderCompiler();
+
             // Create vertex shader module
             const auto vs_module = [device, &shader_compiler]() {
                 // Compile vertex shader
@@ -243,6 +257,7 @@ private:
     orion::Window window_;
     orion::Renderer renderer_;
     orion::SwapchainHandle swapchain_;
+    orion::RenderPassHandle render_pass_;
     orion::PipelineHandle graphics_pipeline_;
     orion::GPUBufferHandle vertex_buffer_;
     orion::GPUBufferHandle index_buffer_;

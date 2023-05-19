@@ -9,6 +9,7 @@ target_sources(
         pipeline.h
         render_backend.h
         render_device.h
+        render_pass.h
         shader.h
         swapchain.h
         types.h
