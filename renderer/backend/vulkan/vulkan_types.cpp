@@ -292,38 +292,6 @@ namespace orion::vulkan
         return {allocator, {}};
     }
 
-    UniqueVkSwapchainKHR create_vk_swapchain(VkDevice device, VkPhysicalDevice physical_device, const SwapchainCreateInfo& swapchain_info)
-    {
-        // Get the surface capabilities
-        const auto surface_capabilities = [physical_device, surface = swapchain_info.surface]() {
-            VkSurfaceCapabilitiesKHR surface_capabilities;
-            vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities));
-            return surface_capabilities;
-        }();
-
-        const VkSwapchainCreateInfoKHR info{
-            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .pNext = nullptr,
-            .flags = 0,
-            .surface = swapchain_info.surface,
-            .minImageCount = swapchain_info.image_count,
-            .imageFormat = swapchain_info.image_format,
-            .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
-            .imageExtent = swapchain_info.image_size,
-            .imageArrayLayers = 1,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .preTransform = surface_capabilities.currentTransform,
-            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            .presentMode = swapchain_info.present_mode,
-            .clipped = VK_TRUE,
-            .oldSwapchain = VK_NULL_HANDLE,
-        };
-        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-        vk_result_check(vkCreateSwapchainKHR(device, &info, alloc_callbacks(), &swapchain));
-        return {swapchain, SwapchainDeleter{device}};
-    }
-
     UniqueVkImageView create_vk_image_view(VkDevice device, VkImage image, VkImageViewType view_type, VkFormat format)
     {
         const VkImageViewCreateInfo image_view_info{
@@ -493,5 +461,35 @@ namespace orion::vulkan
         VkFence fence = VK_NULL_HANDLE;
         vk_result_check(vkCreateFence(device, &info, alloc_callbacks(), &fence));
         return {fence, FenceDeleter{device}};
+    }
+
+    VulkanSwapchain::VulkanSwapchain(VkSurfaceKHR surface, UniqueVkSwapchainKHR swapchain, std::vector<UniqueVkImageView> image_views)
+        : surface_(surface)
+        , swapchain_(std::move(swapchain))
+        , image_views_(std::move(image_views))
+    {
+    }
+
+    VulkanSwapchainRenderTarget::VulkanSwapchainRenderTarget(VkDevice device,
+                                                             VkSwapchainKHR swapchain,
+                                                             std::vector<UniqueVkFramebuffer> framebuffers,
+                                                             UniqueVkSemaphore semaphore)
+        : device_(device)
+        , swapchain_(swapchain)
+        , framebuffers_(std::move(framebuffers))
+        , semaphore_(std::move(semaphore))
+    {
+    }
+
+    VkFramebuffer VulkanSwapchainRenderTarget::framebuffer()
+    {
+        std::uint32_t available_image = 0;
+        vk_result_check(vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, semaphore_.get(), VK_NULL_HANDLE, &available_image));
+        return framebuffers_[available_image].get();
+    }
+
+    VkSemaphore VulkanSwapchainRenderTarget::semaphore()
+    {
+        return semaphore_.get();
     }
 } // namespace orion::vulkan

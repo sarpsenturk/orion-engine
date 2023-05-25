@@ -116,7 +116,7 @@ float4 main(float4 color : COLOR) : SV_Target
             graphics_pipeline_ = device->create_graphics_pipeline(orion::GraphicsPipelineDesc{
                 .shaders = shaders,
                 .vertex_bindings = vertex_bindings,
-                .render_target = swapchain_,
+                .render_pass = render_pass_,
             });
 
             // Destroy shader modules after pipeline creation
@@ -220,7 +220,8 @@ private:
         // Begin new frame
         {
             auto* begin_frame = render_command_.add_command<orion::CmdBeginFrame>({});
-            begin_frame->render_target = swapchain_;
+            begin_frame->render_pass = render_pass_;
+            // begin_frame->render_target = ;
             begin_frame->render_area = window_.size();
             begin_frame->clear_color = {1.f, 0.f, 1.f, 1.f};
         }

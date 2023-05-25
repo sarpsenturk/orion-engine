@@ -74,6 +74,6 @@ namespace orion
         std::span<const VertexBinding> vertex_bindings = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
-        RenderTargetHandle render_target;
+        RenderPassHandle render_pass;
     };
 } // namespace orion

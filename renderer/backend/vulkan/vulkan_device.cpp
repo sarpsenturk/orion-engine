@@ -82,20 +82,63 @@ namespace orion::vulkan
         // Chose present mode TODO: Allow user to select this
         const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
-        // Get the old swapchain
-        const VkFormat vk_format = to_vulkan_type(desc.image_format);
+        // Select format
+        const auto format = to_vulkan_type(desc.image_format);
 
         // Create the swapchain
-        const SwapchainCreateInfo swapchain_info{
-            .surface = surface,
-            .image_count = desc.image_count,
-            .image_format = to_vulkan_type(desc.image_format),
-            .image_size = to_vulkan_extent(desc.image_size),
-            .present_mode = present_mode,
-        };
-        auto swapchain = create_vk_swapchain(device_.get(), physical_device_, swapchain_info);
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+        {
+            // Get the surface capabilities
+            const auto surface_capabilities = [physical_device = physical_device_, surface]() {
+                VkSurfaceCapabilitiesKHR surface_capabilities;
+                vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities));
+                return surface_capabilities;
+            }();
 
-        swapchains_.insert(std::make_pair(handle, VulkanSwapchain{device_.get(), surface, std::move(swapchain), vk_format, desc.image_size}));
+            const VkSwapchainCreateInfoKHR info{
+                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                .pNext = nullptr,
+                .flags = 0,
+                .surface = surface,
+                .minImageCount = desc.image_count,
+                .imageFormat = format,
+                .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+                .imageExtent = to_vulkan_extent(desc.image_size),
+                .imageArrayLayers = 1,
+                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                .preTransform = surface_capabilities.currentTransform,
+                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+                .presentMode = present_mode,
+                .clipped = VK_TRUE,
+                .oldSwapchain = VK_NULL_HANDLE,
+            };
+            vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &swapchain));
+        }
+
+        // Create image views
+        std::vector<UniqueVkImageView> image_views;
+        {
+            // Acquire swapchain images
+            auto images = [swapchain, device = device_.get()]() {
+                std::uint32_t image_count = 0;
+                vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr));
+                std::vector<VkImage> swapchain_images(image_count);
+                vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, swapchain_images.data()));
+                return swapchain_images;
+            }();
+
+            image_views.reserve(images.size());
+            for (auto image : images) {
+                image_views.push_back(create_vk_image_view(device(), image, VK_IMAGE_VIEW_TYPE_2D, format));
+            }
+        }
+
+        swapchains_.insert(std::make_pair(handle, VulkanSwapchain{
+                                                      surface,
+                                                      UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device()}},
+                                                      std::move(image_views),
+                                                  }));
         return handle;
     }
 
@@ -160,7 +203,38 @@ namespace orion::vulkan
         vk_result_check(vkCreateRenderPass(device_.get(), &info, alloc_callbacks(), &render_pass));
 
         auto handle = RenderPassHandle::generate();
-        render_passes_.insert(std::make_pair(handle, make_unique(device_.get(), render_pass)));
+        render_passes_.insert(std::make_pair(handle, make_unique<UniqueVkRenderPass>(device(), render_pass)));
+        return handle;
+    }
+
+    RenderTargetHandle VulkanDevice::create_render_target_api(SwapchainHandle swapchain_handle, const RenderTargetDesc& desc)
+    {
+        // Find swapchain
+        auto& swapchain = find_swapchain(swapchain_handle);
+
+        // Convert format to vulkan format
+        const auto format = to_vulkan_type(desc.format);
+
+        // Find render pass
+        auto render_pass = find_render_pass(desc.render_pass);
+
+        std::vector<UniqueVkFramebuffer> framebuffers;
+        framebuffers.reserve(swapchain.image_views().size());
+        for (auto& image_view : swapchain.image_views()) {
+            // Create framebuffer
+            const std::array attachments{image_view.get()};
+            framebuffers.push_back(create_vk_framebuffer(device(), render_pass, desc.size, attachments));
+        }
+
+        auto handle = RenderTargetHandle::generate();
+        render_targets_.insert(
+            std::make_pair(
+                handle,
+                VulkanSwapchainRenderTarget(
+                    device(),
+                    swapchain,
+                    std::move(framebuffers),
+                    create_vk_semaphore(device()))));
         return handle;
     }
 
@@ -339,7 +413,7 @@ namespace orion::vulkan
         }();
 
         // Find associated render pass
-        VkRenderPass render_pass = find_render_pass(desc.render_target);
+        VkRenderPass render_pass = find_render_pass(desc.render_pass);
 
         const VkGraphicsPipelineCreateInfo pipeline_info{
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -406,18 +480,65 @@ namespace orion::vulkan
         // Chose present mode TODO: Allow user to select this
         const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
-        // Recreate swapchain
+        // Get surface
+        auto surface = swapchain.surface();
+
         const auto format = to_vulkan_type(desc.image_format);
-        const SwapchainCreateInfo info{
-            .surface = swapchain.surface(),
-            .image_count = desc.image_count,
-            .image_format = format,
-            .image_size = to_vulkan_extent(desc.image_size),
-            .present_mode = present_mode,
-            .old_swapchain = swapchain.swapchain(),
-        };
-        auto new_swapchain = create_vk_swapchain(device_.get(), physical_device_, info);
-        swapchains_.insert_or_assign(swapchain_handle, VulkanSwapchain{device_.get(), swapchain.surface(), std::move(new_swapchain), format, desc.image_size});
+
+        // Recreate swapchain
+        VkSwapchainKHR new_swapchain = VK_NULL_HANDLE;
+        {
+            // Get the surface capabilities
+            const auto surface_capabilities = [physical_device = physical_device_, surface]() {
+                VkSurfaceCapabilitiesKHR surface_capabilities;
+                vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities));
+                return surface_capabilities;
+            }();
+
+            const VkSwapchainCreateInfoKHR info{
+                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                .pNext = nullptr,
+                .flags = 0,
+                .surface = surface,
+                .minImageCount = desc.image_count,
+                .imageFormat = format,
+                .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+                .imageExtent = to_vulkan_extent(desc.image_size),
+                .imageArrayLayers = 1,
+                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                .preTransform = surface_capabilities.currentTransform,
+                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+                .presentMode = present_mode,
+                .clipped = VK_TRUE,
+                .oldSwapchain = VK_NULL_HANDLE,
+            };
+            vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &new_swapchain));
+        }
+
+        // Create image views
+        std::vector<UniqueVkImageView> image_views;
+        {
+            // Acquire swapchain images
+            auto images = [new_swapchain, device = device_.get()]() {
+                std::uint32_t image_count = 0;
+                vk_result_check(vkGetSwapchainImagesKHR(device, new_swapchain, &image_count, nullptr));
+                std::vector<VkImage> swapchain_images(image_count);
+                vk_result_check(vkGetSwapchainImagesKHR(device, new_swapchain, &image_count, swapchain_images.data()));
+                return swapchain_images;
+            }();
+
+            image_views.reserve(images.size());
+            for (auto image : images) {
+                image_views.push_back(create_vk_image_view(device(), image, VK_IMAGE_VIEW_TYPE_2D, format));
+            }
+        }
+
+        swapchains_.insert_or_assign(swapchain_handle, VulkanSwapchain{
+                                                           swapchain.surface(),
+                                                           UniqueVkSwapchainKHR{new_swapchain, SwapchainDeleter{device()}},
+                                                           std::move(image_views),
+                                                       });
     }
 
     CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
@@ -445,32 +566,14 @@ namespace orion::vulkan
         return buffers_.at(buffer_handle);
     }
 
-    VkRenderPass VulkanDevice::find_render_pass(RenderTargetHandle render_target_handle)
+    VkRenderPass VulkanDevice::find_render_pass(RenderPassHandle render_pass_handle)
     {
-        auto find_render_pass = [this](auto&& arg) -> VkRenderPass {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, SwapchainHandle>) {
-                return find_swapchain(arg).render_pass();
-            } else {
-                return VK_NULL_HANDLE;
-            }
-        };
-        return std::visit(find_render_pass, render_target_handle);
+        return render_passes_.at(render_pass_handle).get();
     }
 
-    FindFramebufferResult VulkanDevice::find_framebuffer(RenderTargetHandle render_target_handle)
+    VulkanRenderTarget* VulkanDevice::find_render_target(RenderTargetHandle render_target_handle)
     {
-        auto find_framebuffer = [this](auto&& arg) -> FindFramebufferResult {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, SwapchainHandle>) {
-                auto& swapchain = find_swapchain(arg);
-                VkSemaphore image_available = swapchain.image_semaphore();
-                return {.framebuffer = swapchain.framebuffer(swapchain.next_image_index()), .available_semaphore = image_available};
-            } else {
-                return {};
-            }
-        };
-        return std::visit(find_framebuffer, render_target_handle);
+        return render_targets_.at(render_target_handle).get();
     }
 
     VkPipeline VulkanDevice::find_pipeline(PipelineHandle pipeline_handle) const
@@ -507,6 +610,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
     {
         render_passes_.erase(render_pass_handle);
+    }
+
+    void VulkanDevice::destroy_api(RenderTargetHandle render_target_handle)
+    {
+        render_targets_.erase(render_target_handle);
     }
 
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)
@@ -576,8 +684,11 @@ namespace orion::vulkan
                 return find_submission(submission_handle);
             }
             submission_handle = SubmissionHandle::generate();
-            auto [iter, _] =
-                submissions_.insert(std::make_pair(submission_handle, VulkanSubmission{.fence = create_vk_fence(device_.get()), .semaphore = create_vk_semaphore(device_.get())}));
+            auto [iter, _] = submissions_.insert(std::make_pair(submission_handle,
+                                                                VulkanSubmission{
+                                                                    .fence = create_vk_fence(device_.get()),
+                                                                    .semaphore = create_vk_semaphore(device_.get()),
+                                                                }));
             return iter->second;
         }();
 
@@ -624,7 +735,7 @@ namespace orion::vulkan
         // Find swapchain and resources
         auto& swapchain = find_swapchain(swapchain_handle);
         VkSwapchainKHR vk_swapchain = swapchain.swapchain();
-        const std::uint32_t image_index = swapchain.current_image_index();
+        // const auto image_index = ;
 
         // Find submission (if any) to wait for
         VkSemaphore semaphore = [this, wait]() -> VkSemaphore {
@@ -696,19 +807,19 @@ namespace orion::vulkan
         const VkClearColorValue clear_color = {cmd_begin_frame->clear_color.x(), cmd_begin_frame->clear_color.y(), cmd_begin_frame->clear_color.z(), cmd_begin_frame->clear_color.w()};
         const std::array clear_values{VkClearValue{.color = clear_color}};
 
-        // Find framebuffer
-        const auto framebuffer = find_framebuffer(cmd_begin_frame->render_target);
+        // Find render target
+        auto render_target = find_render_target(cmd_begin_frame->render_target);
         const VkRenderPassBeginInfo begin_info{
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
-            .renderPass = find_render_pass(cmd_begin_frame->render_target),
-            .framebuffer = framebuffer.framebuffer,
+            .renderPass = find_render_pass(cmd_begin_frame->render_pass),
+            .framebuffer = render_target->framebuffer(),
             .renderArea = {.offset = {}, .extent = to_vulkan_extent(cmd_begin_frame->render_area)},
             .clearValueCount = static_cast<std::uint32_t>(clear_values.size()),
             .pClearValues = clear_values.data(),
         };
         vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-        return framebuffer.available_semaphore;
+        return render_target->semaphore();
     }
 
     void VulkanDevice::cmd_end_frame(VkCommandBuffer command_buffer, const void* data)

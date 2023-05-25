@@ -24,6 +24,13 @@ namespace orion
         return handle;
     }
 
+    RenderTargetHandle RenderDevice::create_render_target(SwapchainHandle swapchain, const RenderTargetDesc& desc)
+    {
+        auto handle = create_render_target_api(swapchain, desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created render target with handle {}", handle);
+        return handle;
+    }
+
     ShaderModuleHandle RenderDevice::create_shader_module(const ShaderModuleDesc& desc)
     {
         auto handle = create_shader_module_api(desc);
@@ -63,6 +70,11 @@ namespace orion
     void RenderDevice::destroy(RenderPassHandle render_pass_handle)
     {
         destroy_api(render_pass_handle);
+    }
+
+    void RenderDevice::destroy(RenderTargetHandle render_target_handle)
+    {
+        destroy_api(render_target_handle);
     }
 
     void RenderDevice::destroy(ShaderModuleHandle shader_module_handle)

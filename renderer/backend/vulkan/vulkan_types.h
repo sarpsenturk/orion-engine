@@ -4,6 +4,7 @@
 
 #include <orion-math/vector/vector2.h> // orion::math::Vector2
 #include <span>                        // std::span
+#include <variant>
 
 namespace orion::vulkan
 {
@@ -145,19 +146,11 @@ namespace orion::vulkan
     using UniqueVkSemaphore = std::unique_ptr<VkSemaphore, SemaphoreDeleter>;
     using UniqueVkFence = std::unique_ptr<VkFence, FenceDeleter>;
 
-    inline auto make_unique(VkDevice device, VkRenderPass render_pass)
+    template<typename UniqueType, typename HandleType>
+    auto make_unique(VkDevice device, HandleType handle)
     {
-        return UniqueVkRenderPass{render_pass, RenderPassDeleter{device}};
+        return UniqueType{handle, {device}};
     }
-
-    struct SwapchainCreateInfo {
-        VkSurfaceKHR surface;
-        std::uint32_t image_count;
-        VkFormat image_format;
-        VkExtent2D image_size;
-        VkPresentModeKHR present_mode;
-        VkSwapchainKHR old_swapchain;
-    };
 
     UniqueVkInstance create_vk_instance(std::span<const char* const> enabled_layers, std::span<const char* const> enabled_extensions);
     UniqueVkDebugUtilsMessengerEXT create_vk_debug_utils_messenger(VkInstance instance,
@@ -167,7 +160,6 @@ namespace orion::vulkan
                                                                    void* user_data);
     UniqueVkDevice create_vk_device(VkPhysicalDevice physical_device, std::span<const std::uint32_t> queues, std::span<const char* const> enabled_extensions);
     UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device);
-    UniqueVkSwapchainKHR create_vk_swapchain(VkDevice device, VkPhysicalDevice physical_device, const SwapchainCreateInfo& swapchain_info);
     UniqueVkImageView create_vk_image_view(VkDevice device, VkImage image, VkImageViewType view_type, VkFormat format);
     UniqueVkFramebuffer create_vk_framebuffer(VkDevice device, VkRenderPass render_pass, const math::Vector2_u& image_size, std::span<const VkImageView> attachments);
     UniqueVkShaderModule create_vk_shader_module(VkDevice device, std::span<const std::uint32_t> spirv);
@@ -182,4 +174,40 @@ namespace orion::vulkan
                                              std::span<const VkSubpassDependency> subpass_dependencies);
     UniqueVkSemaphore create_vk_semaphore(VkDevice device);
     UniqueVkFence create_vk_fence(VkDevice device, VkFenceCreateFlags flags = 0);
+
+    class VulkanSwapchain
+    {
+    public:
+        VulkanSwapchain(VkSurfaceKHR surface, UniqueVkSwapchainKHR swapchain, std::vector<UniqueVkImageView> image_views);
+
+        [[nodiscard]] auto surface() const noexcept { return surface_; }
+        [[nodiscard]] auto swapchain() const noexcept { return swapchain_.get(); }
+        [[nodiscard]] auto& image_views() const noexcept { return image_views_; }
+
+    private:
+        VkSurfaceKHR surface_;
+        UniqueVkSwapchainKHR swapchain_;
+        std::vector<UniqueVkImageView> image_views_;
+        std::uint32_t image_index_ = UINT32_MAX;
+    };
+
+    class VulkanSwapchainRenderTarget
+    {
+    public:
+        VulkanSwapchainRenderTarget(VkDevice device,
+                                    VkSwapchainKHR swapchain,
+                                    std::vector<UniqueVkFramebuffer> framebuffers,
+                                    UniqueVkSemaphore semaphore);
+
+        VkFramebuffer framebuffer();
+        VkSemaphore semaphore();
+
+    private:
+        VkDevice device_;
+        VkSwapchainKHR swapchain_;
+        std::vector<UniqueVkFramebuffer> framebuffers_;
+        UniqueVkSemaphore semaphore_;
+    };
+
+    using VulkanRenderTarget = std::variant<VulkanSwapchainRenderTarget>;
 } // namespace orion::vulkan

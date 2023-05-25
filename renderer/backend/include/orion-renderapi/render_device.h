@@ -5,6 +5,7 @@
 #include "handles.h"
 #include "pipeline.h"
 #include "render_pass.h"
+#include "render_target.h"
 #include "shader.h"
 #include "swapchain.h"
 #include "types.h"
@@ -24,6 +25,7 @@ namespace orion
 
         [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, SwapchainDesc desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
+        [[nodiscard]] RenderTargetHandle create_render_target(SwapchainHandle swapchain, const RenderTargetDesc& desc);
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
         [[nodiscard]] PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
@@ -33,6 +35,7 @@ namespace orion
 
         void destroy(SwapchainHandle swapchain_handle);
         void destroy(RenderPassHandle render_pass_handle);
+        void destroy(RenderTargetHandle render_target_handle);
         void destroy(ShaderModuleHandle shader_module_handle);
         void destroy(PipelineHandle pipeline_handle);
         void destroy(GPUBufferHandle buffer_handle);
@@ -57,6 +60,7 @@ namespace orion
     private:
         [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) = 0;
         [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
+        [[nodiscard]] virtual RenderTargetHandle create_render_target_api(SwapchainHandle swapchain, const RenderTargetDesc& desc) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;
         [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
         [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) = 0;
@@ -66,6 +70,7 @@ namespace orion
 
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
+        virtual void destroy_api(RenderTargetHandle render_target_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
