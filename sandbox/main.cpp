@@ -20,7 +20,9 @@ public:
         Vertex{.position = {-.5f, -.5f, 0.f}, .color = {.5f, 0.f, .5f, 1.f}},
     };
 
-    static constexpr const std::array indices{0u, 1u, 2u, 2u, 3u, 0u};
+    static constexpr std::array indices{0u, 1u, 2u, 2u, 3u, 0u};
+
+    static constexpr auto swapchain_format = orion::Format::B8G8R8A8_Srgb;
 
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
@@ -30,12 +32,7 @@ public:
         auto* device = renderer_.device();
 
         // Create swapchain
-        swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = orion::Format::B8G8R8A8_Srgb, .image_size = window_.size()});
-
-        // Register callback on window resize to recreate swapchain
-        window_.on_resize_end().subscribe([device, swapchain = swapchain_](const orion::events::WindowResizeEnd& resize_end) {
-            device->recreate(swapchain, orion::SwapchainDesc{.image_count = 2, .image_format = orion::Format::B8G8R8A8_Srgb, .image_size = resize_end.size});
-        });
+        swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = swapchain_format, .image_size = window_.size()});
 
         // Create render pass
         {
@@ -50,6 +47,28 @@ public:
             };
             render_pass_ = device->create_render_pass({.color_attachments = color_attachments});
         }
+
+        // Create render target
+        render_target_ = device->create_render_target(swapchain_, orion::RenderTargetDesc{
+                                                                      .format = swapchain_format,
+                                                                      .render_pass = render_pass_,
+                                                                      .size = window_size,
+                                                                  });
+
+        // Register callback on window resize to recreate swapchain
+        window_.on_resize_end()
+            .subscribe([device, this](const orion::events::WindowResizeEnd& resize_end) {
+                device->recreate(swapchain_, orion::SwapchainDesc{
+                                                 .image_count = 2,
+                                                 .image_format = swapchain_format,
+                                                 .image_size = resize_end.size,
+                                             });
+                device->recreate(render_target_, swapchain_, orion::RenderTargetDesc{
+                                                                 .format = swapchain_format,
+                                                                 .render_pass = render_pass_,
+                                                                 .size = resize_end.size,
+                                                             });
+            });
 
         // Create graphics pipeline
         {
@@ -116,7 +135,7 @@ float4 main(float4 color : COLOR) : SV_Target
             graphics_pipeline_ = device->create_graphics_pipeline(orion::GraphicsPipelineDesc{
                 .shaders = shaders,
                 .vertex_bindings = vertex_bindings,
-                .render_target = swapchain_,
+                .render_pass = render_pass_,
             });
 
             // Destroy shader modules after pipeline creation
@@ -220,7 +239,8 @@ private:
         // Begin new frame
         {
             auto* begin_frame = render_command_.add_command<orion::CmdBeginFrame>({});
-            begin_frame->render_target = swapchain_;
+            begin_frame->render_pass = render_pass_;
+            begin_frame->render_target = render_target_;
             begin_frame->render_area = window_.size();
             begin_frame->clear_color = {1.f, 0.f, 1.f, 1.f};
         }
@@ -258,6 +278,7 @@ private:
     orion::Renderer renderer_;
     orion::SwapchainHandle swapchain_;
     orion::RenderPassHandle render_pass_;
+    orion::RenderTargetHandle render_target_;
     orion::PipelineHandle graphics_pipeline_;
     orion::GPUBufferHandle vertex_buffer_;
     orion::GPUBufferHandle index_buffer_;

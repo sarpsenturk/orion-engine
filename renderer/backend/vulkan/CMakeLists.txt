@@ -22,7 +22,6 @@ add_library(
         vulkan_headers.h
         vulkan_pipeline.h vulkan_pipeline.cpp
         vulkan_platform.h ${vulkan_platform_impl}
-        vulkan_swapchain.h vulkan_swapchain.cpp
         vulkan_types.h vulkan_types.cpp
 )
 

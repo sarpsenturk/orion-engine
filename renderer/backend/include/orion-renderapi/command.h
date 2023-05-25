@@ -114,6 +114,7 @@ namespace orion
     };
 
     struct CmdBeginFrame : CmdBase<CommandType::BeginFrame, CommandQueueType::Graphics> {
+        RenderPassHandle render_pass;
         RenderTargetHandle render_target;
         math::Vector2_u render_area;
         math::Vector4_f clear_color;

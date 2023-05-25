@@ -10,6 +10,7 @@ target_sources(
         render_backend.h
         render_device.h
         render_pass.h
+        render_target.h
         shader.h
         swapchain.h
         types.h

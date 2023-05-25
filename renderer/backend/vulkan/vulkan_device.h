@@ -5,7 +5,6 @@
 #include "vulkan_buffer.h"
 #include "vulkan_headers.h"
 #include "vulkan_pipeline.h"
-#include "vulkan_swapchain.h"
 #include "vulkan_types.h"
 
 #include <unordered_map> // std::unordered_map
@@ -13,11 +12,6 @@
 
 namespace orion::vulkan
 {
-    struct FindFramebufferResult {
-        VkFramebuffer framebuffer = VK_NULL_HANDLE;
-        VkSemaphore available_semaphore = VK_NULL_HANDLE;
-    };
-
     struct VulkanSubmission {
         UniqueVkFence fence = VK_NULL_HANDLE;
         UniqueVkSemaphore semaphore = VK_NULL_HANDLE;
@@ -37,8 +31,8 @@ namespace orion::vulkan
         [[nodiscard]] VkShaderModule find_shader(ShaderModuleHandle shader_module_handle) const;
         [[nodiscard]] VulkanSwapchain& find_swapchain(SwapchainHandle swapchain_handle);
         [[nodiscard]] VulkanBuffer& find_buffer(GPUBufferHandle buffer_handle);
-        [[nodiscard]] VkRenderPass find_render_pass(RenderTargetHandle render_target_handle);
-        [[nodiscard]] FindFramebufferResult find_framebuffer(RenderTargetHandle render_target_handle);
+        [[nodiscard]] VkRenderPass find_render_pass(RenderPassHandle render_pass_handle);
+        [[nodiscard]] VulkanRenderTarget& find_render_target(RenderTargetHandle render_target_handle);
         [[nodiscard]] VkPipeline find_pipeline(PipelineHandle pipeline_handle) const;
         [[nodiscard]] VkCommandBuffer find_command_buffer(CommandBufferHandle command_buffer_handle) const;
         [[nodiscard]] VulkanSubmission& find_submission(SubmissionHandle submission_handle);
@@ -73,15 +67,18 @@ namespace orion::vulkan
         // Interface Overrides
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
+        RenderTargetHandle create_render_target_api(SwapchainHandle swapchain_handle, const RenderTargetDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
         CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
+        void recreate_api(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc) override;
 
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(RenderPassHandle render_pass_handle) override;
+        void destroy_api(RenderTargetHandle render_target_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
         void destroy_api(GPUBufferHandle buffer_handle) override;
@@ -98,12 +95,13 @@ namespace orion::vulkan
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         UniqueVkDevice device_;
-        UniqueVmaAllocator allocator_ = VK_NULL_HANDLE;
+        UniqueVmaAllocator allocator_;
         VulkanQueues queues_;
 
         std::unordered_map<SwapchainHandle, UniqueVkSurfaceKHR> surfaces_;
         std::unordered_map<SwapchainHandle, VulkanSwapchain> swapchains_;
         std::unordered_map<RenderPassHandle, UniqueVkRenderPass> render_passes_;
+        std::unordered_map<RenderTargetHandle, VulkanRenderTarget> render_targets_;
         std::unordered_map<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
         std::unordered_map<PipelineHandle, VulkanPipeline> pipelines_;
         std::unordered_map<GPUBufferHandle, VulkanBuffer> buffers_;
