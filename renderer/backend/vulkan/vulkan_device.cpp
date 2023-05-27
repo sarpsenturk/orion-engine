@@ -778,7 +778,7 @@ namespace orion::vulkan
             .pImageIndices = &image_index,
             .pResults = nullptr,
         };
-        vk_result_check(vkQueuePresentKHR(present_queue, &present_info));
+        vk_result_check(vkQueuePresentKHR(present_queue, &present_info), VK_SUCCESS, VK_SUBOPTIMAL_KHR);
     }
 
     void VulkanDevice::compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission)

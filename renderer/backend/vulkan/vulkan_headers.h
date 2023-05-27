@@ -12,6 +12,7 @@
 #include <vma/vk_mem_alloc.h> // Vma*
 #include <vulkan/vulkan.h>    // Vk*
 
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 namespace orion
@@ -21,7 +22,43 @@ namespace orion
     {
         switch (vk_result) {
             case VK_SUCCESS:
+                return "VK_SUCCESS";
+            case VK_NOT_READY:
+                return "VK_NOT_READY";
+            case VK_TIMEOUT:
+                return "VK_TIMEOUT";
+            case VK_SUBOPTIMAL_KHR:
+                return "VK_SUBOPTIMAL_KHR";
+            case VK_ERROR_OUT_OF_HOST_MEMORY:
+                return "VK_ERROR_OUT_OF_HOST_MEMORY";
+            case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+                return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+            case VK_ERROR_INITIALIZATION_FAILED:
+                return "VK_ERROR_INITIALIZATION_FAILED";
+            case VK_ERROR_LAYER_NOT_PRESENT:
+                return "VK_ERROR_LAYER_NOT_PRESENT";
+            case VK_ERROR_EXTENSION_NOT_PRESENT:
+                return "VK_ERROR_EXTENSION_NOT_PRESENT";
+            case VK_ERROR_INCOMPATIBLE_DRIVER:
+                return "VK_ERROR_INCOMPATIBLE_DRIVER";
+            default:
+                break;
+        }
+        return "Unknown VkResult";
+    }
+
+    // Gets VkResult description
+    constexpr const char* vk_result_desc(VkResult vk_result)
+    {
+        switch (vk_result) {
+            case VK_SUCCESS:
                 return "No error occurred.";
+            case VK_NOT_READY:
+                return "A fence or query has not yet completed";
+            case VK_TIMEOUT:
+                return "A wait operation has not completed in the specified time";
+            case VK_SUBOPTIMAL_KHR:
+                return "A swapchain no longer matches the surface properties exactly, but can still be used to present to the surface successfully";
             case VK_ERROR_OUT_OF_HOST_MEMORY:
                 return "Host memory allocation failed.";
             case VK_ERROR_OUT_OF_DEVICE_MEMORY:
@@ -59,8 +96,24 @@ namespace orion
 
         inline void vk_result_check(VkResult vk_result, VkResult expected = VK_SUCCESS)
         {
+            static constexpr auto error_string = "\n--- VkResult Check Failed ---\n"
+                                                 "Expected VkResult: {}, got: {}\n"
+                                                 "-----------------------------";
             if (vk_result != expected) {
-                SPDLOG_ERROR("Expected VkResult: {}, got: {}", to_string(expected), to_string(vk_result));
+                SPDLOG_ERROR(error_string, to_string(expected), to_string(vk_result));
+                ORION_DEBUG_BREAK();
+            }
+        }
+
+        template<typename... Results>
+        void vk_result_check(VkResult vk_result, Results... expected)
+        {
+            static constexpr auto error_string = "\n--- VkResult Check Failed ---\n"
+                                                 "Expected VkResult to match: {}, got: {}\n"
+                                                 "-----------------------------";
+            if (((vk_result != expected) && ...)) {
+                auto formatted = fmt::format(error_string, fmt::join({to_string(expected)...}, ", "), to_string(vk_result));
+                SPDLOG_ERROR(formatted);
                 ORION_DEBUG_BREAK();
             }
         }

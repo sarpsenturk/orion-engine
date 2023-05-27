@@ -484,12 +484,11 @@ namespace orion::vulkan
     VkFramebuffer VulkanSwapchainRenderTarget::framebuffer() const
     {
         std::uint32_t available_image = 0;
-        vk_result_check(vkAcquireNextImageKHR(device_,
-                                              swapchain_->swapchain(),
-                                              UINT64_MAX,
-                                              semaphore_.get(),
-                                              VK_NULL_HANDLE,
-                                              &available_image));
+        auto swapchain = swapchain_->swapchain();
+        auto semaphore = semaphore_.get();
+        auto result = vkAcquireNextImageKHR(device_, swapchain, UINT64_MAX, semaphore, VK_NULL_HANDLE, &available_image);
+        vk_result_check(result, VK_SUCCESS, VK_TIMEOUT, VK_NOT_READY, VK_SUBOPTIMAL_KHR);
+
         swapchain_->set_image_index(available_image);
         return framebuffers_[available_image].get();
     }
