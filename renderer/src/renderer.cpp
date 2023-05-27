@@ -22,7 +22,7 @@ namespace orion
 
         // Get the physical devices
         auto physical_devices = render_backend_->enumerate_physical_devices();
-        SPDLOG_LOGGER_DEBUG(logger(), "Found {} physical devices:", physical_devices.size());
+        SPDLOG_LOGGER_DEBUG(logger(), "Found {} physical device(s):", physical_devices.size());
         for (const auto& physical_device : physical_devices) {
             SPDLOG_LOGGER_DEBUG(logger(), "{}", physical_device.name);
             SPDLOG_LOGGER_DEBUG(logger(), "-- Type: {}", to_string(physical_device.type));

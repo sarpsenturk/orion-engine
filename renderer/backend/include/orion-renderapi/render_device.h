@@ -23,7 +23,7 @@ namespace orion
         RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
 
-        [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, SwapchainDesc desc);
+        [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
         [[nodiscard]] RenderTargetHandle create_render_target(SwapchainHandle swapchain, const RenderTargetDesc& desc);
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);

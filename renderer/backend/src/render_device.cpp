@@ -10,7 +10,7 @@ namespace orion
     {
     }
 
-    SwapchainHandle RenderDevice::create_swapchain(const Window& window, SwapchainDesc desc)
+    SwapchainHandle RenderDevice::create_swapchain(const Window& window, const SwapchainDesc& desc)
     {
         auto handle = create_swapchain_api(window, desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain with handle {}", handle);
