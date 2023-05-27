@@ -32,7 +32,12 @@ public:
         auto* device = renderer_.device();
 
         // Create swapchain
-        swapchain_ = device->create_swapchain(window_, {.image_count = 2, .image_format = swapchain_format, .image_size = window_.size()});
+        swapchain_ = device->create_swapchain(window_,
+                                              orion::SwapchainDesc{
+                                                  .image_count = 2,
+                                                  .image_format = swapchain_format,
+                                                  .image_size = window_.size(),
+                                              });
 
         // Create render pass
         {
@@ -49,25 +54,29 @@ public:
         }
 
         // Create render target
-        render_target_ = device->create_render_target(swapchain_, orion::RenderTargetDesc{
-                                                                      .format = swapchain_format,
-                                                                      .render_pass = render_pass_,
-                                                                      .size = window_size,
-                                                                  });
+        render_target_ = device->create_render_target(swapchain_,
+                                                      orion::RenderTargetDesc{
+                                                          .format = swapchain_format,
+                                                          .render_pass = render_pass_,
+                                                          .size = window_size,
+                                                      });
 
         // Register callback on window resize to recreate swapchain
         window_.on_resize_end()
             .subscribe([device, this](const orion::events::WindowResizeEnd& resize_end) {
-                device->recreate(swapchain_, orion::SwapchainDesc{
-                                                 .image_count = 2,
-                                                 .image_format = swapchain_format,
-                                                 .image_size = resize_end.size,
-                                             });
-                device->recreate(render_target_, swapchain_, orion::RenderTargetDesc{
-                                                                 .format = swapchain_format,
-                                                                 .render_pass = render_pass_,
-                                                                 .size = resize_end.size,
-                                                             });
+                device->recreate(swapchain_,
+                                 orion::SwapchainDesc{
+                                     .image_count = 2,
+                                     .image_format = swapchain_format,
+                                     .image_size = resize_end.size,
+                                 });
+                device->recreate(render_target_,
+                                 swapchain_,
+                                 orion::RenderTargetDesc{
+                                     .format = swapchain_format,
+                                     .render_pass = render_pass_,
+                                     .size = resize_end.size,
+                                 });
             });
 
         // Create graphics pipeline
@@ -144,7 +153,11 @@ float4 main(float4 color : COLOR) : SV_Target
         }
 
         // Create staging buffer
-        auto staging_buffer = device->create_buffer({.size = sizeof(vertices) + sizeof(indices), .usage = orion::GPUBufferUsageFlags::TransferSrc, .host_visible = true});
+        auto staging_buffer = device->create_buffer(orion::GPUBufferDesc{
+            .size = sizeof(vertices) + sizeof(indices),
+            .usage = orion::GPUBufferUsageFlags::TransferSrc,
+            .host_visible = true,
+        });
 
         // Map staging buffer
         void* mapped_memory = device->map(staging_buffer);
@@ -172,8 +185,9 @@ float4 main(float4 color : COLOR) : SV_Target
         }
 
         // Create command buffer to copy data from staging buffer
-        auto copy_command_buffer = device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer},
-                                                                 std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy) * 2));
+        auto copy_command_buffer =
+            device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer},
+                                          std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy) * 2));
 
         // Issue command to copy vertex data
         {
@@ -202,7 +216,9 @@ float4 main(float4 color : COLOR) : SV_Target
         device->unmap(staging_buffer);
 
         // Create the render command buffer
-        render_command_ = device->create_command_buffer({.queue_type = orion::CommandQueueType::Graphics}, std::make_unique<orion::LinearCommandAllocator>(render_command_size));
+        render_command_ =
+            device->create_command_buffer({.queue_type = orion::CommandQueueType::Graphics},
+                                          std::make_unique<orion::LinearCommandAllocator>(render_command_size));
 
         // Wait until copy is completed
         device->wait(submission);
