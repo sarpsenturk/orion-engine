@@ -155,7 +155,7 @@ float4 main(float4 color : COLOR) : SV_Target
         // Create staging buffer
         auto staging_buffer = device->create_buffer(orion::GPUBufferDesc{
             .size = sizeof(vertices) + sizeof(indices),
-            .usage = orion::GPUBufferUsageFlags::TransferSrc,
+            .usage = orion::GPUBufferUsage::TransferSrc,
             .host_visible = true,
         });
 
@@ -169,17 +169,21 @@ float4 main(float4 color : COLOR) : SV_Target
 
         // Create vertex buffer
         {
+            const auto usage_flags = orion::GPUBufferUsageFlags::disjunction({orion::GPUBufferUsage::VertexBuffer,
+                                                                              orion::GPUBufferUsage::TransferDst});
             const orion::GPUBufferDesc desc{
                 .size = sizeof(vertices),
-                .usage = orion::GPUBufferUsageFlags::VertexBuffer | orion::GPUBufferUsageFlags::TransferDst,
+                .usage = usage_flags,
             };
             vertex_buffer_ = device->create_buffer(desc);
         }
         // Create index buffer
         {
+            const auto usage_flags = orion::GPUBufferUsageFlags::disjunction({orion::GPUBufferUsage::IndexBuffer,
+                                                                              orion::GPUBufferUsage::TransferDst});
             const orion::GPUBufferDesc desc{
                 .size = sizeof(indices),
-                .usage = orion::GPUBufferUsageFlags::IndexBuffer | orion::GPUBufferUsageFlags::TransferDst,
+                .usage = usage_flags,
             };
             index_buffer_ = device->create_buffer(desc);
         }

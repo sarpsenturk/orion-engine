@@ -179,20 +179,20 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(GPUBufferUsageFlags buffer_usage) noexcept -> VkBufferUsageFlags
     {
-        if (!to_bool(buffer_usage)) {
+        if (!buffer_usage.has_none()) {
             return {};
         }
         VkBufferUsageFlags usage_flags = {};
-        if (to_bool(buffer_usage & GPUBufferUsageFlags::VertexBuffer)) {
+        if (buffer_usage.has(GPUBufferUsage::VertexBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         }
-        if (to_bool(buffer_usage & GPUBufferUsageFlags::IndexBuffer)) {
+        if (buffer_usage.has(GPUBufferUsage::IndexBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         }
-        if (to_bool(buffer_usage & GPUBufferUsageFlags::TransferSrc)) {
+        if (buffer_usage.has(GPUBufferUsage::TransferSrc)) {
             usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         }
-        if (to_bool(buffer_usage & GPUBufferUsageFlags::TransferDst)) {
+        if (buffer_usage.has(GPUBufferUsage::TransferDst)) {
             usage_flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         }
         return usage_flags;

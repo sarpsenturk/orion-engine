@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdint>                     // std::uint32_t
-#include <orion-math/vector/vector2.h> // orion::math::Vector2
-#include <orion-utils/enum.h>          // orion::enum_traits
-#include <span>                        // std::span
-#include <string>                      // std::string
+#include <cstdint>
+#include <orion-math/vector/vector2.h>
+#include <orion-utils/bitflag.h>
+#include <span>
+#include <string>
 
 namespace orion
 {
@@ -118,17 +118,13 @@ namespace orion
         Instance
     };
 
-    enum class GPUBufferUsageFlags : std::uint8_t {
-        VertexBuffer = 1u << 0u,
-        IndexBuffer = 1u << 1u,
-        TransferSrc = 1u << 2u,
-        TransferDst = 1u << 3u
+    enum class GPUBufferUsage : std::uint8_t {
+        VertexBuffer,
+        IndexBuffer,
+        TransferSrc,
+        TransferDst
     };
-
-    template<>
-    struct enum_traits<GPUBufferUsageFlags> : default_enum_traits<GPUBufferUsageFlags> {
-        static constexpr bool bitwise_enabled = true;
-    };
+    using GPUBufferUsageFlags = Bitflag<GPUBufferUsage>;
 
     struct Viewport {
         math::Vector2_f position;

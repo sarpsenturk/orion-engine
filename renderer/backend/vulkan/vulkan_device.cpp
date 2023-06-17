@@ -442,8 +442,8 @@ namespace orion::vulkan
     GPUBufferHandle VulkanDevice::create_buffer_api(const GPUBufferDesc& desc)
     {
         // Check if  buffer will be used for transfer ops
-        const bool transfer_src = to_bool(desc.usage & GPUBufferUsageFlags::TransferSrc);
-        const bool transfer_dst = to_bool(desc.usage & GPUBufferUsageFlags::TransferDst);
+        const bool transfer_src = desc.usage.has(GPUBufferUsage::TransferSrc);
+        const bool transfer_dst = desc.usage.has(GPUBufferUsage::TransferDst);
 
         // Find set of queue families to be used
         const auto queue_indices = [transfer_src, transfer_dst, this]() {
