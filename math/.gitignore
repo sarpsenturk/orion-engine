@@ -1,9 +1,0 @@
-# Build files
-cmake-build-*/
-[Bb]uild/
-[Oo]ut/
-install/
-
-# IDE files
-.vs/
-.idea/
