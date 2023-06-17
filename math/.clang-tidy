@@ -1,0 +1,22 @@
+Checks: "-*,
+    bugprone-*,
+    cert-*,
+    clang-analyzer-*,
+    concurrency-*,
+    cppcoreguidelines-*,
+    google-*,
+    -google-readability-todo,
+    hicpp-*,
+    llvm-*,
+    -llvm-header-guard,
+    misc-*,
+    modernize-*,
+    -modernize-use-trailing-return-type,
+    performance-*,
+    portability-*,
+    readability-*,
+    -readability-implicit-bool-conversion
+"
+CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: 2

@@ -1,0 +1,9 @@
+{
+  "name": "orion-math",
+  "version": "0.1.0",
+  "description": "The header only math library for the orion game engine",
+  "dependencies": [
+    "fmt",
+    "gtest"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "orion-utils",
+  "version": "0.1.0",
+  "description": "Common set of utilities for the orion game engine",
+  "dependencies": [
+    "fmt"
+  ],
+  "features": {
+    "tests": {
+      "description": "Build tests with googletest",
+      "dependencies": [
+        "gtest"
+      ]
+    }
+  }
+}
