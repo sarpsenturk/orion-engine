@@ -1,5 +1,5 @@
 # Module specific options
-option(ORION_CORE_TEST "Build tests for orion-core" ${ORION_ENGINE_TEST})
+option(ORION_CORE_TEST "Build tests for orion-core" ${ORION_ENGINE_DEVELOPER_MODE})
 
 # Module specific dependencies
 find_package(spdlog REQUIRED)
@@ -40,6 +40,6 @@ add_subdirectory(src)
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-core/config.h)
 
 # Enable/disable tests
-if (ORION_CORE_TEST)
+if (ORION_CORE_TEST AND ORION_ENGINE_TEST)
     add_subdirectory(tests)
 endif ()

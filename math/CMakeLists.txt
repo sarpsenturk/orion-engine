@@ -1,4 +1,4 @@
-option(ORION_MATH_TEST "Build tests for orion-math" ${ORION_ENGINE_TEST})
+option(ORION_MATH_TEST "Build tests for orion-math" ${ORION_ENGINE_DEVELOPER_MODE})
 
 # Dependencies
 find_package(fmt REQUIRED)
@@ -19,6 +19,6 @@ add_subdirectory(include/orion-math)
 add_library(orion::math ALIAS orion-math)
 
 # Enable/disable tests
-if (ORION_MATH_TEST)
+if (ORION_MATH_TEST AND ORION_ENGINE_TEST)
     add_subdirectory(tests)
 endif ()

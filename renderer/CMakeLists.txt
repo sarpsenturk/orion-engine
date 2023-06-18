@@ -1,5 +1,5 @@
 # Module specific options
-option(ORION_RENDERER_TEST "Enable tests for the orion renderer" ${ORION_ENGINE_TEST})
+option(ORION_RENDERER_TEST "Enable tests for the orion renderer" ${ORION_ENGINE_DEVELOPER_MODE})
 
 # Builtin backend targets
 option(ORION_RENDER_BACKEND_VULKAN "Enable the Vulkan backend for the orion renderer" ON)
@@ -43,6 +43,6 @@ add_subdirectory(include/orion-renderer)
 add_subdirectory(src)
 
 # Enable/disable tests
-if (ORION_RENDERER_TEST)
+if (ORION_RENDERER_TEST AND ORION_ENGINE_TEST)
     add_subdirectory(tests)
 endif ()

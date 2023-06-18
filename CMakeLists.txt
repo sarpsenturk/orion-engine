@@ -20,8 +20,7 @@ project(orion-engine
 
 set(ORION_ENGINE_TOP_LEVEL ${PROJECT_IS_TOP_LEVEL})
 
-# Set output directory
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 
 # Create a target for precompiled headers
 add_library(orion-pch INTERFACE "")
