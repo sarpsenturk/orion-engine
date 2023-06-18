@@ -42,3 +42,5 @@ add_library(orion::vulkan ALIAS ${ORION_VULKAN_MODULE})
 
 # Add dependency from renderer to the vulkan library
 add_dependencies(orion-renderer orion::vulkan)
+
+set_target_properties(${ORION_VULKAN_MODULE} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

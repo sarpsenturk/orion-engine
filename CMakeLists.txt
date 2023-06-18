@@ -20,8 +20,6 @@ project(orion-engine
 
 set(ORION_ENGINE_TOP_LEVEL ${PROJECT_IS_TOP_LEVEL})
 
-
-
 # Create a target for precompiled headers
 add_library(orion-pch INTERFACE "")
 target_precompile_headers(orion-pch INTERFACE
