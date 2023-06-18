@@ -5,5 +5,6 @@ target_sources(
         FILES
         win32_dl_lib.h
         win32_headers.h
+        win32_input.h
         win32_window.h
 )

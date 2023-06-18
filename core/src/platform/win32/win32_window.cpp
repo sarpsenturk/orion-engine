@@ -1,5 +1,7 @@
 #include "orion-core/platform/win32/win32_window.h"
 
+#include "orion-core/platform/win32/win32_input.h"
+
 #include <spdlog/spdlog.h> // SPDLOG_LOGGER_*
 
 namespace orion
@@ -171,6 +173,12 @@ namespace orion
                     if (window->is_moving()) {
                         window->on_move_end().invoke({window->position()});
                     }
+                    return 0;
+                case WM_KEYDOWN:
+                    window->keyboard().on_key_press().invoke({.key = win32_vk_to_keycode(wparam)});
+                    return 0;
+                case WM_KEYUP:
+                    window->keyboard().on_key_release().invoke({.key = win32_vk_to_keycode(wparam)});
                     return 0;
                 default:
                     break;

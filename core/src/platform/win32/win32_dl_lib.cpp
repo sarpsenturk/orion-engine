@@ -16,7 +16,7 @@ namespace orion
             HMODULE hmodule = LoadLibrary(filename);
             if (!hmodule) {
                 const auto last_error = GetLastError();
-                SPDLOG_LOGGER_ERROR(win32::logger(), "LoadLibrary failed! LastError: {}", last_error);
+                SPDLOG_LOGGER_ERROR(win32::logger(), "Failed to load dynamic library '{}'! LastError: {}", filename, last_error);
                 throw Win32Error(last_error);
             }
             SPDLOG_LOGGER_TRACE(win32::logger(), "LoadLibrary(\"{}\") successful (HMODULE: {})", filename, fmt::ptr(hmodule));

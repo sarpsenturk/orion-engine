@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion-core/event.h"
+#include "orion-core/input.h"
 
 #include <memory>                        // std::shared_ptr
 #include <orion-math/vector/formatter.h> // fmt::formatter<Vector>
@@ -99,6 +100,9 @@ namespace orion
         [[nodiscard]] auto& on_minimize() noexcept { return on_minimize_; }
         [[nodiscard]] auto& on_restore() noexcept { return on_restore_; }
 
+        [[nodiscard]] auto& keyboard() noexcept { return keyboard_; }
+        [[nodiscard]] auto& keyboard() const noexcept { return keyboard_; }
+
     private:
         static spdlog::logger* logger();
 
@@ -128,6 +132,9 @@ namespace orion
         bool is_moving_ = false;
         bool is_maximized_ = false;
         bool is_minimized_ = false;
+
+        // Window related input devices
+        Keyboard keyboard_;
     };
 } // namespace orion
 

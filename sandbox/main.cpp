@@ -4,6 +4,7 @@
 #include <orion-renderapi/command.h>
 #include <orion-renderer/renderer.h>
 #include <orion-renderer/shader_compiler.h>
+#include <spdlog/spdlog.h>
 
 class SandboxApp : public orion::Application
 {
@@ -28,6 +29,14 @@ public:
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_(ORION_VULKAN_MODULE)
     {
+        // Log key events
+        window_.keyboard().on_key_press().subscribe([this](auto& key_press) {
+            SPDLOG_LOGGER_DEBUG(logger(), "{}", key_press);
+        });
+        window_.keyboard().on_key_release().subscribe([this](auto& key_release) {
+            SPDLOG_LOGGER_DEBUG(logger(), "{}", key_release);
+        });
+
         // Get the render device
         auto* device = renderer_.device();
 

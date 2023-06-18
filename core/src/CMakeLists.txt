@@ -2,6 +2,7 @@
 target_sources(
         orion-core PRIVATE
         dl_lib.cpp
+        input.cpp
         window.cpp
 )
 
