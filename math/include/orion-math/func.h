@@ -1,6 +1,6 @@
 #pragma once
 
-namespace orion::math
+namespace orion
 {
     template<typename T = void>
     struct plus;
@@ -73,4 +73,4 @@ namespace orion::math
             return -arg;
         }
     };
-} // namespace orion::math
+} // namespace orion

@@ -2,7 +2,7 @@
 
 #include "vulkan_headers.h"
 
-#include <orion-math/vector/vector2.h> // orion::math::Vector2
+#include <orion-math/vector/vector2.h> // orion::Vector2
 #include <span>                        // std::span
 #include <variant>
 
@@ -161,7 +161,7 @@ namespace orion::vulkan
     UniqueVkDevice create_vk_device(VkPhysicalDevice physical_device, std::span<const std::uint32_t> queues, std::span<const char* const> enabled_extensions);
     UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device);
     UniqueVkImageView create_vk_image_view(VkDevice device, VkImage image, VkImageViewType view_type, VkFormat format);
-    UniqueVkFramebuffer create_vk_framebuffer(VkDevice device, VkRenderPass render_pass, const math::Vector2_u& image_size, std::span<const VkImageView> attachments);
+    UniqueVkFramebuffer create_vk_framebuffer(VkDevice device, VkRenderPass render_pass, const Vector2_u& image_size, std::span<const VkImageView> attachments);
     UniqueVkShaderModule create_vk_shader_module(VkDevice device, std::span<const std::uint32_t> spirv);
     UniqueVkPipelineLayout create_vk_pipeline_layout(VkDevice device, std::span<const VkDescriptorSetLayout> set_layouts, std::span<const VkPushConstantRange> push_constants);
     UniqueVkPipeline create_vk_graphics_pipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& pipeline_info);

@@ -2,7 +2,7 @@
 
 #include <concepts> // std::floating_point, std::integral
 
-namespace orion::math
+namespace orion
 {
     template<std::floating_point Floating>
     [[nodiscard]] constexpr Floating abs(Floating value) noexcept
@@ -17,4 +17,4 @@ namespace orion::math
     {
         return abs(static_cast<double>(value));
     }
-} // namespace orion::math
+} // namespace orion

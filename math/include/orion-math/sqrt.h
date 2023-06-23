@@ -5,7 +5,7 @@
 #include <concepts>
 #include <limits>
 
-namespace orion::math
+namespace orion
 {
     template<std::floating_point Floating>
     [[nodiscard]] constexpr Floating sqrt(Floating value) noexcept
@@ -33,4 +33,4 @@ namespace orion::math
     {
         return sqrt(static_cast<double>(value));
     }
-} // namespace orion::math
+} // namespace orion

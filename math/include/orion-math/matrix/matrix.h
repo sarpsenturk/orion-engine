@@ -4,12 +4,12 @@
 #include "orion-math/func.h"          // negate, plus, minus
 #include "orion-math/vector/vector.h" // vector
 
-#include <algorithm> // std::transform
-#include <array>     // std::array
-#include <cstddef>   // std::size_t
-#include <stdexcept> // std::out_of_range
+#include <algorithm>                  // std::transform
+#include <array>                      // std::array
+#include <cstddef>                    // std::size_t
+#include <stdexcept>                  // std::out_of_range
 
-namespace orion::math
+namespace orion
 {
     template<typename T, std::size_t Rows, std::size_t Cols>
     struct Matrix {
@@ -134,4 +134,4 @@ namespace orion::math
             return result;
         }
     };
-} // namespace orion::math
+} // namespace orion

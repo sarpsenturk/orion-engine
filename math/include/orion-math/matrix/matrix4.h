@@ -2,7 +2,7 @@
 
 #include "matrix.h"
 
-namespace orion::math
+namespace orion
 {
     template<typename T>
     using Matrix4_t = Matrix<T, 4, 4>;
@@ -12,4 +12,4 @@ namespace orion::math
     using Matrix4_f = Matrix4_t<float>;
     using Matrix4_d = Matrix4_t<double>;
     using Matrix4 = Matrix4_f;
-} // namespace orion::math
+} // namespace orion

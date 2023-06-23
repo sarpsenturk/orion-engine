@@ -53,7 +53,7 @@ namespace orion
             const auto size = [window_size = window_create_info.size]() {
                 RECT wnd_rect{0, 0, static_cast<LONG>(window_size.x()), static_cast<LONG>(window_size.y())};
                 AdjustWindowRect(&wnd_rect, window_style, FALSE);
-                return math::Vector2_t<int>{(wnd_rect.right - wnd_rect.left), (wnd_rect.bottom - wnd_rect.top)};
+                return Vector2_t<int>{(wnd_rect.right - wnd_rect.left), (wnd_rect.bottom - wnd_rect.top)};
             }();
 
             // Extract from window_create_info for easier reading

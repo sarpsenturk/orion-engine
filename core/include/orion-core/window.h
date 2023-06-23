@@ -5,7 +5,7 @@
 
 #include <memory>                        // std::shared_ptr
 #include <orion-math/vector/formatter.h> // fmt::formatter<Vector>
-#include <orion-math/vector/vector2.h>   // orion::math::Vector2
+#include <orion-math/vector/vector2.h>   // orion::Vector2
 #include <spdlog/logger.h>               // spdlog::logger
 
 #ifndef ORION_WINDOW_LOG_LEVEL
@@ -15,8 +15,8 @@
 namespace orion
 {
     // Window data type aliases
-    using WindowPosition = math::Vector2_i;
-    using WindowSize = math::Vector2_u;
+    using WindowPosition = Vector2_i;
+    using WindowSize = Vector2_u;
 
     // Window create info
     struct WindowCreateInfo {

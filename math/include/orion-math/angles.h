@@ -4,9 +4,9 @@
 #include "concepts.h"
 #include "constants.h" // pi
 
-#include <ratio> // std::ratio, std::ratio_divide
+#include <ratio>       // std::ratio, std::ratio_divide
 
-namespace orion::math
+namespace orion
 {
     template<typename Ratio = std::ratio<1>>
     class Angle;
@@ -45,7 +45,7 @@ namespace orion::math
         template<typename Ratio1>
         constexpr friend bool operator==(const Angle& lhs, const Angle<Ratio1>& rhs) noexcept
         {
-            return orion::math::abs(lhs.value_ - angle_cast<Angle>(rhs).value_) <= acceptable_error;
+            return orion::abs(lhs.value_ - angle_cast<Angle>(rhs).value_) <= acceptable_error;
         }
 
         template<typename Ratio1>
@@ -106,9 +106,21 @@ namespace orion::math
 
     namespace angle_literals
     {
-        [[nodiscard]] constexpr Radians operator"" _rad(long double value) { return Radians{value}; }
-        [[nodiscard]] constexpr Radians operator"" _rad(std::uint64_t value) { return Radians{value}; }
-        [[nodiscard]] constexpr Degrees operator"" _deg(long double value) { return Degrees{value}; }
-        [[nodiscard]] constexpr Degrees operator"" _deg(std::uint64_t value) { return Degrees{value}; }
+        [[nodiscard]] constexpr Radians operator"" _rad(long double value)
+        {
+            return Radians{value};
+        }
+        [[nodiscard]] constexpr Radians operator"" _rad(std::uint64_t value)
+        {
+            return Radians{value};
+        }
+        [[nodiscard]] constexpr Degrees operator"" _deg(long double value)
+        {
+            return Degrees{value};
+        }
+        [[nodiscard]] constexpr Degrees operator"" _deg(std::uint64_t value)
+        {
+            return Degrees{value};
+        }
     } // namespace angle_literals
-} // namespace orion::math
+} // namespace orion

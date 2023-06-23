@@ -10,6 +10,6 @@ namespace orion
     struct RenderTargetDesc {
         Format format;
         RenderPassHandle render_pass;
-        math::Vector2_u size;
+        Vector2_u size;
     };
 } // namespace orion

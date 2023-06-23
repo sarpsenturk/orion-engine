@@ -6,7 +6,7 @@ namespace
 {
     TEST(Matrix, TemplateArgs)
     {
-        using Matrix = orion::math::Matrix<int, 1, 4>;
+        using Matrix = orion::Matrix<int, 1, 4>;
         static_assert(std::is_same_v<typename Matrix::value_type, int>);
         static_assert(Matrix::rows == 1);
         static_assert(Matrix::columns == 4);
@@ -14,8 +14,8 @@ namespace
 
     TEST(Matrix, Size)
     {
-        using NonEmptyMatrix = orion::math::Matrix<int, 1, 1>;
-        using EmptyMatrix = orion::math::Matrix<int, 1, 0>;
+        using NonEmptyMatrix = orion::Matrix<int, 1, 1>;
+        using EmptyMatrix = orion::Matrix<int, 1, 0>;
 
         const NonEmptyMatrix non_empty_matrix{};
         EXPECT_EQ(non_empty_matrix.size(), 1);
@@ -28,7 +28,7 @@ namespace
 
     TEST(Matrix, Accesors)
     {
-        using Matrix = orion::math::Matrix<int, 2, 3>;
+        using Matrix = orion::Matrix<int, 2, 3>;
         static constexpr int expected = 42;
 
         Matrix matrix{};
@@ -38,7 +38,7 @@ namespace
 
     TEST(Matrix, Initializer)
     {
-        using Matrix = orion::math::Matrix<int, 4, 4>;
+        using Matrix = orion::Matrix<int, 4, 4>;
         const Matrix matrix{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
         int index = 0;
         for (int row = 0; row < matrix.rows; ++row) {
@@ -50,7 +50,7 @@ namespace
 
     TEST(Matrix, Equality)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
 
         const Matrix first{1, 2, 3};
         const auto copy = first;
@@ -62,7 +62,7 @@ namespace
 
     TEST(Matrix, Negation)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
         const Matrix matrix{1, 2, 3};
         const Matrix expected{-1, -2, -3};
         EXPECT_EQ((-matrix), expected);
@@ -70,7 +70,7 @@ namespace
 
     TEST(Matrix, Addition)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
         const Matrix lhs{1, 2, 3, 4};
         const Matrix rhs{5, 6, 7, 8};
         const Matrix expected{6, 8, 10, 12};
@@ -80,7 +80,7 @@ namespace
 
     TEST(Matrix, Subtraction)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
         const Matrix lhs{1, 2, 3, 4};
         const Matrix rhs{5, 6, 7, 8};
         const Matrix expected{-4, -4, -4, -4};
@@ -89,7 +89,7 @@ namespace
 
     TEST(Matrix, ScalarMultiplication)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
         const Matrix matrix{1, 2, 3, 4};
         const Matrix expected{2, 4, 6, 8};
         EXPECT_EQ((matrix * 2), expected);
@@ -98,7 +98,7 @@ namespace
 
     TEST(Matrix, MatrixMultiplicationSquare)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
         const Matrix lhs{1, 2, 3, 4};
         const Matrix rhs{5, 6, 7, 8};
         const Matrix expected{19, 22, 43, 50};
@@ -107,8 +107,8 @@ namespace
 
     TEST(Matrix, MatrixMultiplicationNonSquare)
     {
-        using Matrix1 = orion::math::Matrix<int, 1, 4>;
-        using Matrix2 = orion::math::Matrix<float, 4, 4>;
+        using Matrix1 = orion::Matrix<int, 1, 4>;
+        using Matrix2 = orion::Matrix<float, 4, 4>;
 
         const Matrix1 lhs{1, 2, 3, 4};
         const Matrix2 rhs{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
@@ -125,14 +125,14 @@ namespace
 
     TEST(Matrix, Identity)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
         const Matrix expected{1, 0, 0, 1};
         EXPECT_EQ(Matrix::identity(), expected);
     }
 
     TEST(Matrix, TransposeSquare)
     {
-        using Matrix = orion::math::Matrix<int, 2, 2>;
+        using Matrix = orion::Matrix<int, 2, 2>;
         const Matrix matrix{1, 2, 3, 4};
         const Matrix expected{1, 3, 2, 4};
         EXPECT_EQ(matrix.transpose(), expected);
@@ -140,7 +140,7 @@ namespace
 
     TEST(Matrix, NonSquare)
     {
-        using Matrix = orion::math::Matrix<int, 2, 4>;
+        using Matrix = orion::Matrix<int, 2, 4>;
         const Matrix matrix{1, 2, 3, 4, 5, 6, 7, 8};
         const auto transposed = matrix.transpose();
         using result_matrix = decltype(transposed);

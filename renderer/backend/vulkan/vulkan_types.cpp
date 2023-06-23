@@ -320,7 +320,7 @@ namespace orion::vulkan
         return {image_view, ImageViewDeleter{device}};
     }
 
-    UniqueVkFramebuffer create_vk_framebuffer(VkDevice device, VkRenderPass render_pass, const math::Vector2_u& image_size, std::span<const VkImageView> attachments)
+    UniqueVkFramebuffer create_vk_framebuffer(VkDevice device, VkRenderPass render_pass, const Vector2_u& image_size, std::span<const VkImageView> attachments)
     {
         const VkFramebufferCreateInfo framebuffer_info{
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,

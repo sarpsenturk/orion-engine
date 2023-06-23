@@ -3,7 +3,7 @@
 #include "orion-renderapi/types.h"
 #include "vulkan_headers.h"
 
-#include <orion-math/vector/vector2.h> // math::Vector2
+#include <orion-math/vector/vector2.h> // Vector2
 #include <orion-utils/assertion.h>     // ORION_ASSERT
 #include <string>                      // std::string
 
@@ -211,7 +211,7 @@ namespace orion::vulkan
     }
 
     template<typename T>
-    constexpr auto to_vulkan_extent(const math::Vector2_t<T>& vec2) noexcept -> VkExtent2D
+    constexpr auto to_vulkan_extent(const Vector2_t<T>& vec2) noexcept -> VkExtent2D
     {
         return {.width = static_cast<std::uint32_t>(vec2.x()), .height = static_cast<std::uint32_t>(vec2.y())};
     }

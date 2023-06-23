@@ -10,8 +10,8 @@ class SandboxApp : public orion::Application
 {
 public:
     struct Vertex {
-        orion::math::Vector3_f position;
-        orion::math::Vector4_f color;
+        orion::Vector3_f position;
+        orion::Vector4_f color;
     };
 
     static constexpr std::array vertices{
@@ -280,7 +280,7 @@ private:
             draw->vertex_buffer = vertex_buffer_;
             draw->index_buffer = index_buffer_;
             draw->graphics_pipeline = graphics_pipeline_;
-            draw->viewport = {.position = {0.f, 0.f}, .size = orion::math::vector_cast<float>(window_.size())};
+            draw->viewport = {.position = {0.f, 0.f}, .size = orion::vector_cast<float>(window_.size())};
             draw->index_count = static_cast<std::uint32_t>(indices.size());
         }
 

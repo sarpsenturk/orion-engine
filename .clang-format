@@ -12,7 +12,7 @@ AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakTemplateDeclarations: 'Yes'
-BinPackArguments: false
+BinPackArguments: true
 BinPackParameters: false
 BreakBeforeBraces: Linux
 BreakConstructorInitializers: BeforeComma

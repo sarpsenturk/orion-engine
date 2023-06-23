@@ -2,17 +2,17 @@
 
 #include "orion-math/concepts.h" // arithmetic
 #include "orion-math/func.h"     // negate, plus, minus
-#include "orion-math/sqrt.h"     // orion::math::sqrt
+#include "orion-math/sqrt.h"     // orion::sqrt
 
-#include <algorithm>   // std::ranges::transform, std::ranges::for_each, std::accumulate
-#include <array>       // std::array
-#include <concepts>    // std::floating_point
-#include <cstddef>     // std::size_t, std::ptrdiff_t
-#include <iterator>    // std::prev
-#include <numeric>     // std::transform_reduce, std::inner_product
-#include <ranges>      // std::ranges::input_range, std::ranges::begin, std::ranges::end
-#include <stdexcept>   // std::out_of_range
-#include <type_traits> // std::common_type, std::is_same_v
+#include <algorithm>             // std::ranges::transform, std::ranges::for_each, std::accumulate
+#include <array>                 // std::array
+#include <concepts>              // std::floating_point
+#include <cstddef>               // std::size_t, std::ptrdiff_t
+#include <iterator>              // std::prev
+#include <numeric>               // std::transform_reduce, std::inner_product
+#include <ranges>                // std::ranges::input_range, std::ranges::begin, std::ranges::end
+#include <stdexcept>             // std::out_of_range
+#include <type_traits>           // std::common_type, std::is_same_v
 
 #define ORION_VECTOR_DEFINE_COMPONENT(name, index)                \
     [[nodiscard]] constexpr reference name() noexcept             \
@@ -26,7 +26,7 @@
         return components_[index];                                \
     }
 
-namespace orion::math
+namespace orion
 {
     template<arithmetic T, std::size_t N>
     struct Vector {
@@ -194,6 +194,6 @@ namespace orion::math
 
     template<typename T, typename... Other>
     Vector(T first, Other... other) -> Vector<T, sizeof...(Other) + 1>;
-} // namespace orion::math
+} // namespace orion
 
 #undef ORION_VECTOR_DEFINE_COMPONENT

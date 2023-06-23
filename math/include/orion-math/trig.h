@@ -5,7 +5,7 @@
 
 #include <cmath> // runtime implementations
 
-namespace orion::math
+namespace orion
 {
     namespace detail
     {
@@ -122,4 +122,4 @@ namespace orion::math
     {
         return cos<Return>(radians) / sin<Return>(radians);
     }
-} // namespace orion::math
+} // namespace orion

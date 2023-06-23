@@ -4,7 +4,7 @@
 
 #include <cstdint> // std::int32_t, std::uint32_t
 
-namespace orion::math
+namespace orion
 {
     template<typename T>
     using Vector4_t = Vector<T, 4>;
@@ -14,4 +14,4 @@ namespace orion::math
     using Vector4_f = Vector4_t<float>;
     using Vector4_d = Vector4_t<double>;
     using Vector4 = Vector4_f;
-} // namespace orion::math
+} // namespace orion

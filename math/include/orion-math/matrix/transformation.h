@@ -5,7 +5,7 @@
 #include "orion-math/trig.h"
 #include "orion-math/vector/vector3.h"
 
-namespace orion::math
+namespace orion
 {
     template<typename T>
     [[nodiscard]] constexpr Vector3_t<T> transform(const Vector3_t<T>& vector, const Matrix4_t<T>& transform)
@@ -160,4 +160,4 @@ namespace orion::math
             0, 0, far / zdiff, T{1},
             0, 0, (-near * far) / zdiff, 0};
     }
-} // namespace orion::math
+} // namespace orion

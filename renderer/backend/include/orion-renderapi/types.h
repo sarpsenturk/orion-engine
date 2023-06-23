@@ -127,8 +127,8 @@ namespace orion
     using GPUBufferUsageFlags = Bitflag<GPUBufferUsage>;
 
     struct Viewport {
-        math::Vector2_f position;
-        math::Vector2_f size;
+        Vector2_f position;
+        Vector2_f size;
     };
 
     enum class CommandQueueType {
