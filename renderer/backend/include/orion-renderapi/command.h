@@ -75,7 +75,7 @@ namespace orion
     {
     public:
         CommandBuffer() = default;
-        CommandBuffer(CommandBufferHandle handle, CommandBufferDesc desc, std::unique_ptr<CommandAllocator> command_allocator);
+        CommandBuffer(CommandBufferHandle handle, std::unique_ptr<CommandAllocator> command_allocator);
 
         template<typename Command>
             requires(is_valid_cmd_type<Command>::value)
@@ -89,15 +89,11 @@ namespace orion
         void reset();
 
         [[nodiscard]] auto handle() const noexcept { return handle_; }
-        [[nodiscard]] auto& description() const noexcept { return desc_; }
-
         [[nodiscard]] auto& commands() const noexcept { return command_packets_; }
 
     private:
         CommandBufferHandle handle_;
-        CommandBufferDesc desc_;
         std::unique_ptr<CommandAllocator> command_allocator_;
-
         std::vector<CommandPacket> command_packets_;
     };
 

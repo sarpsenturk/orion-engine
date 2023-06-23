@@ -36,7 +36,7 @@ namespace orion
         [[nodiscard]] PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
         [[nodiscard]] CommandPoolHandle create_command_pool(const CommandPoolDesc& desc);
-        [[nodiscard]] CommandBuffer create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator);
+        [[nodiscard]] CommandBufferHandle create_command_buffer(const CommandBufferDesc& desc);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
         void recreate(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc);

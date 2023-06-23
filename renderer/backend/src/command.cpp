@@ -2,9 +2,8 @@
 
 namespace orion
 {
-    CommandBuffer::CommandBuffer(CommandBufferHandle handle, CommandBufferDesc desc, std::unique_ptr<CommandAllocator> command_allocator)
+    CommandBuffer::CommandBuffer(CommandBufferHandle handle, std::unique_ptr<CommandAllocator> command_allocator)
         : handle_(handle)
-        , desc_(desc)
         , command_allocator_(std::move(command_allocator))
     {
     }

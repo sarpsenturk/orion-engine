@@ -59,9 +59,11 @@ namespace orion
         return handle;
     }
 
-    CommandBuffer RenderDevice::create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator)
+    CommandBufferHandle RenderDevice::create_command_buffer(const CommandBufferDesc& desc)
     {
-        return {create_command_buffer_api(desc), desc, std::move(allocator)};
+        auto handle = create_command_buffer_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created command buffer with handle {}", handle);
+        return handle;
     }
 
     void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)

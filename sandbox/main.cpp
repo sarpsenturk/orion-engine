@@ -202,9 +202,9 @@ float4 main(float4 color : COLOR) : SV_Target
         }
 
         // Create command buffer to copy data from staging buffer
-        auto copy_command_buffer =
-            device->create_command_buffer({.command_pool = transfer_command_pool_},
-                                          std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy) * 2));
+        auto copy_command_buffer = orion::CommandBuffer(
+            device->create_command_buffer({.command_pool = transfer_command_pool_}),
+            std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy) * 2));
 
         // Issue command to copy vertex data
         {
@@ -236,9 +236,9 @@ float4 main(float4 color : COLOR) : SV_Target
         device->unmap(staging_buffer);
 
         // Create the render command buffer
-        render_command_ =
-            device->create_command_buffer({.command_pool = graphics_command_pool_},
-                                          std::make_unique<orion::LinearCommandAllocator>(render_command_size));
+        render_command_ = orion::CommandBuffer(
+            device->create_command_buffer({.command_pool = graphics_command_pool_}),
+            std::make_unique<orion::LinearCommandAllocator>(render_command_size));
 
         // Wait until copy is completed
         device->wait(submission);
