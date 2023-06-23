@@ -161,6 +161,10 @@ float4 main(float4 color : COLOR) : SV_Target
             device->destroy(fs_module);
         }
 
+        // Create command pools
+        graphics_command_pool_ = device->create_command_pool({.queue_type = orion::CommandQueueType::Graphics});
+        transfer_command_pool_ = device->create_command_pool({.queue_type = orion::CommandQueueType::Transfer});
+
         // Create staging buffer
         auto staging_buffer = device->create_buffer(orion::GPUBufferDesc{
             .size = sizeof(vertices) + sizeof(indices),
@@ -199,7 +203,7 @@ float4 main(float4 color : COLOR) : SV_Target
 
         // Create command buffer to copy data from staging buffer
         auto copy_command_buffer =
-            device->create_command_buffer({.queue_type = orion::CommandQueueType::Transfer},
+            device->create_command_buffer({.command_pool = transfer_command_pool_},
                                           std::make_unique<orion::LinearCommandAllocator>(sizeof(orion::CmdBufferCopy) * 2));
 
         // Issue command to copy vertex data
@@ -223,14 +227,17 @@ float4 main(float4 color : COLOR) : SV_Target
         }
 
         // Submit the copy command
-        auto submission = device->submit(copy_command_buffer);
+        auto submission = device->submit({
+            .command_buffer = &copy_command_buffer,
+            .queue_type = orion::CommandQueueType::Transfer,
+        });
 
         // Unmap staging buffer
         device->unmap(staging_buffer);
 
         // Create the render command buffer
         render_command_ =
-            device->create_command_buffer({.queue_type = orion::CommandQueueType::Graphics},
+            device->create_command_buffer({.command_pool = graphics_command_pool_},
                                           std::make_unique<orion::LinearCommandAllocator>(render_command_size));
 
         // Wait until copy is completed
@@ -288,7 +295,11 @@ private:
         render_command_.add_command<orion::CmdEndFrame>({});
 
         // Submit the commands
-        render_submission_ = device->submit(render_command_, render_submission_);
+        render_submission_ = device->submit(orion::SubmitDesc{
+            .command_buffer = &render_command_,
+            .queue_type = orion::CommandQueueType::Graphics,
+            .existing = render_submission_,
+        });
 
         // Present
         device->present(swapchain_, render_submission_);
@@ -311,6 +322,8 @@ private:
     orion::PipelineHandle graphics_pipeline_;
     orion::GPUBufferHandle vertex_buffer_;
     orion::GPUBufferHandle index_buffer_;
+    orion::CommandPoolHandle graphics_command_pool_;
+    orion::CommandPoolHandle transfer_command_pool_;
     orion::CommandBuffer render_command_;
     orion::SubmissionHandle render_submission_;
 };

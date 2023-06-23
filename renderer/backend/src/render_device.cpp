@@ -52,6 +52,13 @@ namespace orion
         return handle;
     }
 
+    CommandPoolHandle RenderDevice::create_command_pool(const CommandPoolDesc& desc)
+    {
+        auto handle = create_command_pool_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created command pool with handle {}", handle);
+        return handle;
+    }
+
     CommandBuffer RenderDevice::create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator)
     {
         return {create_command_buffer_api(desc), desc, std::move(allocator)};
@@ -99,6 +106,11 @@ namespace orion
         destroy_api(buffer_handle);
     }
 
+    void RenderDevice::destroy(CommandPoolHandle command_pool_handle)
+    {
+        destroy_api(command_pool_handle);
+    }
+
     void RenderDevice::destroy(CommandBufferHandle command_buffer_handle)
     {
         destroy_api(command_buffer_handle);
@@ -119,9 +131,9 @@ namespace orion
         return unmap_api(buffer_handle);
     }
 
-    SubmissionHandle RenderDevice::submit(const CommandBuffer& command_buffer, SubmissionHandle existing)
+    SubmissionHandle RenderDevice::submit(const SubmitDesc& desc)
     {
-        return submit_api(command_buffer, existing);
+        return submit_api(desc);
     }
 
     void RenderDevice::wait(SubmissionHandle submission_handle)

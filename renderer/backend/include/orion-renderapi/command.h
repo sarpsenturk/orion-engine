@@ -10,6 +10,10 @@
 
 namespace orion
 {
+    struct CommandPoolDesc {
+        CommandQueueType queue_type;
+    };
+
     // This is the implementation of std::is_implicit_lifetime as seen at: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2674r0.pdf
     // We require commands to be implicit lifetime types, so we can simply allocate memory for them and move on
     template<typename T>
@@ -64,7 +68,7 @@ namespace orion
     };
 
     struct CommandBufferDesc {
-        CommandQueueType queue_type = {};
+        CommandPoolHandle command_pool;
     };
 
     class CommandBuffer
@@ -85,7 +89,6 @@ namespace orion
         void reset();
 
         [[nodiscard]] auto handle() const noexcept { return handle_; }
-        [[nodiscard]] auto queue_type() const noexcept { return desc_.queue_type; }
         [[nodiscard]] auto& description() const noexcept { return desc_; }
 
         [[nodiscard]] auto& commands() const noexcept { return command_packets_; }

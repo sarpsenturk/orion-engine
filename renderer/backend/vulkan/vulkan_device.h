@@ -34,6 +34,7 @@ namespace orion::vulkan
         [[nodiscard]] VkRenderPass find_render_pass(RenderPassHandle render_pass_handle);
         [[nodiscard]] VulkanRenderTarget& find_render_target(RenderTargetHandle render_target_handle);
         [[nodiscard]] VkPipeline find_pipeline(PipelineHandle pipeline_handle) const;
+        [[nodiscard]] VkCommandPool find_command_pool(CommandPoolHandle command_pool_handle) const;
         [[nodiscard]] VkCommandBuffer find_command_buffer(CommandBufferHandle command_buffer_handle) const;
         [[nodiscard]] VulkanSubmission& find_submission(SubmissionHandle submission_handle);
         [[nodiscard]] VkFence find_fence(SubmissionHandle submission_handle) const;
@@ -45,15 +46,12 @@ namespace orion::vulkan
     private:
         [[nodiscard]] inline bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept { return queues_.transfer.index != family_index; }
 
-        [[nodiscard]] VkCommandPool graphics_command_pool() const { return command_pools_.at(queues_.graphics.index).get(); }
-        [[nodiscard]] VkCommandPool transfer_command_pool() const { return command_pools_.at(queues_.transfer.index).get(); }
-
         [[nodiscard]] VkQueue graphics_queue() const noexcept { return queues_.graphics.queue; }
         [[nodiscard]] VkQueue transfer_queue() const noexcept { return queues_.transfer.queue; }
         [[nodiscard]] VkQueue compute_queue() const noexcept { return queues_.compute.queue; }
 
-        [[nodiscard]] VkCommandPool get_command_pool(CommandQueueType queue_type) const;
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
+        [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
 
         // Vulkan command translation functions
         void compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission);
@@ -71,6 +69,7 @@ namespace orion::vulkan
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
+        CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) override;
         CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
@@ -82,13 +81,14 @@ namespace orion::vulkan
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
         void destroy_api(GPUBufferHandle buffer_handle) override;
+        void destroy_api(CommandPoolHandle command_pool_handle) override;
         void destroy_api(CommandBufferHandle command_buffer_handle) override;
         void destroy_api(SubmissionHandle submission_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
 
-        SubmissionHandle submit_api(const CommandBuffer& command_buffer, SubmissionHandle existing) override;
+        SubmissionHandle submit_api(const SubmitDesc& desc) override;
         void wait_api(SubmissionHandle submission_handle) override;
         void present_api(SwapchainHandle swapchain_handle, SubmissionHandle wait) override;
 
@@ -105,7 +105,7 @@ namespace orion::vulkan
         std::unordered_map<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
         std::unordered_map<PipelineHandle, VulkanPipeline> pipelines_;
         std::unordered_map<GPUBufferHandle, VulkanBuffer> buffers_;
-        std::unordered_map<std::uint32_t, UniqueVkCommandPool> command_pools_;
+        std::unordered_map<CommandPoolHandle, UniqueVkCommandPool> command_pools_;
         std::unordered_map<CommandBufferHandle, UniqueVkCommandBuffer> command_buffers_;
         std::unordered_map<SubmissionHandle, VulkanSubmission> submissions_;
     };

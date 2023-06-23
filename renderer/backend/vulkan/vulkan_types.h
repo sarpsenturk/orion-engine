@@ -146,10 +146,10 @@ namespace orion::vulkan
     using UniqueVkSemaphore = std::unique_ptr<VkSemaphore, SemaphoreDeleter>;
     using UniqueVkFence = std::unique_ptr<VkFence, FenceDeleter>;
 
-    template<typename UniqueType, typename HandleType>
-    auto make_unique(VkDevice device, HandleType handle)
+    template<typename UniqueType, typename VulkanHandle, typename... DeleterArgs>
+    auto vk_unique(VulkanHandle vk_handle, DeleterArgs... deleter_args)
     {
-        return UniqueType{handle, {device}};
+        return UniqueType{vk_handle, {deleter_args...}};
     }
 
     UniqueVkInstance create_vk_instance(std::span<const char* const> enabled_layers, std::span<const char* const> enabled_extensions);

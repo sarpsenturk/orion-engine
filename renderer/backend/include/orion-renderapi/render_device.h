@@ -17,6 +17,12 @@ namespace orion
     // Forward declare window class
     class Window;
 
+    struct SubmitDesc {
+        const CommandBuffer* command_buffer;
+        CommandQueueType queue_type;
+        SubmissionHandle existing = SubmissionHandle::invalid_handle();
+    };
+
     class RenderDevice
     {
     public:
@@ -29,6 +35,7 @@ namespace orion
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
         [[nodiscard]] PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
+        [[nodiscard]] CommandPoolHandle create_command_pool(const CommandPoolDesc& desc);
         [[nodiscard]] CommandBuffer create_command_buffer(const CommandBufferDesc& desc, std::unique_ptr<CommandAllocator> allocator);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
@@ -40,13 +47,14 @@ namespace orion
         void destroy(ShaderModuleHandle shader_module_handle);
         void destroy(PipelineHandle pipeline_handle);
         void destroy(GPUBufferHandle buffer_handle);
+        void destroy(CommandPoolHandle command_pool_handle);
         void destroy(CommandBufferHandle command_buffer_handle);
         void destroy(SubmissionHandle submission_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
 
-        [[nodiscard]] SubmissionHandle submit(const CommandBuffer& command_buffer, SubmissionHandle existing = SubmissionHandle::invalid_handle());
+        [[nodiscard]] SubmissionHandle submit(const SubmitDesc& desc);
         void wait(SubmissionHandle submission_handle);
         void present(SwapchainHandle swapchain_handle, SubmissionHandle wait);
 
@@ -65,6 +73,7 @@ namespace orion
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;
         [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
         [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) = 0;
+        [[nodiscard]] virtual CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) = 0;
         [[nodiscard]] virtual CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) = 0;
 
         virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
@@ -77,12 +86,13 @@ namespace orion
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
         virtual void destroy_api(CommandBufferHandle command_buffer_handle) = 0;
+        virtual void destroy_api(CommandPoolHandle command_pool_handle) = 0;
         virtual void destroy_api(SubmissionHandle submission_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
 
-        [[nodiscard]] virtual SubmissionHandle submit_api(const CommandBuffer& command_buffer, SubmissionHandle existing) = 0;
+        [[nodiscard]] virtual SubmissionHandle submit_api(const SubmitDesc& desc) = 0;
         virtual void wait_api(SubmissionHandle submission_handle) = 0;
         virtual void present_api(SwapchainHandle swapchain_handle, SubmissionHandle wait) = 0;
 

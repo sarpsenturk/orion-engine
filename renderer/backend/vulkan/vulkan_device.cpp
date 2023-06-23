@@ -19,15 +19,6 @@ namespace orion::vulkan
         , allocator_(create_vma_allocator(instance, physical_device, device_.get()))
         , queues_(queues)
     {
-        // Create command pool for each queue
-        auto create_pool_for_queue = [this](std::uint32_t queue_family) {
-            if (!command_pools_.contains(queue_family)) {
-                command_pools_.insert(std::make_pair(queue_family, create_vk_command_pool(device_.get(), queue_family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)));
-            }
-        };
-
-        create_pool_for_queue(queues_.graphics.index);
-        create_pool_for_queue(queues_.transfer.index);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -35,35 +26,36 @@ namespace orion::vulkan
         vkDeviceWaitIdle(device_.get());
     }
 
-    VkCommandPool VulkanDevice::get_command_pool(CommandQueueType queue_type) const
-    {
-        switch (queue_type) {
-            case CommandQueueType::Graphics:
-                return graphics_command_pool();
-            case CommandQueueType::Transfer:
-                return transfer_command_pool();
-            case CommandQueueType::Compute:
-                ORION_ASSERT(!"Vulkan API doesn't currently support compute operations");
-                break;
-            case CommandQueueType::Any:
-                break;
-        }
-        return VK_NULL_HANDLE;
-    }
-
     VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
     {
         switch (queue_type) {
             case CommandQueueType::Transfer:
-                return transfer_queue();
+                return queues_.transfer.queue;
             case CommandQueueType::Compute:
-                return compute_queue();
+                return queues_.compute.queue;
             case CommandQueueType::Graphics:
                 [[fallthrough]];
             case CommandQueueType::Any:
-                return graphics_queue();
+                return queues_.graphics.queue;
         }
+        ORION_ASSERT(!"Invalid queue type");
         return VK_NULL_HANDLE;
+    }
+
+    std::uint32_t VulkanDevice::get_queue_family(CommandQueueType queue_type) const
+    {
+        switch (queue_type) {
+            case CommandQueueType::Transfer:
+                return queues_.transfer.index;
+            case CommandQueueType::Compute:
+                return queues_.compute.index;
+            case CommandQueueType::Graphics:
+                [[fallthrough]];
+            case CommandQueueType::Any:
+                return queues_.graphics.index;
+        }
+        ORION_ASSERT(!"Invalid queue type");
+        return UINT32_MAX;
     }
 
     SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc)
@@ -203,7 +195,7 @@ namespace orion::vulkan
         vk_result_check(vkCreateRenderPass(device_.get(), &info, alloc_callbacks(), &render_pass));
 
         auto handle = RenderPassHandle::generate();
-        render_passes_.insert(std::make_pair(handle, make_unique<UniqueVkRenderPass>(device(), render_pass)));
+        render_passes_.insert(std::make_pair(handle, vk_unique<UniqueVkRenderPass>(render_pass, device())));
         return handle;
     }
 
@@ -466,6 +458,22 @@ namespace orion::vulkan
         return handle;
     }
 
+    CommandPoolHandle VulkanDevice::create_command_pool_api(const CommandPoolDesc& desc)
+    {
+        const VkCommandPoolCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueFamilyIndex = get_queue_family(desc.queue_type),
+        };
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
+
+        auto handle = CommandPoolHandle::generate();
+        command_pools_.insert(std::make_pair(handle, UniqueVkCommandPool{command_pool, CommandPoolDeleter{device()}}));
+        return handle;
+    }
+
     void VulkanDevice::recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         // Find existing swapchain
@@ -565,11 +573,20 @@ namespace orion::vulkan
 
     CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
     {
-        // Find command pool based on queue type
-        auto command_pool = get_command_pool(desc.queue_type);
+        VkCommandPool command_pool = find_command_pool(desc.command_pool);
+
+        const VkCommandBufferAllocateInfo info{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .commandPool = command_pool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+        };
+        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+        vk_result_check(vkAllocateCommandBuffers(device(), &info, &command_buffer));
 
         const auto handle = CommandBufferHandle::generate();
-        command_buffers_.insert(std::make_pair(handle, allocate_vk_command_buffer(device_.get(), command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY)));
+        command_buffers_.insert(std::make_pair(handle, vk_unique<UniqueVkCommandBuffer>(command_buffer, device(), command_pool)));
         return handle;
     }
 
@@ -601,6 +618,11 @@ namespace orion::vulkan
     VkPipeline VulkanDevice::find_pipeline(PipelineHandle pipeline_handle) const
     {
         return pipelines_.at(pipeline_handle).pipeline();
+    }
+
+    VkCommandPool VulkanDevice::find_command_pool(CommandPoolHandle command_pool_handle) const
+    {
+        return command_pools_.at(command_pool_handle).get();
     }
 
     VkCommandBuffer VulkanDevice::find_command_buffer(CommandBufferHandle command_buffer_handle) const
@@ -654,6 +676,11 @@ namespace orion::vulkan
         buffers_.erase(buffer_handle);
     }
 
+    void VulkanDevice::destroy_api(CommandPoolHandle command_pool_handle)
+    {
+        command_pools_.erase(command_pool_handle);
+    }
+
     void VulkanDevice::destroy_api(CommandBufferHandle command_buffer_handle)
     {
         command_buffers_.erase(command_buffer_handle);
@@ -678,29 +705,25 @@ namespace orion::vulkan
         vmaUnmapMemory(allocator_.get(), find_buffer(buffer_handle).allocation());
     }
 
-    SubmissionHandle VulkanDevice::submit_api(const CommandBuffer& command_buffer, SubmissionHandle existing)
+    SubmissionHandle VulkanDevice::submit_api(const SubmitDesc& desc)
     {
+        const auto* command_buffer = desc.command_buffer;
+
         // Find and reset command buffer
-        VkCommandBuffer vk_command_buffer = find_command_buffer(command_buffer.handle());
+        VkCommandBuffer vk_command_buffer = find_command_buffer(command_buffer->handle());
         vkResetCommandBuffer(vk_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
         // Begin command buffer recording
-        const auto begin_flags = [queue_type = command_buffer.queue_type()]() -> VkCommandBufferUsageFlags {
-            if (queue_type == CommandQueueType::Transfer) {
-                return VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            }
-            return {};
-        }();
         const VkCommandBufferBeginInfo begin_info{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .pNext = nullptr,
-            .flags = begin_flags,
+            .flags = 0,
             .pInheritanceInfo = nullptr,
         };
         vk_result_check(vkBeginCommandBuffer(vk_command_buffer, &begin_info));
 
         // Find existing or create new submission
-        SubmissionHandle submission_handle = existing;
+        SubmissionHandle submission_handle = desc.existing;
         auto& submission = [this, &submission_handle]() -> VulkanSubmission& {
             if (submission_handle.is_valid()) {
                 return find_submission(submission_handle);
@@ -715,7 +738,7 @@ namespace orion::vulkan
         }();
 
         // Compile orion commands to vulkan commands
-        compile_commands(vk_command_buffer, command_buffer.commands(), submission);
+        compile_commands(vk_command_buffer, command_buffer->commands(), submission);
 
         // End command buffer recording
         vk_result_check(vkEndCommandBuffer(vk_command_buffer));
@@ -736,7 +759,7 @@ namespace orion::vulkan
             .signalSemaphoreCount = 1,
             .pSignalSemaphores = &signal_semaphore,
         };
-        vk_result_check(vkQueueSubmit(get_queue(command_buffer.queue_type()), 1, &submit_info, signal_fence));
+        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1, &submit_info, signal_fence));
         return submission_handle;
     }
 

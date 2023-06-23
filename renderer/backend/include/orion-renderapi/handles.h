@@ -16,6 +16,7 @@ namespace orion
     ORION_DEFINE_HANDLE(ShaderModuleHandle);
     ORION_DEFINE_HANDLE(PipelineHandle);
     ORION_DEFINE_HANDLE(GPUBufferHandle);
+    ORION_DEFINE_HANDLE(CommandPoolHandle);
     ORION_DEFINE_HANDLE(CommandBufferHandle);
     ORION_DEFINE_HANDLE(SubmissionHandle);
 } // namespace orion
