@@ -61,6 +61,47 @@ namespace orion::vulkan
             }
             return extensions;
         }
+
+        std::vector<VkLayerProperties> get_supported_layers()
+        {
+            std::vector<VkLayerProperties> layers;
+            std::uint32_t count = 0;
+            vk_result_check(vkEnumerateInstanceLayerProperties(&count, nullptr));
+            layers.resize(count);
+            vk_result_check(vkEnumerateInstanceLayerProperties(&count, layers.data()));
+            return layers;
+        }
+
+        std::vector<VkExtensionProperties> get_supported_extensions()
+        {
+            std::vector<VkExtensionProperties> extensions;
+            std::uint32_t count = 0;
+            vk_result_check(vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr));
+            extensions.resize(count);
+            vk_result_check(vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data()));
+            return extensions;
+        }
+
+        std::vector<VkExtensionProperties> get_supported_device_extensions(VkPhysicalDevice physical_device)
+        {
+            std::uint32_t count = 0;
+            vk_result_check(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, nullptr));
+            std::vector<VkExtensionProperties> extensions(count);
+            vk_result_check(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, extensions.data()));
+            return extensions;
+        }
+
+        bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions)
+        {
+            for (const char* extension : enabled_extensions) {
+                const auto pred = [extension](const VkExtensionProperties& extension_properties) { return std::strcmp(extension, extension_properties.extensionName) == 0; };
+                const auto supported = std::ranges::find_if(supported_extensions, pred) != supported_extensions.end();
+                if (!supported) {
+                    return false;
+                }
+            }
+            return true;
+        }
     } // namespace
 
     static std::vector<VkQueueFamilyProperties> get_queue_family_properties(VkPhysicalDevice physical_device)
@@ -91,11 +132,76 @@ namespace orion::vulkan
 
     VulkanBackend::VulkanBackend()
         : RenderBackend("orion-vulkan")
-        , instance_(create_vk_instance(get_required_layers(), get_required_extensions()))
     {
+        const auto vulkan_version = to_vulkan_version(current_version);
+        const VkApplicationInfo application_info{
+            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pNext = nullptr,
+            .pApplicationName = "OrionEngineApp",
+            .applicationVersion = vulkan_version,
+            .pEngineName = "OrionEngine",
+            .engineVersion = vulkan_version,
+            .apiVersion = vulkan_api_version,
+        };
+
+        const auto enabled_layers = get_required_layers();
+        // Check if all requested layers are supported
+        {
+            const auto supported_layers = get_supported_layers();
+            for (const char* layer : enabled_layers) {
+                const auto pred = [layer](const VkLayerProperties& layer_properties) { return std::strcmp(layer, layer_properties.layerName) == 0; };
+                const auto supported = std::ranges::find_if(supported_layers, pred) != supported_layers.end();
+                if (!supported) {
+                    vk_result_check(VK_ERROR_LAYER_NOT_PRESENT);
+                }
+            }
+        }
+
+        const auto enabled_extensions = get_required_extensions();
+        // Check if all requested extensions are supported
+        {
+            const auto supported_extensions = get_supported_extensions();
+            if (!check_extensions_supported(enabled_extensions, supported_extensions)) {
+                vk_result_check(VK_ERROR_EXTENSION_NOT_PRESENT);
+            }
+        }
+
+        // Create vulkan instance
+        const VkInstanceCreateInfo instance_info{
+            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = {},
+            .pApplicationInfo = &application_info,
+            .enabledLayerCount = static_cast<std::uint32_t>(enabled_layers.size()),
+            .ppEnabledLayerNames = enabled_layers.data(),
+            .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
+            .ppEnabledExtensionNames = enabled_extensions.data(),
+        };
+
+        VkInstance instance = VK_NULL_HANDLE;
+        vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
+        instance_ = vk_unique<UniqueVkInstance>(instance);
+
         // Create vulkan debug utils if debug mode is enabled
         if constexpr (debug_build) {
-            debug_messenger_ = create_vk_debug_utils_messenger(instance_.get(), debug_message_severity, debug_message_type, debug_message_callback, logger());
+            // Get creation function pointer
+            static const auto pfn_vkCreateDebugUtilsMessengerEXT = [instance]() {
+                return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+                    vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+            }();
+
+            const VkDebugUtilsMessengerCreateInfoEXT info{
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                .pNext = nullptr,
+                .flags = 0,
+                .messageSeverity = debug_message_severity,
+                .messageType = debug_message_type,
+                .pfnUserCallback = &debug_message_callback,
+                .pUserData = logger(),
+            };
+            VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
+            vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance, &info, alloc_callbacks(), &debug_messenger));
+            debug_messenger_ = vk_unique<UniqueVkDebugUtilsMessengerEXT>(debug_messenger, instance);
         }
     }
 
@@ -141,29 +247,29 @@ namespace orion::vulkan
         auto physical_device = physical_devices_[physical_device_index];
 
         // Get the queue families of the physical device
-        const auto queue_families = get_queue_family_properties(physical_device);
-        ORION_ASSERT(!queue_families.empty());
-        SPDLOG_LOGGER_TRACE(logger(), "Found {} queue families:", queue_families.size());
-        for (std::uint32_t index = 0; const auto& queue_family : queue_families) {
+        const auto queue_family_props = get_queue_family_properties(physical_device);
+        ORION_ASSERT(!queue_family_props.empty());
+        SPDLOG_LOGGER_TRACE(logger(), "Found {} queue families:", queue_family_props.size());
+        for (std::uint32_t index = 0; const auto& queue_family : queue_family_props) {
             SPDLOG_LOGGER_TRACE(logger(), "-- Queue Family {}:", index);
             SPDLOG_LOGGER_TRACE(logger(), "      Flags: {}", to_string(queue_family.queueFlags));
             SPDLOG_LOGGER_TRACE(logger(), "      Queue count: {}", queue_family.queueCount);
         }
 
         // Find the best queue families
-        const auto graphics_queue_index = get_best_queue_family(queue_families, VK_QUEUE_GRAPHICS_BIT);
+        const auto graphics_queue_index = get_best_queue_family(queue_family_props, VK_QUEUE_GRAPHICS_BIT);
         if (graphics_queue_index == UINT32_MAX) {
             SPDLOG_LOGGER_ERROR(logger(), "No queue family supporting Graphics");
             ORION_DEBUG_BREAK();
         }
         SPDLOG_LOGGER_TRACE(logger(), "Graphics queue: {}", graphics_queue_index);
-        const auto compute_queue_index = get_best_queue_family(queue_families, VK_QUEUE_COMPUTE_BIT);
+        const auto compute_queue_index = get_best_queue_family(queue_family_props, VK_QUEUE_COMPUTE_BIT);
         if (compute_queue_index == UINT32_MAX) {
             SPDLOG_LOGGER_ERROR(logger(), "No queue family supporting Compute");
             ORION_DEBUG_BREAK();
         }
         SPDLOG_LOGGER_TRACE(logger(), "Compute queue: {}", compute_queue_index);
-        const auto transfer_queue_index = get_best_queue_family(queue_families, VK_QUEUE_TRANSFER_BIT);
+        const auto transfer_queue_index = get_best_queue_family(queue_family_props, VK_QUEUE_TRANSFER_BIT);
         if (transfer_queue_index == UINT32_MAX) {
             SPDLOG_LOGGER_ERROR(logger(), "No queue family supporting Transfer");
             ORION_DEBUG_BREAK();
@@ -171,21 +277,63 @@ namespace orion::vulkan
         SPDLOG_LOGGER_TRACE(logger(), "Transfer queue: {}", transfer_queue_index);
 
         // Put all queue family indices into set to ensure uniqueness
-        std::vector used_queue_families{graphics_queue_index, compute_queue_index, transfer_queue_index};
-        std::ranges::sort(used_queue_families);
-        used_queue_families.erase(std::unique(used_queue_families.begin(), used_queue_families.end()), used_queue_families.end());
-        SPDLOG_LOGGER_TRACE(logger(), "Using {} unique queue families", used_queue_families.size());
+        std::vector queue_families{graphics_queue_index, compute_queue_index, transfer_queue_index};
+        std::ranges::sort(queue_families);
+        queue_families.erase(std::unique(queue_families.begin(), queue_families.end()), queue_families.end());
+        SPDLOG_LOGGER_TRACE(logger(), "Using {} unique queue families", queue_families.size());
+
+        const auto enabled_extensions = get_required_device_extensions();
+        // Check if all required extensions are supported
+        {
+            const auto supported_extensions = get_supported_device_extensions(physical_device);
+            if (!check_extensions_supported(enabled_extensions, supported_extensions)) {
+                vk_result_check(VK_ERROR_EXTENSION_NOT_PRESENT);
+            }
+        }
+
+        // Must declare here to avoid dangling pointers
+        std::vector<float> queue_priorities(queue_families.size(), 1.f);
+
+        // Create the queue create info structures
+        const auto queue_infos = [&queue_families, queue_priorities = queue_priorities.data()]() {
+            std::vector<VkDeviceQueueCreateInfo> queue_infos;
+            queue_infos.reserve(queue_families.size());
+            for (auto family_index : queue_families) {
+                queue_infos.push_back(VkDeviceQueueCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .queueFamilyIndex = family_index,
+                    .queueCount = 1,
+                    .pQueuePriorities = queue_priorities,
+                });
+            }
+            return queue_infos;
+        }();
 
         // Create the device
-        auto device = create_vk_device(physical_device, used_queue_families, get_required_device_extensions());
+        const VkDeviceCreateInfo device_info{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueCreateInfoCount = static_cast<std::uint32_t>(queue_infos.size()),
+            .pQueueCreateInfos = queue_infos.data(),
+            .enabledLayerCount = 0,
+            .ppEnabledLayerNames = nullptr,
+            .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
+            .ppEnabledExtensionNames = enabled_extensions.data(),
+            .pEnabledFeatures = nullptr,
+        };
+        VkDevice device = VK_NULL_HANDLE;
+        vk_result_check(vkCreateDevice(physical_device, &device_info, alloc_callbacks(), &device));
 
         // Get the created queues
         VkQueue graphics_queue = VK_NULL_HANDLE;
-        vkGetDeviceQueue(device.get(), graphics_queue_index, 0, &graphics_queue);
+        vkGetDeviceQueue(device, graphics_queue_index, 0, &graphics_queue);
         VkQueue compute_queue = VK_NULL_HANDLE;
-        vkGetDeviceQueue(device.get(), compute_queue_index, 0, &compute_queue);
+        vkGetDeviceQueue(device, compute_queue_index, 0, &compute_queue);
         VkQueue transfer_queue = VK_NULL_HANDLE;
-        vkGetDeviceQueue(device.get(), transfer_queue_index, 0, &transfer_queue);
+        vkGetDeviceQueue(device, transfer_queue_index, 0, &transfer_queue);
 
         // Return the vulkan device
         const auto vulkan_queues = VulkanQueues{
@@ -202,7 +350,11 @@ namespace orion::vulkan
                 .queue = transfer_queue,
             },
         };
-        return std::make_unique<VulkanDevice>(logger(), instance_.get(), physical_device, std::move(device), vulkan_queues);
+        return std::make_unique<VulkanDevice>(logger(),
+                                              instance(),
+                                              physical_device,
+                                              vk_unique<UniqueVkDevice>(device),
+                                              vulkan_queues);
     }
 
     VkBool32 VulkanBackend::debug_message_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,

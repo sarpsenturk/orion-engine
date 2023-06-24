@@ -16,9 +16,22 @@ namespace orion::vulkan
         , instance_(instance)
         , physical_device_(physical_device)
         , device_(std::move(device))
-        , allocator_(create_vma_allocator(instance, physical_device, device_.get()))
         , queues_(queues)
     {
+        const VmaAllocatorCreateInfo allocator_info{
+            .flags = 0,
+            .physicalDevice = physical_device,
+            .device = this->device(),
+            .preferredLargeHeapBlockSize = 0,
+            .pHeapSizeLimit = nullptr,
+            .pVulkanFunctions = nullptr,
+            .instance = instance,
+            .vulkanApiVersion = vulkan_api_version,
+            .pTypeExternalMemoryHandleTypes = nullptr,
+        };
+        VmaAllocator allocator = VK_NULL_HANDLE;
+        vk_result_check(vmaCreateAllocator(&allocator_info, &allocator));
+        allocator_ = vk_unique<UniqueVmaAllocator>(allocator);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -122,7 +135,30 @@ namespace orion::vulkan
 
             image_views.reserve(images.size());
             for (auto image : images) {
-                image_views.push_back(create_vk_image_view(device(), image, VK_IMAGE_VIEW_TYPE_2D, format));
+                const VkImageViewCreateInfo image_view_info{
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .image = image,
+                    .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                    .format = format,
+                    .components = {
+                        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    },
+                    .subresourceRange = {
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = 0,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                };
+                VkImageView image_view = VK_NULL_HANDLE;
+                vk_result_check(vkCreateImageView(device(), &image_view_info, alloc_callbacks(), &image_view));
+                image_views.push_back(vk_unique<UniqueVkImageView>(image_view, device()));
             }
         }
 
@@ -212,7 +248,20 @@ namespace orion::vulkan
         for (auto& image_view : swapchain.image_views()) {
             // Create framebuffer
             const std::array attachments{image_view.get()};
-            framebuffers.push_back(create_vk_framebuffer(device(), render_pass, desc.size, attachments));
+            const VkFramebufferCreateInfo framebuffer_info{
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .renderPass = render_pass,
+                .attachmentCount = static_cast<std::uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .width = desc.size.x(),
+                .height = desc.size.y(),
+                .layers = 1,
+            };
+            VkFramebuffer framebuffer = VK_NULL_HANDLE;
+            vk_result_check(vkCreateFramebuffer(device(), &framebuffer_info, alloc_callbacks(), &framebuffer));
+            framebuffers.push_back(vk_unique<UniqueVkFramebuffer>(framebuffer, device()));
         }
 
         auto handle = RenderTargetHandle::generate();
@@ -233,15 +282,35 @@ namespace orion::vulkan
         std::vector<std::uint32_t> spirv(desc.byte_code.size_bytes() / sizeof(std::uint32_t));
         std::memcpy(spirv.data(), desc.byte_code.data(), desc.byte_code.size_bytes());
 
+        const VkShaderModuleCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .codeSize = desc.byte_code.size_bytes(),
+            .pCode = spirv.data(),
+        };
+        VkShaderModule shader_module = VK_NULL_HANDLE;
+        vk_result_check(vkCreateShaderModule(device(), &info, alloc_callbacks(), &shader_module));
+
         auto handle = ShaderModuleHandle::generate();
-        shader_modules_.insert(std::make_pair(handle, create_vk_shader_module(device_.get(), spirv)));
+        shader_modules_.insert(std::make_pair(handle, vk_unique<UniqueVkShaderModule>(shader_module, device())));
         return handle;
     }
 
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
-        // Create VkPipelineLayout
-        auto pipeline_layout = create_vk_pipeline_layout(device_.get(), {}, {});
+        // Create pipeline layout
+        const VkPipelineLayoutCreateInfo layout_info{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .setLayoutCount = 0,
+            .pSetLayouts = nullptr,
+            .pushConstantRangeCount = 0,
+            .pPushConstantRanges = nullptr,
+        };
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        vk_result_check(vkCreatePipelineLayout(device(), &layout_info, alloc_callbacks(), &pipeline_layout));
 
         // Convert to VkPipelineShaderStageCreateInfo
         ORION_EXPECTS(desc.shaders.size() <= UINT32_MAX);
@@ -419,15 +488,20 @@ namespace orion::vulkan
             .pDepthStencilState = nullptr, // No depth stencil support yet
             .pColorBlendState = &vk_color_blend,
             .pDynamicState = &vk_dynamic_state,
-            .layout = pipeline_layout.get(),
+            .layout = pipeline_layout,
             .renderPass = render_pass,
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
             .basePipelineIndex = 0,
         };
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        vk_result_check(vkCreateGraphicsPipelines(device(), VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &pipeline));
 
         const auto handle = PipelineHandle::generate();
-        pipelines_.insert(std::make_pair(handle, VulkanPipeline{std::move(pipeline_layout), create_vk_graphics_pipeline(device_.get(), pipeline_info)}));
+        pipelines_.insert(std::make_pair(handle, VulkanPipeline{
+                                                     vk_unique<UniqueVkPipelineLayout>(pipeline_layout, device()),
+                                                     vk_unique<UniqueVkPipeline>(pipeline, device()),
+                                                 }));
         return handle;
     }
 
@@ -535,7 +609,30 @@ namespace orion::vulkan
 
             image_views.reserve(images.size());
             for (auto image : images) {
-                image_views.push_back(create_vk_image_view(device(), image, VK_IMAGE_VIEW_TYPE_2D, format));
+                const VkImageViewCreateInfo image_view_info{
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .image = image,
+                    .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                    .format = format,
+                    .components = {
+                        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    },
+                    .subresourceRange = {
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = 0,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                };
+                VkImageView image_view = VK_NULL_HANDLE;
+                vk_result_check(vkCreateImageView(device(), &image_view_info, alloc_callbacks(), &image_view));
+                image_views.push_back(vk_unique<UniqueVkImageView>(image_view, device()));
             }
         }
 
@@ -559,7 +656,20 @@ namespace orion::vulkan
         for (auto& image_view : vk_swapchain.image_views()) {
             // Create framebuffer
             const std::array attachments{image_view.get()};
-            framebuffers.push_back(create_vk_framebuffer(device(), render_pass, desc.size, attachments));
+            const VkFramebufferCreateInfo framebuffer_info{
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .renderPass = render_pass,
+                .attachmentCount = static_cast<std::uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .width = desc.size.x(),
+                .height = desc.size.y(),
+                .layers = 1,
+            };
+            VkFramebuffer framebuffer = VK_NULL_HANDLE;
+            vk_result_check(vkCreateFramebuffer(device(), &framebuffer_info, alloc_callbacks(), &framebuffer));
+            framebuffers.push_back(vk_unique<UniqueVkFramebuffer>(framebuffer, device()));
         }
 
         render_targets_.insert_or_assign(render_target,

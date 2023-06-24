@@ -17,6 +17,8 @@ namespace orion::vulkan
         // Public API overrides
         [[nodiscard]] const char* name() const noexcept override { return "Vulkan 1.0"; }
 
+        [[nodiscard]] auto instance() const noexcept { return instance_.get(); }
+
     private:
         // Private API overrides
         std::vector<PhysicalDeviceDesc> enumerate_physical_devices_api() override;

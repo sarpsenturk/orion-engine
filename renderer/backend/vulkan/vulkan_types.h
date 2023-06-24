@@ -152,26 +152,6 @@ namespace orion::vulkan
         return UniqueType{vk_handle, {deleter_args...}};
     }
 
-    UniqueVkInstance create_vk_instance(std::span<const char* const> enabled_layers, std::span<const char* const> enabled_extensions);
-    UniqueVkDebugUtilsMessengerEXT create_vk_debug_utils_messenger(VkInstance instance,
-                                                                   VkDebugUtilsMessageSeverityFlagsEXT message_severity,
-                                                                   VkDebugUtilsMessageTypeFlagsEXT message_type,
-                                                                   PFN_vkDebugUtilsMessengerCallbackEXT user_callback,
-                                                                   void* user_data);
-    UniqueVkDevice create_vk_device(VkPhysicalDevice physical_device, std::span<const std::uint32_t> queues, std::span<const char* const> enabled_extensions);
-    UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device);
-    UniqueVkImageView create_vk_image_view(VkDevice device, VkImage image, VkImageViewType view_type, VkFormat format);
-    UniqueVkFramebuffer create_vk_framebuffer(VkDevice device, VkRenderPass render_pass, const Vector2_u& image_size, std::span<const VkImageView> attachments);
-    UniqueVkShaderModule create_vk_shader_module(VkDevice device, std::span<const std::uint32_t> spirv);
-    UniqueVkPipelineLayout create_vk_pipeline_layout(VkDevice device, std::span<const VkDescriptorSetLayout> set_layouts, std::span<const VkPushConstantRange> push_constants);
-    UniqueVkPipeline create_vk_graphics_pipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& pipeline_info);
-    UniqueVkCommandPool create_vk_command_pool(VkDevice device, std::uint32_t queue_family, VkCommandPoolCreateFlags flags = 0);
-    UniqueVkCommandBuffer allocate_vk_command_buffer(VkDevice device, VkCommandPool command_pool, VkCommandBufferLevel level);
-    UniqueVkRenderPass create_vk_render_pass(VkDevice device,
-                                             VkPipelineBindPoint bind_point,
-                                             std::span<const VkAttachmentDescription> attachments,
-                                             std::span<const VkAttachmentReference> color_attachments,
-                                             std::span<const VkSubpassDependency> subpass_dependencies);
     UniqueVkSemaphore create_vk_semaphore(VkDevice device);
     UniqueVkFence create_vk_fence(VkDevice device, VkFenceCreateFlags flags = 0);
 
