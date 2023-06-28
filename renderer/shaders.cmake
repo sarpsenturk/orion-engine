@@ -4,15 +4,15 @@ if (NOT DXC_PATH)
     message(SEND_ERROR "DirectXShaderCompiler directory not set.")
 endif ()
 
-cmake_path(APPEND DXC_LIBDIR "${DXC_PATH}" "lib")
-cmake_path(APPEND DXC_BINDIR "${DXC_PATH}" "bin")
-cmake_path(APPEND DXC_INCLUDEDIR "${DXC_PATH}" "include")
+cmake_path(APPEND DXC_LIBDIR "${DXC_PATH}" "lib/x64")
+cmake_path(APPEND DXC_BINDIR "${DXC_PATH}" "bin/x64")
+cmake_path(APPEND DXC_INCLUDEDIR "${DXC_PATH}" "inc")
 
 # Create imported library
 add_library(dxcompiler SHARED IMPORTED)
 
 # Set the include directory
-set_target_properties(dxcompiler PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${DXC_PATH}/include")
+set_target_properties(dxcompiler PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${DXC_INCLUDEDIR}")
 
 # Set imported library locations
 if (WIN32)

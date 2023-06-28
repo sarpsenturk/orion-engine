@@ -5,7 +5,7 @@
     #define NOMINMAX
     #include <Windows.h>
 #else
-    #error "Can't include Windows.h if _WIN32 isn't defined"
+    #error "Can't include Windows.h on non-Windows platform"
 #endif
 
 #include "orion-core/exception.h"

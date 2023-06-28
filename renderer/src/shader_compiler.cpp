@@ -26,34 +26,37 @@ namespace orion
     {
         // DirectXShaderCompiler instance
         struct DxcInstance {
-            CComPtr<IDxcUtils> utils;
-            CComPtr<IDxcCompiler3> compiler;
-            CComPtr<IDxcIncludeHandler> include_handler;
+            ComPtr<IDxcUtils> utils;
+            ComPtr<IDxcCompiler3> compiler;
+            ComPtr<IDxcIncludeHandler> include_handler;
         };
 
         // Create IDxcUtils, IDxcCompiler3 & IDxcIncludeHandler
         DxcInstance* dxc_create_instance()
         {
-            CComPtr<IDxcUtils> utils;
+            ComPtr<IDxcUtils> utils;
             if (auto hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils)); FAILED(hr)) {
                 throw DxcInitError(hr);
             }
             SPDLOG_LOGGER_TRACE(ShaderCompiler::logger(), "Created IDxcUtils");
-            CComPtr<IDxcCompiler3> compiler;
+            ComPtr<IDxcCompiler3> compiler;
             if (auto hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)); FAILED(hr)) {
                 throw DxcInitError(hr);
             }
             SPDLOG_LOGGER_TRACE(ShaderCompiler::logger(), "Created IDxcCompiler3");
-            CComPtr<IDxcIncludeHandler> include_handler;
+            ComPtr<IDxcIncludeHandler> include_handler;
             if (auto hr = utils->CreateDefaultIncludeHandler(&include_handler); FAILED(hr)) {
                 throw DxcInitError(hr);
             }
             SPDLOG_LOGGER_TRACE(ShaderCompiler::logger(), "Created IDxcIncludeHandler");
             SPDLOG_LOGGER_DEBUG(ShaderCompiler::logger(), "Created Dxc instance");
-            return new DxcInstance(std::move(utils), std::move(compiler), std::move(include_handler));
+            return new DxcInstance{std::move(utils), std::move(compiler), std::move(include_handler)};
         }
 
-        void dxc_destroy_instance(DxcInstance* instance) { delete instance; }
+        void dxc_destroy_instance(DxcInstance* instance)
+        {
+            delete instance;
+        }
     } // namespace detail
 
     DxcInitError::DxcInitError(long hresult)
@@ -144,11 +147,15 @@ namespace orion
         };
 
         // Compile and check for failed HRESULT. Additional error checking is performed after by checking the error buffer
-        CComPtr<IDxcResult> results;
-        hresult_check(compiler->Compile(&dxc_buffer, arguments.data(), static_cast<std::uint32_t>(arguments.size()), include_handler.p, IID_PPV_ARGS(&results)), "Call to Compile() failed");
+        ComPtr<IDxcResult> results;
+        hresult_check(compiler->Compile(&dxc_buffer, arguments.data(),
+                                        static_cast<std::uint32_t>(arguments.size()),
+                                        include_handler.Get(),
+                                        IID_PPV_ARGS(&results)),
+                      "Call to Compile() failed");
 
         // Check error buffer
-        CComPtr<IDxcBlobUtf8> errors = nullptr;
+        ComPtr<IDxcBlobUtf8> errors = nullptr;
         hresult_check(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr), "GetOutput(DXC_OUT_ERRORS) failed");
         if (errors != nullptr && errors->GetStringLength() != 0) {
             SPDLOG_LOGGER_ERROR(logger(), "Shader compilation errors:");
@@ -167,7 +174,7 @@ namespace orion
         ShaderCompileResult compile_result;
 
         // Get the object code
-        CComPtr<IDxcBlob> shader_binary = nullptr;
+        ComPtr<IDxcBlob> shader_binary = nullptr;
         hresult_check(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader_binary), nullptr), "GetOutput(DXC_OUT_OBJECT) failed");
         if (shader_binary != nullptr) {
             compile_result.binary.resize(shader_binary->GetBufferSize());
