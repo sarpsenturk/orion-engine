@@ -3,7 +3,8 @@
   "version-semver": "0.1.0",
   "description": "Game engine written in C++ 20",
   "dependencies": [
-    "spdlog"
+    "spdlog",
+    "directx-dxc"
   ],
   "features": {
     "tests": {

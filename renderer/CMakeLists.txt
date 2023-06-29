@@ -18,7 +18,7 @@ target_include_directories(orion-renderer PUBLIC include/)
 add_subdirectory(backend)
 
 # Shader compilation library
-include(shaders.cmake)
+find_package(directx-dxc CONFIG REQUIRED)
 
 # Link with dependencies
 target_link_libraries(
@@ -29,7 +29,7 @@ target_link_libraries(
         orion::math
         orion::utils
         PRIVATE
-        dxcompiler
+        Microsoft::DirectXShaderCompiler
 )
 
 # Create file set for public headers
