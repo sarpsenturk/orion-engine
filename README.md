@@ -5,7 +5,6 @@ It is designed with to be fast and easy to use.
 ## Features
 * Windowing system
 * Graphics API abstraction layer
-* Cross-API rendering support (Vulkan, D3D12, D3D11, OpenGL, Metal)
 * Lots more to come!
 
 ## Building
@@ -16,7 +15,6 @@ operating systems.
 * [Ninja](https://ninja-build.org/)
 * [vcpkg](https://github.com/microsoft/vcpkg)
 * C++ compiler with C++ 20 support
-* [DirectX Shader Compiler](https://github.com/microsoft/DirectXShaderCompiler/) ( >= v1.7.2212 for SPIRV generation)
 
 Once all requirements are installed:
 
@@ -24,5 +22,23 @@ Once all requirements are installed:
 git clone --recurse-submodules https://github.com/sarpsenturk/orion-engine
 cd orion-engine
 mkdir build && cd build
-cmake -DDXC_PATH=<dxc-base-path> --preset=<selected-preset> ..
+cmake --preset=<selected-preset> ..
 ```
+
+## Platform Support
+The goal is for Orion to be fully cross-platform.
+Here's the list of platforms that are planned to be supported:
+- [x] Windows 10/11
+- [ ] Linux
+- [ ] macOS
+
+Only x86 is supported at this time however ARM support is
+planned for flavors of Linux, Apple M1, M2 chips and mobile.
+
+
+## Graphics API Support
+The plan to stick with Vulkan for the foreseeable future since it 
+allows for rendering on multiple platforms.
+
+However native APIs will be supported in the future. That means
+DirectX11/12 for Windows, Metal for Apple devices.
