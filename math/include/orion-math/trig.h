@@ -114,12 +114,9 @@ namespace orion
     template<std::floating_point Return = double>
     [[nodiscard]] constexpr Return tan(Radians radians) noexcept
     {
-        return sin<Return>(radians) / cos<Return>(radians);
-    }
-
-    template<std::floating_point Return = double>
-    [[nodiscard]] constexpr Return cot(Radians radians) noexcept
-    {
-        return cos<Return>(radians) / sin<Return>(radians);
+        if (std::is_constant_evaluated()) {
+            return sin<Return>(radians) / cos<Return>(radians);
+        }
+        return static_cast<Return>(std::tan(radians.value()));
     }
 } // namespace orion

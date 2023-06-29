@@ -9,48 +9,24 @@ namespace
     constexpr auto acceptable_error = 1e-5;
     constexpr auto three_halfs_pi = 3 * orion::pi_rads / 2;
 
-    TEST(Sin, Zero)
+    TEST(Trig, Sin)
     {
         EXPECT_EQ(orion::sin(0_rad), 0.0);
-    }
-
-    TEST(Sin, PlusMinusPi)
-    {
         EXPECT_NEAR(orion::sin(orion::pi_rads), 0.0, acceptable_error);
         EXPECT_NEAR(orion::sin(orion::pi_rads), 0.0, acceptable_error);
-    }
-
-    TEST(Sin, BetweenPlusMinusPiAnd2Pi)
-    {
         EXPECT_NEAR(orion::sin(orion::Radians{3 * orion::pi / 2}), -1.0, acceptable_error);
         EXPECT_NEAR(orion::sin(orion::Radians{3 * -orion::pi / 2}), 1.0, acceptable_error);
-    }
-
-    TEST(Sin, AbovePlusMinus2Pi)
-    {
         EXPECT_NEAR(orion::sin(4_rad), -0.7568024953, acceptable_error);
         EXPECT_NEAR(orion::sin(-4_rad), 0.7568024953, acceptable_error);
     }
 
-    TEST(Cos, Zero)
+    TEST(Trig, Cos)
     {
         EXPECT_EQ(orion::cos(0_rad), 1.0);
-    }
-
-    TEST(Cos, PlusMinusPi)
-    {
         EXPECT_NEAR(orion::cos(orion::pi_rads), -1.0, acceptable_error);
         EXPECT_NEAR(orion::cos(-orion::pi_rads), -1.0, acceptable_error);
-    }
-
-    TEST(Cos, BetweenPlusMinusPiAnd2Pi)
-    {
         EXPECT_NEAR(orion::cos(three_halfs_pi), 0.0, acceptable_error);
         EXPECT_NEAR(orion::cos(-three_halfs_pi), 0.0, acceptable_error);
-    }
-
-    TEST(Cos, AbovePlusMinus2Pi)
-    {
         EXPECT_NEAR(orion::cos(4_rad), -0.65364362086, acceptable_error);
         EXPECT_NEAR(orion::cos(-4_rad), -0.65364362086, acceptable_error);
     }
