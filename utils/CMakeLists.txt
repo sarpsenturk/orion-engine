@@ -1,4 +1,4 @@
-option(ORION_UTILS_TEST "Enable tests for orion::utils" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_UTILS_TEST "Enable tests for orion::utils" ${ORION_ENGINE_TEST})
 
 if (ORION_UTILS_TEST)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")

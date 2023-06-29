@@ -1,4 +1,4 @@
-option(ORION_MATH_TEST "Build tests for orion-math" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_MATH_TEST "Build tests for orion-math" ${ORION_ENGINE_TEST})
 
 # Dependencies
 find_package(fmt REQUIRED)
