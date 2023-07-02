@@ -1,11 +1,34 @@
 #include "orion-renderer/renderer.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_st
-#include <spdlog/spdlog.h>                   // SPDLOG_LOGGER_*
+#include "orion-utils/assertion.h"
+
+#include <algorithm>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 namespace orion
 {
-    Renderer::Renderer(const char* backend_module)
+    namespace
+    {
+        std::uint32_t select_device_type(
+            std::span<const PhysicalDeviceDesc> physical_devices,
+            PhysicalDeviceType expected)
+        {
+            if (auto iter = std::ranges::find_if(physical_devices, check_device_type(expected)); 
+                iter != physical_devices.end()) {
+                return iter->index;
+            }
+            return UINT32_MAX;
+        }
+    } // namespace
+
+    std::uint32_t select_discrete(std::span<const PhysicalDeviceDesc> physical_devices)
+    {
+        return select_device_type(physical_devices, PhysicalDeviceType::Discrete);
+    }
+
+    Renderer::Renderer(const char* backend_module,
+                       pfnSelectPhysicalDevice device_select_fn)
     {
         // Load the backend module
         backend_module_ = Module(backend_module);
@@ -25,14 +48,26 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Found {} physical device(s):", physical_devices.size());
         for (const auto& physical_device : physical_devices) {
             SPDLOG_LOGGER_DEBUG(logger(), "{}", physical_device.name);
+            SPDLOG_LOGGER_DEBUG(logger(), "-- Index: {}", physical_device.index);
             SPDLOG_LOGGER_DEBUG(logger(), "-- Type: {}", to_string(physical_device.type));
         }
 
         // Select the physical device to use
-        auto& selected_physical_device = physical_devices[0]; // TODO: Allow the user to select
+        const auto physical_device_index =
+            [device_select_fn, &physical_devices]() -> std::uint32_t {
+            if (device_select_fn) {
+                return device_select_fn(physical_devices);
+            }
+            return 0;
+        }();
+        if (physical_device_index == UINT32_MAX) {
+            throw std::runtime_error("Couldn't find a suitable physical device");
+        }
+
+        SPDLOG_LOGGER_INFO(logger(), "Using physical device index {}", physical_device_index);
 
         // Create the render device
-        render_device_ = render_backend_->create_device(selected_physical_device.index);
+        render_device_ = render_backend_->create_device(physical_device_index);
 
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend \"{}\" initialized", render_backend_->name());
     }

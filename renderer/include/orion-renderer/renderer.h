@@ -7,15 +7,22 @@
     #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
 #endif
 
-#include <memory>          // std::unique_ptr
-#include <spdlog/logger.h> // spdlog::logger
+#include <memory>
+#include <span>
+#include <spdlog/logger.h>
 
 namespace orion
 {
+    using pfnSelectPhysicalDevice =
+        std::uint32_t (*)(std::span<const PhysicalDeviceDesc>);
+
+    std::uint32_t select_discrete(std::span<const PhysicalDeviceDesc>);
+
     class Renderer
     {
     public:
-        explicit Renderer(const char* backend_module);
+        explicit Renderer(const char* backend_module,
+                          pfnSelectPhysicalDevice device_select_fn = nullptr);
 
         [[nodiscard]] auto device() const noexcept { return render_device_.get(); }
 

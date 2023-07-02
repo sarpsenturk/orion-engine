@@ -26,6 +26,11 @@ namespace orion
         std::string name;
     };
 
+    inline constexpr auto check_device_type(PhysicalDeviceType type)
+    {
+        return [type](const PhysicalDeviceDesc& desc) { return desc.type == type; };
+    }
+
     class RenderBackend
     {
     public:

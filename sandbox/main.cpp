@@ -27,7 +27,7 @@ public:
 
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
-        , renderer_(ORION_VULKAN_MODULE)
+        , renderer_(ORION_VULKAN_MODULE, &orion::select_discrete)
     {
         // Log key events
         window_.keyboard().on_key_press().subscribe([this](auto& key_press) {
