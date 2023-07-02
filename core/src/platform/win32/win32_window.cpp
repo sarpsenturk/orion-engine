@@ -175,7 +175,12 @@ namespace orion
                     }
                     return 0;
                 case WM_KEYDOWN:
-                    window->keyboard().on_key_press().invoke({.key = win32_vk_to_keycode(wparam)});
+                    // If 30th bit is set this is repeat message
+                    if (lparam & (1ull << 30)) {
+                        window->keyboard().on_key_repeat().invoke({.key = win32_vk_to_keycode(wparam)});
+                    } else {
+                        window->keyboard().on_key_press().invoke({.key = win32_vk_to_keycode(wparam)});
+                    }
                     return 0;
                 case WM_KEYUP:
                     window->keyboard().on_key_release().invoke({.key = win32_vk_to_keycode(wparam)});

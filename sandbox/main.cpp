@@ -36,6 +36,9 @@ public:
         window_.keyboard().on_key_release().subscribe([this](auto& key_release) {
             SPDLOG_LOGGER_DEBUG(logger(), "{}", key_release);
         });
+        window_.keyboard().on_key_repeat().subscribe([this](auto& key_repeat) {
+            SPDLOG_LOGGER_DEBUG(logger(), "{}", key_repeat);
+        });
 
         // Get the render device
         auto* device = renderer_.device();

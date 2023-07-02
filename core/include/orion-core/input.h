@@ -170,7 +170,6 @@ namespace orion
 
         struct KeyRepeat {
             KeyCode key;
-            std::size_t repeat_count;
         };
     } // namespace events
 
