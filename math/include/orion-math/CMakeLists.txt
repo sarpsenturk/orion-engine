@@ -4,7 +4,6 @@ target_sources(
     FILES
     abs.h
     sqrt.h
-    func.h
     concepts.h
     constants.h
     angles.h

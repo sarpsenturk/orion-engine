@@ -4,6 +4,7 @@ target_sources(
     FILES
     assertion.h
     bitflag.h
+    functors.h
     static_vector.h
     type.h
     uninitialized.h

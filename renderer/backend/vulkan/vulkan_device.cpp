@@ -71,6 +71,47 @@ namespace orion::vulkan
         return UINT32_MAX;
     }
 
+    VkDescriptorSetLayout VulkanDevice::make_descriptor_set_layout(const DescriptorSetLayout& layout)
+    {
+        const auto hash = layout.hash();
+        if (auto iter = descriptor_set_layout_cache_.find(hash); iter != descriptor_set_layout_cache_.end()) {
+            SPDLOG_LOGGER_TRACE(logger(), "Found cached descriptor set layout");
+            return iter->second.get();
+        }
+        SPDLOG_LOGGER_TRACE(logger(), "Could not find cached descriptor set layout. Creating.");
+        VkDescriptorSetLayout vk_layout = create_descriptor_set_layout(layout.bindings());
+        descriptor_set_layout_cache_.insert(std::make_pair(hash, vk_unique<UniqueVkDescriptorSetLayout>(vk_layout, device())));
+        return vk_layout;
+    }
+
+    VkDescriptorSetLayout VulkanDevice::create_descriptor_set_layout(std::span<const DescriptorBinding> bindings)
+    {
+        const auto descriptor_bindings = [bindings]() {
+            std::vector<VkDescriptorSetLayoutBinding> descriptor_bindings;
+            descriptor_bindings.reserve(bindings.size());
+            for (std::uint32_t index = 0; const auto& binding : bindings) {
+                descriptor_bindings.push_back({
+                    .binding = index++,
+                    .descriptorType = to_vulkan_type(binding.type),
+                    .descriptorCount = binding.count,
+                    .stageFlags = to_vulkan_type(binding.shader_stages),
+                    .pImmutableSamplers = nullptr,
+                });
+            }
+            return descriptor_bindings;
+        }();
+        const VkDescriptorSetLayoutCreateInfo info{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .bindingCount = static_cast<std::uint32_t>(descriptor_bindings.size()),
+            .pBindings = descriptor_bindings.data(),
+        };
+        VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
+        vk_result_check(vkCreateDescriptorSetLayout(device(), &info, alloc_callbacks(), &descriptor_set_layout));
+        return descriptor_set_layout;
+    }
+
     SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc)
     {
         // Generate handle for swapchain and surface
@@ -299,32 +340,15 @@ namespace orion::vulkan
 
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
-        // Create descriptor set layout
-        VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
-        {
-            const auto descriptor_bindings = [bindings = desc.descriptor_bindings]() {
-                std::vector<VkDescriptorSetLayoutBinding> descriptor_bindings;
-                descriptor_bindings.reserve(bindings.size());
-                for (std::uint32_t index = 0; const auto& binding : bindings) {
-                    descriptor_bindings.push_back({
-                        .binding = index++,
-                        .descriptorType = to_vulkan_type(binding.type),
-                        .descriptorCount = binding.count,
-                        .stageFlags = to_vulkan_type(binding.shader_stages),
-                        .pImmutableSamplers = nullptr,
-                    });
-                }
-                return descriptor_bindings;
-            }();
-            const VkDescriptorSetLayoutCreateInfo info{
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .bindingCount = static_cast<std::uint32_t>(descriptor_bindings.size()),
-                .pBindings = descriptor_bindings.data(),
-            };
-            vk_result_check(vkCreateDescriptorSetLayout(device(), &info, alloc_callbacks(), &descriptor_set_layout));
-        }
+        // Create or get descriptor set layouts
+        const auto descriptor_set_layouts = [layouts = desc.descriptor_layouts, this]() {
+            std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
+            descriptor_set_layouts.resize(layouts.size());
+            std::ranges::transform(layouts, descriptor_set_layouts.begin(), [this](const auto& layout) {
+                return make_descriptor_set_layout(layout);
+            });
+            return descriptor_set_layouts;
+        }();
 
         // Create pipeline layout
         VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
@@ -333,8 +357,8 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .setLayoutCount = 1,
-                .pSetLayouts = &descriptor_set_layout,
+                .setLayoutCount = static_cast<std::uint32_t>(descriptor_set_layouts.size()),
+                .pSetLayouts = descriptor_set_layouts.data(),
                 .pushConstantRangeCount = 0,
                 .pPushConstantRanges = nullptr,
             };
@@ -531,7 +555,6 @@ namespace orion::vulkan
 
         const auto handle = PipelineHandle::generate();
         pipelines_.insert(std::make_pair(handle, VulkanPipeline{
-                                                     vk_unique<UniqueVkDescriptorSetLayout>(descriptor_set_layout, device()),
                                                      vk_unique<UniqueVkPipelineLayout>(pipeline_layout, device()),
                                                      vk_unique<UniqueVkPipeline>(pipeline, device()),
                                                  }));
@@ -868,6 +891,7 @@ namespace orion::vulkan
 
     void VulkanDevice::destroy_api(DescriptorPoolHandle descriptor_pool_handle)
     {
+        descriptor_pools_.erase(descriptor_pool_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)

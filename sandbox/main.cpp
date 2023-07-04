@@ -29,17 +29,6 @@ public:
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_(ORION_VULKAN_MODULE, &orion::select_discrete)
     {
-        // Log key events
-        window_.keyboard().on_key_press().subscribe([this](auto& key_press) {
-            SPDLOG_LOGGER_DEBUG(logger(), "{}", key_press);
-        });
-        window_.keyboard().on_key_release().subscribe([this](auto& key_release) {
-            SPDLOG_LOGGER_DEBUG(logger(), "{}", key_release);
-        });
-        window_.keyboard().on_key_repeat().subscribe([this](auto& key_repeat) {
-            SPDLOG_LOGGER_DEBUG(logger(), "{}", key_repeat);
-        });
-
         // Get the render device
         auto* device = renderer_.device();
 
@@ -90,6 +79,15 @@ public:
                                      .size = resize_end.size,
                                  });
             });
+
+        // Create descriptor set layout to be used in pipeline creation and descriptor set allocation
+        const auto descriptor_layout = orion::DescriptorSetLayout({
+            orion::DescriptorBinding{
+                .type = orion::DescriptorType::ConstantBuffer,
+                .shader_stages = orion::ShaderStage::Vertex,
+                .count = 1,
+            },
+        });
 
         // Create graphics pipeline
         {
@@ -157,20 +155,11 @@ float4 main(float4 color : COLOR) : SV_Target
                                       orion::VertexAttributeDesc{.name = "COLOR", .format = orion::Format::R32G32B32A32_Float}},
                                      orion::InputRate::Vertex}};
 
-            // Pipeline descriptors
-            const std::array descriptors{
-                orion::DescriptorBinding{
-                    .type = orion::DescriptorType::ConstantBuffer,
-                    .count = 1,
-                    .shader_stages = orion::ShaderStage::Vertex,
-                },
-            };
-
             // Create the graphics pipeline
             graphics_pipeline_ = device->create_graphics_pipeline(orion::GraphicsPipelineDesc{
                 .shaders = shaders,
                 .vertex_bindings = vertex_bindings,
-                .descriptor_bindings = descriptors,
+                .descriptor_layouts = {&descriptor_layout, 1},
                 .render_pass = render_pass_,
             });
 

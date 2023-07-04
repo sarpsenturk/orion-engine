@@ -1,8 +1,8 @@
 #pragma once
 
 #include "orion-math/concepts.h"      // arithmetic
-#include "orion-math/func.h"          // negate, plus, minus
 #include "orion-math/vector/vector.h" // vector
+#include "orion-utils/functors.h"     // negate, plus, minus
 
 #include <algorithm>                  // std::transform
 #include <array>                      // std::array
@@ -55,20 +55,20 @@ namespace orion
         [[nodiscard]] constexpr friend Matrix operator-(const Matrix& matrix) noexcept
         {
             Matrix result;
-            std::ranges::transform(matrix, std::ranges::begin(result), negate<>{});
+            std::ranges::transform(matrix, std::ranges::begin(result), negate{});
             return result;
         }
 
         [[nodiscard]] constexpr friend Matrix operator+(const Matrix& lhs, const Matrix& rhs) noexcept
         {
             Matrix result;
-            std::ranges::transform(lhs, rhs, std::ranges::begin(result), plus<>{});
+            std::ranges::transform(lhs, rhs, std::ranges::begin(result), plus{});
             return result;
         }
         [[nodiscard]] constexpr friend Matrix operator-(const Matrix& lhs, const Matrix& rhs) noexcept
         {
             Matrix result;
-            std::ranges::transform(lhs, rhs, std::ranges::begin(result), minus<>{});
+            std::ranges::transform(lhs, rhs, std::ranges::begin(result), minus{});
             return result;
         }
 

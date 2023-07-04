@@ -20,4 +20,5 @@ namespace orion
     ORION_DEFINE_HANDLE(CommandBufferHandle);
     ORION_DEFINE_HANDLE(SubmissionHandle);
     ORION_DEFINE_HANDLE(DescriptorPoolHandle);
+    ORION_DEFINE_HANDLE(DescriptorSetHandle);
 } // namespace orion

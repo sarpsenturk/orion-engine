@@ -53,6 +53,9 @@ namespace orion::vulkan
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
 
+        VkDescriptorSetLayout make_descriptor_set_layout(const DescriptorSetLayout& layout);
+        VkDescriptorSetLayout create_descriptor_set_layout(std::span<const DescriptorBinding> bindings);
+
         // Vulkan command translation functions
         void compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission);
 
@@ -110,6 +113,7 @@ namespace orion::vulkan
         std::unordered_map<CommandPoolHandle, UniqueVkCommandPool> command_pools_;
         std::unordered_map<CommandBufferHandle, UniqueVkCommandBuffer> command_buffers_;
         std::unordered_map<SubmissionHandle, VulkanSubmission> submissions_;
+        std::unordered_map<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layout_cache_;
         std::unordered_map<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;
     };
 } // namespace orion::vulkan

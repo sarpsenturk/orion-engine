@@ -1,5 +1,6 @@
 #pragma once
 
+#include "descriptor.h"
 #include "handles.h"
 #include "shader.h"
 #include "types.h"
@@ -69,16 +70,10 @@ namespace orion
         FrontFace front_face = FrontFace::ClockWise;
     };
 
-    struct DescriptorBinding {
-        DescriptorType type;
-        std::uint32_t count;
-        ShaderStageFlags shader_stages;
-    };
-
     struct GraphicsPipelineDesc {
         std::span<const ShaderStageDesc> shaders = {};
         std::span<const VertexBinding> vertex_bindings = {};
-        std::span<const DescriptorBinding> descriptor_bindings = {};
+        std::span<const DescriptorSetLayout> descriptor_layouts = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
         RenderPassHandle render_pass;

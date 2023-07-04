@@ -1,18 +1,18 @@
 #pragma once
 
 #include "orion-math/concepts.h" // arithmetic
-#include "orion-math/func.h"     // negate, plus, minus
 #include "orion-math/sqrt.h"     // orion::sqrt
+#include "orion-utils/functors.h"
 
-#include <algorithm>             // std::ranges::transform, std::ranges::for_each, std::accumulate
-#include <array>                 // std::array
-#include <concepts>              // std::floating_point
-#include <cstddef>               // std::size_t, std::ptrdiff_t
-#include <iterator>              // std::prev
-#include <numeric>               // std::transform_reduce, std::inner_product
-#include <ranges>                // std::ranges::input_range, std::ranges::begin, std::ranges::end
-#include <stdexcept>             // std::out_of_range
-#include <type_traits>           // std::common_type, std::is_same_v
+#include <algorithm>   // std::ranges::transform, std::ranges::for_each, std::accumulate
+#include <array>       // std::array
+#include <concepts>    // std::floating_point
+#include <cstddef>     // std::size_t, std::ptrdiff_t
+#include <iterator>    // std::prev
+#include <numeric>     // std::transform_reduce, std::inner_product
+#include <ranges>      // std::ranges::input_range, std::ranges::begin, std::ranges::end
+#include <stdexcept>   // std::out_of_range
+#include <type_traits> // std::common_type, std::is_same_v
 
 #define ORION_VECTOR_DEFINE_COMPONENT(name, index)                \
     [[nodiscard]] constexpr reference name() noexcept             \
@@ -142,21 +142,21 @@ namespace orion
         [[nodiscard]] friend constexpr Vector operator-(const Vector& vector) noexcept
         {
             Vector result;
-            std::ranges::transform(vector, result.begin(), negate<>{});
+            std::ranges::transform(vector, result.begin(), negate{});
             return result;
         }
 
         [[nodiscard]] friend constexpr Vector operator+(const Vector& lhs, const Vector& rhs) noexcept
         {
             Vector result;
-            std::ranges::transform(lhs, rhs, result.begin(), plus<>{});
+            std::ranges::transform(lhs, rhs, result.begin(), plus{});
             return result;
         }
 
         [[nodiscard]] friend constexpr Vector operator-(const Vector& lhs, const Vector& rhs) noexcept
         {
             Vector result;
-            std::ranges::transform(lhs, rhs, result.begin(), minus<>{});
+            std::ranges::transform(lhs, rhs, result.begin(), minus{});
             return result;
         }
 

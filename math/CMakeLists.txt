@@ -7,7 +7,7 @@ find_package(fmt REQUIRED)
 add_library(orion-math INTERFACE "")
 target_compile_features(orion-math INTERFACE cxx_std_20)
 target_include_directories(orion-math INTERFACE include/)
-target_link_libraries(orion-math INTERFACE fmt::fmt)
+target_link_libraries(orion-math INTERFACE fmt::fmt orion::utils)
 
 # Create file set
 target_sources(orion-math INTERFACE FILE_SET public_headers TYPE HEADERS)

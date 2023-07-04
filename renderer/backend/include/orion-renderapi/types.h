@@ -148,7 +148,7 @@ namespace orion
         DrawIndexed,
     };
 
-    enum class DescriptorType {
+    enum class DescriptorType : std::uint8_t {
         ConstantBuffer
     };
 } // namespace orion
