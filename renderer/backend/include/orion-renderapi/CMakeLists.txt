@@ -4,6 +4,7 @@ target_sources(
         FILE_SET public_headers
         FILES
         buffer.h
+        descriptor.h
         command.h
         handles.h
         pipeline.h

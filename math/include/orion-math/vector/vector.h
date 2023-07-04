@@ -160,7 +160,7 @@ namespace orion
             return result;
         }
 
-        storage components_; // NOLINT(misc-non-private-member-variables-in-classes)
+        storage components_;
     };
 
     template<typename T, std::size_t N>

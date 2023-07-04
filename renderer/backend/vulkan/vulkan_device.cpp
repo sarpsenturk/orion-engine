@@ -299,35 +299,64 @@ namespace orion::vulkan
 
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
+        // Create descriptor set layout
+        VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
+        {
+            const auto descriptor_bindings = [bindings = desc.descriptor_bindings]() {
+                std::vector<VkDescriptorSetLayoutBinding> descriptor_bindings;
+                descriptor_bindings.reserve(bindings.size());
+                for (std::uint32_t index = 0; const auto& binding : bindings) {
+                    descriptor_bindings.push_back({
+                        .binding = index++,
+                        .descriptorType = to_vulkan_type(binding.type),
+                        .descriptorCount = binding.count,
+                        .stageFlags = to_vulkan_type(binding.shader_stages),
+                        .pImmutableSamplers = nullptr,
+                    });
+                }
+                return descriptor_bindings;
+            }();
+            const VkDescriptorSetLayoutCreateInfo info{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .bindingCount = static_cast<std::uint32_t>(descriptor_bindings.size()),
+                .pBindings = descriptor_bindings.data(),
+            };
+            vk_result_check(vkCreateDescriptorSetLayout(device(), &info, alloc_callbacks(), &descriptor_set_layout));
+        }
+
         // Create pipeline layout
-        const VkPipelineLayoutCreateInfo layout_info{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .setLayoutCount = 0,
-            .pSetLayouts = nullptr,
-            .pushConstantRangeCount = 0,
-            .pPushConstantRanges = nullptr,
-        };
         VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-        vk_result_check(vkCreatePipelineLayout(device(), &layout_info, alloc_callbacks(), &pipeline_layout));
+        {
+            const VkPipelineLayoutCreateInfo info{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .setLayoutCount = 1,
+                .pSetLayouts = &descriptor_set_layout,
+                .pushConstantRangeCount = 0,
+                .pPushConstantRanges = nullptr,
+            };
+            vk_result_check(vkCreatePipelineLayout(device(), &info, alloc_callbacks(), &pipeline_layout));
+        }
 
         // Convert to VkPipelineShaderStageCreateInfo
         ORION_EXPECTS(desc.shaders.size() <= UINT32_MAX);
-        const auto vk_stages = [stages = desc.shaders, this]() {
-            std::vector<VkPipelineShaderStageCreateInfo> vk_stages;
-            vk_stages.reserve(stages.size());
-            for (const auto& stage : stages) {
-                vk_stages.push_back({
+        const auto vk_shader_stages = [shaders = desc.shaders, this]() {
+            std::vector<VkPipelineShaderStageCreateInfo> vk_shader_stages;
+            vk_shader_stages.reserve(shaders.size());
+            for (const auto& shader : shaders) {
+                vk_shader_stages.push_back({
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                     .pNext = nullptr,
-                    .stage = to_vulkan_type(stage.type),
-                    .module = find_shader(stage.module),
-                    .pName = stage.entry_point,
+                    .stage = static_cast<VkShaderStageFlagBits>(to_vulkan_type(shader.stage)),
+                    .module = find_shader(shader.module),
+                    .pName = shader.entry_point,
                     .pSpecializationInfo = nullptr,
                 });
             }
-            return vk_stages;
+            return vk_shader_stages;
         }();
 
         // Convert to VkVertexInputBindingDescription
@@ -473,32 +502,36 @@ namespace orion::vulkan
         // Find associated render pass
         VkRenderPass render_pass = find_render_pass(desc.render_pass);
 
-        const VkGraphicsPipelineCreateInfo pipeline_info{
-            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .stageCount = static_cast<std::uint32_t>(vk_stages.size()),
-            .pStages = vk_stages.data(),
-            .pVertexInputState = &vk_input_state,
-            .pInputAssemblyState = &vk_input_assembly,
-            .pTessellationState = nullptr,
-            .pViewportState = &vk_viewport,
-            .pRasterizationState = &vk_rasterization,
-            .pMultisampleState = &vk_multisample,
-            .pDepthStencilState = nullptr, // No depth stencil support yet
-            .pColorBlendState = &vk_color_blend,
-            .pDynamicState = &vk_dynamic_state,
-            .layout = pipeline_layout,
-            .renderPass = render_pass,
-            .subpass = 0,
-            .basePipelineHandle = VK_NULL_HANDLE,
-            .basePipelineIndex = 0,
-        };
+        // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
-        vk_result_check(vkCreateGraphicsPipelines(device(), VK_NULL_HANDLE, 1, &pipeline_info, alloc_callbacks(), &pipeline));
+        {
+            const VkGraphicsPipelineCreateInfo info{
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .stageCount = static_cast<std::uint32_t>(vk_shader_stages.size()),
+                .pStages = vk_shader_stages.data(),
+                .pVertexInputState = &vk_input_state,
+                .pInputAssemblyState = &vk_input_assembly,
+                .pTessellationState = nullptr,
+                .pViewportState = &vk_viewport,
+                .pRasterizationState = &vk_rasterization,
+                .pMultisampleState = &vk_multisample,
+                .pDepthStencilState = nullptr, // No depth stencil support yet
+                .pColorBlendState = &vk_color_blend,
+                .pDynamicState = &vk_dynamic_state,
+                .layout = pipeline_layout,
+                .renderPass = render_pass,
+                .subpass = 0,
+                .basePipelineHandle = VK_NULL_HANDLE,
+                .basePipelineIndex = 0,
+            };
+            vk_result_check(vkCreateGraphicsPipelines(device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
+        }
 
         const auto handle = PipelineHandle::generate();
         pipelines_.insert(std::make_pair(handle, VulkanPipeline{
+                                                     vk_unique<UniqueVkDescriptorSetLayout>(descriptor_set_layout, device()),
                                                      vk_unique<UniqueVkPipelineLayout>(pipeline_layout, device()),
                                                      vk_unique<UniqueVkPipeline>(pipeline, device()),
                                                  }));
@@ -700,6 +733,38 @@ namespace orion::vulkan
         return handle;
     }
 
+    DescriptorPoolHandle VulkanDevice::create_descriptor_pool_api(const DescriptorPoolDesc& desc)
+    {
+        // Create descriptor pool
+        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        {
+            const auto pool_sizes = [sizes = desc.pool_sizes]() {
+                std::vector<VkDescriptorPoolSize> pool_sizes;
+                pool_sizes.reserve(sizes.size());
+                for (const auto& size : sizes) {
+                    pool_sizes.push_back({
+                        .type = to_vulkan_type(size.type),
+                        .descriptorCount = size.count,
+                    });
+                }
+                return pool_sizes;
+            }();
+            const VkDescriptorPoolCreateInfo info{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .maxSets = desc.max_sets,
+                .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
+                .pPoolSizes = pool_sizes.data(),
+            };
+            vk_result_check(vkCreateDescriptorPool(device(), &info, alloc_callbacks(), &descriptor_pool));
+        }
+
+        auto handle = DescriptorPoolHandle::generate();
+        descriptor_pools_.insert(std::make_pair(handle, vk_unique<UniqueVkDescriptorPool>(descriptor_pool, device())));
+        return handle;
+    }
+
     VkShaderModule VulkanDevice::find_shader(ShaderModuleHandle shader_module_handle) const
     {
         return shader_modules_.at(shader_module_handle).get();
@@ -799,6 +864,10 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(SubmissionHandle submission_handle)
     {
         submissions_.erase(submission_handle);
+    }
+
+    void VulkanDevice::destroy_api(DescriptorPoolHandle descriptor_pool_handle)
+    {
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)

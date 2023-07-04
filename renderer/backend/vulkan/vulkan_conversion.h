@@ -103,16 +103,20 @@ namespace orion::vulkan
         return VK_IMAGE_LAYOUT_MAX_ENUM;
     }
 
-    constexpr auto to_vulkan_type(ShaderType shader_type) noexcept -> VkShaderStageFlagBits
+    constexpr auto to_vulkan_type(ShaderStageFlags shader_stages) noexcept -> VkShaderStageFlags
     {
-        switch (shader_type) {
-            case ShaderType::Vertex:
-                return VK_SHADER_STAGE_VERTEX_BIT;
-            case ShaderType::Fragment:
-                return VK_SHADER_STAGE_FRAGMENT_BIT;
+        if (shader_stages.has_none()) {
+            return {};
         }
-        ORION_ASSERT(!"Invalid shader type");
-        return {};
+
+        VkShaderStageFlags vk_shader_stages = {};
+        if (shader_stages.has(ShaderStage::Vertex)) {
+            vk_shader_stages |= VK_SHADER_STAGE_VERTEX_BIT;
+        }
+        if (shader_stages.has(ShaderStage::Fragment)) {
+            vk_shader_stages |= VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
+        return vk_shader_stages;
     }
 
     constexpr auto to_vulkan_type(InputRate input_rate) noexcept -> VkVertexInputRate
@@ -208,6 +212,18 @@ namespace orion::vulkan
             .minDepth = 0.f,
             .maxDepth = 1.f,
         };
+    }
+
+    constexpr auto to_vulkan_type(DescriptorType descriptor_type) noexcept -> VkDescriptorType
+    {
+        switch (descriptor_type) {
+            case DescriptorType::ConstantBuffer:
+                return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            default:
+                break;
+        }
+        ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type()");
+        return {};
     }
 
     template<typename T>

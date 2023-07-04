@@ -71,6 +71,7 @@ namespace orion::vulkan
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
         CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) override;
         CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
+        DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
         void recreate_api(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc) override;
@@ -84,6 +85,7 @@ namespace orion::vulkan
         void destroy_api(CommandPoolHandle command_pool_handle) override;
         void destroy_api(CommandBufferHandle command_buffer_handle) override;
         void destroy_api(SubmissionHandle submission_handle) override;
+        void destroy_api(DescriptorPoolHandle descriptor_pool_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
@@ -108,5 +110,6 @@ namespace orion::vulkan
         std::unordered_map<CommandPoolHandle, UniqueVkCommandPool> command_pools_;
         std::unordered_map<CommandBufferHandle, UniqueVkCommandBuffer> command_buffers_;
         std::unordered_map<SubmissionHandle, VulkanSubmission> submissions_;
+        std::unordered_map<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;
     };
 } // namespace orion::vulkan

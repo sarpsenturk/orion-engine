@@ -12,7 +12,7 @@ namespace orion
 {
     struct ShaderStageDesc {
         ShaderModuleHandle module;
-        ShaderType type;
+        ShaderStage stage;
         const char* entry_point = "main";
     };
 
@@ -69,9 +69,16 @@ namespace orion
         FrontFace front_face = FrontFace::ClockWise;
     };
 
+    struct DescriptorBinding {
+        DescriptorType type;
+        std::uint32_t count;
+        ShaderStageFlags shader_stages;
+    };
+
     struct GraphicsPipelineDesc {
         std::span<const ShaderStageDesc> shaders = {};
         std::span<const VertexBinding> vertex_bindings = {};
+        std::span<const DescriptorBinding> descriptor_bindings = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
         RenderPassHandle render_pass;

@@ -100,6 +100,11 @@ public:
             const auto vs_module = [device, &shader_compiler]() {
                 // Compile vertex shader
                 const auto* vs_source = R"hlsl(
+cbuffer CSceneBuffer {
+    float4x4 view;
+    float4x4 view_proj;
+};
+
 struct VsOutput {
     float4 position : SV_Position;
     float4 color : COLOR;
@@ -115,7 +120,7 @@ VsOutput main(float3 position : POSITION, float4 color : COLOR)
 )hlsl";
                 const auto compile_desc = orion::ShaderCompileDesc{
                     .shader_source = vs_source,
-                    .shader_type = orion::ShaderType::Vertex,
+                    .shader_type = orion::ShaderStage::Vertex,
                     .object_type = orion::ShaderObjectType::SpirV,
                 };
                 const auto vs_compile_result = shader_compiler.compile(compile_desc);
@@ -133,7 +138,7 @@ float4 main(float4 color : COLOR) : SV_Target
 )hlsl";
                 const auto compile_desc = orion::ShaderCompileDesc{
                     .shader_source = fs_source,
-                    .shader_type = orion::ShaderType::Fragment,
+                    .shader_type = orion::ShaderStage::Fragment,
                     .object_type = orion::ShaderObjectType::SpirV,
                 };
                 const auto fs_compile_result = shader_compiler.compile(compile_desc);
@@ -142,8 +147,8 @@ float4 main(float4 color : COLOR) : SV_Target
 
             // Pipeline shaders
             const std::array shaders{
-                orion::ShaderStageDesc{.module = vs_module, .type = orion::ShaderType::Vertex},
-                orion::ShaderStageDesc{.module = fs_module, .type = orion::ShaderType::Fragment},
+                orion::ShaderStageDesc{.module = vs_module, .stage = orion::ShaderStage::Vertex},
+                orion::ShaderStageDesc{.module = fs_module, .stage = orion::ShaderStage::Fragment},
             };
 
             // Pipeline vertex bindings
@@ -152,10 +157,20 @@ float4 main(float4 color : COLOR) : SV_Target
                                       orion::VertexAttributeDesc{.name = "COLOR", .format = orion::Format::R32G32B32A32_Float}},
                                      orion::InputRate::Vertex}};
 
+            // Pipeline descriptors
+            const std::array descriptors{
+                orion::DescriptorBinding{
+                    .type = orion::DescriptorType::ConstantBuffer,
+                    .count = 1,
+                    .shader_stages = orion::ShaderStage::Vertex,
+                },
+            };
+
             // Create the graphics pipeline
             graphics_pipeline_ = device->create_graphics_pipeline(orion::GraphicsPipelineDesc{
                 .shaders = shaders,
                 .vertex_bindings = vertex_bindings,
+                .descriptor_bindings = descriptors,
                 .render_pass = render_pass_,
             });
 
@@ -243,6 +258,17 @@ float4 main(float4 color : COLOR) : SV_Target
             device->create_command_buffer({.command_pool = graphics_command_pool_}),
             std::make_unique<orion::LinearCommandAllocator>(render_command_size));
 
+        // Create descriptor pool
+        {
+            const std::array pool_sizes{
+                orion::DescriptorPoolSize{.type = orion::DescriptorType::ConstantBuffer, .count = 1},
+            };
+            descriptor_pool_ = device->create_descriptor_pool(orion::DescriptorPoolDesc{
+                .max_sets = 1,
+                .pool_sizes = pool_sizes,
+            });
+        }
+
         // Wait until copy is completed
         device->wait(submission);
 
@@ -327,6 +353,7 @@ private:
     orion::GPUBufferHandle index_buffer_;
     orion::CommandPoolHandle graphics_command_pool_;
     orion::CommandPoolHandle transfer_command_pool_;
+    orion::DescriptorPoolHandle descriptor_pool_;
     orion::CommandBuffer render_command_;
     orion::SubmissionHandle render_submission_;
 };

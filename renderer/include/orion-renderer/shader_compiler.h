@@ -63,7 +63,7 @@ namespace orion
     struct ShaderCompileDesc {
         std::string_view shader_source;
         const char* entry_point = "main";
-        ShaderType shader_type;
+        ShaderStage shader_type;
         ShaderObjectType object_type;
         bool enable_debug = orion::debug_build;
     };

@@ -131,6 +131,18 @@ namespace orion::vulkan
         vkDestroyFence(device, fence, alloc_callbacks());
     }
 
+    void DescriptorSetLayoutDeleter::operator()(VkDescriptorSetLayout descriptor_set_layout) const
+    {
+        ORION_EXPECTS(device != VK_NULL_HANDLE);
+        vkDestroyDescriptorSetLayout(device, descriptor_set_layout, alloc_callbacks());
+    }
+
+    void DescriptorPoolDeleter::operator()(VkDescriptorPool descriptor_pool) const
+    {
+        ORION_EXPECTS(device != VK_NULL_HANDLE);
+        vkDestroyDescriptorPool(device, descriptor_pool, alloc_callbacks());
+    }
+
     UniqueVkSemaphore create_vk_semaphore(VkDevice device)
     {
         const VkSemaphoreCreateInfo info{

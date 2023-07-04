@@ -2,6 +2,7 @@
 
 #include "buffer.h"
 #include "command.h"
+#include "descriptor.h"
 #include "handles.h"
 #include "pipeline.h"
 #include "render_pass.h"
@@ -37,6 +38,7 @@ namespace orion
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
         [[nodiscard]] CommandPoolHandle create_command_pool(const CommandPoolDesc& desc);
         [[nodiscard]] CommandBufferHandle create_command_buffer(const CommandBufferDesc& desc);
+        [[nodiscard]] DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
         void recreate(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc);
@@ -50,6 +52,7 @@ namespace orion
         void destroy(CommandPoolHandle command_pool_handle);
         void destroy(CommandBufferHandle command_buffer_handle);
         void destroy(SubmissionHandle submission_handle);
+        void destroy(DescriptorPoolHandle descriptor_pool_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
@@ -75,6 +78,7 @@ namespace orion
         [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) = 0;
         [[nodiscard]] virtual CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) = 0;
         [[nodiscard]] virtual CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) = 0;
+        [[nodiscard]] virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
 
         virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
         virtual void recreate_api(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc) = 0;
@@ -88,6 +92,7 @@ namespace orion
         virtual void destroy_api(CommandBufferHandle command_buffer_handle) = 0;
         virtual void destroy_api(CommandPoolHandle command_pool_handle) = 0;
         virtual void destroy_api(SubmissionHandle submission_handle) = 0;
+        virtual void destroy_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;

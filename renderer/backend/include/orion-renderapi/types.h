@@ -87,10 +87,11 @@ namespace orion
         PresentSrc
     };
 
-    enum class ShaderType {
+    enum class ShaderStage : std::uint8_t {
         Vertex,
         Fragment
     };
+    using ShaderStageFlags = Bitflag<ShaderStage>;
 
     enum class PrimitiveTopology {
         TriangleList
@@ -121,6 +122,7 @@ namespace orion
     enum class GPUBufferUsage : std::uint8_t {
         VertexBuffer,
         IndexBuffer,
+        ConstantBuffer,
         TransferSrc,
         TransferDst
     };
@@ -144,5 +146,9 @@ namespace orion
         EndFrame,
         Draw,
         DrawIndexed,
+    };
+
+    enum class DescriptorType {
+        ConstantBuffer
     };
 } // namespace orion
