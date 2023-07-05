@@ -104,9 +104,11 @@ public:
             const auto vs_module = [device, &shader_compiler]() {
                 // Compile vertex shader
                 const auto* vs_source = R"hlsl(
-cbuffer CSceneBuffer {
-    float4x4 view_proj;
+struct CSceneBuffer {
+    row_major float4x4 view_proj;
 };
+
+ConstantBuffer<CSceneBuffer> scene;
 
 struct VsOutput {
     float4 position : SV_Position;
@@ -116,7 +118,7 @@ struct VsOutput {
 VsOutput main(float3 position : POSITION, float4 color : COLOR)
 {
     VsOutput output;
-    output.position = float4(position, 1.0);
+    output.position = mul(float4(position, 1.0), scene.view_proj);
     output.color = color;
     return output;
 }
@@ -342,6 +344,14 @@ private:
             begin_frame->clear_color = {1.f, 0.f, 1.f, 1.f};
         }
 
+        // Bind descriptor set
+        {
+            auto* bind_descriptors = render_command_.add_command<orion::CmdBindDescriptorSets>({});
+            bind_descriptors->pipeline = graphics_pipeline_;
+            bind_descriptors->first_set = 0;
+            bind_descriptors->descriptor_sets = {&descriptor_set_, 1};
+        }
+
         // Draw quad
         {
             auto* draw = render_command_.add_command<orion::CmdDrawIndexed>({});
@@ -391,7 +401,7 @@ private:
     orion::CommandBuffer render_command_;
     orion::SubmissionHandle render_submission_;
 
-    CSceneBuffer scene_buffer_ = orion::translation(0.f, 0.f, 0.f);
+    CSceneBuffer scene_buffer_ = orion::translation(1.f, 0.f, 0.f);
 };
 
 ORION_MAIN(args)

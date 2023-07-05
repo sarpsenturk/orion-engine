@@ -34,6 +34,7 @@ namespace orion::vulkan
         [[nodiscard]] VkRenderPass find_render_pass(RenderPassHandle render_pass_handle);
         [[nodiscard]] VulkanRenderTarget& find_render_target(RenderTargetHandle render_target_handle);
         [[nodiscard]] VkPipeline find_pipeline(PipelineHandle pipeline_handle) const;
+        [[nodiscard]] VkPipelineLayout find_pipeline_layout(PipelineHandle pipeline_handle) const;
         [[nodiscard]] VkCommandPool find_command_pool(CommandPoolHandle command_pool_handle) const;
         [[nodiscard]] VkCommandBuffer find_command_buffer(CommandBufferHandle command_buffer_handle) const;
         [[nodiscard]] VulkanSubmission& find_submission(SubmissionHandle submission_handle);
@@ -66,6 +67,7 @@ namespace orion::vulkan
         void cmd_end_frame(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data);
+        void cmd_bind_descriptor_sets(VkCommandBuffer command_buffer, const void* data);
 
         // Interface Overrides
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;

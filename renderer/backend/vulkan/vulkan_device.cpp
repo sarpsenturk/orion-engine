@@ -818,6 +818,11 @@ namespace orion::vulkan
         return pipelines_.at(pipeline_handle).pipeline();
     }
 
+    VkPipelineLayout VulkanDevice::find_pipeline_layout(PipelineHandle pipeline_handle) const
+    {
+        return pipelines_.at(pipeline_handle).pipeline_layout();
+    }
+
     VkCommandPool VulkanDevice::find_command_pool(CommandPoolHandle command_pool_handle) const
     {
         return command_pools_.at(command_pool_handle).get();
@@ -1056,11 +1061,11 @@ namespace orion::vulkan
                     .dstSet = find_descriptor_set(write.descriptor_set),
                     .dstBinding = write.binding,
                     .dstArrayElement = write.array_element,
-                    .descriptorCount = 0, // TODO: Set this according to type
+                    .descriptorCount = count,
                     .descriptorType = type,
-                    .pImageInfo = nullptr,
-                    .pBufferInfo = nullptr, // TODO: Set this according to the writes
-                    .pTexelBufferView = nullptr,
+                    .pImageInfo = image_info,
+                    .pBufferInfo = buffer_info,
+                    .pTexelBufferView = texel_buffer_view,
                 });
             }
             return descriptor_writes;
@@ -1119,6 +1124,12 @@ namespace orion::vulkan
                     break;
                 case CommandType::DrawIndexed:
                     cmd_draw_indexed(command_buffer, command.data);
+                    break;
+                case CommandType::BindDescriptorSets:
+                    cmd_bind_descriptor_sets(command_buffer, command.data);
+                    break;
+                default:
+                    ORION_ASSERT(!"Unhandled command");
                     break;
             }
         }
@@ -1226,5 +1237,28 @@ namespace orion::vulkan
 
         // Issue draw command
         vkCmdDrawIndexed(command_buffer, cmd_draw_indexed->index_count, 1, 0, 0, 0);
+    }
+
+    void VulkanDevice::cmd_bind_descriptor_sets(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* const cmd_data = static_cast<const CmdBindDescriptorSets*>(data);
+        VkPipelineLayout pipeline_layout = find_pipeline_layout(cmd_data->pipeline);
+        const auto descriptor_sets = [sets = cmd_data->descriptor_sets, this]() {
+            std::vector<VkDescriptorSet> descriptor_sets;
+            descriptor_sets.reserve(sets.size());
+            for (auto set : sets) {
+                descriptor_sets.push_back(find_descriptor_set(set));
+            }
+            return descriptor_sets;
+        }();
+        vkCmdBindDescriptorSets(
+            command_buffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline_layout,
+            cmd_data->first_set,
+            static_cast<std::uint32_t>(descriptor_sets.size()),
+            descriptor_sets.data(),
+            0,
+            nullptr);
     }
 } // namespace orion::vulkan

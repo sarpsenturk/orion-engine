@@ -137,4 +137,10 @@ namespace orion
         Viewport viewport;
         std::uint32_t index_count;
     };
+
+    struct CmdBindDescriptorSets : CmdBase<CommandType::BindDescriptorSets, CommandQueueType::Graphics> {
+        PipelineHandle pipeline;
+        std::uint32_t first_set;
+        std::span<DescriptorSetHandle> descriptor_sets;
+    };
 } // namespace orion

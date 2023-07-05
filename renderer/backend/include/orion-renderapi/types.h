@@ -146,6 +146,7 @@ namespace orion
         EndFrame,
         Draw,
         DrawIndexed,
+        BindDescriptorSets
     };
 
     enum class DescriptorType : std::uint8_t {
