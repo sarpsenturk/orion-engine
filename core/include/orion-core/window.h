@@ -3,10 +3,12 @@
 #include "orion-core/event.h"
 #include "orion-core/input.h"
 
-#include <memory>                        // std::shared_ptr
-#include <orion-math/vector/formatter.h> // fmt::formatter<Vector>
-#include <orion-math/vector/vector2.h>   // orion::Vector2
-#include <spdlog/logger.h>               // spdlog::logger
+#include <memory>
+#include <string>
+
+#include <orion-math/vector/vector2.h>
+
+#include <spdlog/logger.h>
 
 #ifndef ORION_WINDOW_LOG_LEVEL
     #define ORION_WINDOW_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
@@ -71,6 +73,15 @@ namespace orion
 
         struct WindowRestore {
         };
+
+        const char* format_as(const WindowClose&);
+        std::string format_as(const WindowMove& move);
+        std::string format_as(const WindowMoveEnd& move_end);
+        std::string format_as(const WindowResize& resize);
+        std::string format_as(const WindowResizeEnd& resize_end);
+        const char* format_as(const WindowMaximize&);
+        const char* format_as(const WindowMinimize&);
+        const char* format_as(const WindowRestore&);
     } // namespace events
 
     class Window
@@ -138,76 +149,3 @@ namespace orion
         Keyboard keyboard_;
     };
 } // namespace orion
-
-// Event formatters for fmt
-template<>
-struct fmt::formatter<orion::events::WindowClose> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowClose&, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowClose");
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::WindowMove> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowMove& move, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowMove {{ position: {} }}", move.position);
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::WindowMoveEnd> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowMoveEnd& move, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowMoveEnd {{ final_position: {} }}", move.position);
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::WindowResize> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowResize& resize, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowResize {{ size: {} }}", resize.size);
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::WindowResizeEnd> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowResizeEnd& resize, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowResizeEnd {{ final_size: {} }}", resize.size);
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::WindowMaximize> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowMaximize&, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowMaximize");
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::WindowMinimize> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowMinimize&, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowMinimize");
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::WindowRestore> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::WindowRestore&, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnWindowRestore");
-    }
-};

@@ -14,6 +14,9 @@
 #include <stdexcept>   // std::out_of_range
 #include <type_traits> // std::common_type, std::is_same_v
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 #define ORION_VECTOR_DEFINE_COMPONENT(name, index)                \
     [[nodiscard]] constexpr reference name() noexcept             \
         requires(index < N)                                       \
@@ -194,6 +197,19 @@ namespace orion
 
     template<typename T, typename... Other>
     Vector(T first, Other... other) -> Vector<T, sizeof...(Other) + 1>;
+
+    template<typename T, std::size_t N>
+    constexpr auto format_as(const Vector<T, N>& vector)
+    {
+        return fmt::format("Vector{}({})", N, fmt::join(vector, ", "));
+    }
 } // namespace orion
+
+// This is needed to resolve template ambiguity
+// since Vector models std::range.
+// See: https://github.com/fmtlib/fmt/issues/2667
+template<typename T, std::size_t N>
+struct fmt::is_range<orion::Vector<T, N>, char> : std::false_type {
+};
 
 #undef ORION_VECTOR_DEFINE_COMPONENT

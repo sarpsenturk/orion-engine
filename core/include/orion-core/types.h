@@ -1,8 +1,7 @@
 #pragma once
 
-#include <cstdint>    // std::uint8_t
-#include <fmt/core.h> // fmt::formatter
-
+#include <cstdint>
+#include <fmt/core.h>
 namespace orion
 {
     struct Version {
@@ -10,12 +9,9 @@ namespace orion
         std::uint8_t minor;
         std::uint8_t patch;
     };
-} // namespace orion
 
-template<>
-struct fmt::formatter<orion::Version> : formatter<string_view> {
-    auto format(const orion::Version& version, auto& ctx) const
+    inline auto format_as(const Version& version)
     {
-        return fmt::format_to(ctx.out(), "{}.{}.{}", version.major, version.minor, version.patch);
+        return fmt::format("{}.{}.{}", version.major, version.minor, version.patch);
     }
-};
+} // namespace orion

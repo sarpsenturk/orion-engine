@@ -7,8 +7,6 @@
 #include <cstdint>
 #include <string>
 
-#include <fmt/format.h>
-
 namespace orion
 {
     enum class KeyCode {
@@ -133,7 +131,7 @@ namespace orion
         Max
     };
 
-    std::string to_string(KeyCode keycode) noexcept;
+    std::string format_as(KeyCode keycode) noexcept;
 
     constexpr bool is_numeric_key(KeyCode keycode) noexcept
     {
@@ -171,6 +169,10 @@ namespace orion
         struct KeyRepeat {
             KeyCode key;
         };
+
+        std::string format_as(const KeyRelease& key_release);
+        std::string format_as(const KeyPress& key_press);
+        std::string format_as(const KeyRepeat& key_repeat);
     } // namespace events
 
     class Keyboard
@@ -183,6 +185,7 @@ namespace orion
         [[nodiscard]] KeyState key_state(KeyCode key) const noexcept { return key_states_[static_cast<std::size_t>(key)]; }
 
         [[nodiscard]] bool key_down(KeyCode key) const noexcept { return key_state(key) == KeyState::Down; }
+        [[nodiscard]] bool key_up(KeyCode key) const noexcept { return key_state(key) == KeyState::Up; }
         [[nodiscard]] bool key_pressed(KeyCode key) const noexcept;
 
         [[nodiscard]] auto& on_key_release() noexcept { return on_key_release_; }
@@ -202,30 +205,3 @@ namespace orion
         EventDispatcher<void(const events::KeyRepeat&)> on_key_repeat_;
     };
 } // namespace orion
-
-template<>
-struct fmt::formatter<orion::events::KeyPress> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::KeyPress& key_press, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnKeyPress {{ key: {} }}", orion::to_string(key_press.key));
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::KeyRelease> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::KeyRelease& key_release, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnKeyRelease {{ key: {} }}", orion::to_string(key_release.key));
-    }
-};
-
-template<>
-struct fmt::formatter<orion::events::KeyRepeat> : formatter<string_view> {
-    template<typename FormatContext>
-    auto format(const orion::events::KeyRepeat& key_repeat, FormatContext& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "(event) OnKeyRepeat {{ key: {} }}", orion::to_string(key_repeat.key));
-    }
-};

@@ -1,7 +1,7 @@
 #include "orion-core/window.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_st
-#include <spdlog/spdlog.h>                   // SPDLOG_*
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 namespace orion
 {
@@ -61,4 +61,47 @@ namespace orion
         }();
         return window_logger.get();
     }
+
+    namespace events
+    {
+        const char* format_as(const WindowClose&)
+        {
+            return "(event) OnWindowClose";
+        }
+
+        std::string format_as(const WindowMove& move)
+        {
+            return fmt::format("(event) OnWindowMove {{ position: {} }}", move.position);
+        }
+
+        std::string format_as(const WindowMoveEnd& move_end)
+        {
+            return fmt::format("(event) OnWindowMoveEnd {{ final_position: {} }}", move_end.position);
+        }
+
+        std::string format_as(const WindowResize& resize)
+        {
+            return fmt::format("(event) OnWindowResize {{ size: {} }}", resize.size);
+        }
+
+        std::string format_as(const WindowResizeEnd& resize_end)
+        {
+            return fmt::format("(event) OnWindowResizeEnd {{ final_size: {} }}", resize_end.size);
+        }
+
+        const char* format_as(const WindowMaximize&)
+        {
+            return "(event) OnWindowMaximize";
+        }
+
+        const char* format_as(const WindowMinimize&)
+        {
+            return "(event) OnWindowMinimize";
+        }
+
+        const char* format_as(const WindowRestore&)
+        {
+            return "(event) OnWindowRestore";
+        }
+    } // namespace events
 } // namespace orion

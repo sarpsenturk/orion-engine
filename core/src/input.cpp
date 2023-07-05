@@ -22,7 +22,7 @@ namespace orion
         key_states_[static_cast<std::size_t>(key)] = state;
     }
 
-    std::string to_string(KeyCode keycode) noexcept
+    std::string format_as(KeyCode keycode) noexcept
     {
         switch (keycode) {
             case KeyCode::Unknown:
@@ -127,4 +127,21 @@ namespace orion
         }
         return "Unknown";
     }
+
+    namespace events
+    {
+        std::string format_as(const KeyRelease& key_release)
+        {
+            return fmt::format("(event) OnKeyRelease {{ key: {} }}", key_release.key);
+        }
+
+        std::string format_as(const KeyPress& key_press)
+        {
+            return fmt::format("(event) OnKeyPress {{ key: {} }}", key_press.key);
+        }
+        std::string format_as(const KeyRepeat& key_repeat)
+        {
+            return fmt::format("(event) OnKeyRepeat {{ key: {} }}", key_repeat.key);
+        }
+    } // namespace events
 } // namespace orion

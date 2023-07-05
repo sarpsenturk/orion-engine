@@ -17,9 +17,8 @@ public:
         orion::Vector4_f color;
     };
 
-    static constexpr auto model_rotation = orion::rotation_y(orion::Degrees{45.f});
     struct CSceneBuffer {
-        orion::Matrix4_f model = model_rotation;
+        orion::Matrix4_f model;
         orion::Matrix4_f view_proj;
     };
 
@@ -326,20 +325,35 @@ private:
 
         const auto& kbd = window_.keyboard();
         auto camera_position = camera_.position();
-        if (kbd.key_down(orion::KeyCode::RightArrow)) {
+        if (kbd.key_pressed(orion::KeyCode::RightArrow)) {
             camera_position.x() += .1f;
         }
-        if (kbd.key_down(orion::KeyCode::LeftArrow)) {
+        if (kbd.key_pressed(orion::KeyCode::LeftArrow)) {
             camera_position.x() -= .1f;
         }
-        if (kbd.key_down(orion::KeyCode::UpArrow)) {
+        if (kbd.key_pressed(orion::KeyCode::UpArrow)) {
+            camera_position.z() -= .1f;
+        }
+        if (kbd.key_pressed(orion::KeyCode::DownArrow)) {
             camera_position.z() += .1f;
         }
-        if (kbd.key_down(orion::KeyCode::DownArrow)) {
-            camera_position.z() -= .1f;
+        if (kbd.key_pressed(orion::KeyCode::Shift)) {
+            camera_position.y() += .1f;
+        }
+        if (kbd.key_pressed(orion::KeyCode::Control)) {
+            camera_position.y() -= .1f;
         }
         camera_.set_position(camera_position);
         scene_buffer_.view_proj = camera_.camera().camera().view_projection();
+
+        if (kbd.key_pressed(orion::KeyCode::KeyQ)) {
+            quad_rotation_ = quad_rotation_ - orion::Degrees{5.f};
+        }
+        if (kbd.key_pressed(orion::KeyCode::KeyE)) {
+            quad_rotation_ = quad_rotation_ + orion::Degrees{5.f};
+        }
+        scene_buffer_.model = orion::Matrix4_f::identity() * orion::rotation_y(quad_rotation_);
+
         std::memcpy(scene_buffer_mapping_, &scene_buffer_, sizeof(CSceneBuffer));
     }
 
@@ -430,6 +444,7 @@ private:
     // Scene data
 
     orion::SceneCameraPerspective camera_;
+    orion::Degrees quad_rotation_;
     CSceneBuffer scene_buffer_;
 };
 

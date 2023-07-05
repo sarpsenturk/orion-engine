@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdint>     // std::int64_t
-#include <fmt/core.h>  // fmt::formatter
-#include <functional>  // std::hash
-#include <random>      // std::random_device, std::mt19937_64, std::uniform_int_distribution
-#include <type_traits> // std::is_signed
+#include <cstdint>
+#include <fmt/core.h>
+#include <functional>
+#include <random>
+#include <type_traits>
 
 namespace orion
 {
@@ -45,10 +45,16 @@ namespace orion
     private:
         value_type value_ = invalid;
     };
+
+    template<typename Tag>
+    inline auto format_as(Handle<Tag> handle)
+    {
+        return fmt::format("{}{{{}}}", Tag::string, handle.value());
+    }
 } // namespace orion
 
 template<typename Tag>
-struct std::hash<orion::Handle<Tag>> { // NOLINT(cert-dcl58-cpp)
+struct std::hash<orion::Handle<Tag>> {
     using handle_type = orion::Handle<Tag>;
     using value_type = typename handle_type::value_type;
 
@@ -58,15 +64,9 @@ struct std::hash<orion::Handle<Tag>> { // NOLINT(cert-dcl58-cpp)
     }
 };
 
-template<typename Tag>
-struct fmt::formatter<orion::Handle<Tag>> : formatter<typename orion::Handle<Tag>::value_type> {
-    auto format(orion::Handle<Tag> handle, auto& ctx) const
-    {
-        return fmt::format_to(ctx.out(), "{}", handle.value());
-    }
-};
-
 // Simple helper macro to define a Handle
-#define ORION_DEFINE_HANDLE(name) \
-    struct name##_tag;            \
+#define ORION_DEFINE_HANDLE(name)             \
+    struct name##_tag {                       \
+        static constexpr auto string = #name; \
+    };                                        \
     using name = ::orion::Handle<name##_tag>;\
