@@ -4,6 +4,7 @@
 #include <orion-math/matrix/transformation.h>
 #include <orion-math/vector/vector3.h>
 #include <orion-renderapi/command.h>
+#include <orion-renderer/camera.h>
 #include <orion-renderer/renderer.h>
 #include <orion-renderer/shader_compiler.h>
 #include <spdlog/spdlog.h>
@@ -16,7 +17,9 @@ public:
         orion::Vector4_f color;
     };
 
+    static constexpr auto model_rotation = orion::rotation_y(orion::Degrees{45.f});
     struct CSceneBuffer {
+        orion::Matrix4_f model = model_rotation;
         orion::Matrix4_f view_proj;
     };
 
@@ -34,6 +37,7 @@ public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_(ORION_VULKAN_MODULE, &orion::select_discrete)
+        , camera_(orion::Vector3_f{0.f, 0.f, 5.f}, orion::Degrees(45.f), window_.aspect_ratio(), .1f, 100.f)
     {
         // Get the render device
         auto* device = renderer_.device();
@@ -104,11 +108,10 @@ public:
             const auto vs_module = [device, &shader_compiler]() {
                 // Compile vertex shader
                 const auto* vs_source = R"hlsl(
-struct CSceneBuffer {
+cbuffer CSceneBuffer {
+    row_major float4x4 model;
     row_major float4x4 view_proj;
 };
-
-ConstantBuffer<CSceneBuffer> scene;
 
 struct VsOutput {
     float4 position : SV_Position;
@@ -118,7 +121,7 @@ struct VsOutput {
 VsOutput main(float3 position : POSITION, float4 color : COLOR)
 {
     VsOutput output;
-    output.position = mul(float4(position, 1.0), scene.view_proj);
+    output.position = mul(mul(float4(position, 1.0), model), view_proj);
     output.color = color;
     return output;
 }
@@ -280,9 +283,8 @@ float4 main(float4 color : COLOR) : SV_Target
                 .usage = orion::GPUBufferUsage::ConstantBuffer,
                 .host_visible = true,
             });
-            void* mapping = device->map(c_scene_buffer_);
-            std::memcpy(mapping, &scene_buffer_, sizeof(CSceneBuffer));
-            device->unmap(c_scene_buffer_);
+            scene_buffer_mapping_ = device->map(c_scene_buffer_);
+            std::memcpy(scene_buffer_mapping_, &scene_buffer_, sizeof(CSceneBuffer));
         }
 
         // Update descriptor set
@@ -312,10 +314,33 @@ float4 main(float4 color : COLOR) : SV_Target
         device->destroy(copy_command_buffer.handle());
     }
 
+    ~SandboxApp()
+    {
+        renderer_.device()->unmap(c_scene_buffer_);
+    }
+
 private:
     void on_user_update() override
     {
         window_.poll_events();
+
+        const auto& kbd = window_.keyboard();
+        auto camera_position = camera_.position();
+        if (kbd.key_down(orion::KeyCode::RightArrow)) {
+            camera_position.x() += .1f;
+        }
+        if (kbd.key_down(orion::KeyCode::LeftArrow)) {
+            camera_position.x() -= .1f;
+        }
+        if (kbd.key_down(orion::KeyCode::UpArrow)) {
+            camera_position.z() += .1f;
+        }
+        if (kbd.key_down(orion::KeyCode::DownArrow)) {
+            camera_position.z() -= .1f;
+        }
+        camera_.set_position(camera_position);
+        scene_buffer_.view_proj = camera_.camera().camera().view_projection();
+        std::memcpy(scene_buffer_mapping_, &scene_buffer_, sizeof(CSceneBuffer));
     }
 
     void on_user_render() override
@@ -394,6 +419,7 @@ private:
     orion::GPUBufferHandle vertex_buffer_;
     orion::GPUBufferHandle index_buffer_;
     orion::GPUBufferHandle c_scene_buffer_;
+    void* scene_buffer_mapping_;
     orion::CommandPoolHandle graphics_command_pool_;
     orion::CommandPoolHandle transfer_command_pool_;
     orion::DescriptorPoolHandle descriptor_pool_;
@@ -401,7 +427,10 @@ private:
     orion::CommandBuffer render_command_;
     orion::SubmissionHandle render_submission_;
 
-    CSceneBuffer scene_buffer_ = orion::translation(1.f, 0.f, 0.f);
+    // Scene data
+
+    orion::SceneCameraPerspective camera_;
+    CSceneBuffer scene_buffer_;
 };
 
 ORION_MAIN(args)

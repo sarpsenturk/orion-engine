@@ -84,6 +84,7 @@ namespace orion
         [[nodiscard]] auto& name() const noexcept { return name_; }
         [[nodiscard]] auto& position() const noexcept { return position_; }
         [[nodiscard]] auto& size() const noexcept { return size_; }
+        [[nodiscard]] auto aspect_ratio() const noexcept { return static_cast<float>(size_.x()) / size_.y(); }
         [[nodiscard]] auto should_close() const noexcept { return should_close_; }
 
         [[nodiscard]] bool is_resizing() const noexcept { return is_resizing_; }
