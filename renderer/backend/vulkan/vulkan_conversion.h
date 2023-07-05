@@ -3,9 +3,9 @@
 #include "orion-renderapi/types.h"
 #include "vulkan_headers.h"
 
-#include <orion-math/vector/vector2.h> // Vector2
-#include <orion-utils/assertion.h>     // ORION_ASSERT
-#include <string>                      // std::string
+#include <orion-math/vector/vector2.h>
+#include <orion-utils/assertion.h>
+#include <string>
 
 namespace orion::vulkan
 {
@@ -28,7 +28,7 @@ namespace orion::vulkan
         return PhysicalDeviceType::Other;
     }
 
-    constexpr auto to_string(VkQueueFlags queue_flags) -> std::string
+    constexpr auto format_as(VkQueueFlags queue_flags) -> std::string
     {
         if (!queue_flags) {
             return {};

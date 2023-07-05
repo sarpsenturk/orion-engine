@@ -8,7 +8,7 @@ namespace orion
         Linux
     };
 
-    constexpr auto to_string(Platform platform) -> const char*
+    constexpr auto format_as(Platform platform) -> const char*
     {
         switch (platform) {
             case Platform::Unknown:

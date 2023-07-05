@@ -5,13 +5,13 @@
 #include "vulkan_platform.h"
 #include "vulkan_types.h"
 
-#include <algorithm>                   // std::ranges::find_if
-#include <cstring>                     // std::strcmp
-#include <orion-utils/static_vector.h> // static_vector
-#include <span>                        // std::span
-#include <spdlog/spdlog.h>             // SPDLOG_LOGGER_*
-#include <unordered_set>               // std::unordered_set
-#include <utility>                     // std::exchange
+#include <algorithm>
+#include <cstring>
+#include <orion-utils/static_vector.h>
+#include <span>
+#include <spdlog/spdlog.h>
+#include <unordered_set>
+#include <utility>
 
 extern "C" ORION_RENDER_API orion::RenderBackend* create_render_backend()
 {
@@ -252,7 +252,7 @@ namespace orion::vulkan
         SPDLOG_LOGGER_TRACE(logger(), "Found {} queue families:", queue_family_props.size());
         for (std::uint32_t index = 0; const auto& queue_family : queue_family_props) {
             SPDLOG_LOGGER_TRACE(logger(), "-- Queue Family {}:", index);
-            SPDLOG_LOGGER_TRACE(logger(), "      Flags: {}", to_string(queue_family.queueFlags));
+            SPDLOG_LOGGER_TRACE(logger(), "      Flags: {}", queue_family.queueFlags);
             SPDLOG_LOGGER_TRACE(logger(), "      Queue count: {}", queue_family.queueCount);
         }
 

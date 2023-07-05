@@ -2,8 +2,8 @@
 
 #include "orion-core/config.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_*
-#include <spdlog/spdlog.h>                   // spdlog::set_pattern, spdlog::set_level, SPDLOG_*
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 namespace orion
 {
@@ -13,7 +13,8 @@ namespace orion
         logger_->set_pattern("[%n] [%^%l%$] %v");
         logger_->set_level(static_cast<spdlog::level::level_enum>(ORION_APPLICATION_LOG_LEVEL));
 
-        SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, debug_build: {}", current_version, to_string(current_platform), debug_build);
+        SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, debug_build: {}",
+                           current_version, current_platform, debug_build);
     }
 
     void Application::on_update()

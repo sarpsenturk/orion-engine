@@ -30,7 +30,7 @@ namespace orion
         return UINT32_MAX;
     }
 
-    constexpr auto to_string(Format format) noexcept -> const char*
+    constexpr auto format_as(Format format) noexcept -> const char*
     {
         switch (format) {
             case Format::B8G8R8A8_Srgb:
@@ -53,7 +53,7 @@ namespace orion
         CPU
     };
 
-    constexpr auto to_string(PhysicalDeviceType type) noexcept
+    constexpr auto format_as(PhysicalDeviceType type) noexcept
     {
         switch (type) {
             case PhysicalDeviceType::Other:

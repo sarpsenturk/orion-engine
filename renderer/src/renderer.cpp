@@ -14,7 +14,7 @@ namespace orion
             std::span<const PhysicalDeviceDesc> physical_devices,
             PhysicalDeviceType expected)
         {
-            if (auto iter = std::ranges::find_if(physical_devices, check_device_type(expected)); 
+            if (auto iter = std::ranges::find_if(physical_devices, check_device_type(expected));
                 iter != physical_devices.end()) {
                 return iter->index;
             }
@@ -49,7 +49,7 @@ namespace orion
         for (const auto& physical_device : physical_devices) {
             SPDLOG_LOGGER_DEBUG(logger(), "{}", physical_device.name);
             SPDLOG_LOGGER_DEBUG(logger(), "-- Index: {}", physical_device.index);
-            SPDLOG_LOGGER_DEBUG(logger(), "-- Type: {}", to_string(physical_device.type));
+            SPDLOG_LOGGER_DEBUG(logger(), "-- Type: {}", physical_device.type);
         }
 
         // Select the physical device to use
