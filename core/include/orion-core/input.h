@@ -181,7 +181,9 @@ namespace orion
         Keyboard();
 
         [[nodiscard]] KeyState key_state(KeyCode key) const noexcept { return key_states_[static_cast<std::size_t>(key)]; }
+
         [[nodiscard]] bool key_down(KeyCode key) const noexcept { return key_state(key) == KeyState::Down; }
+        [[nodiscard]] bool key_pressed(KeyCode key) const noexcept;
 
         [[nodiscard]] auto& on_key_release() noexcept { return on_key_release_; }
         [[nodiscard]] auto& on_key_release() const noexcept { return on_key_release_; }

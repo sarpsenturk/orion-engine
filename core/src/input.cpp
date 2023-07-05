@@ -11,6 +11,12 @@ namespace orion
         on_key_repeat_.subscribe([this](auto& key_repeat) { set_state(key_repeat.key, KeyState::Repeated); });
     }
 
+    bool Keyboard::key_pressed(KeyCode key) const noexcept
+    {
+        auto state = key_state(key);
+        return state == KeyState::Down || state == KeyState::Repeated;
+    }
+
     void Keyboard::set_state(KeyCode key, KeyState state) noexcept
     {
         key_states_[static_cast<std::size_t>(key)] = state;
