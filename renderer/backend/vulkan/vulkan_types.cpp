@@ -80,7 +80,7 @@ namespace orion::vulkan
 
     void CommandBufferDeleter::operator()(VkCommandBuffer command_buffer) const
     {
-        ORION_ASSERT(device != VK_NULL_HANDLE && command_pool != VK_NULL_HANDLE);
+        ORION_EXPECTS(device != VK_NULL_HANDLE && command_pool != VK_NULL_HANDLE);
         vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
     }
 
@@ -159,7 +159,7 @@ namespace orion::vulkan
         };
         VkSemaphore semaphore = VK_NULL_HANDLE;
         vk_result_check(vkCreateSemaphore(device, &info, alloc_callbacks(), &semaphore));
-        return {semaphore, SemaphoreDeleter{device}};
+        return unique(semaphore, device);
     }
 
     UniqueVkFence create_vk_fence(VkDevice device, VkFenceCreateFlags flags)
@@ -171,7 +171,7 @@ namespace orion::vulkan
         };
         VkFence fence = VK_NULL_HANDLE;
         vk_result_check(vkCreateFence(device, &info, alloc_callbacks(), &fence));
-        return {fence, FenceDeleter{device}};
+        return unique(fence, device);
     }
 
     VulkanSwapchain::VulkanSwapchain(VkSurfaceKHR surface, UniqueVkSwapchainKHR swapchain, std::vector<UniqueVkImageView> image_views)
@@ -197,8 +197,9 @@ namespace orion::vulkan
         std::uint32_t available_image = 0;
         auto swapchain = swapchain_->swapchain();
         auto semaphore = semaphore_.get();
-        auto result = vkAcquireNextImageKHR(device_, swapchain, UINT64_MAX, semaphore, VK_NULL_HANDLE, &available_image);
-        vk_result_check(result, VK_SUCCESS, VK_TIMEOUT, VK_NOT_READY, VK_SUBOPTIMAL_KHR);
+        vk_result_check(
+            vkAcquireNextImageKHR(device_, swapchain, UINT64_MAX, semaphore, VK_NULL_HANDLE, &available_image),
+            {VK_SUCCESS, VK_TIMEOUT, VK_NOT_READY, VK_SUBOPTIMAL_KHR});
 
         swapchain_->set_image_index(available_image);
         return framebuffers_[available_image].get();

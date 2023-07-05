@@ -1,8 +1,8 @@
 #pragma once
 
 #include "orion-core/defs.h"
-#include "orion-core/exception.h" // orion::OrionException
-#include "orion-core/types.h"     // orion::Version
+#include "orion-core/exception.h"
+#include "orion-core/types.h"
 #include "orion-vulkan/config.h"
 
 #ifndef ORION_VULKAN_LOG_LEVEL
@@ -15,42 +15,43 @@
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
+#include <initializer_list>
+
+constexpr auto format_as(VkResult vk_result)
+{
+    switch (vk_result) {
+        case VK_SUCCESS:
+            return "VK_SUCCESS";
+        case VK_NOT_READY:
+            return "VK_NOT_READY";
+        case VK_TIMEOUT:
+            return "VK_TIMEOUT";
+        case VK_SUBOPTIMAL_KHR:
+            return "VK_SUBOPTIMAL_KHR";
+        case VK_ERROR_OUT_OF_HOST_MEMORY:
+            return "VK_ERROR_OUT_OF_HOST_MEMORY";
+        case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+            return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+        case VK_ERROR_INITIALIZATION_FAILED:
+            return "VK_ERROR_INITIALIZATION_FAILED";
+        case VK_ERROR_LAYER_NOT_PRESENT:
+            return "VK_ERROR_LAYER_NOT_PRESENT";
+        case VK_ERROR_EXTENSION_NOT_PRESENT:
+            return "VK_ERROR_EXTENSION_NOT_PRESENT";
+        case VK_ERROR_INCOMPATIBLE_DRIVER:
+            return "VK_ERROR_INCOMPATIBLE_DRIVER";
+        case VK_ERROR_FRAGMENTED_POOL:
+            return "VK_ERROR_FRAGMENTED_POOL";
+        case VK_ERROR_OUT_OF_POOL_MEMORY:
+            return "VK_ERROR_OUT_OF_POOL_MEMORY";
+        default:
+            break;
+    }
+    return "Unknown VkResult";
+}
+
 namespace orion
 {
-    // Converts VkResult to human-readable string
-    constexpr const char* to_string(VkResult vk_result)
-    {
-        switch (vk_result) {
-            case VK_SUCCESS:
-                return "VK_SUCCESS";
-            case VK_NOT_READY:
-                return "VK_NOT_READY";
-            case VK_TIMEOUT:
-                return "VK_TIMEOUT";
-            case VK_SUBOPTIMAL_KHR:
-                return "VK_SUBOPTIMAL_KHR";
-            case VK_ERROR_OUT_OF_HOST_MEMORY:
-                return "VK_ERROR_OUT_OF_HOST_MEMORY";
-            case VK_ERROR_OUT_OF_DEVICE_MEMORY:
-                return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
-            case VK_ERROR_INITIALIZATION_FAILED:
-                return "VK_ERROR_INITIALIZATION_FAILED";
-            case VK_ERROR_LAYER_NOT_PRESENT:
-                return "VK_ERROR_LAYER_NOT_PRESENT";
-            case VK_ERROR_EXTENSION_NOT_PRESENT:
-                return "VK_ERROR_EXTENSION_NOT_PRESENT";
-            case VK_ERROR_INCOMPATIBLE_DRIVER:
-                return "VK_ERROR_INCOMPATIBLE_DRIVER";
-            case VK_ERROR_FRAGMENTED_POOL:
-                return "VK_ERROR_FRAGMENTED_POOL";
-            case VK_ERROR_OUT_OF_POOL_MEMORY:
-                return "VK_ERROR_OUT_OF_POOL_MEMORY";
-            default:
-                break;
-        }
-        return "Unknown VkResult";
-    }
-
     // Gets VkResult description
     constexpr const char* vk_result_desc(VkResult vk_result)
     {
@@ -108,22 +109,23 @@ namespace orion
                                                  "Expected VkResult: {}, got: {}\n"
                                                  "-----------------------------";
             if (vk_result != expected) {
-                SPDLOG_ERROR(error_string, to_string(expected), to_string(vk_result));
+                SPDLOG_ERROR(error_string, expected, vk_result);
                 ORION_DEBUG_BREAK();
             }
         }
 
-        template<typename... Results>
-        void vk_result_check(VkResult vk_result, Results... expected)
+        inline void vk_result_check(VkResult vk_result, std::initializer_list<VkResult> expected_results)
         {
             static constexpr auto error_string = "\n--- VkResult Check Failed ---\n"
                                                  "Expected VkResult to match: {}, got: {}\n"
                                                  "-----------------------------";
-            if (((vk_result != expected) && ...)) {
-                auto formatted = fmt::format(error_string, fmt::join({to_string(expected)...}, ", "), to_string(vk_result));
-                SPDLOG_ERROR(formatted);
-                ORION_DEBUG_BREAK();
+            for (auto result : expected_results) {
+                if (vk_result == result) {
+                    return;
+                }
             }
+            SPDLOG_ERROR(error_string, expected_results, vk_result);
+            ORION_DEBUG_BREAK();
         }
 
         inline const VkAllocationCallbacks* alloc_callbacks() noexcept

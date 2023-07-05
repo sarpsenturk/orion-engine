@@ -180,7 +180,7 @@ namespace orion::vulkan
 
         VkInstance instance = VK_NULL_HANDLE;
         vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
-        instance_ = vk_unique<UniqueVkInstance>(instance);
+        instance_ = unique(instance);
 
         // Create vulkan debug utils if debug mode is enabled
         if constexpr (debug_build) {
@@ -201,7 +201,7 @@ namespace orion::vulkan
             };
             VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
             vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance, &info, alloc_callbacks(), &debug_messenger));
-            debug_messenger_ = vk_unique<UniqueVkDebugUtilsMessengerEXT>(debug_messenger, instance);
+            debug_messenger_ = unique(debug_messenger, instance);
         }
     }
 
@@ -353,7 +353,7 @@ namespace orion::vulkan
         return std::make_unique<VulkanDevice>(logger(),
                                               instance(),
                                               physical_device,
-                                              vk_unique<UniqueVkDevice>(device),
+                                              unique(device),
                                               vulkan_queues);
     }
 

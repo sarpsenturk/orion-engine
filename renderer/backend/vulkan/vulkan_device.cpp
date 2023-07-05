@@ -31,7 +31,7 @@ namespace orion::vulkan
         };
         VmaAllocator allocator = VK_NULL_HANDLE;
         vk_result_check(vmaCreateAllocator(&allocator_info, &allocator));
-        allocator_ = vk_unique<UniqueVmaAllocator>(allocator);
+        allocator_ = unique(allocator);
     }
 
     VulkanDevice::~VulkanDevice()
@@ -80,7 +80,7 @@ namespace orion::vulkan
         }
         SPDLOG_LOGGER_TRACE(logger(), "Could not find cached descriptor set layout. Creating.");
         VkDescriptorSetLayout vk_layout = create_descriptor_set_layout(layout.bindings());
-        descriptor_set_layout_cache_.insert(std::make_pair(hash, vk_unique<UniqueVkDescriptorSetLayout>(vk_layout, device())));
+        descriptor_set_layout_cache_.insert(std::make_pair(hash, unique(vk_layout, device())));
         return vk_layout;
     }
 
@@ -199,7 +199,7 @@ namespace orion::vulkan
                 };
                 VkImageView image_view = VK_NULL_HANDLE;
                 vk_result_check(vkCreateImageView(device(), &image_view_info, alloc_callbacks(), &image_view));
-                image_views.push_back(vk_unique<UniqueVkImageView>(image_view, device()));
+                image_views.push_back(unique(image_view, device()));
             }
         }
 
@@ -272,7 +272,7 @@ namespace orion::vulkan
         vk_result_check(vkCreateRenderPass(device_.get(), &info, alloc_callbacks(), &render_pass));
 
         auto handle = RenderPassHandle::generate();
-        render_passes_.insert(std::make_pair(handle, vk_unique<UniqueVkRenderPass>(render_pass, device())));
+        render_passes_.insert(std::make_pair(handle, unique(render_pass, device())));
         return handle;
     }
 
@@ -302,7 +302,7 @@ namespace orion::vulkan
             };
             VkFramebuffer framebuffer = VK_NULL_HANDLE;
             vk_result_check(vkCreateFramebuffer(device(), &framebuffer_info, alloc_callbacks(), &framebuffer));
-            framebuffers.push_back(vk_unique<UniqueVkFramebuffer>(framebuffer, device()));
+            framebuffers.push_back(unique(framebuffer, device()));
         }
 
         auto handle = RenderTargetHandle::generate();
@@ -334,7 +334,7 @@ namespace orion::vulkan
         vk_result_check(vkCreateShaderModule(device(), &info, alloc_callbacks(), &shader_module));
 
         auto handle = ShaderModuleHandle::generate();
-        shader_modules_.insert(std::make_pair(handle, vk_unique<UniqueVkShaderModule>(shader_module, device())));
+        shader_modules_.insert(std::make_pair(handle, unique(shader_module, device())));
         return handle;
     }
 
@@ -555,8 +555,8 @@ namespace orion::vulkan
 
         const auto handle = PipelineHandle::generate();
         pipelines_.insert(std::make_pair(handle, VulkanPipeline{
-                                                     vk_unique<UniqueVkPipelineLayout>(pipeline_layout, device()),
-                                                     vk_unique<UniqueVkPipeline>(pipeline, device()),
+                                                     unique(pipeline_layout, device()),
+                                                     unique(pipeline, device()),
                                                  }));
         return handle;
     }
@@ -688,7 +688,7 @@ namespace orion::vulkan
                 };
                 VkImageView image_view = VK_NULL_HANDLE;
                 vk_result_check(vkCreateImageView(device(), &image_view_info, alloc_callbacks(), &image_view));
-                image_views.push_back(vk_unique<UniqueVkImageView>(image_view, device()));
+                image_views.push_back(unique(image_view, device()));
             }
         }
 
@@ -725,7 +725,7 @@ namespace orion::vulkan
             };
             VkFramebuffer framebuffer = VK_NULL_HANDLE;
             vk_result_check(vkCreateFramebuffer(device(), &framebuffer_info, alloc_callbacks(), &framebuffer));
-            framebuffers.push_back(vk_unique<UniqueVkFramebuffer>(framebuffer, device()));
+            framebuffers.push_back(unique(framebuffer, device()));
         }
 
         render_targets_.insert_or_assign(render_target,
@@ -752,7 +752,7 @@ namespace orion::vulkan
         vk_result_check(vkAllocateCommandBuffers(device(), &info, &command_buffer));
 
         const auto handle = CommandBufferHandle::generate();
-        command_buffers_.insert(std::make_pair(handle, vk_unique<UniqueVkCommandBuffer>(command_buffer, device(), command_pool)));
+        command_buffers_.insert(std::make_pair(handle, unique(command_buffer, device(), command_pool)));
         return handle;
     }
 
@@ -784,7 +784,7 @@ namespace orion::vulkan
         }
 
         auto handle = DescriptorPoolHandle::generate();
-        descriptor_pools_.insert(std::make_pair(handle, vk_unique<UniqueVkDescriptorPool>(descriptor_pool, device())));
+        descriptor_pools_.insert(std::make_pair(handle, unique(descriptor_pool, device())));
         return handle;
     }
 
@@ -1019,7 +1019,7 @@ namespace orion::vulkan
             .pImageIndices = &image_index,
             .pResults = nullptr,
         };
-        vk_result_check(vkQueuePresentKHR(present_queue, &present_info), VK_SUCCESS, VK_SUBOPTIMAL_KHR);
+        vk_result_check(vkQueuePresentKHR(present_queue, &present_info), {VK_SUCCESS, VK_SUBOPTIMAL_KHR});
     }
 
     void VulkanDevice::update_descriptors_api(const DescriptorUpdate& update)
@@ -1042,7 +1042,7 @@ namespace orion::vulkan
                 const VkBufferView* texel_buffer_view = nullptr;
                 if (!write.buffers.empty()) {
                     type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                    count = write.buffers.size();
+                    count = static_cast<std::uint32_t>(write.buffers.size());
                     buffer_info = buffer_infos.data() + buffer_infos.size();
                     for (const auto& buffer : write.buffers) {
                         buffer_infos.push_back({
@@ -1094,7 +1094,7 @@ namespace orion::vulkan
             vk_result_check(vkAllocateDescriptorSets(device(), &info, &descriptor_set));
         }
         auto handle = DescriptorSetHandle::generate();
-        descriptor_sets_.insert(std::make_pair(handle, vk_unique<UniqueVkDescriptorSet>(descriptor_set, device(), pool)));
+        descriptor_sets_.insert(std::make_pair(handle, unique(descriptor_set, device(), pool)));
         return handle;
     }
 
