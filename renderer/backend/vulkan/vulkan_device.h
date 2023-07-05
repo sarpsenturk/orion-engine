@@ -40,6 +40,7 @@ namespace orion::vulkan
         [[nodiscard]] VkFence find_fence(SubmissionHandle submission_handle) const;
         [[nodiscard]] VkSemaphore find_semaphore(SubmissionHandle submission_handle) const;
         [[nodiscard]] VkDescriptorPool find_descriptor_pool(DescriptorPoolHandle descriptor_pool_handle) const;
+        [[nodiscard]] VkDescriptorSet find_descriptor_set(DescriptorSetHandle descriptor_set_handle) const;
 
         [[nodiscard]] auto device() const noexcept { return device_.get(); }
         [[nodiscard]] auto allocator() const noexcept { return allocator_.get(); }
@@ -76,6 +77,7 @@ namespace orion::vulkan
         CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) override;
         CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
         DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
+        DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
         void recreate_api(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc) override;
@@ -90,6 +92,7 @@ namespace orion::vulkan
         void destroy_api(CommandBufferHandle command_buffer_handle) override;
         void destroy_api(SubmissionHandle submission_handle) override;
         void destroy_api(DescriptorPoolHandle descriptor_pool_handle) override;
+        void destroy_api(DescriptorSetHandle descriptor_set_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
@@ -97,6 +100,8 @@ namespace orion::vulkan
         SubmissionHandle submit_api(const SubmitDesc& desc) override;
         void wait_api(SubmissionHandle submission_handle) override;
         void present_api(SwapchainHandle swapchain_handle, SubmissionHandle wait) override;
+
+        void update_descriptors_api(const DescriptorUpdate& update) override;
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
@@ -117,9 +122,5 @@ namespace orion::vulkan
         std::unordered_map<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layout_cache_;
         std::unordered_map<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;
         std::unordered_map<DescriptorSetHandle, UniqueVkDescriptorSet> descriptor_sets_;
-
-        // Inherited via RenderDevice
-        virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
-        virtual void destroy_api(DescriptorSetHandle descriptor_set_handle) override;
     };
 } // namespace orion::vulkan

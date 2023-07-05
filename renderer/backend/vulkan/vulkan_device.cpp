@@ -848,6 +848,11 @@ namespace orion::vulkan
         return descriptor_pools_.at(descriptor_pool_handle).get();
     }
 
+    VkDescriptorSet VulkanDevice::find_descriptor_set(DescriptorSetHandle descriptor_set_handle) const
+    {
+        return descriptor_sets_.at(descriptor_set_handle).get();
+    }
+
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
     {
         swapchains_.erase(swapchain_handle);
@@ -1010,6 +1015,61 @@ namespace orion::vulkan
             .pResults = nullptr,
         };
         vk_result_check(vkQueuePresentKHR(present_queue, &present_info), VK_SUCCESS, VK_SUBOPTIMAL_KHR);
+    }
+
+    void VulkanDevice::update_descriptors_api(const DescriptorUpdate& update)
+    {
+        // Reserve all infos from start
+        // This is necassary so that when we push back into it
+        // we do not reallocate and invalidate any pointers.
+        std::vector<VkDescriptorBufferInfo> buffer_infos;
+        buffer_infos.reserve(std::accumulate(update.writes.begin(), update.writes.end(), 0ull,
+                                             [](auto count, const auto& write) { return count + write.buffers.size(); }));
+
+        const auto descriptor_writes = [writes = update.writes, &buffer_infos, this]() {
+            std::vector<VkWriteDescriptorSet> descriptor_writes;
+            descriptor_writes.reserve(writes.size());
+            for (const auto& write : writes) {
+                VkDescriptorType type = {};
+                std::uint32_t count = 0;
+                const VkDescriptorImageInfo* image_info = nullptr;
+                const VkDescriptorBufferInfo* buffer_info = nullptr;
+                const VkBufferView* texel_buffer_view = nullptr;
+                if (!write.buffers.empty()) {
+                    type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    count = write.buffers.size();
+                    buffer_info = buffer_infos.data() + buffer_infos.size();
+                    for (const auto& buffer : write.buffers) {
+                        buffer_infos.push_back({
+                            .buffer = find_buffer(buffer.buffer).buffer(), // TODO: Fix this mess.
+                            .offset = buffer.offset,
+                            .range = buffer.range,
+                        });
+                    }
+                }
+                ORION_ASSERT(type != 0);
+                ORION_ASSERT(count != 0);
+                ORION_ASSERT(image_info != nullptr || buffer_info != nullptr || texel_buffer_view != nullptr);
+                descriptor_writes.push_back({
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = nullptr,
+                    .dstSet = find_descriptor_set(write.descriptor_set),
+                    .dstBinding = write.binding,
+                    .dstArrayElement = write.array_element,
+                    .descriptorCount = 0, // TODO: Set this according to type
+                    .descriptorType = type,
+                    .pImageInfo = nullptr,
+                    .pBufferInfo = nullptr, // TODO: Set this according to the writes
+                    .pTexelBufferView = nullptr,
+                });
+            }
+            return descriptor_writes;
+        }();
+
+        vkUpdateDescriptorSets(
+            device(),
+            static_cast<std::uint32_t>(descriptor_writes.size()), descriptor_writes.data(), // Descriptor writes
+            0, nullptr);                                                                    // Descriptor copies
     }
 
     DescriptorSetHandle VulkanDevice::create_descriptor_set_api(const DescriptorSetDesc& desc)

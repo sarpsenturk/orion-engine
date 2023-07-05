@@ -63,6 +63,8 @@ namespace orion
         void wait(SubmissionHandle submission_handle);
         void present(SwapchainHandle swapchain_handle, SubmissionHandle wait);
 
+        void update_descriptors(const DescriptorUpdate& update);
+
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
     protected:
@@ -104,6 +106,8 @@ namespace orion
         [[nodiscard]] virtual SubmissionHandle submit_api(const SubmitDesc& desc) = 0;
         virtual void wait_api(SubmissionHandle submission_handle) = 0;
         virtual void present_api(SwapchainHandle swapchain_handle, SubmissionHandle wait) = 0;
+
+        virtual void update_descriptors_api(const DescriptorUpdate& update) = 0;
 
         spdlog::logger* logger_;
     };

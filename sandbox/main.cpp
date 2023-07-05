@@ -1,5 +1,7 @@
 #include <orion-core/window.h>
 #include <orion-engine/orion-engine.h>
+#include <orion-math/matrix/matrix4.h>
+#include <orion-math/matrix/transformation.h>
 #include <orion-math/vector/vector3.h>
 #include <orion-renderapi/command.h>
 #include <orion-renderer/renderer.h>
@@ -12,6 +14,10 @@ public:
     struct Vertex {
         orion::Vector3_f position;
         orion::Vector4_f color;
+    };
+
+    struct CSceneBuffer {
+        orion::Matrix4_f view_proj;
     };
 
     static constexpr std::array vertices{
@@ -99,7 +105,6 @@ public:
                 // Compile vertex shader
                 const auto* vs_source = R"hlsl(
 cbuffer CSceneBuffer {
-    float4x4 view;
     float4x4 view_proj;
 };
 
@@ -266,6 +271,36 @@ float4 main(float4 color : COLOR) : SV_Target
             });
         }
 
+        // Create constant scene buffer
+        {
+            c_scene_buffer_ = device->create_buffer(orion::GPUBufferDesc{
+                .size = sizeof(CSceneBuffer),
+                .usage = orion::GPUBufferUsage::ConstantBuffer,
+                .host_visible = true,
+            });
+            void* mapping = device->map(c_scene_buffer_);
+            std::memcpy(mapping, &scene_buffer_, sizeof(CSceneBuffer));
+            device->unmap(c_scene_buffer_);
+        }
+
+        // Update descriptor set
+        {
+            const orion::DescriptorBuffer buffer_write{
+                .buffer = c_scene_buffer_,
+                .offset = 0,
+                .range = sizeof(CSceneBuffer),
+            };
+            const std::array writes{
+                orion::DescriptorWrite{
+                    .binding = 0,
+                    .descriptor_set = descriptor_set_,
+                    .buffers = {&buffer_write, 1},
+                }};
+            device->update_descriptors(orion::DescriptorUpdate{
+                .writes = writes,
+            });
+        }
+
         // Wait until copy is completed
         device->wait(submission);
 
@@ -348,12 +383,15 @@ private:
     orion::PipelineHandle graphics_pipeline_;
     orion::GPUBufferHandle vertex_buffer_;
     orion::GPUBufferHandle index_buffer_;
+    orion::GPUBufferHandle c_scene_buffer_;
     orion::CommandPoolHandle graphics_command_pool_;
     orion::CommandPoolHandle transfer_command_pool_;
     orion::DescriptorPoolHandle descriptor_pool_;
     orion::DescriptorSetHandle descriptor_set_;
     orion::CommandBuffer render_command_;
     orion::SubmissionHandle render_submission_;
+
+    CSceneBuffer scene_buffer_ = orion::translation(0.f, 0.f, 0.f);
 };
 
 ORION_MAIN(args)

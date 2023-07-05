@@ -173,4 +173,10 @@ namespace orion
     {
         present_api(swapchain_handle, wait);
     }
+
+    void RenderDevice::update_descriptors(const DescriptorUpdate& update)
+    {
+        SPDLOG_LOGGER_TRACE(logger(), "Updated descriptors");
+        update_descriptors_api(update);
+    }
 } // namespace orion

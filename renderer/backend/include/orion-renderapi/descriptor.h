@@ -45,4 +45,21 @@ namespace orion
         DescriptorPoolHandle descriptor_pool;
         const DescriptorSetLayout* layout;
     };
+
+    struct DescriptorBuffer {
+        GPUBufferHandle buffer;
+        std::size_t offset;
+        std::size_t range;
+    };
+
+    struct DescriptorWrite {
+        std::uint32_t binding;
+        std::uint32_t array_element = 0;
+        DescriptorSetHandle descriptor_set;
+        std::span<const DescriptorBuffer> buffers;
+    };
+
+    struct DescriptorUpdate {
+        std::span<const DescriptorWrite> writes;
+    };
 } // namespace orion
