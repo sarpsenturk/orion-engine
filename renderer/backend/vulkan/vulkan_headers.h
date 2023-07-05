@@ -41,6 +41,10 @@ namespace orion
                 return "VK_ERROR_EXTENSION_NOT_PRESENT";
             case VK_ERROR_INCOMPATIBLE_DRIVER:
                 return "VK_ERROR_INCOMPATIBLE_DRIVER";
+            case VK_ERROR_FRAGMENTED_POOL:
+                return "VK_ERROR_FRAGMENTED_POOL";
+            case VK_ERROR_OUT_OF_POOL_MEMORY:
+                return "VK_ERROR_OUT_OF_POOL_MEMORY";
             default:
                 break;
         }
@@ -71,6 +75,10 @@ namespace orion
                 return "A requested extension is not supported.";
             case VK_ERROR_INCOMPATIBLE_DRIVER:
                 return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible for implementation-specific reasons.";
+            case VK_ERROR_FRAGMENTED_POOL:
+                return "A pool allocation has failed due to fragmentation of the pool’s memory.";
+            case VK_ERROR_OUT_OF_POOL_MEMORY:
+                return "A pool memory allocation has failed";
             default:
                 break;
         }

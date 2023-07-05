@@ -143,6 +143,15 @@ namespace orion::vulkan
         void operator()(VkDescriptorPool descriptor_pool) const;
     };
 
+    struct DescriptorSetDeleter {
+        using pointer = VkDescriptorSet;
+
+        VkDevice device = VK_NULL_HANDLE;
+        VkDescriptorPool pool = VK_NULL_HANDLE;
+
+        void operator()(VkDescriptorSet descriptor_set) const;
+    };
+
     using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
     using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
     using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -161,6 +170,7 @@ namespace orion::vulkan
     using UniqueVkFence = std::unique_ptr<VkFence, FenceDeleter>;
     using UniqueVkDescriptorSetLayout = std::unique_ptr<VkDescriptorSetLayout, DescriptorSetLayoutDeleter>;
     using UniqueVkDescriptorPool = std::unique_ptr<VkDescriptorPool, DescriptorPoolDeleter>;
+    using UniqueVkDescriptorSet = std::unique_ptr<VkDescriptorSet, DescriptorSetDeleter>;
 
     template<typename UniqueType, typename VulkanHandle, typename... DeleterArgs>
     auto vk_unique(VulkanHandle vk_handle, DeleterArgs... deleter_args)

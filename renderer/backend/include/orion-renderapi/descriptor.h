@@ -1,5 +1,6 @@
 #pragma once
 
+#include "handles.h"
 #include "types.h"
 
 #include <initializer_list>
@@ -38,5 +39,10 @@ namespace orion
     struct DescriptorPoolDesc {
         std::uint32_t max_sets;
         std::span<const DescriptorPoolSize> pool_sizes;
+    };
+
+    struct DescriptorSetDesc {
+        DescriptorPoolHandle descriptor_pool;
+        const DescriptorSetLayout* layout;
     };
 } // namespace orion

@@ -258,6 +258,14 @@ float4 main(float4 color : COLOR) : SV_Target
             });
         }
 
+        // Allocate descriptor set
+        {
+            descriptor_set_ = device->create_descriptor_set(orion::DescriptorSetDesc{
+                .descriptor_pool = descriptor_pool_,
+                .layout = &descriptor_layout,
+            });
+        }
+
         // Wait until copy is completed
         device->wait(submission);
 
@@ -343,6 +351,7 @@ private:
     orion::CommandPoolHandle graphics_command_pool_;
     orion::CommandPoolHandle transfer_command_pool_;
     orion::DescriptorPoolHandle descriptor_pool_;
+    orion::DescriptorSetHandle descriptor_set_;
     orion::CommandBuffer render_command_;
     orion::SubmissionHandle render_submission_;
 };

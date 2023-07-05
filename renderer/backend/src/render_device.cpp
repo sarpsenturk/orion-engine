@@ -73,6 +73,13 @@ namespace orion
         return handle;
     }
 
+    DescriptorSetHandle RenderDevice::create_descriptor_set(const DescriptorSetDesc& desc)
+    {
+        auto handle = create_descriptor_set_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Allocated descriptor set with handle {}", handle);
+        return handle;
+    }
+
     void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         recreate_api(swapchain_handle, desc);
@@ -133,6 +140,11 @@ namespace orion
     void RenderDevice::destroy(DescriptorPoolHandle descriptor_pool_handle)
     {
         destroy_api(descriptor_pool_handle);
+    }
+
+    void RenderDevice::destroy(DescriptorSetHandle descriptor_set_handle)
+    {
+        destroy_api(descriptor_set_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)

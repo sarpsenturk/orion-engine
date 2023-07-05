@@ -39,6 +39,7 @@ namespace orion::vulkan
         [[nodiscard]] VulkanSubmission& find_submission(SubmissionHandle submission_handle);
         [[nodiscard]] VkFence find_fence(SubmissionHandle submission_handle) const;
         [[nodiscard]] VkSemaphore find_semaphore(SubmissionHandle submission_handle) const;
+        [[nodiscard]] VkDescriptorPool find_descriptor_pool(DescriptorPoolHandle descriptor_pool_handle) const;
 
         [[nodiscard]] auto device() const noexcept { return device_.get(); }
         [[nodiscard]] auto allocator() const noexcept { return allocator_.get(); }
@@ -115,5 +116,10 @@ namespace orion::vulkan
         std::unordered_map<SubmissionHandle, VulkanSubmission> submissions_;
         std::unordered_map<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layout_cache_;
         std::unordered_map<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;
+        std::unordered_map<DescriptorSetHandle, UniqueVkDescriptorSet> descriptor_sets_;
+
+        // Inherited via RenderDevice
+        virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
+        virtual void destroy_api(DescriptorSetHandle descriptor_set_handle) override;
     };
 } // namespace orion::vulkan

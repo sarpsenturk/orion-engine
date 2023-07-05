@@ -143,6 +143,13 @@ namespace orion::vulkan
         vkDestroyDescriptorPool(device, descriptor_pool, alloc_callbacks());
     }
 
+    void DescriptorSetDeleter::operator()(VkDescriptorSet descriptor_set) const
+    {
+        ORION_EXPECTS(device != VK_NULL_HANDLE);
+        ORION_EXPECTS(pool != VK_NULL_HANDLE);
+        vkFreeDescriptorSets(device, pool, 1, &descriptor_set);
+    }
+
     UniqueVkSemaphore create_vk_semaphore(VkDevice device)
     {
         const VkSemaphoreCreateInfo info{

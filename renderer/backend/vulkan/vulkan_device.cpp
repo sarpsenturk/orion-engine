@@ -843,6 +843,11 @@ namespace orion::vulkan
         return submissions_.at(submission_handle).semaphore.get();
     }
 
+    VkDescriptorPool VulkanDevice::find_descriptor_pool(DescriptorPoolHandle descriptor_pool_handle) const
+    {
+        return descriptor_pools_.at(descriptor_pool_handle).get();
+    }
+
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
     {
         swapchains_.erase(swapchain_handle);
@@ -1005,6 +1010,32 @@ namespace orion::vulkan
             .pResults = nullptr,
         };
         vk_result_check(vkQueuePresentKHR(present_queue, &present_info), VK_SUCCESS, VK_SUBOPTIMAL_KHR);
+    }
+
+    DescriptorSetHandle VulkanDevice::create_descriptor_set_api(const DescriptorSetDesc& desc)
+    {
+        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+        VkDescriptorPool pool = find_descriptor_pool(desc.descriptor_pool);
+        // Create descriptor set
+        {
+            VkDescriptorSetLayout layout = make_descriptor_set_layout(*desc.layout);
+            const VkDescriptorSetAllocateInfo info{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                .pNext = nullptr,
+                .descriptorPool = pool,
+                .descriptorSetCount = 1,
+                .pSetLayouts = &layout,
+            };
+            vk_result_check(vkAllocateDescriptorSets(device(), &info, &descriptor_set));
+        }
+        auto handle = DescriptorSetHandle::generate();
+        descriptor_sets_.insert(std::make_pair(handle, vk_unique<UniqueVkDescriptorSet>(descriptor_set, device(), pool)));
+        return handle;
+    }
+
+    void VulkanDevice::destroy_api(DescriptorSetHandle descriptor_set_handle)
+    {
+        descriptor_sets_.erase(descriptor_set_handle);
     }
 
     void VulkanDevice::compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission)
