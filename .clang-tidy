@@ -6,6 +6,7 @@ Checks:
   cppcoreguidelines-*
   hicpp-*
   misc-*
+  -misc-non-private-member-variables-in-classes
   modernize-*
   -modernize-use-trailing-return-type
   performance-*
@@ -30,5 +31,4 @@ CheckOptions:
   readability-identifier-naming.PrivateMemberSuffix: _
   readability-identifier-naming.StructCase: CamelCase
   readability-identifier-naming.TemplateParameterCase: CamelCase
-  readability-identifier-naming.TypeAliasCase: lower_case
   readability-identifier-naming.VariableCase: lower_case

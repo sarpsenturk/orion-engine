@@ -4,7 +4,6 @@
 
 #include <algorithm>               // std::ranges::find_if
 #include <orion-utils/assertion.h> // ORION_EXPECTS
-#include <spdlog/spdlog.h>         // SPDLOG_*
 #include <vector>                  // std::vector
 
 namespace orion::vulkan

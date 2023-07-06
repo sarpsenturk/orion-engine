@@ -22,10 +22,10 @@ namespace orion::vulkan
     {
     public:
         VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues);
-        ~VulkanDevice();
-        VulkanDevice(const VulkanDevice&) = default;
+        ~VulkanDevice() override;
+        VulkanDevice(const VulkanDevice&) = delete;
         VulkanDevice(VulkanDevice&&) noexcept = default;
-        VulkanDevice& operator=(const VulkanDevice&) = default;
+        VulkanDevice& operator=(const VulkanDevice&) = delete;
         VulkanDevice& operator=(VulkanDevice&&) noexcept = default;
 
         [[nodiscard]] VkShaderModule find_shader(ShaderModuleHandle shader_module_handle) const;
@@ -57,7 +57,7 @@ namespace orion::vulkan
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
 
         VkDescriptorSetLayout make_descriptor_set_layout(const DescriptorSetLayout& layout);
-        VkDescriptorSetLayout create_descriptor_set_layout(std::span<const DescriptorBinding> bindings);
+        [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(std::span<const DescriptorBinding> bindings) const;
 
         // Vulkan command translation functions
         void compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission);

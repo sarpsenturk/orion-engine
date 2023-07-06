@@ -84,7 +84,7 @@ namespace orion::vulkan
         return vk_layout;
     }
 
-    VkDescriptorSetLayout VulkanDevice::create_descriptor_set_layout(std::span<const DescriptorBinding> bindings)
+    VkDescriptorSetLayout VulkanDevice::create_descriptor_set_layout(std::span<const DescriptorBinding> bindings) const
     {
         const auto descriptor_bindings = [bindings]() {
             std::vector<VkDescriptorSetLayoutBinding> descriptor_bindings;
@@ -593,7 +593,7 @@ namespace orion::vulkan
         const VkCommandPoolCreateInfo info{
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .pNext = nullptr,
-            .flags = 0,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             .queueFamilyIndex = get_queue_family(desc.queue_type),
         };
         VkCommandPool command_pool = VK_NULL_HANDLE;
@@ -775,7 +775,7 @@ namespace orion::vulkan
             const VkDescriptorPoolCreateInfo info{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                 .pNext = nullptr,
-                .flags = 0,
+                .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
                 .maxSets = desc.max_sets,
                 .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
                 .pPoolSizes = pool_sizes.data(),
@@ -1025,8 +1025,7 @@ namespace orion::vulkan
     void VulkanDevice::update_descriptors_api(const DescriptorUpdate& update)
     {
         // Reserve all infos from start
-        // This is necassary so that when we push back into it
-        // we do not reallocate and invalidate any pointers.
+        // This is necessary so that when we push back into it, we do not reallocate and invalidate any pointers.
         std::vector<VkDescriptorBufferInfo> buffer_infos;
         buffer_infos.reserve(std::accumulate(update.writes.begin(), update.writes.end(), 0ull,
                                              [](auto count, const auto& write) { return count + write.buffers.size(); }));
@@ -1054,7 +1053,7 @@ namespace orion::vulkan
                 }
                 ORION_ASSERT(type != 0);
                 ORION_ASSERT(count != 0);
-                ORION_ASSERT(image_info != nullptr || buffer_info != nullptr || texel_buffer_view != nullptr);
+                ORION_ASSERT(image_info || buffer_info || texel_buffer_view);
                 descriptor_writes.push_back({
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = nullptr,
@@ -1106,7 +1105,7 @@ namespace orion::vulkan
     void VulkanDevice::compile_commands(VkCommandBuffer command_buffer, const std::vector<CommandPacket>& commands, VulkanSubmission& submission)
     {
         submission.wait_semaphores.clear();
-        for (auto& command : commands) {
+        for (const auto& command : commands) {
             switch (command.command_type) {
                 case CommandType::BufferCopy:
                     cmd_buffer_copy(command_buffer, command.data);

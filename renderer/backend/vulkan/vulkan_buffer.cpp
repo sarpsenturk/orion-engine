@@ -1,6 +1,5 @@
 #include "vulkan_buffer.h"
 
-#include <spdlog/spdlog.h> // SPDLOG_LOGGER_DEBUG
 #include <utility>         // std::exchange
 
 namespace orion::vulkan

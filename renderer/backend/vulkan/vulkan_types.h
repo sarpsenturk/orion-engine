@@ -279,8 +279,8 @@ namespace orion::vulkan
                                     std::vector<UniqueVkFramebuffer> framebuffers,
                                     UniqueVkSemaphore semaphore);
 
-        VkFramebuffer framebuffer() const;
-        VkSemaphore semaphore() const { return semaphore_.get(); }
+        [[nodiscard]] VkFramebuffer framebuffer() const;
+        [[nodiscard]] VkSemaphore semaphore() const { return semaphore_.get(); }
 
     private:
         VkDevice device_;

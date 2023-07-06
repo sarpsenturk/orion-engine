@@ -20,7 +20,31 @@
       "installDir": "${sourceDir}/build/${presetName}/install"
     },
     {
-      "name": "win32",
+      "name": "debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ORION_DEBUG_BUILD": true
+      }
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "dist",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ORION_DISABLE_CONTRACTS": true
+      }
+    },
+    {
+      "name": "win32-base",
+      "hidden": true,
       "inherits": [
         "base"
       ],
@@ -29,7 +53,6 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
-      "displayName": "Win32",
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "cl",
         "CMAKE_C_COMPILER": "cl",
@@ -37,6 +60,21 @@
         "CXX_SANITIZE_ADDRESS": "/fsanitize=address",
         "CXX_SANITIZE_UNDEFINED": ""
       }
+    },
+    {
+      "name": "win32-debug",
+      "displayName": "Win32 Debug",
+      "inherits": ["win32-base", "debug"]
+    },
+    {
+      "name": "win32-release",
+      "displayName": "Win32 Release",
+      "inherits": ["win32-base", "release"]
+    },
+    {
+      "name": "win32-dist",
+      "displayName": "Win32 Distribution",
+      "inherits": ["win32-base", "dist"]
     }
   ]
 }

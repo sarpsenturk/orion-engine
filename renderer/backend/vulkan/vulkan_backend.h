@@ -26,8 +26,7 @@ namespace orion::vulkan
 
         // Internal helpers
         static constexpr auto debug_message_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-                                                       VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                                       VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+                                                       VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
         static constexpr auto debug_message_type = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
                                                    VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                                    VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;

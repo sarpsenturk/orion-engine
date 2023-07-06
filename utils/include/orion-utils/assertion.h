@@ -4,7 +4,7 @@
 #include <cstdlib>      // std::abort
 #include <fmt/format.h> // fmt::format
 
-#if !defined(NDEBUG) || !defined(ORION_ENABLE_ASSERTIONS)
+#if !defined(NDEBUG) || defined(ORION_ENABLE_ASSERTIONS)
     #define ORION_ASSERT(condition)                                                                                          \
         do {                                                                                                                 \
             if (!(condition)) {                                                                                              \
@@ -24,5 +24,10 @@
         }                                                                                                            \
     } while (0)
 
-#define ORION_EXPECTS(condition) ORION_CONDITION_CHECK("Pre-condition", condition)
-#define ORION_ENSURES(condition) ORION_CONDITION_CHECK("Post-condition", condition)
+#ifndef ORION_DISABLE_CONTRACTS
+    #define ORION_EXPECTS(condition) ORION_CONDITION_CHECK("Pre-condition", condition)
+    #define ORION_ENSURES(condition) ORION_CONDITION_CHECK("Post-condition", condition)
+#else
+    #define ORION_EXPECTS(condition) ((void)0)
+    #define ORION_ENSURES(condition) ((void)0)
+#endif

@@ -77,7 +77,7 @@ namespace orion
             case VK_ERROR_INCOMPATIBLE_DRIVER:
                 return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible for implementation-specific reasons.";
             case VK_ERROR_FRAGMENTED_POOL:
-                return "A pool allocation has failed due to fragmentation of the pool’s memory.";
+                return "A pool allocation has failed due to fragmentation of the poolï¿½s memory.";
             case VK_ERROR_OUT_OF_POOL_MEMORY:
                 return "A pool memory allocation has failed";
             default:

@@ -183,7 +183,7 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(GPUBufferUsageFlags buffer_usage) noexcept -> VkBufferUsageFlags
     {
-        if (!buffer_usage.has_none()) {
+        if (buffer_usage.has_none()) {
             return {};
         }
         VkBufferUsageFlags usage_flags = {};
@@ -192,6 +192,9 @@ namespace orion::vulkan
         }
         if (buffer_usage.has(GPUBufferUsage::IndexBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
+        if (buffer_usage.has(GPUBufferUsage::ConstantBuffer)) {
+            usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
         if (buffer_usage.has(GPUBufferUsage::TransferSrc)) {
             usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
