@@ -5,6 +5,7 @@
 
 #include <orion-math/vector/vector2.h>
 #include <orion-utils/assertion.h>
+#include <orion-core/config.h>
 #include <string>
 
 namespace orion::vulkan
@@ -59,7 +60,7 @@ namespace orion::vulkan
             case Format::R32G32B32A32_Float:
                 return VK_FORMAT_R32G32B32A32_SFLOAT;
         }
-        ORION_ASSERT(!"Invalid Format");
+        ORION_ASSERT(!"Format not handled in to_vulkan_type() or is invalid");
         return {};
     }
 
@@ -73,7 +74,7 @@ namespace orion::vulkan
             case AttachmentLoadOp::DontCare:
                 return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         }
-        ORION_ASSERT(!"Invalid load op");
+        ORION_ASSERT(!"Load op not handled in to_vulkan_type() or is invalid");
         return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
     }
 
@@ -85,7 +86,7 @@ namespace orion::vulkan
             case AttachmentStoreOp::DontCare:
                 return VK_ATTACHMENT_STORE_OP_DONT_CARE;
         }
-        ORION_ASSERT(!"Invalid store op");
+        ORION_ASSERT(!"Store op not handled in to_vulkan_type() or is invalid");
         return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
     }
 
@@ -99,7 +100,7 @@ namespace orion::vulkan
             case ImageLayout::PresentSrc:
                 return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         }
-        ORION_ASSERT(!"Invalid image layout");
+        ORION_ASSERT(!"Image layout not handled in to_vulkan_type() or is invalid");
         return VK_IMAGE_LAYOUT_MAX_ENUM;
     }
 
@@ -110,12 +111,17 @@ namespace orion::vulkan
         }
 
         VkShaderStageFlags vk_shader_stages = {};
+        ShaderStageFlags debug_handled_flags = {};
         if (shader_stages.has(ShaderStage::Vertex)) {
             vk_shader_stages |= VK_SHADER_STAGE_VERTEX_BIT;
+            debug_handled_flags |= ShaderStage::Vertex;
         }
         if (shader_stages.has(ShaderStage::Fragment)) {
             vk_shader_stages |= VK_SHADER_STAGE_FRAGMENT_BIT;
+            debug_handled_flags |= ShaderStage::Fragment;
         }
+        ORION_ASSERT((shader_stages ^ debug_handled_flags).has_none() &&
+                     "Shader stage not handled in to_vulkan_type() or is invalid");
         return vk_shader_stages;
     }
 
@@ -127,7 +133,7 @@ namespace orion::vulkan
             case InputRate::Instance:
                 return VK_VERTEX_INPUT_RATE_INSTANCE;
         }
-        ORION_ASSERT(!"Invalid input rate");
+        ORION_ASSERT(!"Input rate not handled in to_vulkan_type() or is invalid");
         return {};
     }
 
@@ -137,7 +143,7 @@ namespace orion::vulkan
             case PrimitiveTopology::TriangleList:
                 return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         }
-        ORION_ASSERT(!"Invalid primitive topology");
+        ORION_ASSERT(!"Primitive topology not handled in to_vulkan_type() or is invalid");
         return {};
     }
 
@@ -149,7 +155,7 @@ namespace orion::vulkan
             case FillMode::Wireframe:
                 return VK_POLYGON_MODE_LINE;
         }
-        ORION_ASSERT(!"Invalid fill mode");
+        ORION_ASSERT(!"Fill mode not handled in to_vulkan_type() or is invalid");
         return {};
     }
 
@@ -165,7 +171,7 @@ namespace orion::vulkan
             case CullMode::FrontAndBack:
                 return VK_CULL_MODE_FRONT_AND_BACK;
         }
-        ORION_ASSERT(!"Invalid cull mode");
+        ORION_ASSERT(!"Cull mode not handled in to_vulkan_type() or is invalid");
         return {};
     }
 
@@ -177,7 +183,7 @@ namespace orion::vulkan
             case FrontFace::ClockWise:
                 return VK_FRONT_FACE_CLOCKWISE;
         }
-        ORION_ASSERT(!"Invalid front face");
+        ORION_ASSERT(!"Front face not handled in to_vulkan_type() or is invalid");
         return {};
     }
 
@@ -186,22 +192,31 @@ namespace orion::vulkan
         if (buffer_usage.has_none()) {
             return {};
         }
+
         VkBufferUsageFlags usage_flags = {};
+        GPUBufferUsageFlags debug_handled_flags = {};
         if (buffer_usage.has(GPUBufferUsage::VertexBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            debug_handled_flags |= GPUBufferUsage::VertexBuffer;
         }
         if (buffer_usage.has(GPUBufferUsage::IndexBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+            debug_handled_flags |= GPUBufferUsage::IndexBuffer;
         }
         if (buffer_usage.has(GPUBufferUsage::ConstantBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            debug_handled_flags |= GPUBufferUsage::ConstantBuffer;
         }
         if (buffer_usage.has(GPUBufferUsage::TransferSrc)) {
             usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            debug_handled_flags |= GPUBufferUsage::TransferSrc;
         }
         if (buffer_usage.has(GPUBufferUsage::TransferDst)) {
             usage_flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            debug_handled_flags |= GPUBufferUsage::TransferDst;
         }
+        ORION_ASSERT((buffer_usage ^ debug_handled_flags).has_none() &&
+                     "Buffer usage flag not handled in to_vulkan_type() or is invalid");
         return usage_flags;
     }
 
@@ -225,7 +240,7 @@ namespace orion::vulkan
             default:
                 break;
         }
-        ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type()");
+        ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type() or is invalid");
         return {};
     }
 
