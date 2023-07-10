@@ -20,6 +20,6 @@ namespace orion::vulkan
         };
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         vk_result_check(vkCreateWin32SurfaceKHR(instance, &info, alloc_callbacks(), &surface));
-        return UniqueVkSurfaceKHR{surface, SurfaceDeleter{instance}};
+        return unique(surface, instance);
     }
 } // namespace orion::vulkan

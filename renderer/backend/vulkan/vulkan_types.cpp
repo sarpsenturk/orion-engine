@@ -149,6 +149,100 @@ namespace orion::vulkan
         vkFreeDescriptorSets(device, pool, 1, &descriptor_set);
     }
 
+    UniqueVkInstance unique(VkInstance instance)
+    {
+        return UniqueVkInstance{instance};
+    }
+
+    UniqueVkDevice unique(VkDevice device)
+    {
+        return UniqueVkDevice{device};
+    }
+
+    UniqueVkDebugUtilsMessengerEXT unique(VkDebugUtilsMessengerEXT debug_messenger, VkInstance instance)
+    {
+        return UniqueVkDebugUtilsMessengerEXT{debug_messenger, DebugUtilsMessengerDeleter{instance}};
+    }
+
+    UniqueVkSurfaceKHR unique(VkSurfaceKHR surface, VkInstance instance)
+    {
+        return UniqueVkSurfaceKHR{surface, SurfaceDeleter{instance}};
+    }
+
+    UniqueVkSwapchainKHR vulkan::unique(VkSwapchainKHR swapchain, VkDevice device)
+    {
+        return UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device}};
+    }
+
+    UniqueVkImageView unique(VkImageView image_view, VkDevice device)
+    {
+        return UniqueVkImageView{image_view, ImageViewDeleter{device}};
+    }
+    UniqueVkCommandPool unique(VkCommandPool command_pool, VkDevice device)
+    {
+        return UniqueVkCommandPool{command_pool, CommandPoolDeleter{device}};
+    }
+
+    UniqueVkCommandBuffer unique(VkCommandBuffer command_buffer, VkDevice device, VkCommandPool command_pool)
+    {
+        return UniqueVkCommandBuffer{command_buffer, CommandBufferDeleter{device, command_pool}};
+    }
+
+    UniqueVkRenderPass unique(VkRenderPass render_pass, VkDevice device)
+    {
+        return UniqueVkRenderPass{render_pass, RenderPassDeleter{device}};
+    }
+
+    UniqueVkFramebuffer unique(VkFramebuffer framebuffer, VkDevice device)
+    {
+        return UniqueVkFramebuffer{framebuffer, FramebufferDeleter{device}};
+    }
+
+    UniqueVkShaderModule unique(VkShaderModule shader_module, VkDevice device)
+    {
+        return UniqueVkShaderModule{shader_module, ShaderModuleDeleter{device}};
+    }
+
+    UniqueVkPipelineLayout unique(VkPipelineLayout pipeline_layout, VkDevice device)
+    {
+        return UniqueVkPipelineLayout{pipeline_layout, PipelineLayoutDeleter{device}};
+    }
+
+    UniqueVkPipeline unique(VkPipeline pipeline, VkDevice device)
+    {
+        return UniqueVkPipeline{pipeline, PipelineDeleter{device}};
+    }
+
+    UniqueVmaAllocator unique(VmaAllocator vma_allocator)
+    {
+        return UniqueVmaAllocator{vma_allocator};
+    }
+
+    UniqueVkSemaphore unique(VkSemaphore semaphore, VkDevice device)
+    {
+        return UniqueVkSemaphore{semaphore, SemaphoreDeleter{device}};
+    }
+
+    UniqueVkFence unique(VkFence fence, VkDevice device)
+    {
+        return UniqueVkFence{fence, FenceDeleter{device}};
+    }
+
+    UniqueVkDescriptorSetLayout unique(VkDescriptorSetLayout descriptor_set_layout, VkDevice device)
+    {
+        return UniqueVkDescriptorSetLayout{descriptor_set_layout, DescriptorSetLayoutDeleter{device}};
+    }
+
+    UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device)
+    {
+        return UniqueVkDescriptorPool{descriptor_pool, DescriptorPoolDeleter{device}};
+    }
+
+    UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool)
+    {
+        return UniqueVkDescriptorSet{descriptor_set, DescriptorSetDeleter{device, descriptor_pool}};
+    }
+
     UniqueVkSemaphore create_vk_semaphore(VkDevice device)
     {
         const VkSemaphoreCreateInfo info{

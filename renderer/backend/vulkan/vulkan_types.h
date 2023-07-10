@@ -172,82 +172,25 @@ namespace orion::vulkan
     using UniqueVkDescriptorPool = std::unique_ptr<VkDescriptorPool, DescriptorPoolDeleter>;
     using UniqueVkDescriptorSet = std::unique_ptr<VkDescriptorSet, DescriptorSetDeleter>;
 
-    inline auto unique(VkInstance instance)
-    {
-        return UniqueVkInstance{instance};
-    }
-    inline auto unique(VkDevice device)
-    {
-        return UniqueVkDevice{device};
-    }
-    inline auto unique(VkDebugUtilsMessengerEXT debug_messenger, VkInstance instance)
-    {
-        return UniqueVkDebugUtilsMessengerEXT{debug_messenger, DebugUtilsMessengerDeleter{instance}};
-    }
-    inline auto unique(VkSurfaceKHR surface, VkInstance instance)
-    {
-        return UniqueVkSurfaceKHR{surface, SurfaceDeleter{instance}};
-    }
-    inline auto unique(VkSwapchainKHR swapchain, VkDevice device)
-    {
-        return UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device}};
-    }
-    inline auto unique(VkImageView image_view, VkDevice device)
-    {
-        return UniqueVkImageView{image_view, ImageViewDeleter{device}};
-    }
-    inline auto unique(VkCommandPool command_pool, VkDevice device)
-    {
-        return UniqueVkCommandPool{command_pool, CommandPoolDeleter{device}};
-    }
-    inline auto unique(VkCommandBuffer command_buffer, VkDevice device, VkCommandPool command_pool)
-    {
-        return UniqueVkCommandBuffer{command_buffer, CommandBufferDeleter{device, command_pool}};
-    }
-    inline auto unique(VkRenderPass render_pass, VkDevice device)
-    {
-        return UniqueVkRenderPass{render_pass, RenderPassDeleter{device}};
-    }
-    inline auto unique(VkFramebuffer framebuffer, VkDevice device)
-    {
-        return UniqueVkFramebuffer{framebuffer, FramebufferDeleter{device}};
-    }
-    inline auto unique(VkShaderModule shader_module, VkDevice device)
-    {
-        return UniqueVkShaderModule{shader_module, ShaderModuleDeleter{device}};
-    }
-    inline auto unique(VkPipelineLayout pipeline_layout, VkDevice device)
-    {
-        return UniqueVkPipelineLayout{pipeline_layout, PipelineLayoutDeleter{device}};
-    }
-    inline auto unique(VkPipeline pipeline, VkDevice device)
-    {
-        return UniqueVkPipeline{pipeline, PipelineDeleter{device}};
-    }
-    inline auto unique(VmaAllocator vma_allocator)
-    {
-        return UniqueVmaAllocator{vma_allocator};
-    }
-    inline auto unique(VkSemaphore semaphore, VkDevice device)
-    {
-        return UniqueVkSemaphore{semaphore, SemaphoreDeleter{device}};
-    }
-    inline auto unique(VkFence fence, VkDevice device)
-    {
-        return UniqueVkFence{fence, FenceDeleter{device}};
-    }
-    inline auto unique(VkDescriptorSetLayout descriptor_set_layout, VkDevice device)
-    {
-        return UniqueVkDescriptorSetLayout{descriptor_set_layout, DescriptorSetLayoutDeleter{device}};
-    }
-    inline auto unique(VkDescriptorPool descriptor_pool, VkDevice device)
-    {
-        return UniqueVkDescriptorPool{descriptor_pool, DescriptorPoolDeleter{device}};
-    }
-    inline auto unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool)
-    {
-        return UniqueVkDescriptorSet{descriptor_set, DescriptorSetDeleter{device, descriptor_pool}};
-    }
+    UniqueVkInstance unique(VkInstance instance);
+    UniqueVkDevice unique(VkDevice device);
+    UniqueVkDebugUtilsMessengerEXT unique(VkDebugUtilsMessengerEXT debug_messenger, VkInstance instance);
+    UniqueVkSurfaceKHR unique(VkSurfaceKHR surface, VkInstance instance);
+    UniqueVkSwapchainKHR unique(VkSwapchainKHR swapchain, VkDevice device);
+    UniqueVkImageView unique(VkImageView image_view, VkDevice device);
+    UniqueVkCommandPool unique(VkCommandPool command_pool, VkDevice device);
+    UniqueVkCommandBuffer unique(VkCommandBuffer command_buffer, VkDevice device, VkCommandPool command_pool);
+    UniqueVkRenderPass unique(VkRenderPass render_pass, VkDevice device);
+    UniqueVkFramebuffer unique(VkFramebuffer framebuffer, VkDevice device);
+    UniqueVkShaderModule unique(VkShaderModule shader_module, VkDevice device);
+    UniqueVkPipelineLayout unique(VkPipelineLayout pipeline_layout, VkDevice device);
+    UniqueVkPipeline unique(VkPipeline pipeline, VkDevice device);
+    UniqueVmaAllocator unique(VmaAllocator vma_allocator);
+    UniqueVkSemaphore unique(VkSemaphore semaphore, VkDevice device);
+    UniqueVkFence unique(VkFence fence, VkDevice device);
+    UniqueVkDescriptorSetLayout unique(VkDescriptorSetLayout descriptor_set_layout, VkDevice device);
+    UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device);
+    UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool);
 
     UniqueVkSemaphore create_vk_semaphore(VkDevice device);
     UniqueVkFence create_vk_fence(VkDevice device, VkFenceCreateFlags flags = 0);
