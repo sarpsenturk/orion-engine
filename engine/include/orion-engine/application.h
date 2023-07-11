@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion-core/clock.h"
+
 #ifndef ORION_APPLICATION_LOG_LEVEL
     #define ORION_APPLICATION_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
 #endif
@@ -15,7 +17,7 @@ namespace orion
         Application();
         virtual ~Application() = default;
 
-        void on_update();
+        void on_update(frame_time dt);
         void on_render();
         [[nodiscard]] bool should_exit() const noexcept;
         void run();
@@ -29,7 +31,7 @@ namespace orion
         Application& operator=(Application&&) noexcept = default;
 
     private:
-        virtual void on_user_update() = 0;
+        virtual void on_user_update(frame_time dt) = 0;
         virtual void on_user_render() = 0;
         [[nodiscard]] virtual bool user_should_exit() const noexcept = 0;
 

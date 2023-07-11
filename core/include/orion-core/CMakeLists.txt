@@ -3,6 +3,7 @@ target_sources(
         orion-core PUBLIC
         FILE_SET public_headers
         FILES
+        clock.h
         defs.h
         dl_lib.h
         event.h

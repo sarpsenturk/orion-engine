@@ -17,9 +17,9 @@ namespace orion
                            current_version, current_platform, debug_build);
     }
 
-    void Application::on_update()
+    void Application::on_update(frame_time dt)
     {
-        on_user_update();
+        on_user_update(dt);
     }
 
     void Application::on_render()
@@ -34,8 +34,12 @@ namespace orion
 
     void Application::run()
     {
+        clock::time_point last_frame;
         while (!should_exit()) {
-            on_update();
+            const auto now = clock::now();
+            const auto dt = now - last_frame;
+            last_frame = now;
+            on_update(dt);
             on_render();
         }
     }

@@ -1,3 +1,4 @@
+#include <fmt/chrono.h>
 #include <orion-core/window.h>
 #include <orion-engine/orion-engine.h>
 #include <orion-math/vector/vector3.h>
@@ -14,9 +15,10 @@ public:
     }
 
 private:
-    void on_user_update() override
+    void on_user_update(orion::frame_time dt) override
     {
         window_.poll_events();
+        SPDLOG_LOGGER_DEBUG(logger(), "DT: {}", dt);
     }
 
     void on_user_render() override
