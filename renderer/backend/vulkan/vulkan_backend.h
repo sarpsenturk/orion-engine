@@ -16,6 +16,7 @@ namespace orion::vulkan
 
         // Public API overrides
         [[nodiscard]] const char* name() const noexcept override { return "Vulkan 1.0"; }
+        [[nodiscard]] ShaderObjectType shader_object_type() const noexcept override { return ShaderObjectType::SpirV; }
 
         [[nodiscard]] auto instance() const noexcept { return instance_.get(); }
 

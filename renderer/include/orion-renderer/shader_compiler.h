@@ -55,13 +55,9 @@ namespace orion
         using DxcInstancePtr = std::unique_ptr<DxcInstance, decltype(&dxc_destroy_instance)>;
     } // namespace detail
 
-    enum class ShaderObjectType {
-        SpirV,
-        DXIL
-    };
-
     struct ShaderCompileDesc {
-        std::string_view shader_source;
+        std::string source_string;
+        std::string source_file;
         const char* entry_point = "main";
         ShaderStage shader_type;
         ShaderObjectType object_type;
@@ -77,7 +73,7 @@ namespace orion
     public:
         ShaderCompiler();
 
-        ShaderCompileResult compile(const ShaderCompileDesc& compile_desc);
+        ShaderCompileResult compile(const ShaderCompileDesc& desc);
 
         static spdlog::logger* logger();
 

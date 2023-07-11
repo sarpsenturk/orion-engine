@@ -43,6 +43,7 @@ namespace orion
         [[nodiscard]] auto logger() const noexcept { return logger_.get(); }
 
         [[nodiscard]] virtual const char* name() const noexcept = 0;
+        [[nodiscard]] virtual ShaderObjectType shader_object_type() const noexcept = 0;
 
     protected:
         RenderBackend(const RenderBackend&) = default;

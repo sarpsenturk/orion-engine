@@ -36,6 +36,8 @@ target_link_libraries(
 target_sources(orion-renderer PUBLIC FILE_SET public_headers TYPE HEADERS)
 
 # Add configuration file
+set(ORION_ASSET_DIR ${CMAKE_SOURCE_DIR}/assets)
+set(ORION_SHADER_DIR ${ORION_ASSET_DIR}/shaders)
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-renderer/config.h)
 
 # Add sources

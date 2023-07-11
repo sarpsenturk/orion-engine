@@ -152,4 +152,9 @@ namespace orion
     enum class DescriptorType : std::uint8_t {
         ConstantBuffer
     };
+
+    enum class ShaderObjectType {
+        SpirV,
+        DXIL
+    };
 } // namespace orion

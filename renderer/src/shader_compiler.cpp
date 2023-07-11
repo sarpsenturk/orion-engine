@@ -7,17 +7,12 @@
 #include "orion-utils/assertion.h"
 #include "orion-utils/static_vector.h"
 
-#include <cstring>                           // std::memcpy
-#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_mt
-#include <spdlog/spdlog.h>                   // SPDLOG_*
-
-#ifndef FAILED
-    #define FAILED(hr) (((HRESULT)(hr)) < 0)
-#endif
-
 #include <codecvt>
+#include <cstring>
 #include <locale>
+#include <span>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 namespace orion
 {
@@ -90,23 +85,16 @@ namespace orion
             ORION_ASSERT(!"Invalid shader type");
             return nullptr;
         }
-    } // namespace
 
-    // Compile HLSL source code with IDxcCompiler3::Compile() and return the results in a vector of bytes
-    ShaderCompileResult ShaderCompiler::compile(const ShaderCompileDesc& compile_desc)
-    {
-        ORION_EXPECTS(!compile_desc.shader_source.empty());
-        ORION_EXPECTS(compile_desc.entry_point != nullptr);
+        void hresult_check(HRESULT hr, const char* msg)
+        {
+            if (FAILED(hr)) {
+                throw DxcCompileError(ShaderCompileError::InternalError, msg);
+            }
+        }
 
-        // Create DxcBuffer to source string
-        const DxcBuffer dxc_buffer{
-            .Ptr = compile_desc.shader_source.data(),
-            .Size = compile_desc.shader_source.size(),
-            .Encoding = DXC_CP_ACP,
-        };
-
-        // Convert char strings to wchar strings
-        auto to_wstring = [](const char* string) {
+        auto to_wstring(const char* string)
+        {
 #ifdef _MSC_VER
     #pragma warning(push)
     #pragma warning(disable : 4996)
@@ -116,10 +104,53 @@ namespace orion
 #ifdef _MSC_VER
     #pragma warning(pop)
 #endif
+        }
+
+        ComPtr<IDxcBlobEncoding> create_source_blob(const ShaderCompileDesc& desc, IDxcUtils* utils)
+        {
+            ComPtr<IDxcBlobEncoding> source = nullptr;
+            if (auto source_string = desc.source_string; !source_string.empty()) {
+                ORION_EXPECTS(source_string.size() <= UINT32_MAX);
+                hresult_check(utils->CreateBlob(source_string.data(), static_cast<UINT32>(source_string.size()), 0, &source),
+                              "Failed to create IDxcBlobEncoding");
+            } else if (auto filename = desc.source_file; !filename.empty()) {
+                const auto w_filename = to_wstring(filename.c_str());
+                hresult_check(utils->LoadFile(w_filename.c_str(), nullptr, &source),
+                              "Failed to load source file");
+            }
+            return source;
+        }
+
+        ComPtr<IDxcResult> dxc_compile(IDxcCompiler3* compiler, IDxcIncludeHandler* include_handler, const DxcBuffer* buffer, std::span<LPCWSTR> arguments)
+        {
+            ComPtr<IDxcResult> results;
+            hresult_check(compiler->Compile(
+                              buffer,
+                              arguments.data(), static_cast<uint32_t>(arguments.size()),
+                              include_handler,
+                              IID_PPV_ARGS(&results)),
+                          "Call to Compile() failed");
+            return results;
+        }
+    } // namespace
+
+    // Compile HLSL source code with IDxcCompiler3::Compile() and return the results in a vector of bytes
+    ShaderCompileResult ShaderCompiler::compile(const ShaderCompileDesc& desc)
+    {
+        ORION_EXPECTS(desc.source_string.empty() != desc.source_file.empty());
+        ORION_EXPECTS(desc.entry_point != nullptr);
+
+        const auto source = create_source_blob(desc, dxc_instance_->utils.Get());
+
+        // Create DxcBuffer to source string
+        const DxcBuffer dxc_buffer{
+            .Ptr = source->GetBufferPointer(),
+            .Size = source->GetBufferSize(),
+            .Encoding = DXC_CP_ACP,
         };
 
         // Entry point as wstring
-        const auto entry_point = to_wstring(compile_desc.entry_point);
+        const auto entry_point = to_wstring(desc.entry_point);
 
         // Arguments passed to dxc. Must be WSTRING
         static constexpr std::size_t max_arguments = 32;
@@ -127,10 +158,10 @@ namespace orion
         arguments.push_back(L"-E");
         arguments.push_back(entry_point.c_str());
         arguments.push_back(L"-T");
-        arguments.push_back(to_shader_profile(compile_desc.shader_type));
-        if (compile_desc.object_type == ShaderObjectType::SpirV) {
+        arguments.push_back(to_shader_profile(desc.shader_type));
+        if (desc.object_type == ShaderObjectType::SpirV) {
             arguments.push_back(L"-spirv");
-            if (compile_desc.shader_type == ShaderStage::Vertex) {
+            if (desc.shader_type == ShaderStage::Vertex) {
                 arguments.push_back(L"-fvk-invert-y");
             }
         }
@@ -139,20 +170,8 @@ namespace orion
         auto compiler = dxc_instance_->compiler;
         auto include_handler = dxc_instance_->include_handler;
 
-        // Throw internal error exception on hresult failure with on a function call
-        auto hresult_check = [](HRESULT hr, const char* msg) {
-            if (FAILED(hr)) {
-                throw DxcCompileError(ShaderCompileError::InternalError, msg);
-            }
-        };
-
         // Compile and check for failed HRESULT. Additional error checking is performed after by checking the error buffer
-        ComPtr<IDxcResult> results;
-        hresult_check(compiler->Compile(&dxc_buffer, arguments.data(),
-                                        static_cast<std::uint32_t>(arguments.size()),
-                                        include_handler.Get(),
-                                        IID_PPV_ARGS(&results)),
-                      "Call to Compile() failed");
+        const auto results = dxc_compile(compiler.Get(), include_handler.Get(), &dxc_buffer, arguments);
 
         // Check error buffer
         ComPtr<IDxcBlobUtf8> errors = nullptr;
@@ -163,7 +182,7 @@ namespace orion
         }
 
         // Quit if compilation failed
-        HRESULT compilation_status;
+        HRESULT compilation_status = S_OK;
         hresult_check(results->GetStatus(&compilation_status), "GetStatus() failed");
         if (FAILED(compilation_status)) {
             SPDLOG_LOGGER_ERROR(logger(), "Shader compilation failed!");
