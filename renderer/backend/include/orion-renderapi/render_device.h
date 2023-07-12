@@ -11,12 +11,14 @@
 #include "swapchain.h"
 #include "types.h"
 
-#include <spdlog/logger.h> // spdlog::logger
+#include <atomic>
+#include <spdlog/logger.h>
 
 namespace orion
 {
-    // Forward declare window class
+    // Forward declarations
     class Window;
+    class RenderDevice;
 
     struct SubmitDesc {
         const CommandBuffer* command_buffer;
@@ -24,11 +26,101 @@ namespace orion
         SubmissionHandle existing = SubmissionHandle::invalid_handle();
     };
 
+    class DeviceResourceControlBlock
+    {
+    public:
+        explicit DeviceResourceControlBlock(RenderDevice* device);
+
+        std::size_t add_ref();
+        std::size_t remove_ref();
+
+        [[nodiscard]] auto device() const noexcept { return device_; }
+
+    private:
+        RenderDevice* device_ = nullptr;
+        std::atomic_size_t ref_count_ = 1;
+    };
+
+    template<typename HandleType>
+    class DeviceResource
+    {
+    public:
+        using handle_type = HandleType;
+
+        DeviceResource() = default;
+        DeviceResource(handle_type handle, RenderDevice* device)
+            : handle_(handle)
+            , control_block_(new DeviceResourceControlBlock(device))
+        {
+        }
+        DeviceResource(const DeviceResource& other)
+            : handle_(other.handle_)
+            , control_block_(other.control_block_)
+        {
+            control_block_->add_ref();
+        }
+        DeviceResource(DeviceResource&& other) noexcept
+            : handle_(std::exchange(other.handle_, handle_type::invalid_handle()))
+            , control_block_(other.control_block_)
+        {
+        }
+        DeviceResource& operator=(const DeviceResource& other)
+        {
+            if ((&other) == this) {
+                return *this;
+            }
+            handle_ = other.handle_;
+            control_block_ = other.control_block_;
+            control_block_->add_ref();
+            return *this;
+        }
+        DeviceResource& operator=(DeviceResource&& other) noexcept
+        {
+            if ((&other) == this) {
+                return *this;
+            }
+            handle_ = std::exchange(other.handle_, handle_type::invalid_handle());
+            control_block_ = other.control_block_;
+            return *this;
+        }
+        ~DeviceResource()
+        {
+            if (control_block_->remove_ref() == 0) {
+                control_block_->device()->destroy(handle_);
+                delete control_block_;
+            }
+        }
+
+        [[nodiscard]] HandleType get() const noexcept { return handle_; }
+
+    private:
+        handle_type handle_;
+        DeviceResourceControlBlock* control_block_ = nullptr;
+    };
+
+    using SwapchainResource = DeviceResource<SwapchainHandle>;
+    using RenderPassResource = DeviceResource<RenderPassHandle>;
+    using RenderTargetResource = DeviceResource<RenderTargetHandle>;
+    using ShaderResource = DeviceResource<ShaderModuleHandle>;
+    using PipelineResource = DeviceResource<PipelineHandle>;
+    using GPUBufferResource = DeviceResource<GPUBufferHandle>;
+    using CommandPoolResource = DeviceResource<CommandPoolHandle>;
+    using CommandBufferResource = DeviceResource<CommandBufferHandle>;
+    using SubmissionResource = DeviceResource<SubmissionHandle>;
+    using DescriptorPoolResource = DeviceResource<DescriptorPoolHandle>;
+    using DescriptorSetResource = DeviceResource<DescriptorSetHandle>;
+
     class RenderDevice
     {
     public:
-        RenderDevice(spdlog::logger* logger);
+        explicit RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
+
+        template<typename Handle>
+        auto make_resource(Handle handle)
+        {
+            return DeviceResource(handle, this);
+        }
 
         [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
@@ -60,6 +152,7 @@ namespace orion
         void unmap(GPUBufferHandle buffer_handle);
 
         [[nodiscard]] SubmissionHandle submit(const SubmitDesc& desc);
+        void submit_immediate(const SubmitDesc& desc);
         void wait(SubmissionHandle submission_handle);
         void present(SwapchainHandle swapchain_handle, SubmissionHandle wait);
 

@@ -1,10 +1,24 @@
 #include "orion-renderapi/render_device.h"
 
-#include <orion-utils/assertion.h> // ORION_ASSERT
 #include <spdlog/spdlog.h>         // SPDLOG_LOGGER_*
 
 namespace orion
 {
+    DeviceResourceControlBlock::DeviceResourceControlBlock(RenderDevice* device)
+        : device_(device)
+    {
+    }
+
+    std::size_t DeviceResourceControlBlock::add_ref()
+    {
+        return ref_count_.fetch_add(1, std::memory_order_relaxed) + 1;
+    }
+
+    std::size_t DeviceResourceControlBlock::remove_ref()
+    {
+        return ref_count_.fetch_sub(1, std::memory_order_acq_rel) - 1;
+    }
+
     RenderDevice::RenderDevice(spdlog::logger* logger)
         : logger_(logger)
     {
@@ -160,6 +174,13 @@ namespace orion
     SubmissionHandle RenderDevice::submit(const SubmitDesc& desc)
     {
         return submit_api(desc);
+    }
+
+    void RenderDevice::submit_immediate(const SubmitDesc& desc)
+    {
+        auto submission = submit_api(desc);
+        wait(submission);
+        destroy(submission);
     }
 
     void RenderDevice::wait(SubmissionHandle submission_handle)
