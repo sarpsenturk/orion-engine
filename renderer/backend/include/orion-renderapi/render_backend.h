@@ -8,10 +8,6 @@
 #include <spdlog/logger.h> // spdlog::logger
 #include <vector>          // std::vector
 
-#ifndef ORION_RENDERAPI_LOG_LEVEL
-    #define ORION_RENDERAPI_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
-#endif
-
 #ifdef ORION_RENDER_BACKEND_EXPORT
     #define ORION_RENDER_API ORION_EXPORT
 #else
@@ -34,7 +30,7 @@ namespace orion
     class RenderBackend
     {
     public:
-        RenderBackend(const char* logger_name = "orion-renderapi");
+        explicit RenderBackend(const char* logger_name = "orion-renderapi");
         virtual ~RenderBackend() = default;
 
         [[nodiscard]] std::vector<PhysicalDeviceDesc> enumerate_physical_devices();

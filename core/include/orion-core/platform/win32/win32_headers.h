@@ -8,14 +8,14 @@
     #error "Can't include Windows.h on non-Windows platform"
 #endif
 
+#include "orion-core/defs.h"
 #include "orion-core/exception.h"
 
 #ifndef ORION_WIN32_LOG_LEVEL
     #define ORION_WIN32_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
 #endif
 
-#include <spdlog/logger.h>                   // spdlog::logger
-#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_mt
+#include "orion-core/log.h"
 
 namespace orion
 {
@@ -63,12 +63,7 @@ namespace orion
     {
         inline spdlog::logger* logger()
         {
-            static const auto win32_logger = []() {
-                auto logger = spdlog::stdout_color_mt("orion-win32");
-                logger->set_pattern("[%n] [%^%l%$] %v");
-                logger->set_level(static_cast<spdlog::level::level_enum>(ORION_WIN32_LOG_LEVEL));
-                return logger;
-            }();
+            static const auto win32_logger = create_logger("orion-win32", static_cast<spdlog::level::level_enum>(ORION_WIN32_LOG_LEVEL));
             return win32_logger.get();
         }
     } // namespace win32

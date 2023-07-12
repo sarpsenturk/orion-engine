@@ -6,10 +6,6 @@
 #include "orion-renderer/config.h"
 #include "shader_compiler.h"
 
-#ifndef ORION_RENDERER_LOG_LEVEL
-    #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
-#endif
-
 #include <memory>
 #include <span>
 #include <spdlog/logger.h>

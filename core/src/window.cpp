@@ -1,6 +1,11 @@
 #include "orion-core/window.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h>
+#ifndef ORION_WINDOW_LOG_LEVEL
+    #define ORION_WINDOW_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
+#endif
+
+#include "orion-core/log.h"
+
 #include <spdlog/spdlog.h>
 
 namespace orion
@@ -53,12 +58,7 @@ namespace orion
 
     spdlog::logger* Window::logger()
     {
-        static const auto window_logger = []() {
-            auto logger = spdlog::stdout_color_st("orion-window");
-            logger->set_pattern("[%n] [%^%l%$] %v");
-            logger->set_level(static_cast<spdlog::level::level_enum>(ORION_WINDOW_LOG_LEVEL));
-            return logger;
-        }();
+        static const auto window_logger = create_logger("orion-window", static_cast<spdlog::level::level_enum>(ORION_WINDOW_LOG_LEVEL));
         return window_logger.get();
     }
 

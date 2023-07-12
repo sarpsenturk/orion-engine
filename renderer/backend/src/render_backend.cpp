@@ -1,15 +1,17 @@
 #include "orion-renderapi/render_backend.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h> // spdlog::stdout_color_mt
-#include <spdlog/spdlog.h>                   // SPDLOG_*
+#ifndef ORION_RENDERAPI_LOG_LEVEL
+    #define ORION_RENDERAPI_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
+#endif
+
+#include "orion-core/log.h"
+#include <spdlog/spdlog.h> // SPDLOG_*
 
 namespace orion
 {
     RenderBackend::RenderBackend(const char* logger_name)
-        : logger_(spdlog::stdout_color_mt(logger_name))
+        : logger_(create_logger(logger_name, static_cast<spdlog::level::level_enum>(ORION_RENDERAPI_LOG_LEVEL)))
     {
-        logger_->set_pattern("[%n] [%^%l%$] %v");
-        logger_->set_level(static_cast<spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
     }
 
     std::vector<PhysicalDeviceDesc> RenderBackend::enumerate_physical_devices()

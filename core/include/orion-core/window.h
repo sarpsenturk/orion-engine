@@ -10,10 +10,6 @@
 
 #include <spdlog/logger.h>
 
-#ifndef ORION_WINDOW_LOG_LEVEL
-    #define ORION_WINDOW_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
-#endif
-
 namespace orion
 {
     // Window data type aliases

@@ -10,6 +10,7 @@ target_sources(
         exception.h
         handle.h
         input.h
+        log.h
         platform.h
         types.h
         window.h

@@ -11,7 +11,12 @@
 #include <cstring>
 #include <locale>
 #include <span>
-#include <spdlog/sinks/stdout_color_sinks.h>
+
+#ifndef ORION_SHADER_COMPILER_LOG_LEVEL
+    #define ORION_SHADER_COMPILER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
+#endif
+
+#include "orion-core/log.h"
 #include <spdlog/spdlog.h>
 
 namespace orion
@@ -205,12 +210,7 @@ namespace orion
 
     spdlog::logger* ShaderCompiler::logger()
     {
-        static const auto dxc_logger = []() {
-            auto logger = spdlog::stdout_color_mt("orion-shader-compiler");
-            logger->set_pattern("[%n] [%^%l%$] %v");
-            logger->set_level(static_cast<spdlog::level::level_enum>(ORION_SHADER_COMPILER_LOG_LEVEL));
-            return logger;
-        }();
+        static const auto dxc_logger = create_logger("orion-shader-compiler", static_cast<spdlog::level::level_enum>(ORION_SHADER_COMPILER_LOG_LEVEL));
         return dxc_logger.get();
     }
 } // namespace orion

@@ -5,7 +5,12 @@
 #include "orion-utils/assertion.h"
 
 #include <array>
-#include <spdlog/sinks/stdout_color_sinks.h>
+
+#ifndef ORION_RENDERER_LOG_LEVEL
+    #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
+#endif
+
+#include "orion-core/log.h"
 #include <spdlog/spdlog.h>
 
 namespace orion
@@ -283,12 +288,7 @@ namespace orion
 
     spdlog::logger* Renderer::logger()
     {
-        static const auto renderer_logger = []() {
-            auto logger = spdlog::stdout_color_mt("orion-renderer");
-            logger->set_pattern("[%n] [%^%l%$] %v");
-            logger->set_level(static_cast<spdlog::level::level_enum>(ORION_RENDERER_LOG_LEVEL));
-            return logger;
-        }();
+        static const auto renderer_logger = create_logger("orion-renderer", static_cast<spdlog::level::level_enum>(ORION_RENDERER_LOG_LEVEL));
         return renderer_logger.get();
     }
 } // namespace orion

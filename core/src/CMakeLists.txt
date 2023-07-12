@@ -4,6 +4,7 @@ target_sources(
         clock.cpp
         dl_lib.cpp
         input.cpp
+        log.cpp
         window.cpp
 )
 
