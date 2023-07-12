@@ -140,7 +140,7 @@ namespace orion
     } // namespace
 
     // Compile HLSL source code with IDxcCompiler3::Compile() and return the results in a vector of bytes
-    ShaderCompileResult ShaderCompiler::compile(const ShaderCompileDesc& desc)
+    ShaderCompileResult ShaderCompiler::compile(const ShaderCompileDesc& desc) const
     {
         ORION_EXPECTS(desc.source_string.empty() != desc.source_file.empty());
         ORION_EXPECTS(desc.entry_point != nullptr);

@@ -3,16 +3,12 @@
 #include "orion-core/config.h"
 #include "orion-renderapi/types.h"
 
-#ifndef ORION_SHADER_COMPILER_LOG_LEVEL
-    #define ORION_SHADER_COMPILER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
-#endif
-
-#include <cstddef>                // std::byte
-#include <memory>                 // std::unique_ptr, std::shared_ptr
-#include <orion-core/exception.h> // orion::Exception
-#include <spdlog/logger.h>        // spdlog::logger
-#include <string_view>            // std::string_view
-#include <vector>                 // std::vector
+#include <cstddef>
+#include <memory>
+#include <orion-core/exception.h>
+#include <spdlog/logger.h>
+#include <string_view>
+#include <vector>
 
 namespace orion
 {
@@ -73,7 +69,7 @@ namespace orion
     public:
         ShaderCompiler();
 
-        ShaderCompileResult compile(const ShaderCompileDesc& desc);
+        ShaderCompileResult compile(const ShaderCompileDesc& desc) const;
 
         static spdlog::logger* logger();
 

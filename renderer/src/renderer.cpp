@@ -49,25 +49,24 @@ namespace orion
     }
 
     Renderer::Renderer(const RendererDesc& desc)
-        : render_area_(desc.window->size())
+        : backend_module_(desc.backend_module)
+        , render_backend_(create_backend())
+        , render_device_(create_device(desc.device_select_fn))
+        , swapchain_(create_swapchain(desc.window))
+        , render_pass_(create_render_pass())
+        , render_target_(create_render_target(desc.window->size()))
+        , graphics_pipeline_(create_graphics_pipeline())
+        , graphics_command_pool_(create_command_pool(CommandQueueType::Graphics))
+        , transfer_command_pool_(create_command_pool(CommandQueueType::Transfer))
+        , render_command_(create_render_command())
+        , descriptor_pool_(create_descriptor_pool())
+        , descriptor_set_(create_descriptor_set())
+        , render_area_(desc.window->size())
     {
-        ORION_EXPECTS(desc.backend_module != nullptr);
-        ORION_EXPECTS(desc.window != nullptr);
+        register_resize_callbacks(desc.window);
 
-        create_backend(desc.backend_module);
-        create_device(desc.device_select_fn);
-        SPDLOG_LOGGER_DEBUG(logger(), "Render backend \"{}\" initialized", render_backend_->name());
-
-        auto* window = desc.window;
-        create_swapchain(window);
-        create_render_pass();
-        create_render_target(window->size());
-        register_resize_callbacks(window);
-
-        create_graphics_pipeline();
-
-        create_command_pools();
-        create_render_command();
+        SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
+        SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
     }
 
     void Renderer::begin_frame()
@@ -109,24 +108,29 @@ namespace orion
         return descriptor_layout;
     }
 
-    void Renderer::create_backend(const char* backend_module)
-    { // Load the backend module
-        backend_module_ = Module(backend_module);
+    std::unique_ptr<RenderBackend> Renderer::create_backend() const
+    {
+        ORION_ASSERT(backend_module_.platform_module() != nullptr);
+
+        SPDLOG_LOGGER_TRACE(logger(), "Initializing render backend...");
 
         // Load the factory function
         auto pfn_create_backend = backend_module_.load_symbol<RenderBackend*(void)>("create_render_backend");
         SPDLOG_LOGGER_TRACE(logger(), "Loaded create_render_backend() (at: {})", fmt::ptr(pfn_create_backend));
 
         // Create the backend
-        render_backend_ = std::unique_ptr<RenderBackend>(pfn_create_backend());
-        if (!render_backend_) {
+        auto render_backend = std::unique_ptr<RenderBackend>(pfn_create_backend());
+        if (!render_backend) {
             throw std::runtime_error("Failed to create render backend");
         }
+        return render_backend;
     }
 
-    uint32_t Renderer::select_physical_device(pfnSelectPhysicalDevice device_select_fn)
-    { // Get the physical devices
-        auto physical_devices = render_backend_->enumerate_physical_devices();
+    uint32_t Renderer::select_physical_device(pfnSelectPhysicalDevice device_select_fn) const
+    {
+        ORION_ASSERT(backend() != nullptr);
+        // Get the physical devices
+        auto physical_devices = backend()->enumerate_physical_devices();
         SPDLOG_LOGGER_DEBUG(logger(), "Found {} physical device(s):", physical_devices.size());
         for (const auto& physical_device : physical_devices) {
             SPDLOG_LOGGER_DEBUG(logger(), "{}", physical_device.name);
@@ -150,24 +154,30 @@ namespace orion
         return physical_device_index;
     }
 
-    void Renderer::create_device(pfnSelectPhysicalDevice device_select_fn)
+    std::unique_ptr<RenderDevice> Renderer::create_device(pfnSelectPhysicalDevice device_select_fn) const
     {
+        ORION_ASSERT(backend() != nullptr);
+        SPDLOG_LOGGER_TRACE(logger(), "Creating render device...");
         const auto physical_device_index = select_physical_device(device_select_fn);
-        render_device_ = render_backend_->create_device(physical_device_index);
+        return backend()->create_device(physical_device_index);
     }
 
-    void Renderer::create_swapchain(Window* window)
+    SwapchainHandle Renderer::create_swapchain(Window* window) const
     {
+        ORION_ASSERT(device() != nullptr);
+        SPDLOG_LOGGER_TRACE(logger(), "Creating swapchain...");
         const auto desc = SwapchainDesc{
             .image_count = 2,
             .image_format = image_format,
             .image_size = window->size(),
         };
-        swapchain_ = device()->create_swapchain(*window, desc);
+        return device()->create_swapchain(*window, desc);
     }
 
-    void Renderer::create_render_pass()
+    RenderPassHandle Renderer::create_render_pass() const
     {
+        ORION_ASSERT(device() != nullptr);
+        SPDLOG_LOGGER_TRACE(logger(), "Creating render pass...");
         const std::array color_attachments{
             orion::AttachmentDesc{
                 .load_op = orion::AttachmentLoadOp::Clear,
@@ -177,11 +187,14 @@ namespace orion
                 .final_layout = orion::ImageLayout::PresentSrc,
             },
         };
-        render_pass_ = device()->create_render_pass({.color_attachments = color_attachments});
+        return device()->create_render_pass({.color_attachments = color_attachments});
     }
 
-    void Renderer::create_render_target(const Vector2_u& size)
+    RenderTargetHandle Renderer::create_render_target(const Vector2_u& size)
     {
+        ORION_ASSERT(device() != nullptr);
+        ORION_ASSERT(swapchain_.is_valid());
+        SPDLOG_LOGGER_TRACE(logger(), "Creating render target for swapchain...");
         const auto desc = RenderTargetDesc{
             .format = image_format,
             .render_pass = render_pass_,
@@ -192,6 +205,7 @@ namespace orion
 
     void Renderer::register_resize_callbacks(Window* window)
     {
+        ORION_ASSERT(window != nullptr);
         window->on_resize_end().subscribe([this](const auto& resize) {
             // Recreate swapchain
             {
@@ -217,19 +231,22 @@ namespace orion
         });
     }
 
-    ShaderModuleHandle Renderer::create_shader(const std::string& filepath, const ShaderStage& stage)
+    ShaderModuleHandle Renderer::create_shader(const std::string& filepath, const ShaderStage& stage) const
     {
+        ORION_ASSERT(device() != nullptr);
         const auto desc = ShaderCompileDesc{
             .source_file = filepath,
             .shader_type = stage,
-            .object_type = render_backend_->shader_object_type(),
+            .object_type = backend()->shader_object_type(),
         };
         const auto result = shader_compiler_.compile(desc);
         return device()->create_shader_module({.byte_code = result.binary});
     }
 
-    void Renderer::create_graphics_pipeline()
+    PipelineHandle Renderer::create_graphics_pipeline() const
     {
+        ORION_ASSERT(device() != nullptr);
+        SPDLOG_LOGGER_TRACE(logger(), "Creating graphics pipeline...");
         const std::array shaders{
             ShaderStageDesc{.module = create_shader(vertex_shader_path, ShaderStage::Vertex), .stage = ShaderStage::Vertex},
             ShaderStageDesc{.module = create_shader(fragment_shader_path, ShaderStage::Fragment), .stage = ShaderStage::Fragment},
@@ -244,46 +261,51 @@ namespace orion
             .input_assembly = input_assembly_,
             .rasterization = rasterization_,
             .render_pass = render_pass_};
-        graphics_pipeline_ = device()->create_graphics_pipeline(desc);
+        return device()->create_graphics_pipeline(desc);
     }
 
-    void Renderer::create_command_pools()
+    CommandPoolHandle Renderer::create_command_pool(CommandQueueType queue_type) const
     {
-        graphics_command_pool_ = device()->create_command_pool(CommandPoolDesc{
-            .queue_type = CommandQueueType::Graphics,
-        });
-        transfer_command_pool_ = device()->create_command_pool(CommandPoolDesc{
-            .queue_type = CommandQueueType::Transfer,
-        });
+        ORION_ASSERT(device() != nullptr);
+        SPDLOG_LOGGER_TRACE(logger(), "Creating command pool...");
+        return device()->create_command_pool(CommandPoolDesc{.queue_type = queue_type});
     }
 
-    void Renderer::create_render_command()
+    CommandBuffer Renderer::create_render_command() const
     {
+        ORION_ASSERT(device() != nullptr);
+        ORION_ASSERT(graphics_command_pool_.is_valid());
+        SPDLOG_LOGGER_TRACE(logger(), "Creating render command buffer...");
         auto handle = device()->create_command_buffer(CommandBufferDesc{
             .command_pool = graphics_command_pool_,
         });
-        render_command_ = CommandBuffer{handle, std::make_unique<LinearCommandAllocator>(render_command_size)};
+        return {handle, std::make_unique<LinearCommandAllocator>(render_command_size)};
     }
 
-    void Renderer::create_descriptor_pool()
+    DescriptorPoolHandle Renderer::create_descriptor_pool() const
     {
+        ORION_ASSERT(device() != nullptr);
+        SPDLOG_LOGGER_TRACE(logger(), "Creating descriptor pool...");
         static const std::array pool_sizes{
             DescriptorPoolSize{.type = DescriptorType::ConstantBuffer, .count = 1},
         };
         const auto desc = DescriptorPoolDesc{
             .max_sets = 1,
             .pool_sizes = pool_sizes};
-        descriptor_pool_ = device()->create_descriptor_pool(desc);
+        return device()->create_descriptor_pool(desc);
     }
 
-    void Renderer::create_descriptor_set()
+    DescriptorSetHandle Renderer::create_descriptor_set() const
     {
+        ORION_ASSERT(device() != nullptr);
+        ORION_ASSERT(descriptor_pool_.is_valid());
+        SPDLOG_LOGGER_TRACE(logger(), "Creating descriptor sets...");
         const auto& layout = descriptor_layouts()[0];
         const auto desc = DescriptorSetDesc{
             .descriptor_pool = descriptor_pool_,
             .layout = &layout,
         };
-        descriptor_set_ = device()->create_descriptor_set(desc);
+        return device()->create_descriptor_set(desc);
     }
 
     spdlog::logger* Renderer::logger()

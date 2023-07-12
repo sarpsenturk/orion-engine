@@ -42,19 +42,19 @@ namespace orion
     private:
         static std::span<const DescriptorSetLayout> descriptor_layouts();
 
-        void create_backend(const char* backend_module);
-        uint32_t select_physical_device(pfnSelectPhysicalDevice device_select_fn);
-        void create_device(pfnSelectPhysicalDevice device_select_fn);
-        void create_swapchain(Window* window);
-        void create_render_pass();
-        void create_render_target(const Vector2_u& size);
+        [[nodiscard]] std::unique_ptr<RenderBackend> create_backend() const;
+        [[nodiscard]] uint32_t select_physical_device(pfnSelectPhysicalDevice device_select_fn) const;
+        [[nodiscard]] std::unique_ptr<RenderDevice> create_device(pfnSelectPhysicalDevice device_select_fn) const;
+        [[nodiscard]] SwapchainHandle create_swapchain(Window* window) const;
+        [[nodiscard]] RenderPassHandle create_render_pass() const;
+        [[nodiscard]] RenderTargetHandle create_render_target(const Vector2_u& size);
+        [[nodiscard]] ShaderModuleHandle create_shader(const std::string& filepath, const ShaderStage& stage) const;
+        [[nodiscard]] PipelineHandle create_graphics_pipeline() const;
+        [[nodiscard]] CommandPoolHandle create_command_pool(CommandQueueType queue_type) const;
+        [[nodiscard]] CommandBuffer create_render_command() const;
+        [[nodiscard]] DescriptorPoolHandle create_descriptor_pool() const;
+        [[nodiscard]] DescriptorSetHandle create_descriptor_set() const;
         void register_resize_callbacks(Window* window);
-        ShaderModuleHandle create_shader(const std::string& filepath, const ShaderStage& stage);
-        void create_graphics_pipeline();
-        void create_command_pools();
-        void create_render_command();
-        void create_descriptor_pool();
-        void create_descriptor_set();
 
         static constexpr auto image_format = Format::B8G8R8A8_Srgb;
         static constexpr auto vertex_shader_path = ORION_SHADER_DIR "/vert.hlsl";
@@ -64,6 +64,7 @@ namespace orion
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+
         ShaderCompiler shader_compiler_;
 
         InputAssemblyDesc input_assembly_ = {
