@@ -32,7 +32,7 @@ target_compile_definitions(${ORION_VULKAN_MODULE} PRIVATE ORION_RENDER_BACKEND_E
 find_package(Vulkan REQUIRED)
 
 # Link with interface
-target_link_libraries(${ORION_VULKAN_MODULE} PRIVATE orion-render-backend Vulkan::Vulkan)
+target_link_libraries(${ORION_VULKAN_MODULE} PRIVATE orion::renderapi Vulkan::Vulkan)
 
 # Set private include directory
 target_include_directories(${ORION_VULKAN_MODULE} PRIVATE .)

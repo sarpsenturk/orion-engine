@@ -1,6 +1,6 @@
 # Set interface headers
 target_sources(
-        orion-render-backend PUBLIC
+        orion-renderapi PUBLIC
         FILE_SET public_headers
         FILES
         buffer.h

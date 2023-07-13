@@ -1,9 +1,10 @@
 # Create interface library to be consumed by dynamic library implementations
-add_library(orion-render-backend "")
+add_library(orion-renderapi "")
+add_library(orion::renderapi ALIAS orion-renderapi)
 
 # Link with dependencies
 target_link_libraries(
-        orion-render-backend PUBLIC
+        orion-renderapi PUBLIC
         orion::core orion::utils orion::math
 )
 
@@ -11,10 +12,10 @@ target_link_libraries(
 include(GenerateExportHeader)
 
 # Set include directories
-target_include_directories(orion-render-backend PUBLIC include/)
+target_include_directories(orion-renderapi PUBLIC include/)
 
 # Create file set for public headers
-target_sources(orion-render-backend PUBLIC FILE_SET public_headers TYPE HEADERS)
+target_sources(orion-renderapi PUBLIC FILE_SET public_headers TYPE HEADERS)
 
 # Add sources
 add_subdirectory(include/orion-renderapi)

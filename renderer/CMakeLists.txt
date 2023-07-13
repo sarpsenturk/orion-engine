@@ -24,10 +24,10 @@ find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(
         orion-renderer
         PUBLIC
-        orion-render-backend
         orion::core
         orion::math
         orion::utils
+        orion::renderapi
         PRIVATE
         Microsoft::DirectXShaderCompiler
 )

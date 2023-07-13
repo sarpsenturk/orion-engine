@@ -200,35 +200,7 @@ namespace orion
             .render_pass = render_pass_,
             .size = size,
         };
-        render_target_ = device()->create_render_target(swapchain_, desc);
-    }
-
-    void Renderer::register_resize_callbacks(Window* window)
-    {
-        ORION_ASSERT(window != nullptr);
-        window->on_resize_end().subscribe([this](const auto& resize) {
-            // Recreate swapchain
-            {
-                const auto desc = SwapchainDesc{
-                    .image_count = 2,
-                    .image_format = image_format,
-                    .image_size = resize.size,
-                };
-                device()->recreate(swapchain_, desc);
-            }
-
-            // Recreate render target
-            {
-                const auto desc = RenderTargetDesc{
-                    .format = image_format,
-                    .render_pass = render_pass_,
-                    .size = resize.size,
-                };
-                device()->recreate(render_target_, swapchain_, desc);
-            }
-
-            render_area_ = resize.size;
-        });
+        return device()->create_render_target(swapchain_, desc);
     }
 
     ShaderModuleHandle Renderer::create_shader(const std::string& filepath, const ShaderStage& stage) const
@@ -306,6 +278,34 @@ namespace orion
             .layout = &layout,
         };
         return device()->create_descriptor_set(desc);
+    }
+
+    void Renderer::register_resize_callbacks(Window* window)
+    {
+        ORION_ASSERT(window != nullptr);
+        window->on_resize_end().subscribe([this](const auto& resize) {
+            // Recreate swapchain
+            {
+                const auto desc = SwapchainDesc{
+                    .image_count = 2,
+                    .image_format = image_format,
+                    .image_size = resize.size,
+                };
+                device()->recreate(swapchain_, desc);
+            }
+
+            // Recreate render target
+            {
+                const auto desc = RenderTargetDesc{
+                    .format = image_format,
+                    .render_pass = render_pass_,
+                    .size = resize.size,
+                };
+                device()->recreate(render_target_, swapchain_, desc);
+            }
+
+            render_area_ = resize.size;
+        });
     }
 
     spdlog::logger* Renderer::logger()

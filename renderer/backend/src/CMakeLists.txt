@@ -1,5 +1,5 @@
 target_sources(
-        orion-render-backend PRIVATE
+        orion-renderapi PRIVATE
         buffer.cpp
         command.cpp
         descriptor.cpp
