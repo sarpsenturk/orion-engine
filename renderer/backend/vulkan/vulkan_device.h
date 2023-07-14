@@ -30,8 +30,9 @@ namespace orion::vulkan
 
         [[nodiscard]] VkShaderModule find_shader(ShaderModuleHandle shader_module_handle) const;
         [[nodiscard]] VulkanSwapchain& find_swapchain(SwapchainHandle swapchain_handle);
-        [[nodiscard]] VulkanBuffer& find_buffer(GPUBufferHandle buffer_handle);
-        [[nodiscard]] VkRenderPass find_render_pass(RenderPassHandle render_pass_handle);
+        [[nodiscard]] VkBuffer find_buffer(GPUBufferHandle buffer_handle) const;
+        [[nodiscard]] VmaAllocation find_allocation(GPUBufferHandle buffer_handle) const;
+        [[nodiscard]] VkRenderPass find_render_pass(RenderPassHandle render_pass_handle) const;
         [[nodiscard]] VulkanRenderTarget& find_render_target(RenderTargetHandle render_target_handle);
         [[nodiscard]] VkPipeline find_pipeline(PipelineHandle pipeline_handle) const;
         [[nodiscard]] VkPipelineLayout find_pipeline_layout(PipelineHandle pipeline_handle) const;
