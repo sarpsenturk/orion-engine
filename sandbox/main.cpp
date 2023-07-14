@@ -18,7 +18,6 @@ private:
     void on_user_update(orion::frame_time dt) override
     {
         window_.poll_events();
-        SPDLOG_LOGGER_DEBUG(logger(), "DT: {}", dt);
     }
 
     void on_user_render() override

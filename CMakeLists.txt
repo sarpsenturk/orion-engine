@@ -10,15 +10,19 @@ if (ORION_ENGINE_TEST)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif ()
 
-# Detect current platform
-include(cmake/platform.cmake)
 
 project(orion-engine
         VERSION 0.1.0
         DESCRIPTION "A game engine written in C++ 20"
         )
 
-set(ORION_ENGINE_TOP_LEVEL ${PROJECT_IS_TOP_LEVEL})
+# Platform detection
+set(ORION_PLATFORM ${CMAKE_SYSTEM_NAME} CACHE STRING "Current platform name" FORCE)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    set(ORION_PLATFORM_WINDOWS ON CACHE BOOL "Current platform is Windows" FORCE)
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(ORION_PLATFORM_LINUX ON CACHE BOOL "Current platform is Linux" FORCE)
+endif ()
 
 # Create a target for precompiled headers
 add_library(orion-pch INTERFACE "")
