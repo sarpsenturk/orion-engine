@@ -1,6 +1,6 @@
 #include "orion-renderapi/render_device.h"
 
-#include <spdlog/spdlog.h>         // SPDLOG_LOGGER_*
+#include <spdlog/spdlog.h>
 
 namespace orion
 {
@@ -197,7 +197,6 @@ namespace orion
 
     void RenderDevice::update_descriptors(const DescriptorUpdate& update)
     {
-        SPDLOG_LOGGER_TRACE(logger(), "Updated descriptors");
         update_descriptors_api(update);
     }
 } // namespace orion

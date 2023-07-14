@@ -3,11 +3,14 @@
 #include "vulkan_conversion.h"
 #include "vulkan_platform.h"
 
-#include <numeric>                     // std::accumulate
-#include <orion-utils/assertion.h>     // ORION_EXPECTS
-#include <orion-utils/static_vector.h> // static_vector
-#include <spdlog/spdlog.h>             // SPDLOG_*
-#include <utility>                     // std::exchange
+#include <orion-utils/assertion.h>
+#include <orion-utils/static_vector.h>
+
+#include <numeric>
+#include <ranges>
+#include <utility>
+
+#include <spdlog/spdlog.h>
 
 namespace orion::vulkan
 {
@@ -1041,47 +1044,43 @@ namespace orion::vulkan
 
     void VulkanDevice::update_descriptors_api(const DescriptorUpdate& update)
     {
-        // Reserve all infos from start
-        // This is necessary so that when we push back into it, we do not reallocate and invalidate any pointers.
-        std::vector<VkDescriptorBufferInfo> buffer_infos;
-        buffer_infos.reserve(std::accumulate(update.writes.begin(), update.writes.end(), 0ull,
-                                             [](auto count, const auto& write) { return count + write.buffers.size(); }));
+        const auto descriptor_buffer_infos = [writes = update.writes, this]() {
+            std::vector<VkDescriptorBufferInfo> descriptor_buffer_infos;
+            auto buffer_writes =
+                std::ranges::views::filter(writes, [](const auto& write) { return !write.buffers.empty(); }) |
+                std::ranges::views::transform([](const auto& write) { return write.buffers; }) |
+                std::ranges::views::join;
+            for (const auto& buffer_write : buffer_writes) {
+                descriptor_buffer_infos.push_back({
+                    .buffer = find_buffer(buffer_write.buffer),
+                    .offset = buffer_write.offset,
+                    .range = buffer_write.range,
+                });
+            }
+            return descriptor_buffer_infos;
+        }();
 
-        const auto descriptor_writes = [writes = update.writes, &buffer_infos, this]() {
+        const auto descriptor_writes = [writes = update.writes, &descriptor_buffer_infos, this]() {
             std::vector<VkWriteDescriptorSet> descriptor_writes;
             descriptor_writes.reserve(writes.size());
+
+            std::uint32_t buffers_index = 0;
             for (const auto& write : writes) {
-                VkDescriptorType type = {};
-                std::uint32_t count = 0;
-                const VkDescriptorImageInfo* image_info = nullptr;
-                const VkDescriptorBufferInfo* buffer_info = nullptr;
-                const VkBufferView* texel_buffer_view = nullptr;
-                if (!write.buffers.empty()) {
-                    type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                    count = static_cast<std::uint32_t>(write.buffers.size());
-                    buffer_info = buffer_infos.data() + buffer_infos.size();
-                    for (const auto& buffer : write.buffers) {
-                        buffer_infos.push_back({
-                            .buffer = find_buffer(buffer.buffer), // TODO: Fix this mess.
-                            .offset = buffer.offset,
-                            .range = buffer.range,
-                        });
-                    }
-                }
-                ORION_ASSERT(type != 0);
-                ORION_ASSERT(count != 0);
-                ORION_ASSERT(image_info || buffer_info || texel_buffer_view);
+                const auto buffers_count = static_cast<std::uint32_t>(write.buffers.size());
+                buffers_index += buffers_count;
+                const auto buffers_begin = std::next(descriptor_buffer_infos.begin(), buffers_index);
+
+                const auto count = buffers_count;
                 descriptor_writes.push_back({
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = nullptr,
                     .dstSet = find_descriptor_set(write.descriptor_set),
                     .dstBinding = write.binding,
-                    .dstArrayElement = write.array_element,
                     .descriptorCount = count,
-                    .descriptorType = type,
-                    .pImageInfo = image_info,
-                    .pBufferInfo = buffer_info,
-                    .pTexelBufferView = texel_buffer_view,
+                    .descriptorType = to_vulkan_type(write.descriptor_type),
+                    .pImageInfo = nullptr,
+                    .pBufferInfo = buffers_count > 0 ? std::addressof(*buffers_begin) : nullptr,
+                    .pTexelBufferView = nullptr,
                 });
             }
             return descriptor_writes;

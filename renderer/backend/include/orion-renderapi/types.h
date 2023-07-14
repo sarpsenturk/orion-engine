@@ -150,6 +150,7 @@ namespace orion
     };
 
     enum class DescriptorType : std::uint8_t {
+        Unknown,
         ConstantBuffer
     };
 
