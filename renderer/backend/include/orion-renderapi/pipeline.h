@@ -2,24 +2,25 @@
 
 #include "descriptor.h"
 #include "handles.h"
+#include "render_pass.h"
 #include "shader.h"
 #include "types.h"
 
-#include <initializer_list> // std::initializer_list
-#include <span>             // std::span
-#include <vector>           // std::vector
+#include <initializer_list>
+#include <span>
+#include <vector>
 
 namespace orion
 {
     struct ShaderStageDesc {
-        ShaderModuleHandle module;
-        ShaderStage stage;
+        ShaderModuleHandle module = ShaderModuleHandle::invalid_handle();
+        ShaderStage stage = {};
         const char* entry_point = "main";
     };
 
     struct VertexAttributeDesc {
-        const char* name;
-        Format format;
+        const char* name = nullptr;
+        Format format = {};
         std::uint32_t offset = UINT32_MAX;
     };
 

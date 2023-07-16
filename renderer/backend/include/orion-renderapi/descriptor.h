@@ -17,8 +17,6 @@ namespace orion
         DescriptorType type;
         ShaderStageFlags shader_stages;
         std::uint32_t count;
-
-        std::size_t hash() const;
     };
 
     class DescriptorSetLayout

@@ -51,9 +51,8 @@ namespace orion
     Renderer::Renderer(const RendererDesc& desc)
         : backend_module_(desc.backend_module)
         , render_backend_(create_backend(backend_module_))
-        , render_device_(create_device(render_backend_.get(), desc.device_select_fn))
+        , render_device_(create_device(backend(), desc.device_select_fn))
     {
-
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
     }

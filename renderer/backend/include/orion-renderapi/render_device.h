@@ -7,7 +7,6 @@
 #include "handles.h"
 #include "pipeline.h"
 #include "render_pass.h"
-#include "render_target.h"
 #include "shader.h"
 #include "swapchain.h"
 #include "types.h"

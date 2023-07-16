@@ -8,7 +8,8 @@
 
 namespace orion
 {
-    enum class Format {
+    enum class Format : std::uint32_t {
+        Undefined,
         B8G8R8A8_Srgb,
         R32G32_Float,
         R32G32B32_Float,
@@ -18,6 +19,8 @@ namespace orion
     constexpr auto size_of(Format format) -> std::uint32_t
     {
         switch (format) {
+            case Format::Undefined:
+                break;
             case Format::B8G8R8A8_Srgb:
                 return sizeof(uint8_t) * 4;
             case Format::R32G32_Float:
@@ -33,6 +36,8 @@ namespace orion
     constexpr auto format_as(Format format) noexcept -> const char*
     {
         switch (format) {
+            case Format::Undefined:
+                return "Undefined";
             case Format::B8G8R8A8_Srgb:
                 return "B8G8R8A8_Srgb";
             case Format::R32G32_Float:

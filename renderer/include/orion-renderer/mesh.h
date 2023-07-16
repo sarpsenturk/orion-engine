@@ -24,6 +24,7 @@ namespace orion
         {
             std::array attributes{
                 VertexAttributeDesc{.name = "POSITION", .format = Format::R32G32B32_Float},
+                VertexAttributeDesc{.name = "COLOR", .format = Format::R32G32B32A32_Float},
             };
             return std::array{
                 VertexBinding(attributes, InputRate::Vertex),
