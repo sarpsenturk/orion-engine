@@ -231,10 +231,40 @@ namespace orion::vulkan
                 .pSubpasses = &subpass,
             };
             vk_result_check(vkCreateRenderPass(device_.get(), &info, alloc_callbacks(), &render_pass));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
         }
 
         auto handle = RenderPassHandle::generate();
         render_passes_.add(handle, unique(render_pass, device()));
+        return handle;
+    }
+
+    FramebufferHandle VulkanDevice::create_framebuffer_api(const FramebufferDesc& desc)
+    {
+        std::vector<VkImageView> image_views(desc.attachments.size());
+        std::ranges::transform(desc.attachments, image_views.begin(), [this](auto handle) {
+            return image_views_.at(handle);
+        });
+
+        VkFramebuffer framebuffer = VK_NULL_HANDLE;
+        {
+            const auto info = VkFramebufferCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .renderPass = render_passes_.at(desc.render_pass),
+                .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
+                .pAttachments = image_views.data(),
+                .width = desc.size.x(),
+                .height = desc.size.y(),
+                .layers = 1,
+            };
+            vk_result_check(vkCreateFramebuffer(device(), &info, alloc_callbacks(), &framebuffer));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkFramebuffer {}", fmt::ptr(framebuffer));
+        }
+
+        const auto handle = FramebufferHandle::generate();
+        framebuffers_.add(handle, unique(framebuffer, device()));
         return handle;
     }
 
@@ -762,6 +792,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
     {
         render_passes_.remove(render_pass_handle);
+    }
+
+    void VulkanDevice::destroy_api(FramebufferHandle framebuffer_handle)
+    {
+        framebuffers_.remove(framebuffer_handle);
     }
 
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)

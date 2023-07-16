@@ -33,6 +33,36 @@ public:
             };
             device->create_swapchain_attachments(desc, swapchain_attachments_);
         }
+
+        // Create render pass
+        {
+            const auto color_attachments = std::array{
+                orion::RenderPassAttachmentDesc{
+                    .format = swapchain_image_format,
+                    .load_op = orion::AttachmentLoadOp::Clear,
+                    .store_op = orion::AttachmentStoreOp::Store,
+                    .initial_layout = orion::ImageLayout::Undefined,
+                    .layout = orion::ImageLayout::ColorAttachment,
+                    .final_layout = orion::ImageLayout::PresentSrc,
+                },
+            };
+            const auto desc = orion::RenderPassDesc{
+                .color_attachments = color_attachments,
+            };
+            render_pass_ = device->create_render_pass(desc);
+        }
+
+        // Create swapchain framebuffers
+        {
+            std::ranges::transform(swapchain_attachments_, swapchain_framebuffers_.begin(), [device, this](auto handle) {
+                const auto desc = orion::FramebufferDesc{
+                    .render_pass = render_pass_,
+                    .attachments = {&handle, 1},
+                    .size = window_.size(),
+                };
+                return device->create_framebuffer(desc);
+            });
+        }
     }
 
 private:
@@ -63,6 +93,8 @@ private:
     orion::Renderer renderer_;
     orion::SwapchainHandle swapchain_;
     std::array<orion::AttachmentHandle, swapchain_image_count> swapchain_attachments_;
+    orion::RenderPassHandle render_pass_;
+    std::array<orion::FramebufferHandle, swapchain_image_count> swapchain_framebuffers_;
 };
 
 ORION_MAIN(args)

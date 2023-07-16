@@ -6,7 +6,7 @@
 
 namespace orion
 {
-    struct AttachmentDesc {
+    struct RenderPassAttachmentDesc {
         Format format;
         AttachmentLoadOp load_op;
         AttachmentStoreOp store_op;
@@ -16,6 +16,6 @@ namespace orion
     };
 
     struct RenderPassDesc {
-        std::span<const AttachmentDesc> color_attachments;
+        std::span<const RenderPassAttachmentDesc> color_attachments;
     };
 } // namespace orion

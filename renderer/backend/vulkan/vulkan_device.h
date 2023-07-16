@@ -46,6 +46,7 @@ namespace orion::vulkan
         // Interface Overrides
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
+        FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
@@ -61,6 +62,7 @@ namespace orion::vulkan
 
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(RenderPassHandle render_pass_handle) override;
+        void destroy_api(FramebufferHandle framebuffer_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
         void destroy_api(GPUBufferHandle buffer_handle) override;

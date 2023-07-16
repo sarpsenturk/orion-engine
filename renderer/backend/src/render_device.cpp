@@ -38,6 +38,13 @@ namespace orion
         return handle;
     }
 
+    FramebufferHandle RenderDevice::create_framebuffer(const FramebufferDesc& desc)
+    {
+        auto handle = create_framebuffer_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created framebuffer with handle {}", handle);
+        return handle;
+    }
+
     ShaderModuleHandle RenderDevice::create_shader_module(const ShaderModuleDesc& desc)
     {
         auto handle = create_shader_module_api(desc);
@@ -122,6 +129,11 @@ namespace orion
     void RenderDevice::destroy(RenderPassHandle render_pass_handle)
     {
         destroy_api(render_pass_handle);
+    }
+
+    void RenderDevice::destroy(FramebufferHandle framebuffer_handle)
+    {
+        destroy_api(framebuffer_handle);
     }
 
     void RenderDevice::destroy(ShaderModuleHandle shader_module_handle)
