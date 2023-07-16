@@ -2,8 +2,10 @@
 
 #include "vulkan_headers.h"
 
-#include <orion-math/vector/vector2.h> // orion::Vector2
-#include <span>                        // std::span
+#include <orion-math/vector/vector2.h>
+
+#include <memory>
+#include <span>
 #include <variant>
 
 namespace orion::vulkan
@@ -233,4 +235,10 @@ namespace orion::vulkan
     };
 
     using VulkanRenderTarget = std::variant<VulkanSwapchainRenderTarget>;
+
+    struct VulkanSubmission {
+        UniqueVkFence fence = VK_NULL_HANDLE;
+        UniqueVkSemaphore semaphore = VK_NULL_HANDLE;
+        std::vector<VkSemaphore> wait_semaphores;
+    };
 } // namespace orion::vulkan

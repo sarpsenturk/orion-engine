@@ -69,4 +69,4 @@ struct std::hash<orion::Handle<Tag>> {
     struct name##_tag {                       \
         static constexpr auto string = #name; \
     };                                        \
-    using name = ::orion::Handle<name##_tag>;\
+    using name = ::orion::Handle<name##_tag>\

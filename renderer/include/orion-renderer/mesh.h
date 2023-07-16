@@ -53,24 +53,4 @@ namespace orion
         GPUBufferResource vertex_buffer_;
         GPUBufferResource index_buffer_;
     };
-
-    class MeshManager
-    {
-    public:
-        MeshManager() = default;
-        MeshManager(RenderDevice* device, CommandPoolHandle command_pool);
-
-        Mesh& add_mesh(const std::string& name, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
-        [[nodiscard]] const Mesh& get_mesh(const std::string& name) const;
-
-    private:
-        static constexpr std::size_t cmd_buffer_size = sizeof(CmdBufferCopy);
-        static spdlog::logger* logger();
-
-        [[nodiscard]] CommandBufferHandle create_command_buffer(CommandPoolHandle command_pool) const;
-
-        RenderDevice* device_ = nullptr;
-        CommandBuffer command_buffer_;
-        std::unordered_map<std::string, Mesh> meshes_;
-    };
 } // namespace orion

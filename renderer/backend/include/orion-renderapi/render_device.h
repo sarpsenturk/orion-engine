@@ -12,6 +12,8 @@
 #include "types.h"
 
 #include <atomic>
+#include <span>
+
 #include <spdlog/logger.h>
 
 namespace orion
@@ -21,9 +23,11 @@ namespace orion
     class RenderDevice;
 
     struct SubmitDesc {
-        const CommandBuffer* command_buffer;
-        CommandQueueType queue_type;
-        SubmissionHandle existing = SubmissionHandle::invalid_handle();
+        std::span<const CommandBufferHandle> command_buffers = {};
+        CommandQueueType queue_type = CommandQueueType::Any;
+        std::span<SemaphoreHandle> wait_semaphores = {};
+        std::span<SemaphoreHandle> signal_semaphores = {};
+        FenceHandle fence = FenceHandle::invalid_handle();
     };
 
     class DeviceResourceControlBlock
@@ -106,7 +110,6 @@ namespace orion
     using GPUBufferResource = DeviceResource<GPUBufferHandle>;
     using CommandPoolResource = DeviceResource<CommandPoolHandle>;
     using CommandBufferResource = DeviceResource<CommandBufferHandle>;
-    using SubmissionResource = DeviceResource<SubmissionHandle>;
     using DescriptorPoolResource = DeviceResource<DescriptorPoolHandle>;
     using DescriptorSetResource = DeviceResource<DescriptorSetHandle>;
 
@@ -132,6 +135,8 @@ namespace orion
         [[nodiscard]] CommandBufferHandle create_command_buffer(const CommandBufferDesc& desc);
         [[nodiscard]] DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
         [[nodiscard]] DescriptorSetHandle create_descriptor_set(const DescriptorSetDesc& desc);
+        [[nodiscard]] SemaphoreHandle create_semaphore();
+        [[nodiscard]] FenceHandle create_fence(bool create_signaled);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
         void recreate(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc);
@@ -144,17 +149,26 @@ namespace orion
         void destroy(GPUBufferHandle buffer_handle);
         void destroy(CommandPoolHandle command_pool_handle);
         void destroy(CommandBufferHandle command_buffer_handle);
-        void destroy(SubmissionHandle submission_handle);
         void destroy(DescriptorPoolHandle descriptor_pool_handle);
         void destroy(DescriptorSetHandle descriptor_set_handle);
+        void destroy(SemaphoreHandle semaphore_handle);
+        void destroy(FenceHandle fence_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
 
-        [[nodiscard]] SubmissionHandle submit(const SubmitDesc& desc);
+        void begin_command_buffer(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc);
+        void end_command_buffer(CommandBufferHandle command_buffer);
+        void reset_command_buffer(CommandBufferHandle command_buffer);
+        void compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands);
+
+        void submit(const SubmitDesc& desc);
         void submit_immediate(const SubmitDesc& desc);
-        void wait(SubmissionHandle submission_handle);
-        void present(SwapchainHandle swapchain_handle, SubmissionHandle wait);
+        void present(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore);
+
+        void wait_for_fence(FenceHandle fence);
+        void wait_queue_idle(CommandQueueType queue_type);
+        void wait_idle();
 
         void update_descriptors(const DescriptorUpdate& update);
 
@@ -177,6 +191,8 @@ namespace orion
         [[nodiscard]] virtual CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) = 0;
         [[nodiscard]] virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
         [[nodiscard]] virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) = 0;
+        [[nodiscard]] virtual SemaphoreHandle create_semaphore_api() = 0;
+        [[nodiscard]] virtual FenceHandle create_fence_api(bool create_signaled) = 0;
 
         virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
         virtual void recreate_api(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc) = 0;
@@ -189,16 +205,25 @@ namespace orion
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
         virtual void destroy_api(CommandBufferHandle command_buffer_handle) = 0;
         virtual void destroy_api(CommandPoolHandle command_pool_handle) = 0;
-        virtual void destroy_api(SubmissionHandle submission_handle) = 0;
         virtual void destroy_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
         virtual void destroy_api(DescriptorSetHandle descriptor_set_handle) = 0;
+        virtual void destroy_api(SemaphoreHandle semaphore_handle) = 0;
+        virtual void destroy_api(FenceHandle fence_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
 
-        [[nodiscard]] virtual SubmissionHandle submit_api(const SubmitDesc& desc) = 0;
-        virtual void wait_api(SubmissionHandle submission_handle) = 0;
-        virtual void present_api(SwapchainHandle swapchain_handle, SubmissionHandle wait) = 0;
+        virtual void begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc) = 0;
+        virtual void end_command_buffer_api(CommandBufferHandle command_buffer) = 0;
+        virtual void reset_command_buffer_api(CommandBufferHandle command_buffer) = 0;
+        virtual void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) = 0;
+
+        virtual void submit_api(const SubmitDesc& desc) = 0;
+        virtual void present_api(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore) = 0;
+
+        virtual void wait_for_fence_api(FenceHandle fence) = 0;
+        virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
+        virtual void wait_idle_api() = 0;
 
         virtual void update_descriptors_api(const DescriptorUpdate& update) = 0;
 

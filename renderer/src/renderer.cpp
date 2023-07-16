@@ -61,6 +61,8 @@ namespace orion
         , render_command_(create_render_command())
         , descriptor_pool_(create_descriptor_pool())
         , descriptor_set_(create_descriptor_set())
+        , render_semaphore_(create_render_semaphore())
+        , render_fence_(create_render_fence())
         , render_area_(desc.window->size())
     {
         register_resize_callbacks(desc.window);
@@ -71,8 +73,9 @@ namespace orion
 
     void Renderer::begin_frame()
     {
-        device()->wait(render_submission_);
+        device()->wait_for_fence(render_fence_);
         render_command_.reset();
+        render_command_.begin({});
 
         auto* begin_frame = render_command_.add_command<CmdBeginFrame>({});
         begin_frame->render_pass = render_pass_;
@@ -84,18 +87,22 @@ namespace orion
     void Renderer::end_frame()
     {
         render_command_.add_command<CmdEndFrame>({});
+        render_command_.end();
 
+        const auto command_buffers = std::array{render_command_.handle()};
         const auto desc = SubmitDesc{
-            .command_buffer = &render_command_,
+            .command_buffers = command_buffers,
             .queue_type = CommandQueueType::Graphics,
-            .existing = render_submission_,
+            .wait_semaphores = {},
+            .signal_semaphores = {&render_semaphore_, 1},
+            .fence = render_fence_,
         };
-        render_submission_ = device()->submit(desc);
+        device()->submit(desc);
     }
 
     void Renderer::present()
     {
-        device()->present(swapchain_, render_submission_);
+        device()->present(swapchain_, render_semaphore_);
     }
 
     std::span<const DescriptorSetLayout> Renderer::descriptor_layouts()
@@ -243,7 +250,7 @@ namespace orion
         return device()->create_command_pool(CommandPoolDesc{.queue_type = queue_type});
     }
 
-    CommandBuffer Renderer::create_render_command() const
+    CommandList Renderer::create_render_command() const
     {
         ORION_ASSERT(device() != nullptr);
         ORION_ASSERT(graphics_command_pool_.is_valid());
@@ -251,7 +258,7 @@ namespace orion
         auto handle = device()->create_command_buffer(CommandBufferDesc{
             .command_pool = graphics_command_pool_,
         });
-        return {handle, std::make_unique<LinearCommandAllocator>(render_command_size)};
+        return {device(), handle};
     }
 
     DescriptorPoolHandle Renderer::create_descriptor_pool() const
@@ -278,6 +285,18 @@ namespace orion
             .layout = &layout,
         };
         return device()->create_descriptor_set(desc);
+    }
+
+    SemaphoreHandle Renderer::create_render_semaphore() const
+    {
+        ORION_ASSERT(device() != nullptr);
+        return device()->create_semaphore();
+    }
+
+    FenceHandle Renderer::create_render_fence() const
+    {
+        ORION_ASSERT(device() != nullptr);
+        return device()->create_fence(true);
     }
 
     void Renderer::register_resize_callbacks(Window* window)

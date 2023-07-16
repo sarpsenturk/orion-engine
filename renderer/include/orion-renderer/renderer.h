@@ -51,9 +51,11 @@ namespace orion
         [[nodiscard]] ShaderModuleHandle create_shader(const std::string& filepath, const ShaderStage& stage) const;
         [[nodiscard]] PipelineHandle create_graphics_pipeline() const;
         [[nodiscard]] CommandPoolHandle create_command_pool(CommandQueueType queue_type) const;
-        [[nodiscard]] CommandBuffer create_render_command() const;
+        [[nodiscard]] CommandList create_render_command() const;
         [[nodiscard]] DescriptorPoolHandle create_descriptor_pool() const;
         [[nodiscard]] DescriptorSetHandle create_descriptor_set() const;
+        [[nodiscard]] SemaphoreHandle create_render_semaphore() const;
+        [[nodiscard]] FenceHandle create_render_fence() const;
         void register_resize_callbacks(Window* window);
 
         static constexpr auto image_format = Format::B8G8R8A8_Srgb;
@@ -86,11 +88,12 @@ namespace orion
 
         CommandPoolHandle graphics_command_pool_;
         CommandPoolHandle transfer_command_pool_;
-        CommandBuffer render_command_;
+        CommandList render_command_;
 
         DescriptorPoolHandle descriptor_pool_;
         DescriptorSetHandle descriptor_set_;
 
-        SubmissionHandle render_submission_;
+        SemaphoreHandle render_semaphore_;
+        FenceHandle render_fence_;
     };
 } // namespace orion

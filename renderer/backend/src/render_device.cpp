@@ -94,6 +94,20 @@ namespace orion
         return handle;
     }
 
+    SemaphoreHandle RenderDevice::create_semaphore()
+    {
+        auto handle = create_semaphore_api();
+        SPDLOG_LOGGER_DEBUG(logger(), "Created semaphore with handle {}", handle);
+        return handle;
+    }
+
+    FenceHandle RenderDevice::create_fence(bool create_signaled)
+    {
+        auto handle = create_fence_api(create_signaled);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created fence with handle {}", handle);
+        return handle;
+    }
+
     void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         recreate_api(swapchain_handle, desc);
@@ -146,11 +160,6 @@ namespace orion
         destroy_api(command_buffer_handle);
     }
 
-    void RenderDevice::destroy(SubmissionHandle submission_handle)
-    {
-        destroy_api(submission_handle);
-    }
-
     void RenderDevice::destroy(DescriptorPoolHandle descriptor_pool_handle)
     {
         destroy_api(descriptor_pool_handle);
@@ -159,6 +168,16 @@ namespace orion
     void RenderDevice::destroy(DescriptorSetHandle descriptor_set_handle)
     {
         destroy_api(descriptor_set_handle);
+    }
+
+    void RenderDevice::destroy(SemaphoreHandle semaphore_handle)
+    {
+        destroy_api(semaphore_handle);
+    }
+
+    void RenderDevice::destroy(FenceHandle fence_handle)
+    {
+        destroy_api(fence_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)
@@ -171,28 +190,54 @@ namespace orion
         return unmap_api(buffer_handle);
     }
 
-    SubmissionHandle RenderDevice::submit(const SubmitDesc& desc)
+    void RenderDevice::begin_command_buffer(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc)
     {
-        return submit_api(desc);
+        begin_command_buffer_api(command_buffer, desc);
+    }
+
+    void RenderDevice::end_command_buffer(CommandBufferHandle command_buffer)
+    {
+        end_command_buffer_api(command_buffer);
+    }
+
+    void RenderDevice::reset_command_buffer(CommandBufferHandle command_buffer)
+    {
+        reset_command_buffer_api(command_buffer);
+    }
+
+    void RenderDevice::compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
+    {
+        compile_commands_api(command_buffer, commands);
+    }
+
+    void RenderDevice::submit(const SubmitDesc& desc)
+    {
+        submit_api(desc);
     }
 
     void RenderDevice::submit_immediate(const SubmitDesc& desc)
     {
-        auto submission = submit_api(desc);
-        wait(submission);
-        destroy(submission);
+        submit_api(desc);
     }
 
-    void RenderDevice::wait(SubmissionHandle submission_handle)
+    void RenderDevice::present(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore)
     {
-        if (submission_handle.is_valid()) {
-            wait_api(submission_handle);
-        }
+        present_api(swapchain_handle, wait_semaphore);
     }
 
-    void RenderDevice::present(SwapchainHandle swapchain_handle, SubmissionHandle wait)
+    void RenderDevice::wait_for_fence(FenceHandle fence)
     {
-        present_api(swapchain_handle, wait);
+        wait_for_fence_api(fence);
+    }
+
+    void RenderDevice::wait_queue_idle(CommandQueueType queue_type)
+    {
+        wait_queue_idle_api(queue_type);
+    }
+
+    void RenderDevice::wait_idle()
+    {
+        wait_idle_api();
     }
 
     void RenderDevice::update_descriptors(const DescriptorUpdate& update)

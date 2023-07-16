@@ -3,9 +3,9 @@
 #include "orion-renderapi/types.h"
 #include "vulkan_headers.h"
 
+#include <orion-core/config.h>
 #include <orion-math/vector/vector2.h>
 #include <orion-utils/assertion.h>
-#include <orion-core/config.h>
 #include <string>
 
 namespace orion::vulkan
@@ -241,6 +241,23 @@ namespace orion::vulkan
                 break;
         }
         ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type() or is invalid");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(CommandBufferUsageFlags command_buffer_usage) -> VkCommandBufferUsageFlags
+    {
+        if (command_buffer_usage.has_none()) {
+            return {};
+        }
+
+        VkCommandBufferUsageFlags usage_flags = {};
+        CommandBufferUsageFlags debug_handled_flags = {};
+        if (command_buffer_usage.has(CommandBufferUsage::OneTimeSubmit)) {
+            usage_flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            debug_handled_flags |= CommandBufferUsage::OneTimeSubmit;
+        }
+        ORION_ASSERT((command_buffer_usage ^ debug_handled_flags).has_none() &&
+                     "Command buffer usage flag not handled in to_vulkan_type() or is invalid");
         return {};
     }
 

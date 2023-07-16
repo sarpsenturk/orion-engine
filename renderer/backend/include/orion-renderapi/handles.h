@@ -18,7 +18,8 @@ namespace orion
     ORION_DEFINE_HANDLE(GPUBufferHandle);
     ORION_DEFINE_HANDLE(CommandPoolHandle);
     ORION_DEFINE_HANDLE(CommandBufferHandle);
-    ORION_DEFINE_HANDLE(SubmissionHandle);
     ORION_DEFINE_HANDLE(DescriptorPoolHandle);
     ORION_DEFINE_HANDLE(DescriptorSetHandle);
+    ORION_DEFINE_HANDLE(SemaphoreHandle);
+    ORION_DEFINE_HANDLE(FenceHandle);
 } // namespace orion

@@ -3,8 +3,12 @@
 #include "handles.h"
 #include "types.h"
 
-#include <memory_resource> // std::pmr:
+#include <orion-math/vector/vector2.h>
 #include <orion-math/vector/vector4.h>
+
+#include <spdlog/logger.h>
+
+#include <memory_resource>
 #include <type_traits>
 #include <vector>
 
@@ -12,6 +16,10 @@ namespace orion
 {
     struct CommandPoolDesc {
         CommandQueueType queue_type;
+    };
+
+    struct CommandBufferBeginDesc {
+        CommandBufferUsageFlags usage;
     };
 
     // This is the implementation of std::is_implicit_lifetime as seen at: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2674r0.pdf
@@ -30,30 +38,14 @@ namespace orion
                       std::is_trivially_move_constructible<T>>>> {
     };
 
-    class CommandAllocator
-    {
-    public:
-        CommandAllocator() = default;
-        virtual ~CommandAllocator() = default;
-
-        virtual void* allocate(std::size_t bytes, std::size_t alignment) = 0;
-        virtual void reset() = 0;
-
-    protected:
-        CommandAllocator(const CommandAllocator&) = default;
-        CommandAllocator(CommandAllocator&&) noexcept = default;
-        CommandAllocator& operator=(const CommandAllocator&) = default;
-        CommandAllocator& operator=(CommandAllocator&&) = default;
-    };
-
-    class LinearCommandAllocator final : public CommandAllocator
+    class LinearCommandAllocator
     {
     public:
         LinearCommandAllocator() = default;
         explicit LinearCommandAllocator(std::size_t max_size);
 
-        void* allocate(std::size_t bytes, std::size_t alignment) override;
-        void reset() override;
+        void* allocate(std::size_t bytes, std::size_t alignment);
+        void reset();
 
     private:
         std::vector<char> buffer_;
@@ -63,7 +55,7 @@ namespace orion
 
     struct CommandPacket {
         std::uint64_t key;
-        CommandType command_type;
+        CommandType type;
         const void* data;
     };
 
@@ -71,76 +63,107 @@ namespace orion
         CommandPoolHandle command_pool;
     };
 
-    class CommandBuffer
-    {
-    public:
-        CommandBuffer() = default;
-        CommandBuffer(CommandBufferHandle handle, std::unique_ptr<CommandAllocator> command_allocator);
-
-        template<typename Command>
-            requires(is_valid_cmd_type<Command>::value)
-        Command* add_command(std::uint64_t key)
-        {
-            auto* command = static_cast<Command*>(command_allocator_->allocate(sizeof(Command), alignof(Command)));
-            command_packets_.emplace_back(key, Command::command_type, command);
-            return command;
-        }
-
-        void reset();
-
-        [[nodiscard]] auto handle() const noexcept { return handle_; }
-        [[nodiscard]] auto& commands() const noexcept { return command_packets_; }
-
-    private:
-        CommandBufferHandle handle_;
-        std::unique_ptr<CommandAllocator> command_allocator_;
-        std::vector<CommandPacket> command_packets_;
-    };
-
     // All available commands
-    template<CommandType CommandType, CommandQueueType QueueType>
+    template<CommandType Type, CommandQueueType QueueType>
     struct CmdBase {
-        static constexpr auto command_type = CommandType;
+        static constexpr auto type = Type;
         static constexpr auto queue_type = QueueType;
     };
 
-    struct CmdBufferCopy : CmdBase<CommandType::BufferCopy, CommandQueueType::Transfer> {
-        GPUBufferHandle dst;
-        std::size_t dst_offset;
-        GPUBufferHandle src;
-        std::size_t src_offset;
-        std::size_t size;
+#define DEFINE_COMMAND(name, queue_type) \
+    struct Cmd##name : CmdBase<CommandType::name, CommandQueueType::queue_type>
+
+    enum class CommandBufferState {
+        Initial,
+        Recording,
+        Executable,
+        Pending,
+        Invalid
     };
 
-    struct CmdBeginFrame : CmdBase<CommandType::BeginFrame, CommandQueueType::Graphics> {
-        RenderPassHandle render_pass;
-        RenderTargetHandle render_target;
-        Vector2_u render_area;
-        Vector4_f clear_color;
+    class RenderDevice;
+
+    class CommandList
+    {
+    public:
+        CommandList(RenderDevice* device, CommandBufferHandle handle);
+
+        template<typename Command>
+        auto* add_command(std::uint64_t key)
+        {
+            return static_cast<Command*>(add_command(key, sizeof(Command), alignof(Command), Command::type));
+        }
+
+        [[nodiscard]] auto handle() const noexcept { return handle_; }
+
+        [[nodiscard]] auto state() const noexcept { return state_; }
+        [[nodiscard]] bool is_recording() const noexcept { return state_ == CommandBufferState::Recording; }
+        [[nodiscard]] bool is_executable() const noexcept { return state_ == CommandBufferState::Executable; }
+        [[nodiscard]] bool is_pending() const noexcept { return state_ == CommandBufferState::Pending; }
+        [[nodiscard]] bool is_invalid() const noexcept { return state_ == CommandBufferState::Invalid; }
+
+        void begin(const CommandBufferBeginDesc& desc);
+        void end();
+        void reset();
+        void flush();
+
+    private:
+        void set_state(CommandBufferState state) noexcept;
+        void* add_command(std::uint64_t key, std::size_t size, std::size_t align, CommandType type);
+
+        static spdlog::logger* logger();
+
+        RenderDevice* device_;
+        CommandBufferHandle handle_;
+        LinearCommandAllocator command_allocator_;
+        std::vector<CommandPacket> command_packets_;
+
+        CommandBufferState state_ = CommandBufferState::Initial;
     };
 
-    struct CmdEndFrame : CmdBase<CommandType::EndFrame, CommandQueueType::Graphics> {
+    DEFINE_COMMAND(BufferCopy, Graphics)
+    {
+        GPUBufferHandle dst = GPUBufferHandle::invalid_handle();
+        std::size_t dst_offset = 0;
+        GPUBufferHandle src = GPUBufferHandle::invalid_handle();
+        std::size_t src_offset = 0;
+        std::size_t size = 0;
     };
 
-    struct CmdDraw : CmdBase<CommandType::Draw, CommandQueueType::Graphics> {
-        GPUBufferHandle vertex_buffer;
-        PipelineHandle graphics_pipeline;
-        Viewport viewport;
-        std::uint32_t vertex_count;
-        std::uint32_t first_vertex;
+    DEFINE_COMMAND(BeginFrame, Graphics)
+    {
+        RenderPassHandle render_pass = RenderPassHandle::invalid_handle();
+        RenderTargetHandle render_target = RenderTargetHandle::invalid_handle();
+        Vector2_u render_area = {};
+        Vector4_f clear_color = {};
     };
 
-    struct CmdDrawIndexed : CmdBase<CommandType::DrawIndexed, CommandQueueType::Graphics> {
-        GPUBufferHandle vertex_buffer;
-        GPUBufferHandle index_buffer;
-        PipelineHandle graphics_pipeline;
-        Viewport viewport;
-        std::uint32_t index_count;
+    DEFINE_COMMAND(EndFrame, Graphics){};
+
+    DEFINE_COMMAND(Draw, Graphics)
+    {
+        GPUBufferHandle vertex_buffer = GPUBufferHandle::invalid_handle();
+        PipelineHandle graphics_pipeline = PipelineHandle::invalid_handle();
+        Viewport viewport = {};
+        std::uint32_t vertex_count = 0;
+        std::uint32_t first_vertex = 0;
     };
 
-    struct CmdBindDescriptorSets : CmdBase<CommandType::BindDescriptorSets, CommandQueueType::Graphics> {
-        PipelineHandle pipeline;
-        std::uint32_t first_set;
-        std::span<DescriptorSetHandle> descriptor_sets;
+    DEFINE_COMMAND(DrawIndexed, Graphics)
+    {
+        GPUBufferHandle vertex_buffer = GPUBufferHandle::invalid_handle();
+        GPUBufferHandle index_buffer = GPUBufferHandle::invalid_handle();
+        PipelineHandle graphics_pipeline = PipelineHandle::invalid_handle();
+        Viewport viewport = {};
+        std::uint32_t index_count = 0;
+    };
+
+    DEFINE_COMMAND(BindDescriptorSets, Any)
+    {
+        PipelineHandle pipeline = PipelineHandle::invalid_handle();
+        std::uint32_t first_set = 0;
+        std::span<DescriptorSetHandle> descriptor_sets = {};
     };
 } // namespace orion
+
+#undef DEFINE_COMMAND

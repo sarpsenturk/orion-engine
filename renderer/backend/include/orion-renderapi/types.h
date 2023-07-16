@@ -158,4 +158,9 @@ namespace orion
         SpirV,
         DXIL
     };
+
+    enum class CommandBufferUsage : std::uint8_t {
+        OneTimeSubmit
+    };
+    using CommandBufferUsageFlags = Bitflag<CommandBufferUsage>;
 } // namespace orion
