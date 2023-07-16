@@ -11,6 +11,10 @@
 
 #include <vector>
 
+// TODO:
+//  Separate surface and swapchain creation
+//  Move unique() calls into VulkanDevice
+
 namespace orion::vulkan
 {
     class VulkanDevice final : public RenderDevice
@@ -24,7 +28,7 @@ namespace orion::vulkan
         VulkanDevice& operator=(VulkanDevice&&) noexcept = default;
 
         [[nodiscard]] auto device() const noexcept { return device_.get(); }
-        [[nodiscard]] auto allocator() const noexcept { return allocator_.get(); }
+        [[nodiscard]] auto vma_allocator() const noexcept { return vma_allocator_.get(); }
 
     private:
         [[nodiscard]] inline bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept { return queues_.transfer.index != family_index; }
@@ -42,7 +46,6 @@ namespace orion::vulkan
         // Interface Overrides
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
-        RenderTargetHandle create_render_target_api(SwapchainHandle swapchain_handle, const RenderTargetDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
@@ -52,13 +55,12 @@ namespace orion::vulkan
         DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
         SemaphoreHandle create_semaphore_api() override;
         FenceHandle create_fence_api(bool create_signaled) override;
+        void create_swapchain_attachments_api(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
-        void recreate_api(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc) override;
 
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(RenderPassHandle render_pass_handle) override;
-        void destroy_api(RenderTargetHandle render_target_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
         void destroy_api(GPUBufferHandle buffer_handle) override;
@@ -97,10 +99,26 @@ namespace orion::vulkan
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         UniqueVkDevice device_;
-        UniqueVmaAllocator allocator_;
+        UniqueVmaAllocator vma_allocator_;
         VulkanQueues queues_;
-        VulkanStore store_;
 
-        std::unordered_map<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
+        std::unordered_map<std::size_t, VmaAllocation> allocations_;
+
+        VulkanStore<SwapchainHandle, UniqueVkSurfaceKHR> surfaces_;
+        VulkanStore<SwapchainHandle, UniqueVkSwapchainKHR> swapchains_;
+        VulkanStore<AttachmentHandle, UniqueVkImageView> image_views_;
+        VulkanStore<RenderPassHandle, UniqueVkRenderPass> render_passes_;
+        VulkanStore<FramebufferHandle, UniqueVkFramebuffer> framebuffers_;
+        VulkanStore<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
+        VulkanStore<PipelineHandle, UniqueVkPipelineLayout> pipeline_layouts_;
+        VulkanStore<PipelineHandle, UniqueVkPipeline> pipelines_;
+        VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;
+        VulkanStore<CommandPoolHandle, UniqueVkCommandPool> command_pools_;
+        VulkanStore<CommandBufferHandle, UniqueVkCommandBuffer> command_buffers_;
+        VulkanStore<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;
+        VulkanStore<DescriptorSetHandle, UniqueVkDescriptorSet> descriptor_sets_;
+        VulkanStore<SemaphoreHandle, UniqueVkSemaphore> semaphores_;
+        VulkanStore<FenceHandle, UniqueVkFence> fences_;
+        VulkanStore<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
     };
 } // namespace orion::vulkan

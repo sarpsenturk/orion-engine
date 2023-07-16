@@ -149,6 +149,13 @@ namespace orion::vulkan
         vkFreeDescriptorSets(device, pool, 1, &descriptor_set);
     }
 
+    void BufferDeleter::operator()(VkBuffer buffer) const
+    {
+        ORION_EXPECTS(allocator != VK_NULL_HANDLE);
+        ORION_EXPECTS(allocation != VK_NULL_HANDLE);
+        vmaDestroyBuffer(allocator, buffer, allocation);
+    }
+
     UniqueVkInstance unique(VkInstance instance)
     {
         return UniqueVkInstance{instance};
@@ -241,6 +248,11 @@ namespace orion::vulkan
     UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool)
     {
         return UniqueVkDescriptorSet{descriptor_set, DescriptorSetDeleter{device, descriptor_pool}};
+    }
+
+    UniqueVkBuffer vulkan::unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation)
+    {
+        return UniqueVkBuffer{buffer, BufferDeleter{allocator, allocation}};
     }
 
     UniqueVkSemaphore create_vk_semaphore(VkDevice device)

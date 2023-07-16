@@ -133,7 +133,7 @@ namespace orion
     DEFINE_COMMAND(BeginFrame, Graphics)
     {
         RenderPassHandle render_pass = RenderPassHandle::invalid_handle();
-        RenderTargetHandle render_target = RenderTargetHandle::invalid_handle();
+        FramebufferHandle framebuffer = FramebufferHandle::invalid_handle();
         Vector2_u render_area = {};
         Vector4_f clear_color = {};
     };

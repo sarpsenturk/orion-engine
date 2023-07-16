@@ -38,13 +38,6 @@ namespace orion
         return handle;
     }
 
-    RenderTargetHandle RenderDevice::create_render_target(SwapchainHandle swapchain, const RenderTargetDesc& desc)
-    {
-        auto handle = create_render_target_api(swapchain, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created render target with handle {}", handle);
-        return handle;
-    }
-
     ShaderModuleHandle RenderDevice::create_shader_module(const ShaderModuleDesc& desc)
     {
         auto handle = create_shader_module_api(desc);
@@ -108,16 +101,17 @@ namespace orion
         return handle;
     }
 
+    void RenderDevice::create_swapchain_attachments(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments)
+    {
+        create_swapchain_attachments_api(desc, out_attachments);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created {} attachment(s) for swapchain with handle {}",
+                            out_attachments.size(), desc.swapchain);
+    }
+
     void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         recreate_api(swapchain_handle, desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Recreated swapchain with handle {}", swapchain_handle);
-    }
-
-    void RenderDevice::recreate(RenderTargetHandle render_target, SwapchainHandle swapchain, const RenderTargetDesc& desc)
-    {
-        recreate_api(render_target, swapchain, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Recreated render target with handle {}", render_target);
     }
 
     void RenderDevice::destroy(SwapchainHandle swapchain_handle)
@@ -128,11 +122,6 @@ namespace orion
     void RenderDevice::destroy(RenderPassHandle render_pass_handle)
     {
         destroy_api(render_pass_handle);
-    }
-
-    void RenderDevice::destroy(RenderTargetHandle render_target_handle)
-    {
-        destroy_api(render_target_handle);
     }
 
     void RenderDevice::destroy(ShaderModuleHandle shader_module_handle)

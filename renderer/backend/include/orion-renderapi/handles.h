@@ -12,7 +12,6 @@ namespace orion
 {
     ORION_DEFINE_HANDLE(SwapchainHandle);
     ORION_DEFINE_HANDLE(RenderPassHandle);
-    ORION_DEFINE_HANDLE(RenderTargetHandle);
     ORION_DEFINE_HANDLE(ShaderModuleHandle);
     ORION_DEFINE_HANDLE(PipelineHandle);
     ORION_DEFINE_HANDLE(GPUBufferHandle);
@@ -22,4 +21,6 @@ namespace orion
     ORION_DEFINE_HANDLE(DescriptorSetHandle);
     ORION_DEFINE_HANDLE(SemaphoreHandle);
     ORION_DEFINE_HANDLE(FenceHandle);
+    ORION_DEFINE_HANDLE(AttachmentHandle);
+    ORION_DEFINE_HANDLE(FramebufferHandle);
 } // namespace orion

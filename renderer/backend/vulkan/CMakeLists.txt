@@ -22,7 +22,7 @@ add_library(
         vulkan_headers.h
         vulkan_pipeline.h vulkan_pipeline.cpp
         vulkan_platform.h ${vulkan_platform_impl}
-        vulkan_store.h vulkan_store.cpp
+        vulkan_store.h
         vulkan_types.h vulkan_types.cpp
 )
 

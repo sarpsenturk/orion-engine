@@ -154,6 +154,15 @@ namespace orion::vulkan
         void operator()(VkDescriptorSet descriptor_set) const;
     };
 
+    struct BufferDeleter {
+        using pointer = VkBuffer;
+
+        VmaAllocator allocator = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+
+        void operator()(VkBuffer buffer) const;
+    };
+
     using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
     using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
     using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -173,6 +182,7 @@ namespace orion::vulkan
     using UniqueVkDescriptorSetLayout = std::unique_ptr<VkDescriptorSetLayout, DescriptorSetLayoutDeleter>;
     using UniqueVkDescriptorPool = std::unique_ptr<VkDescriptorPool, DescriptorPoolDeleter>;
     using UniqueVkDescriptorSet = std::unique_ptr<VkDescriptorSet, DescriptorSetDeleter>;
+    using UniqueVkBuffer = std::unique_ptr<VkBuffer, BufferDeleter>;
 
     UniqueVkInstance unique(VkInstance instance);
     UniqueVkDevice unique(VkDevice device);
@@ -193,6 +203,7 @@ namespace orion::vulkan
     UniqueVkDescriptorSetLayout unique(VkDescriptorSetLayout descriptor_set_layout, VkDevice device);
     UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device);
     UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool);
+    UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
 
     UniqueVkSemaphore create_vk_semaphore(VkDevice device);
     UniqueVkFence create_vk_fence(VkDevice device, VkFenceCreateFlags flags = 0);

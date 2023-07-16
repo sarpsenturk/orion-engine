@@ -4,8 +4,9 @@ target_sources(
         FILE_SET public_headers
         FILES
         buffer.h
-        descriptor.h
         command.h
+        descriptor.h
+        framebuffer.h
         handles.h
         pipeline.h
         render_backend.h
