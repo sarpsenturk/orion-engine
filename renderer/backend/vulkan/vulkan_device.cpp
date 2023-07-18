@@ -632,6 +632,75 @@ namespace orion::vulkan
         swapchains_.add_or_assign(swapchain_handle, unique(new_swapchain, device()));
     }
 
+    void VulkanDevice::recreate_api(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc)
+    {
+        // Find swapchain
+        VkSwapchainKHR swapchain = swapchains_.at(desc.swapchain);
+
+        // Get swapchain images
+        auto image_count = static_cast<std::uint32_t>(attachments.size());
+        std::vector<VkImage> images(image_count);
+        vk_result_check(vkGetSwapchainImagesKHR(device(), swapchain, &image_count, images.data()));
+
+        // Recreate image views
+        for (std::uint32_t index = 0; auto attachment : attachments) {
+            VkImageView image_view = VK_NULL_HANDLE;
+            {
+                const auto info = VkImageViewCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .image = images[index++],
+                    .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                    .format = to_vulkan_type(desc.format),
+                    .components = {
+                        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    },
+                    .subresourceRange = {
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = 0,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                };
+                vk_result_check(vkCreateImageView(device(), &info, alloc_callbacks(), &image_view));
+                SPDLOG_LOGGER_TRACE(logger(), "Created VkImageView {}", fmt::ptr(image_view));
+                image_views_.add_or_assign(attachment, unique(image_view, device()));
+            }
+        }
+    }
+
+    void VulkanDevice::recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
+    {
+        std::vector<VkImageView> image_views(desc.attachments.size());
+        std::ranges::transform(desc.attachments, image_views.begin(), [this](auto handle) {
+            return image_views_.at(handle);
+        });
+
+        VkFramebuffer framebuffer = VK_NULL_HANDLE;
+        {
+            const auto info = VkFramebufferCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .renderPass = render_passes_.at(desc.render_pass),
+                .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
+                .pAttachments = image_views.data(),
+                .width = desc.size.x(),
+                .height = desc.size.y(),
+                .layers = 1,
+            };
+            vk_result_check(vkCreateFramebuffer(device(), &info, alloc_callbacks(), &framebuffer));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkFramebuffer {}", fmt::ptr(framebuffer));
+        }
+
+        framebuffers_.add_or_assign(framebuffer_handle, unique(framebuffer, device()));
+    }
+
     CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
     {
         VkCommandPool command_pool = command_pools_.at(desc.command_pool);
@@ -1039,7 +1108,9 @@ namespace orion::vulkan
 
         // Get image index
         std::uint32_t image_index = 0;
-        vk_result_check(vkAcquireNextImageKHR(device(), vk_swapchain, UINT64_MAX, vk_semaphore, vk_fence, &image_index));
+        vk_result_check(
+            vkAcquireNextImageKHR(device(), vk_swapchain, UINT64_MAX, vk_semaphore, vk_fence, &image_index),
+            {VK_SUCCESS, VK_SUBOPTIMAL_KHR});
         return image_index;
     }
 

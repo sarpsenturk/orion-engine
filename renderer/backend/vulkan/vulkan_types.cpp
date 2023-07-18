@@ -250,63 +250,8 @@ namespace orion::vulkan
         return UniqueVkDescriptorSet{descriptor_set, DescriptorSetDeleter{device, descriptor_pool}};
     }
 
-    UniqueVkBuffer vulkan::unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation)
+    UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation)
     {
         return UniqueVkBuffer{buffer, BufferDeleter{allocator, allocation}};
-    }
-
-    UniqueVkSemaphore create_vk_semaphore(VkDevice device)
-    {
-        const VkSemaphoreCreateInfo info{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-        };
-        VkSemaphore semaphore = VK_NULL_HANDLE;
-        vk_result_check(vkCreateSemaphore(device, &info, alloc_callbacks(), &semaphore));
-        return unique(semaphore, device);
-    }
-
-    UniqueVkFence create_vk_fence(VkDevice device, VkFenceCreateFlags flags)
-    {
-        const VkFenceCreateInfo info{
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = flags,
-        };
-        VkFence fence = VK_NULL_HANDLE;
-        vk_result_check(vkCreateFence(device, &info, alloc_callbacks(), &fence));
-        return unique(fence, device);
-    }
-
-    VulkanSwapchain::VulkanSwapchain(VkSurfaceKHR surface, UniqueVkSwapchainKHR swapchain, std::vector<UniqueVkImageView> image_views)
-        : surface_(surface)
-        , swapchain_(std::move(swapchain))
-        , image_views_(std::move(image_views))
-    {
-    }
-
-    VulkanSwapchainRenderTarget::VulkanSwapchainRenderTarget(VkDevice device,
-                                                             VulkanSwapchain* swapchain,
-                                                             std::vector<UniqueVkFramebuffer> framebuffers,
-                                                             UniqueVkSemaphore semaphore)
-        : device_(device)
-        , swapchain_(swapchain)
-        , framebuffers_(std::move(framebuffers))
-        , semaphore_(std::move(semaphore))
-    {
-    }
-
-    VkFramebuffer VulkanSwapchainRenderTarget::framebuffer() const
-    {
-        std::uint32_t available_image = 0;
-        auto swapchain = swapchain_->swapchain();
-        auto semaphore = semaphore_.get();
-        vk_result_check(
-            vkAcquireNextImageKHR(device_, swapchain, UINT64_MAX, semaphore, VK_NULL_HANDLE, &available_image),
-            {VK_SUCCESS, VK_TIMEOUT, VK_NOT_READY, VK_SUBOPTIMAL_KHR});
-
-        swapchain_->set_image_index(available_image);
-        return framebuffers_[available_image].get();
     }
 } // namespace orion::vulkan

@@ -121,6 +121,18 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Recreated swapchain with handle {}", swapchain_handle);
     }
 
+    void RenderDevice::recreate(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc)
+    {
+        recreate_api(attachments, desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Recreated swapchain attachments for swapchain with handle {}", desc.swapchain);
+    }
+
+    void RenderDevice::recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
+    {
+        recreate_api(framebuffer_handle, desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Recreated framebuffer with handle {}", framebuffer_handle);
+    }
+
     void RenderDevice::destroy(SwapchainHandle swapchain_handle)
     {
         destroy_api(swapchain_handle);

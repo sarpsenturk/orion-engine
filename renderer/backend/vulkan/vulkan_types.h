@@ -6,7 +6,6 @@
 
 #include <memory>
 #include <span>
-#include <variant>
 
 namespace orion::vulkan
 {
@@ -204,48 +203,6 @@ namespace orion::vulkan
     UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device);
     UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool);
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
-
-    UniqueVkSemaphore create_vk_semaphore(VkDevice device);
-    UniqueVkFence create_vk_fence(VkDevice device, VkFenceCreateFlags flags = 0);
-
-    class VulkanSwapchain
-    {
-    public:
-        VulkanSwapchain(VkSurfaceKHR surface, UniqueVkSwapchainKHR swapchain, std::vector<UniqueVkImageView> image_views);
-
-        [[nodiscard]] auto surface() const noexcept { return surface_; }
-        [[nodiscard]] auto swapchain() const noexcept { return swapchain_.get(); }
-        [[nodiscard]] auto& image_views() const noexcept { return image_views_; }
-        [[nodiscard]] auto image_index() const noexcept { return image_index_; }
-
-        void set_image_index(std::uint32_t index) noexcept { image_index_ = index; }
-
-    private:
-        VkSurfaceKHR surface_;
-        UniqueVkSwapchainKHR swapchain_;
-        std::vector<UniqueVkImageView> image_views_;
-        std::uint32_t image_index_ = UINT32_MAX;
-    };
-
-    class VulkanSwapchainRenderTarget
-    {
-    public:
-        VulkanSwapchainRenderTarget(VkDevice device,
-                                    VulkanSwapchain* swapchain,
-                                    std::vector<UniqueVkFramebuffer> framebuffers,
-                                    UniqueVkSemaphore semaphore);
-
-        [[nodiscard]] VkFramebuffer framebuffer() const;
-        [[nodiscard]] VkSemaphore semaphore() const { return semaphore_.get(); }
-
-    private:
-        VkDevice device_;
-        VulkanSwapchain* swapchain_;
-        std::vector<UniqueVkFramebuffer> framebuffers_;
-        UniqueVkSemaphore semaphore_;
-    };
-
-    using VulkanRenderTarget = std::variant<VulkanSwapchainRenderTarget>;
 
     struct VulkanSubmission {
         UniqueVkFence fence = VK_NULL_HANDLE;

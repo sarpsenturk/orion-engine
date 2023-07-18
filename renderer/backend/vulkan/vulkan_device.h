@@ -59,6 +59,8 @@ namespace orion::vulkan
         void create_swapchain_attachments_api(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
+        void recreate_api(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc) override;
+        void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) override;
 
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(RenderPassHandle render_pass_handle) override;

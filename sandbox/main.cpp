@@ -32,15 +32,6 @@ public:
             swapchain_ = device->create_swapchain(window_, desc);
         }
 
-        // Create swapchain attachments
-        {
-            const auto desc = orion::SwapchainAttachmentDesc{
-                .swapchain = swapchain_,
-                .format = swapchain_image_format,
-            };
-            device->create_swapchain_attachments(desc, swapchain_attachments_);
-        }
-
         // Create render pass
         {
             const auto color_attachments = std::array{
@@ -59,6 +50,15 @@ public:
             render_pass_ = device->create_render_pass(desc);
         }
 
+        // Create swapchain attachments
+        {
+            const auto desc = orion::SwapchainAttachmentDesc{
+                .swapchain = swapchain_,
+                .format = swapchain_image_format,
+            };
+            device->create_swapchain_attachments(desc, swapchain_attachments_);
+        }
+
         // Create swapchain framebuffers
         {
             std::ranges::transform(swapchain_attachments_, swapchain_framebuffers_.begin(), [device, this](auto handle) {
@@ -70,6 +70,48 @@ public:
                 return device->create_framebuffer(desc);
             });
         }
+
+        // Recreate swapchain, swapchain attachments and framebuffers
+        // on window resize
+        window_.on_resize_end().subscribe([device, this](const auto& resize) {
+            if (resize.size == orion::WindowSize{0, 0}) {
+                return;
+            }
+            // Wait until graphics queue is idle before recreating attachments
+            // and framebuffers
+            device->wait_queue_idle(orion::CommandQueueType::Graphics);
+
+            // Recreate swapchain
+            {
+                const auto desc = orion::SwapchainDesc{
+                    .image_count = swapchain_image_count,
+                    .image_format = swapchain_image_format,
+                    .image_size = resize.size,
+                };
+                device->recreate(swapchain_, desc);
+            }
+
+            // Recreate attachments
+            {
+                const auto desc = orion::SwapchainAttachmentDesc{
+                    .swapchain = swapchain_,
+                    .format = swapchain_image_format,
+                };
+                device->recreate(swapchain_attachments_, desc);
+            }
+
+            // Recreate framebuffers
+            {
+                for (std::uint32_t index = 0; auto handle : swapchain_framebuffers_) {
+                    const auto desc = orion::FramebufferDesc{
+                        .render_pass = render_pass_,
+                        .attachments = {&swapchain_attachments_[index++], 1},
+                        .size = resize.size,
+                    };
+                    device->recreate(handle, desc);
+                }
+            }
+        });
 
         // Create swapchain image semaphores
         {
@@ -92,6 +134,11 @@ private:
 
     void on_user_render() override
     {
+        // Don't render or present if window is minimized
+        if (window_.is_minimized()) {
+            return;
+        }
+
         // Get render device
         auto* device = renderer_.device();
 
@@ -137,8 +184,8 @@ private:
     orion::Window window_;
     orion::Renderer renderer_;
     orion::SwapchainHandle swapchain_;
-    std::array<orion::AttachmentHandle, swapchain_image_count> swapchain_attachments_;
     orion::RenderPassHandle render_pass_;
+    std::array<orion::AttachmentHandle, swapchain_image_count> swapchain_attachments_;
     std::array<orion::FramebufferHandle, swapchain_image_count> swapchain_framebuffers_;
     std::array<orion::SemaphoreHandle, swapchain_image_count> image_semaphores_;
     orion::SemaphoreHandle render_semaphore_;

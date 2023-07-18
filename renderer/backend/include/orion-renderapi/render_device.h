@@ -139,6 +139,8 @@ namespace orion
         void create_swapchain_attachments(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
+        void recreate(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc);
+        void recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc);
 
         void destroy(SwapchainHandle swapchain_handle);
         void destroy(RenderPassHandle render_pass_handle);
@@ -198,6 +200,8 @@ namespace orion
         virtual void create_swapchain_attachments_api(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments) = 0;
 
         virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
+        virtual void recreate_api(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc) = 0;
+        virtual void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) = 0;
 
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
