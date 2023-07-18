@@ -10,4 +10,6 @@
 #cmakedefine ORION_ASSET_DIR "@ORION_ASSET_DIR@"
 #cmakedefine ORION_SHADER_DIR "@ORION_SHADER_DIR@"
 
+#cmakedefine ORION_FRAMES_IN_FLIGHT @ORION_FRAMES_IN_FLIGHT@
+
 // clang-format on

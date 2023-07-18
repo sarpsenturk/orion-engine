@@ -76,19 +76,22 @@ namespace orion::vulkan
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
 
+        void reset_command_pool_api(CommandPoolHandle command_pool) override;
         void begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc) override;
         void end_command_buffer_api(CommandBufferHandle command_buffer) override;
         void reset_command_buffer_api(CommandBufferHandle command_buffer) override;
         void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) override;
 
         void submit_api(const SubmitDesc& desc) override;
-        void present_api(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore) override;
+        void present_api(const SwapchainPresentDesc& desc) override;
 
         void wait_for_fence_api(FenceHandle fence) override;
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
         void update_descriptors_api(const DescriptorUpdate& update) override;
+
+        uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) override;
 
         void compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet);
         void cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data);

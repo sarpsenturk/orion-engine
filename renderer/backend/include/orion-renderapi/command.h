@@ -3,12 +3,13 @@
 #include "handles.h"
 #include "types.h"
 
+#include <orion-utils/allocators/linear_allocator.h>
+
 #include <orion-math/vector/vector2.h>
 #include <orion-math/vector/vector4.h>
 
 #include <spdlog/logger.h>
 
-#include <memory_resource>
 #include <type_traits>
 #include <vector>
 
@@ -36,21 +37,6 @@ namespace orion
                       std::is_trivially_default_constructible<T>,
                       std::is_trivially_copy_constructible<T>,
                       std::is_trivially_move_constructible<T>>>> {
-    };
-
-    class LinearCommandAllocator
-    {
-    public:
-        LinearCommandAllocator() = default;
-        explicit LinearCommandAllocator(std::size_t max_size);
-
-        void* allocate(std::size_t bytes, std::size_t alignment);
-        void reset();
-
-    private:
-        std::vector<char> buffer_;
-        std::pmr::monotonic_buffer_resource mbr_;
-        std::pmr::polymorphic_allocator<> allocator_;
     };
 
     struct CommandPacket {
@@ -86,7 +72,7 @@ namespace orion
     class CommandList
     {
     public:
-        CommandList(RenderDevice* device, CommandBufferHandle handle);
+        CommandList(RenderDevice* device, CommandBufferHandle command_buffer, std::size_t size);
 
         template<typename Command>
         auto* add_command(std::uint64_t key)
@@ -94,7 +80,7 @@ namespace orion
             return static_cast<Command*>(add_command(key, sizeof(Command), alignof(Command), Command::type));
         }
 
-        [[nodiscard]] auto handle() const noexcept { return handle_; }
+        [[nodiscard]] auto command_buffer() const noexcept { return command_buffer_; }
 
         [[nodiscard]] auto state() const noexcept { return state_; }
         [[nodiscard]] bool is_recording() const noexcept { return state_ == CommandBufferState::Recording; }
@@ -105,7 +91,11 @@ namespace orion
         void begin(const CommandBufferBeginDesc& desc);
         void end();
         void reset();
+
+        // Flush commands from CPU side to GPU side
         void flush();
+        // Clear commands from CPU side without flushing to GPU side
+        void clear();
 
     private:
         void set_state(CommandBufferState state) noexcept;
@@ -114,8 +104,8 @@ namespace orion
         static spdlog::logger* logger();
 
         RenderDevice* device_;
-        CommandBufferHandle handle_;
-        LinearCommandAllocator command_allocator_;
+        CommandBufferHandle command_buffer_;
+        LinearAllocator command_allocator_;
         std::vector<CommandPacket> command_packets_;
 
         CommandBufferState state_ = CommandBufferState::Initial;

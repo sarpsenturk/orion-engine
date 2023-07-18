@@ -4,7 +4,9 @@
 #include "orion-renderer/mesh.h"
 #include "orion-utils/assertion.h"
 
+#include <algorithm>
 #include <array>
+#include <ranges>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
     #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
@@ -52,21 +54,66 @@ namespace orion
         : backend_module_(desc.backend_module)
         , render_backend_(create_backend(backend_module_))
         , render_device_(create_device(backend(), desc.device_select_fn))
+        , frame_data_(create_frame_data(device()))
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
     }
 
-    void Renderer::begin_frame()
+    void Renderer::begin_frame(const FrameBeginDesc& desc)
     {
+        // Get current frame data
+        auto& frame_data = frame_data_[current_frame_];
+
+        // Wait for gpu to finish current frame
+        device()->wait_for_fence(frame_data.render_fence);
+
+        // Get and clear command list
+        auto& render_command = frame_data.render_command;
+        render_command.clear();
+
+        // Begin command list recording
+        render_command.begin({});
+
+        // Begin frame
+        auto* cmd_begin_frame = render_command.add_command<CmdBeginFrame>({});
+        cmd_begin_frame->render_pass = desc.render_pass;
+        cmd_begin_frame->framebuffer = desc.framebuffer;
+        cmd_begin_frame->render_area = desc.render_area;
+        cmd_begin_frame->clear_color = desc.clear_color;
     }
 
-    void Renderer::end_frame()
+    void Renderer::end_frame(const FrameEndDesc& desc)
     {
+        // Get frame data
+        auto& frame_data = frame_data_[current_frame_];
+
+        // Get command list
+        auto& render_command = frame_data.render_command;
+
+        // End frame
+        render_command.add_command<CmdEndFrame>({});
+
+        // End command list
+        render_command.end();
+
+        // Submit command buffer
+        const auto command_buffers = std::array{
+            render_command.command_buffer(),
+        };
+        const auto submission = SubmitDesc{
+            .command_buffers = command_buffers,
+            .queue_type = CommandQueueType::Graphics,
+            .wait_semaphores = desc.wait_semaphores,
+            .signal_semaphores = desc.signal_semaphores,
+            .fence = frame_data.render_fence,
+        };
+        device()->submit(submission);
     }
 
-    void Renderer::present()
+    void Renderer::present(const SwapchainPresentDesc& desc)
     {
+        device()->present(desc);
     }
 
     spdlog::logger* Renderer::logger()
@@ -120,5 +167,25 @@ namespace orion
 
         // Create device
         return backend->create_device(physical_device_index);
+    }
+
+    static_vector<Renderer::FrameData, Renderer::frames_in_flight> Renderer::create_frame_data(RenderDevice* device)
+    {
+        auto create_data = [device]() -> FrameData {
+            auto render_command_pool = device->create_command_pool({.queue_type = CommandQueueType::Graphics});
+            auto render_command_buffer = device->create_command_buffer({.command_pool = render_command_pool});
+            auto render_fence = device->create_fence(true);
+            return {
+                .render_command_pool = render_command_pool,
+                .render_command = {device, render_command_buffer, render_command_size},
+                .render_fence = render_fence,
+            };
+        };
+
+        static_vector<FrameData, frames_in_flight> frame_data;
+        for (int i = 0; i < frames_in_flight; ++i) {
+            frame_data.push_back(create_data());
+        }
+        return frame_data;
     }
 } // namespace orion

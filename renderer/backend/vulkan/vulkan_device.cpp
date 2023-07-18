@@ -859,6 +859,11 @@ namespace orion::vulkan
         vmaUnmapMemory(vma_allocator_.get(), allocations_.at(buffer_handle.value()));
     }
 
+    void VulkanDevice::reset_command_pool_api(CommandPoolHandle command_pool)
+    {
+        vk_result_check(vkResetCommandPool(device(), command_pools_.at(command_pool), 0));
+    }
+
     void VulkanDevice::begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc)
     {
         // Find and reset command buffer
@@ -931,16 +936,16 @@ namespace orion::vulkan
         vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1, &submit_info, signal_fence));
     }
 
-    void VulkanDevice::present_api(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore)
+    void VulkanDevice::present_api(const SwapchainPresentDesc& desc)
     {
         // Find presentation queue
         VkQueue present_queue = get_queue(CommandQueueType::Graphics);
 
         // Find swapchain and resources
-        VkSwapchainKHR swapchain = swapchains_.at(swapchain_handle);
+        VkSwapchainKHR swapchain = swapchains_.at(desc.swapchain);
 
         // Wait semaphore
-        VkSemaphore semaphore = semaphores_.at(wait_semaphore);
+        VkSemaphore semaphore = semaphores_.at(desc.wait_semaphore);
 
         // Present image
         const VkPresentInfoKHR present_info{
@@ -950,7 +955,7 @@ namespace orion::vulkan
             .pWaitSemaphores = &semaphore,
             .swapchainCount = 1,
             .pSwapchains = &swapchain,
-            .pImageIndices = nullptr, // TODO: Add image index
+            .pImageIndices = &desc.image_index,
             .pResults = nullptr,
         };
         vk_result_check(vkQueuePresentKHR(present_queue, &present_info), {VK_SUCCESS, VK_SUBOPTIMAL_KHR});
@@ -960,6 +965,7 @@ namespace orion::vulkan
     {
         VkFence vk_fence = fences_.at(fence);
         vk_result_check(vkWaitForFences(device(), 1, &vk_fence, VK_TRUE, UINT64_MAX));
+        vk_result_check(vkResetFences(device(), 1, &vk_fence));
     }
 
     void VulkanDevice::wait_queue_idle_api(CommandQueueType queue_type)
@@ -1022,6 +1028,21 @@ namespace orion::vulkan
             0, nullptr);                                                                    // Descriptor copies
     }
 
+    uint32_t VulkanDevice::acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)
+    {
+        // Find swapchain
+        VkSwapchainKHR vk_swapchain = swapchains_.at(swapchain);
+
+        // Find semaphore and fence if valid
+        VkSemaphore vk_semaphore = semaphore.is_valid() ? semaphores_.at(semaphore) : VK_NULL_HANDLE;
+        VkFence vk_fence = fence.is_valid() ? fences_.at(fence) : VK_NULL_HANDLE;
+
+        // Get image index
+        std::uint32_t image_index = 0;
+        vk_result_check(vkAcquireNextImageKHR(device(), vk_swapchain, UINT64_MAX, vk_semaphore, vk_fence, &image_index));
+        return image_index;
+    }
+
     void VulkanDevice::compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet)
     {
         switch (command_packet.type) {
@@ -1043,8 +1064,9 @@ namespace orion::vulkan
             case CommandType::BindDescriptorSets:
                 cmd_bind_descriptor_sets(command_buffer, command_packet.data);
                 break;
+            default:
+                ORION_ASSERT(!"Command type not handled!");
         }
-        ORION_ASSERT(!"Command type not handled!");
     }
 
     void VulkanDevice::cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data)
@@ -1077,8 +1099,8 @@ namespace orion::vulkan
 
         // Find render pass
         VkRenderPass render_pass = render_passes_.at(cmd_data->render_pass);
-        // Find frame buffer TODO: Fix this after render target reword
-        VkFramebuffer framebuffer = VK_NULL_HANDLE;
+        // Find frame buffer
+        VkFramebuffer framebuffer = framebuffers_.at(cmd_data->framebuffer);
 
         // Set clear values
         const auto clear_values = std::array{

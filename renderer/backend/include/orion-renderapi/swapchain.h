@@ -18,4 +18,10 @@ namespace orion
         SwapchainHandle swapchain = SwapchainHandle::invalid_handle();
         Format format = default_swapchain_format;
     };
+
+    struct SwapchainPresentDesc {
+        SwapchainHandle swapchain = SwapchainHandle::invalid_handle();
+        SemaphoreHandle wait_semaphore = SemaphoreHandle::invalid_handle();
+        std::uint32_t image_index = UINT32_MAX;
+    };
 } // namespace orion

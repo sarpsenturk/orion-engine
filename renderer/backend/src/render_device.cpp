@@ -191,6 +191,11 @@ namespace orion
         return unmap_api(buffer_handle);
     }
 
+    void RenderDevice::reset_command_pool(CommandPoolHandle command_pool)
+    {
+        reset_command_pool_api(command_pool);
+    }
+
     void RenderDevice::begin_command_buffer(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc)
     {
         begin_command_buffer_api(command_buffer, desc);
@@ -221,9 +226,9 @@ namespace orion
         submit_api(desc);
     }
 
-    void RenderDevice::present(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore)
+    void RenderDevice::present(const SwapchainPresentDesc& desc)
     {
-        present_api(swapchain_handle, wait_semaphore);
+        present_api(desc);
     }
 
     void RenderDevice::wait_for_fence(FenceHandle fence)
@@ -244,5 +249,10 @@ namespace orion
     void RenderDevice::update_descriptors(const DescriptorUpdate& update)
     {
         update_descriptors_api(update);
+    }
+
+    std::uint32_t RenderDevice::acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)
+    {
+        return acquire_next_image_api(swapchain, semaphore, fence);
     }
 } // namespace orion

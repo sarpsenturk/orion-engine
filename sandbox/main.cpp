@@ -1,9 +1,16 @@
-#include <fmt/chrono.h>
-#include <orion-core/window.h>
 #include <orion-engine/orion-engine.h>
-#include <orion-math/vector/vector3.h>
+
+#include <orion-core/window.h>
+
 #include <orion-renderer/renderer.h>
+
+#include <orion-math/vector/vector3.h>
+
+#include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
+
+#include <algorithm>
+#include <array>
 
 class SandboxApp : public orion::Application
 {
@@ -63,6 +70,18 @@ public:
                 return device->create_framebuffer(desc);
             });
         }
+
+        // Create swapchain image semaphores
+        {
+            std::generate(image_semaphores_.begin(), image_semaphores_.end(), [device]() {
+                return device->create_semaphore();
+            });
+        }
+
+        // Create render semaphore
+        {
+            render_semaphore_ = device->create_semaphore();
+        }
     }
 
 private:
@@ -73,10 +92,36 @@ private:
 
     void on_user_render() override
     {
-        renderer_.begin_frame();
+        // Get render device
+        auto* device = renderer_.device();
 
-        renderer_.end_frame();
-        renderer_.present();
+        // Get current frame index
+        const auto frame_index = renderer_.frame_index();
+
+        // Get swapchain image semaphore for current frame
+        const auto swapchain_image_semaphore = image_semaphores_[frame_index];
+
+        // Get next swapchain image index and framebuffer
+        const auto image_index = device->acquire_next_image(swapchain_, swapchain_image_semaphore, {});
+        const auto framebuffer = swapchain_framebuffers_[image_index];
+
+        // Begin frame
+        renderer_.begin_frame({
+            .render_pass = render_pass_,
+            .framebuffer = framebuffer,
+            .render_area = window_.size(),
+            .clear_color = {1.f, 0.f, 1.f, 1.f},
+        });
+
+        // End frame
+        const auto wait_semaphores = std::array{swapchain_image_semaphore};
+        const auto signal_semaphores = std::array{render_semaphore_};
+        renderer_.end_frame({
+            .wait_semaphores = wait_semaphores,
+            .signal_semaphores = signal_semaphores,
+        });
+
+        renderer_.present({.swapchain = swapchain_, .wait_semaphore = render_semaphore_, .image_index = image_index});
     }
 
     [[nodiscard]] bool user_should_exit() const noexcept override
@@ -95,6 +140,8 @@ private:
     std::array<orion::AttachmentHandle, swapchain_image_count> swapchain_attachments_;
     orion::RenderPassHandle render_pass_;
     std::array<orion::FramebufferHandle, swapchain_image_count> swapchain_framebuffers_;
+    std::array<orion::SemaphoreHandle, swapchain_image_count> image_semaphores_;
+    orion::SemaphoreHandle render_semaphore_;
 };
 
 ORION_MAIN(args)

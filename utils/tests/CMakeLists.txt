@@ -7,6 +7,7 @@ function(add_orion_utils_test name)
 endfunction()
 
 add_orion_utils_test(bitflag)
+add_orion_utils_test(linear_allocator)
 add_orion_utils_test(static_vector)
 add_orion_utils_test(type)
 add_orion_utils_test(uninitialized)

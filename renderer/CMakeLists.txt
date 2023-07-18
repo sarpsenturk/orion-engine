@@ -1,5 +1,6 @@
 # Module specific options
 option(ORION_RENDERER_TEST "Enable tests for the orion renderer" ${ORION_ENGINE_DEVELOPER_MODE})
+set(ORION_FRAMES_IN_FLIGHT 2 CACHE STRING "Number of frames in flight")
 
 # Builtin backend targets
 option(ORION_RENDER_BACKEND_VULKAN "Enable the Vulkan backend for the orion renderer" ON)

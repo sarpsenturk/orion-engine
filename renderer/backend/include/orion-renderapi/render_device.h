@@ -25,8 +25,8 @@ namespace orion
     struct SubmitDesc {
         std::span<const CommandBufferHandle> command_buffers = {};
         CommandQueueType queue_type = CommandQueueType::Any;
-        std::span<SemaphoreHandle> wait_semaphores = {};
-        std::span<SemaphoreHandle> signal_semaphores = {};
+        std::span<const SemaphoreHandle> wait_semaphores = {};
+        std::span<const SemaphoreHandle> signal_semaphores = {};
         FenceHandle fence = FenceHandle::invalid_handle();
     };
 
@@ -156,6 +156,7 @@ namespace orion
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
 
+        void reset_command_pool(CommandPoolHandle command_pool);
         void begin_command_buffer(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc);
         void end_command_buffer(CommandBufferHandle command_buffer);
         void reset_command_buffer(CommandBufferHandle command_buffer);
@@ -163,13 +164,15 @@ namespace orion
 
         void submit(const SubmitDesc& desc);
         void submit_immediate(const SubmitDesc& desc);
-        void present(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore);
+        void present(const SwapchainPresentDesc& desc);
 
         void wait_for_fence(FenceHandle fence);
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
         void update_descriptors(const DescriptorUpdate& update);
+
+        std::uint32_t acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
@@ -212,19 +215,22 @@ namespace orion
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
 
+        virtual void reset_command_pool_api(CommandPoolHandle command_pool) = 0;
         virtual void begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc) = 0;
         virtual void end_command_buffer_api(CommandBufferHandle command_buffer) = 0;
         virtual void reset_command_buffer_api(CommandBufferHandle command_buffer) = 0;
         virtual void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) = 0;
 
         virtual void submit_api(const SubmitDesc& desc) = 0;
-        virtual void present_api(SwapchainHandle swapchain_handle, SemaphoreHandle wait_semaphore) = 0;
+        virtual void present_api(const SwapchainPresentDesc& desc) = 0;
 
         virtual void wait_for_fence_api(FenceHandle fence) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 
         virtual void update_descriptors_api(const DescriptorUpdate& update) = 0;
+
+        virtual std::uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) = 0;
 
         spdlog::logger* logger_;
     };

@@ -1,9 +1,7 @@
 #include "orion-math/vector/vector.h"
 
-#include "orion-math/vector/formatter.h"
-
 #include <gtest/gtest.h>
-#include <iterator> // std::distance, std::next
+#include <iterator>
 
 namespace
 {
