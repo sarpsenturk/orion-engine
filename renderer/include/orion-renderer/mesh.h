@@ -1,18 +1,12 @@
 #pragma once
 
-#include <orion-renderapi/command.h>
 #include <orion-renderapi/handles.h>
 #include <orion-renderapi/pipeline.h>
-#include <orion-renderapi/render_device.h>
 
 #include <orion-math/vector/vector3.h>
 #include <orion-math/vector/vector4.h>
 
 #include <array>
-#include <span>
-#include <spdlog/logger.h>
-#include <string>
-#include <unordered_map>
 
 namespace orion
 {
@@ -32,26 +26,16 @@ namespace orion
         }
     };
 
-    inline constexpr auto quad_vertex_positions = std::array{
-        Vector3_f{-.5f, 0.5f, 0.0f},
-        Vector3_f{0.5f, 0.5f, 0.0f},
-        Vector3_f{0.5f, -.5f, 0.0f},
-        Vector3_f{-.5f, -.5f, 0.0f},
-    };
-    inline constexpr auto quad_indices = std::array{
-        0u, 1u, 2u,
-        2u, 3u, 0u};
-
     class Mesh
     {
     public:
-        Mesh(GPUBufferResource vertex_buffer, GPUBufferResource index_buffer);
+        Mesh(GPUBufferHandle vertex_buffer, GPUBufferHandle index_buffer);
 
-        [[nodiscard]] auto vertex_buffer() const noexcept { return vertex_buffer_.get(); }
-        [[nodiscard]] auto index_buffer() const noexcept { return index_buffer_.get(); }
+        [[nodiscard]] auto vertex_buffer() const noexcept { return vertex_buffer_; }
+        [[nodiscard]] auto index_buffer() const noexcept { return index_buffer_; }
 
     private:
-        GPUBufferResource vertex_buffer_;
-        GPUBufferResource index_buffer_;
+        GPUBufferHandle vertex_buffer_;
+        GPUBufferHandle index_buffer_;
     };
 } // namespace orion

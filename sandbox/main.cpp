@@ -17,7 +17,7 @@ class SandboxApp : public orion::Application
 public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
-        , renderer_({.device_select_fn = orion::select_discrete})
+        , renderer_({.device_select_fn = orion::device_select_discrete})
     {
         // Get device from renderer
         auto* device = renderer_.device();

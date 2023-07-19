@@ -4,9 +4,9 @@
 #include "orion-renderapi/types.h"
 #include "render_device.h"
 
-#include <memory>          // std::unique_ptr
-#include <spdlog/logger.h> // spdlog::logger
-#include <vector>          // std::vector
+#include <memory>
+#include <spdlog/logger.h>
+#include <vector>
 
 #ifdef ORION_RENDER_BACKEND_EXPORT
     #define ORION_RENDER_API ORION_EXPORT
@@ -21,6 +21,12 @@ namespace orion
         PhysicalDeviceType type;
         std::string name;
     };
+
+    using pfnSelectPhysicalDevice = std::uint32_t (*)(std::span<const PhysicalDeviceDesc>);
+    inline constexpr auto invalid_physical_device_index = UINT32_MAX;
+
+    std::uint32_t device_select_integrated(std::span<const PhysicalDeviceDesc> devices);
+    std::uint32_t device_select_discrete(std::span<const PhysicalDeviceDesc> devices);
 
     inline constexpr auto check_device_type(PhysicalDeviceType type)
     {

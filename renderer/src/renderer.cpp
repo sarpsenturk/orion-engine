@@ -17,25 +17,6 @@
 
 namespace orion
 {
-    namespace
-    {
-        std::uint32_t select_device_type(
-            std::span<const PhysicalDeviceDesc> physical_devices,
-            PhysicalDeviceType expected)
-        {
-            if (auto iter = std::ranges::find_if(physical_devices, check_device_type(expected));
-                iter != physical_devices.end()) {
-                return iter->index;
-            }
-            return UINT32_MAX;
-        }
-    } // namespace
-
-    std::uint32_t select_discrete(std::span<const PhysicalDeviceDesc> physical_devices)
-    {
-        return select_device_type(physical_devices, PhysicalDeviceType::Discrete);
-    }
-
     const char* default_backend_module(Platform platform)
     {
         switch (platform) {

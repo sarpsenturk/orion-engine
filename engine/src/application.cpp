@@ -2,17 +2,17 @@
 
 #include "orion-core/config.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h>
+#ifndef ORION_APPLICATION_LOG_LEVEL
+    #define ORION_APPLICATION_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
+#endif
+#include "orion-core/log.h"
 #include <spdlog/spdlog.h>
 
 namespace orion
 {
     Application::Application()
-        : logger_(spdlog::stdout_color_st("orion-application"))
+        : logger_(orion::create_logger("orion-application", static_cast<spdlog::level::level_enum>(ORION_APPLICATION_LOG_LEVEL)))
     {
-        logger_->set_pattern("[%n] [%^%l%$] %v");
-        logger_->set_level(static_cast<spdlog::level::level_enum>(ORION_APPLICATION_LOG_LEVEL));
-
         SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, debug_build: {}",
                            current_version, current_platform, debug_build);
     }

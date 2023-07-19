@@ -13,9 +13,9 @@
 
 namespace orion
 {
-    Mesh::Mesh(GPUBufferResource vertex_buffer, GPUBufferResource index_buffer)
-        : vertex_buffer_(std::move(vertex_buffer))
-        , index_buffer_(std::move(index_buffer))
+    Mesh::Mesh(GPUBufferHandle vertex_buffer, GPUBufferHandle index_buffer)
+        : vertex_buffer_(vertex_buffer)
+        , index_buffer_(index_buffer)
     {
     }
 } // namespace orion

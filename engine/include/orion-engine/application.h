@@ -2,12 +2,8 @@
 
 #include "orion-core/clock.h"
 
-#ifndef ORION_APPLICATION_LOG_LEVEL
-    #define ORION_APPLICATION_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
-#endif
-
-#include <memory>          // std::shared_ptr
-#include <spdlog/logger.h> // spdlog::logger
+#include <memory>
+#include <spdlog/logger.h>
 
 namespace orion
 {

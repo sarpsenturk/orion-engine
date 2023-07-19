@@ -17,11 +17,6 @@
 
 namespace orion
 {
-    using pfnSelectPhysicalDevice =
-        std::uint32_t (*)(std::span<const PhysicalDeviceDesc>);
-
-    std::uint32_t select_discrete(std::span<const PhysicalDeviceDesc>);
-
     const char* default_backend_module(Platform platform = current_platform);
 
     struct RendererDesc {
