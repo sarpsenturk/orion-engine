@@ -115,6 +115,13 @@ namespace orion
         return handle;
     }
 
+    ImageViewHandle RenderDevice::create_image_view(const ImageViewDesc& desc)
+    {
+        auto handle = create_image_view_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created image view with handle {}", handle);
+        return handle;
+    }
+
     void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         recreate_api(swapchain_handle, desc);
@@ -190,6 +197,11 @@ namespace orion
     void RenderDevice::destroy(ImageHandle image_handle)
     {
         destroy_api(image_handle);
+    }
+
+    void RenderDevice::destroy(ImageViewHandle image_view_handle)
+    {
+        destroy_api(image_view_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)

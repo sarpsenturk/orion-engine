@@ -815,6 +815,39 @@ namespace orion::vulkan
         return handle;
     }
 
+    ImageViewHandle VulkanDevice::create_image_view_api(const ImageViewDesc& desc)
+    {
+        VkImageView image_view = VK_NULL_HANDLE;
+        {
+            const auto info = VkImageViewCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .image = images_.at(desc.image),
+                .viewType = to_vulkan_type(desc.type),
+                .format = to_vulkan_type(desc.format),
+                .components = {
+                    .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                },
+                .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, // TODO: Allow this to be customized
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            };
+            vk_result_check(vkCreateImageView(device(), &info, alloc_callbacks(), &image_view));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkImageView {}", fmt::ptr(image_view));
+        }
+        const auto handle = ImageViewHandle::generate();
+        image_views_.add(handle, unique(image_view, device()));
+        return handle;
+    }
+
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
     {
         swapchains_.remove(swapchain_handle);
@@ -880,6 +913,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(ImageHandle image_handle)
     {
         images_.remove(image_handle);
+    }
+
+    void VulkanDevice::destroy_api(ImageViewHandle image_view_handle)
+    {
+        image_views_.remove(image_view_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)

@@ -99,6 +99,10 @@ namespace orion::vulkan
                 return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             case ImageLayout::PresentSrc:
                 return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            case ImageLayout::TransferSrc:
+                return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            case ImageLayout::TransferDst:
+                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         }
         ORION_ASSERT(!"Image layout not handled in to_vulkan_type() or is invalid");
         return VK_IMAGE_LAYOUT_MAX_ENUM;
@@ -301,6 +305,28 @@ namespace orion::vulkan
         ORION_ASSERT(image_usage_flags.has_none() &&
                      "Image usage not handled in to_vulkan_type()");
         return vk_usage_flags;
+    }
+
+    constexpr auto to_vulkan_type(ImageViewType image_view_type) -> VkImageViewType
+    {
+        switch (image_view_type) {
+            case ImageViewType::View1D:
+                return VK_IMAGE_VIEW_TYPE_1D;
+            case ImageViewType::View2D:
+                return VK_IMAGE_VIEW_TYPE_2D;
+            case ImageViewType::View3D:
+                return VK_IMAGE_VIEW_TYPE_3D;
+            case ImageViewType::ViewCube:
+                return VK_IMAGE_VIEW_TYPE_CUBE;
+            case ImageViewType::View1DArray:
+                return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+            case ImageViewType::View2DArray:
+                return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            case ImageViewType::ViewCubeArray:
+                return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        }
+        ORION_ASSERT(!"ImageViewType not handled in to_vulkan_type()");
+        return {};
     }
 
     template<typename T>

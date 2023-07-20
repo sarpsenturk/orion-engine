@@ -89,7 +89,9 @@ namespace orion
     enum class ImageLayout {
         Undefined = 0,
         ColorAttachment,
-        PresentSrc
+        PresentSrc,
+        TransferSrc,
+        TransferDst
     };
 
     enum class ShaderStage : std::uint8_t {
@@ -188,4 +190,14 @@ namespace orion
         InputAttachment
     };
     using ImageUsageFlags = Bitflag<ImageUsage>;
+
+    enum class ImageViewType {
+        View1D,
+        View2D,
+        View3D,
+        ViewCube,
+        View1DArray,
+        View2DArray,
+        ViewCubeArray,
+    };
 } // namespace orion

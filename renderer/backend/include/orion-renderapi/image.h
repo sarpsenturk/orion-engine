@@ -12,6 +12,11 @@ namespace orion
         Vector3_u size;
         ImageTiling tiling;
         ImageUsageFlags usage;
-        ImageLayout initial_layout;
+    };
+
+    struct ImageViewDesc {
+        ImageHandle image;
+        ImageViewType type;
+        Format format;
     };
 } // namespace orion

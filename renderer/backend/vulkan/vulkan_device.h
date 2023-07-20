@@ -63,6 +63,7 @@ namespace orion::vulkan
         SemaphoreHandle create_semaphore_api() override;
         FenceHandle create_fence_api(bool create_signaled) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
+        ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
         void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) override;
@@ -80,6 +81,7 @@ namespace orion::vulkan
         void destroy_api(SemaphoreHandle semaphore_handle) override;
         void destroy_api(FenceHandle fence_handle) override;
         void destroy_api(ImageHandle image_handle) override;
+        void destroy_api(ImageViewHandle image_view_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;

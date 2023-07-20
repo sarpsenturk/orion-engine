@@ -138,6 +138,7 @@ namespace orion
         [[nodiscard]] SemaphoreHandle create_semaphore();
         [[nodiscard]] FenceHandle create_fence(bool create_signaled);
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
+        [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
         void recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc);
@@ -155,6 +156,7 @@ namespace orion
         void destroy(SemaphoreHandle semaphore_handle);
         void destroy(FenceHandle fence_handle);
         void destroy(ImageHandle image_handle);
+        void destroy(ImageViewHandle image_view_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
@@ -199,6 +201,7 @@ namespace orion
         [[nodiscard]] virtual SemaphoreHandle create_semaphore_api() = 0;
         [[nodiscard]] virtual FenceHandle create_fence_api(bool create_signaled) = 0;
         [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
+        [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
 
         virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
         virtual void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) = 0;
@@ -216,6 +219,7 @@ namespace orion
         virtual void destroy_api(SemaphoreHandle semaphore_handle) = 0;
         virtual void destroy_api(FenceHandle fence_handle) = 0;
         virtual void destroy_api(ImageHandle image_handle) = 0;
+        virtual void destroy_api(ImageViewHandle image_view_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;

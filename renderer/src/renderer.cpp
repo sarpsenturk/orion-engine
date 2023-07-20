@@ -36,6 +36,7 @@ namespace orion
         , render_backend_(create_backend(backend_module_))
         , render_device_(create_device(backend(), desc.device_select_fn))
         , render_size_(desc.render_size)
+        , color_pass_(create_color_pass(device()))
         , frame_data_(create_frame_data(device()))
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
@@ -108,6 +109,24 @@ namespace orion
         return backend->create_device(physical_device_index);
     }
 
+    RenderPassHandle Renderer::create_color_pass(RenderDevice* device) const
+    {
+        const auto color_attachments = std::array{
+            RenderPassAttachmentDesc{
+                .format = Format::B8G8R8A8_Srgb,
+                .load_op = AttachmentLoadOp::Clear,
+                .store_op = AttachmentStoreOp::Store,
+                .initial_layout = ImageLayout::Undefined,
+                .layout = ImageLayout::ColorAttachment,
+                .final_layout = ImageLayout::TransferSrc,
+            },
+        };
+        const auto desc = RenderPassDesc{
+            .color_attachments = color_attachments,
+        };
+        return device->create_render_pass(desc);
+    }
+
     static_vector<Renderer::FrameData, Renderer::frames_in_flight> Renderer::create_frame_data(RenderDevice* device) const
     {
         auto create_data = [device, this]() -> FrameData {
@@ -119,17 +138,30 @@ namespace orion
                 .format = Format::B8G8R8A8_Srgb,
                 .size = {render_size_.x(), render_size_.y(), 1},
                 .tiling = ImageTiling::Optimal,
-                .usage = ImageUsage::ColorAttachment,
-                .initial_layout = ImageLayout::ColorAttachment,
+                .usage = ImageUsageFlags::disjunction({ImageUsage::ColorAttachment, ImageUsage::TransferSrc}),
+            });
+            auto color_image_view = device->create_image_view({
+                .image = color_image,
+                .type = ImageViewType::View2D,
+                .format = Format::B8G8R8A8_Srgb,
+            });
+
+            auto color_render_target = device->create_framebuffer({
+                .render_pass = color_pass_,
+                .attachments = {&color_image_view, 1},
+                .size = render_size_,
             });
             return {
                 .render_command_pool = render_command_pool,
                 .render_command = {device, render_command_buffer, render_command_size},
                 .render_fence = render_fence,
                 .color_image = color_image,
+                .color_image_view = color_image_view,
+                .color_render_target = color_render_target,
             };
         };
 
+        SPDLOG_LOGGER_TRACE(logger(), "Creating FrameData for {} frames in flight...", frames_in_flight);
         static_vector<FrameData, frames_in_flight> frame_data;
         for (int i = 0; i < frames_in_flight; ++i) {
             frame_data.push_back(create_data());
