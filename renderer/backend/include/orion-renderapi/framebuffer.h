@@ -10,7 +10,7 @@ namespace orion
 {
     struct FramebufferDesc {
         RenderPassHandle render_pass = RenderPassHandle::invalid_handle();
-        std::span<const AttachmentHandle> attachments = {};
+        std::span<const ImageViewHandle> attachments = {};
         Vector2_u size = {};
     };
 } // namespace orion

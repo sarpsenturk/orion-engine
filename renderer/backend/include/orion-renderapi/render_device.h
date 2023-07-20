@@ -5,6 +5,7 @@
 #include "descriptor.h"
 #include "framebuffer.h"
 #include "handles.h"
+#include "image.h"
 #include "pipeline.h"
 #include "render_pass.h"
 #include "shader.h"
@@ -136,10 +137,9 @@ namespace orion
         [[nodiscard]] DescriptorSetHandle create_descriptor_set(const DescriptorSetDesc& desc);
         [[nodiscard]] SemaphoreHandle create_semaphore();
         [[nodiscard]] FenceHandle create_fence(bool create_signaled);
-        void create_swapchain_attachments(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments);
+        [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
-        void recreate(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc);
         void recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc);
 
         void destroy(SwapchainHandle swapchain_handle);
@@ -154,6 +154,7 @@ namespace orion
         void destroy(DescriptorSetHandle descriptor_set_handle);
         void destroy(SemaphoreHandle semaphore_handle);
         void destroy(FenceHandle fence_handle);
+        void destroy(ImageHandle image_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
@@ -197,10 +198,9 @@ namespace orion
         [[nodiscard]] virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) = 0;
         [[nodiscard]] virtual SemaphoreHandle create_semaphore_api() = 0;
         [[nodiscard]] virtual FenceHandle create_fence_api(bool create_signaled) = 0;
-        virtual void create_swapchain_attachments_api(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments) = 0;
+        [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
 
         virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
-        virtual void recreate_api(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc) = 0;
         virtual void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) = 0;
 
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
@@ -215,6 +215,7 @@ namespace orion
         virtual void destroy_api(DescriptorSetHandle descriptor_set_handle) = 0;
         virtual void destroy_api(SemaphoreHandle semaphore_handle) = 0;
         virtual void destroy_api(FenceHandle fence_handle) = 0;
+        virtual void destroy_api(ImageHandle image_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;

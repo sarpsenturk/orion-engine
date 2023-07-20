@@ -35,61 +35,19 @@ namespace orion
         : backend_module_(desc.backend_module)
         , render_backend_(create_backend(backend_module_))
         , render_device_(create_device(backend(), desc.device_select_fn))
+        , render_size_(desc.render_size)
         , frame_data_(create_frame_data(device()))
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
     }
 
-    void Renderer::begin_frame(const FrameBeginDesc& desc)
+    void Renderer::begin_frame()
     {
-        // Get current frame data
-        auto& frame_data = frame_data_[current_frame_];
-
-        // Wait for gpu to finish current frame
-        device()->wait_for_fence(frame_data.render_fence);
-
-        // Get and clear command list
-        auto& render_command = frame_data.render_command;
-        render_command.clear();
-
-        // Begin command list recording
-        render_command.begin({});
-
-        // Begin frame
-        auto* cmd_begin_frame = render_command.add_command<CmdBeginFrame>({});
-        cmd_begin_frame->render_pass = desc.render_pass;
-        cmd_begin_frame->framebuffer = desc.framebuffer;
-        cmd_begin_frame->render_area = desc.render_area;
-        cmd_begin_frame->clear_color = desc.clear_color;
     }
 
-    void Renderer::end_frame(const FrameEndDesc& desc)
+    void Renderer::end_frame()
     {
-        // Get frame data
-        auto& frame_data = frame_data_[current_frame_];
-
-        // Get command list
-        auto& render_command = frame_data.render_command;
-
-        // End frame
-        render_command.add_command<CmdEndFrame>({});
-
-        // End command list
-        render_command.end();
-
-        // Submit command buffer
-        const auto command_buffers = std::array{
-            render_command.command_buffer(),
-        };
-        const auto submission = SubmitDesc{
-            .command_buffers = command_buffers,
-            .queue_type = CommandQueueType::Graphics,
-            .wait_semaphores = desc.wait_semaphores,
-            .signal_semaphores = desc.signal_semaphores,
-            .fence = frame_data.render_fence,
-        };
-        device()->submit(submission);
     }
 
     void Renderer::present(const SwapchainPresentDesc& desc)
@@ -103,7 +61,7 @@ namespace orion
         return renderer_logger.get();
     }
 
-    std::unique_ptr<RenderBackend> Renderer::create_backend(const Module& backend_module)
+    std::unique_ptr<RenderBackend> Renderer::create_backend(const Module& backend_module) const
     {
         SPDLOG_LOGGER_TRACE(logger(), "Initializing render backend...");
 
@@ -118,7 +76,7 @@ namespace orion
         return render_backend;
     }
 
-    std::unique_ptr<RenderDevice> Renderer::create_device(RenderBackend* backend, pfnSelectPhysicalDevice device_select_fn)
+    std::unique_ptr<RenderDevice> Renderer::create_device(RenderBackend* backend, pfnSelectPhysicalDevice device_select_fn) const
     {
         SPDLOG_LOGGER_TRACE(logger(), "Creating render device...");
 
@@ -150,16 +108,25 @@ namespace orion
         return backend->create_device(physical_device_index);
     }
 
-    static_vector<Renderer::FrameData, Renderer::frames_in_flight> Renderer::create_frame_data(RenderDevice* device)
+    static_vector<Renderer::FrameData, Renderer::frames_in_flight> Renderer::create_frame_data(RenderDevice* device) const
     {
-        auto create_data = [device]() -> FrameData {
+        auto create_data = [device, this]() -> FrameData {
             auto render_command_pool = device->create_command_pool({.queue_type = CommandQueueType::Graphics});
             auto render_command_buffer = device->create_command_buffer({.command_pool = render_command_pool});
             auto render_fence = device->create_fence(true);
+            auto color_image = device->create_image({
+                .type = ImageType::Image2D,
+                .format = Format::B8G8R8A8_Srgb,
+                .size = {render_size_.x(), render_size_.y(), 1},
+                .tiling = ImageTiling::Optimal,
+                .usage = ImageUsage::ColorAttachment,
+                .initial_layout = ImageLayout::ColorAttachment,
+            });
             return {
                 .render_command_pool = render_command_pool,
                 .render_command = {device, render_command_buffer, render_command_size},
                 .render_fence = render_fence,
+                .color_image = color_image,
             };
         };
 

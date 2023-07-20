@@ -162,6 +162,15 @@ namespace orion::vulkan
         void operator()(VkBuffer buffer) const;
     };
 
+    struct ImageDeleter {
+        using pointer = VkImage;
+
+        VmaAllocator allocator = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+
+        void operator()(VkImage image) const;
+    };
+
     using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
     using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
     using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -182,6 +191,7 @@ namespace orion::vulkan
     using UniqueVkDescriptorPool = std::unique_ptr<VkDescriptorPool, DescriptorPoolDeleter>;
     using UniqueVkDescriptorSet = std::unique_ptr<VkDescriptorSet, DescriptorSetDeleter>;
     using UniqueVkBuffer = std::unique_ptr<VkBuffer, BufferDeleter>;
+    using UniqueVkImage = std::unique_ptr<VkImage, ImageDeleter>;
 
     UniqueVkInstance unique(VkInstance instance);
     UniqueVkDevice unique(VkDevice device);
@@ -203,6 +213,7 @@ namespace orion::vulkan
     UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device);
     UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool);
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
+    UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation);
 
     struct VulkanSubmission {
         UniqueVkFence fence = VK_NULL_HANDLE;

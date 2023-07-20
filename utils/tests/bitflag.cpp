@@ -101,6 +101,15 @@ namespace
         EXPECT_FALSE(flags.has(unexpected));
     }
 
+    TEST(Bitflag, CheckAndClear)
+    {
+        static constexpr auto value = MyEnum::First;
+        auto flags = MyEnumFlags{value};
+        ASSERT_FALSE(flags.has_none());
+        EXPECT_TRUE(flags.check_and_clear(value));
+        EXPECT_TRUE(flags.has_none());
+    }
+
     TEST(Bitflag, Complement)
     {
         EXPECT_EQ(~MyEnumFlags::none(), MyEnumFlags::all());
@@ -172,7 +181,7 @@ namespace
         EXPECT_EQ((MyEnumFlags{MyEnum::First} << 2), MyEnumFlags{MyEnum::Third});
     }
 
-    TEST(Bitflag, BitwiseRighttShift)
+    TEST(Bitflag, BitwiseRightShift)
     {
         EXPECT_EQ((MyEnumFlags{MyEnum::Third} >> 1), MyEnumFlags{MyEnum::Second});
         EXPECT_EQ((MyEnumFlags{MyEnum::Third} >> 2), MyEnumFlags{MyEnum::First});

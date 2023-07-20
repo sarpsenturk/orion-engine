@@ -111,16 +111,13 @@ namespace orion::vulkan
         }
 
         VkShaderStageFlags vk_shader_stages = {};
-        ShaderStageFlags debug_handled_flags = {};
-        if (shader_stages.has(ShaderStage::Vertex)) {
+        if (shader_stages.check_and_clear(ShaderStage::Vertex)) {
             vk_shader_stages |= VK_SHADER_STAGE_VERTEX_BIT;
-            debug_handled_flags |= ShaderStage::Vertex;
         }
-        if (shader_stages.has(ShaderStage::Fragment)) {
+        if (shader_stages.check_and_clear(ShaderStage::Fragment)) {
             vk_shader_stages |= VK_SHADER_STAGE_FRAGMENT_BIT;
-            debug_handled_flags |= ShaderStage::Fragment;
         }
-        ORION_ASSERT((shader_stages ^ debug_handled_flags).has_none() &&
+        ORION_ASSERT(shader_stages.has_none() &&
                      "Shader stage not handled in to_vulkan_type() or is invalid");
         return vk_shader_stages;
     }
@@ -194,28 +191,22 @@ namespace orion::vulkan
         }
 
         VkBufferUsageFlags usage_flags = {};
-        GPUBufferUsageFlags debug_handled_flags = {};
-        if (buffer_usage.has(GPUBufferUsage::VertexBuffer)) {
+        if (buffer_usage.check_and_clear(GPUBufferUsage::VertexBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-            debug_handled_flags |= GPUBufferUsage::VertexBuffer;
         }
-        if (buffer_usage.has(GPUBufferUsage::IndexBuffer)) {
+        if (buffer_usage.check_and_clear(GPUBufferUsage::IndexBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            debug_handled_flags |= GPUBufferUsage::IndexBuffer;
         }
-        if (buffer_usage.has(GPUBufferUsage::ConstantBuffer)) {
+        if (buffer_usage.check_and_clear(GPUBufferUsage::ConstantBuffer)) {
             usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-            debug_handled_flags |= GPUBufferUsage::ConstantBuffer;
         }
-        if (buffer_usage.has(GPUBufferUsage::TransferSrc)) {
+        if (buffer_usage.check_and_clear(GPUBufferUsage::TransferSrc)) {
             usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-            debug_handled_flags |= GPUBufferUsage::TransferSrc;
         }
-        if (buffer_usage.has(GPUBufferUsage::TransferDst)) {
+        if (buffer_usage.check_and_clear(GPUBufferUsage::TransferDst)) {
             usage_flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            debug_handled_flags |= GPUBufferUsage::TransferDst;
         }
-        ORION_ASSERT((buffer_usage ^ debug_handled_flags).has_none() &&
+        ORION_ASSERT(buffer_usage.has_none() &&
                      "Buffer usage flag not handled in to_vulkan_type() or is invalid");
         return usage_flags;
     }
@@ -251,19 +242,83 @@ namespace orion::vulkan
         }
 
         VkCommandBufferUsageFlags usage_flags = {};
-        CommandBufferUsageFlags debug_handled_flags = {};
-        if (command_buffer_usage.has(CommandBufferUsage::OneTimeSubmit)) {
+        if (command_buffer_usage.check_and_clear(CommandBufferUsage::OneTimeSubmit)) {
             usage_flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            debug_handled_flags |= CommandBufferUsage::OneTimeSubmit;
         }
-        ORION_ASSERT((command_buffer_usage ^ debug_handled_flags).has_none() &&
+        ORION_ASSERT(command_buffer_usage.has_none() &&
                      "Command buffer usage flag not handled in to_vulkan_type() or is invalid");
         return {};
+    }
+
+    constexpr auto to_vulkan_type(ImageType image_type) -> VkImageType
+    {
+        switch (image_type) {
+            case ImageType::Image1D:
+                return VK_IMAGE_TYPE_1D;
+            case ImageType::Image2D:
+                return VK_IMAGE_TYPE_2D;
+            case ImageType::Image3D:
+                return VK_IMAGE_TYPE_3D;
+        }
+        ORION_ASSERT(!"ImageType not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(ImageTiling image_tiling) -> VkImageTiling
+    {
+        switch (image_tiling) {
+            case ImageTiling::Optimal:
+                return VK_IMAGE_TILING_OPTIMAL;
+            case ImageTiling::Linear:
+                return VK_IMAGE_TILING_LINEAR;
+        }
+        ORION_ASSERT(!"ImageTiling not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(ImageUsageFlags image_usage_flags) -> VkImageUsageFlags
+    {
+        if (image_usage_flags.has_none()) {
+            return {};
+        }
+
+        VkImageUsageFlags vk_usage_flags = {};
+        if (image_usage_flags.check_and_clear(ImageUsage::TransferSrc)) {
+            vk_usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+        if (image_usage_flags.check_and_clear(ImageUsage::TransferDst)) {
+            vk_usage_flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        }
+        if (image_usage_flags.check_and_clear(ImageUsage::ColorAttachment)) {
+            vk_usage_flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        }
+        if (image_usage_flags.check_and_clear(ImageUsage::DepthStencilAttachment)) {
+            vk_usage_flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
+        if (image_usage_flags.check_and_clear(ImageUsage::InputAttachment)) {
+            vk_usage_flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+        }
+        ORION_ASSERT(image_usage_flags.has_none() &&
+                     "Image usage not handled in to_vulkan_type()");
+        return vk_usage_flags;
     }
 
     template<typename T>
     constexpr auto to_vulkan_extent(const Vector2_t<T>& vec2) noexcept -> VkExtent2D
     {
-        return {.width = static_cast<std::uint32_t>(vec2.x()), .height = static_cast<std::uint32_t>(vec2.y())};
+        return {
+            .width = static_cast<std::uint32_t>(vec2.x()),
+            .height = static_cast<std::uint32_t>(vec2.y()),
+        };
+    }
+
+    template<typename T>
+    constexpr auto to_vulkan_extent(const Vector3_t<T>& vec3) noexcept -> VkExtent3D
+    {
+        return {
+            .width = static_cast<std::uint32_t>(vec3.x()),
+            .height = static_cast<std::uint32_t>(vec3.y()),
+            .depth = static_cast<std::uint32_t>(vec3.z()),
+        };
     }
 } // namespace orion::vulkan

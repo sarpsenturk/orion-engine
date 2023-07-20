@@ -42,6 +42,21 @@ namespace orion::vulkan
         vkDeviceWaitIdle(device_.get());
     }
 
+    bool VulkanDevice::transfer_requires_concurrent(std::uint32_t family_index) const noexcept
+    {
+        return queues_.transfer.index != family_index;
+    }
+
+    static_vector<uint32_t, 2> VulkanDevice::transfer_queue_families(bool src, bool dst) const noexcept
+    {
+        static_vector<std::uint32_t, 2> result;
+        result.push_back(graphics_queue_family());
+        if (src || dst) {
+            result.push_back(transfer_queue_family());
+        }
+        return result;
+    }
+
     VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
     {
         switch (queue_type) {
@@ -523,14 +538,8 @@ namespace orion::vulkan
         const bool transfer_dst = desc.usage.has(GPUBufferUsage::TransferDst);
 
         // Find set of queue families to be used
-        const auto queue_indices = [transfer_src, transfer_dst, this]() {
-            static_vector<std::uint32_t, 2> queue_indices;
-            queue_indices.push_back(queues_.graphics.index);
-            if ((transfer_src || transfer_dst) && transfer_requires_concurrent(queues_.graphics.index)) {
-                queue_indices.push_back(queues_.transfer.index);
-            }
-            return queue_indices;
-        }();
+        const auto queue_families = transfer_queue_families(transfer_src, transfer_dst);
+        const auto queue_family_count = static_cast<std::uint32_t>(queue_families.size());
 
         // Create buffer and allocation
         VkBuffer buffer = VK_NULL_HANDLE;
@@ -542,9 +551,9 @@ namespace orion::vulkan
                 .flags = 0,
                 .size = desc.size,
                 .usage = to_vulkan_type(desc.usage),
-                .sharingMode = queue_indices.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-                .queueFamilyIndexCount = static_cast<uint32_t>(queue_indices.size()),
-                .pQueueFamilyIndices = queue_indices.data(),
+                .sharingMode = queue_family_count > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+                .queueFamilyIndexCount = queue_family_count,
+                .pQueueFamilyIndices = queue_families.data(),
             };
             const auto allocation_info = VmaAllocationCreateInfo{
                 .flags = desc.host_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
@@ -630,48 +639,6 @@ namespace orion::vulkan
         }
 
         swapchains_.add_or_assign(swapchain_handle, unique(new_swapchain, device()));
-    }
-
-    void VulkanDevice::recreate_api(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc)
-    {
-        // Find swapchain
-        VkSwapchainKHR swapchain = swapchains_.at(desc.swapchain);
-
-        // Get swapchain images
-        auto image_count = static_cast<std::uint32_t>(attachments.size());
-        std::vector<VkImage> images(image_count);
-        vk_result_check(vkGetSwapchainImagesKHR(device(), swapchain, &image_count, images.data()));
-
-        // Recreate image views
-        for (std::uint32_t index = 0; auto attachment : attachments) {
-            VkImageView image_view = VK_NULL_HANDLE;
-            {
-                const auto info = VkImageViewCreateInfo{
-                    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                    .pNext = nullptr,
-                    .flags = 0,
-                    .image = images[index++],
-                    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                    .format = to_vulkan_type(desc.format),
-                    .components = {
-                        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
-                    },
-                    .subresourceRange = {
-                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                        .baseMipLevel = 0,
-                        .levelCount = 1,
-                        .baseArrayLayer = 0,
-                        .layerCount = 1,
-                    },
-                };
-                vk_result_check(vkCreateImageView(device(), &info, alloc_callbacks(), &image_view));
-                SPDLOG_LOGGER_TRACE(logger(), "Created VkImageView {}", fmt::ptr(image_view));
-                image_views_.add_or_assign(attachment, unique(image_view, device()));
-            }
-        }
     }
 
     void VulkanDevice::recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
@@ -808,48 +775,44 @@ namespace orion::vulkan
         return handle;
     }
 
-    void VulkanDevice::create_swapchain_attachments_api(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments)
+    ImageHandle VulkanDevice::create_image_api(const ImageDesc& desc)
     {
-        // Find swapchain
-        VkSwapchainKHR swapchain = swapchains_.at(desc.swapchain);
+        VkImage image = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        {
+            const bool transfer_src = desc.usage.has(ImageUsage::TransferSrc);
+            const bool transfer_dst = desc.usage.has(ImageUsage::TransferDst);
 
-        // Get swapchain images
-        auto image_count = static_cast<std::uint32_t>(out_attachments.size());
-        std::vector<VkImage> images(image_count);
-        vk_result_check(vkGetSwapchainImagesKHR(device(), swapchain, &image_count, images.data()));
+            const auto queue_families = transfer_queue_families(transfer_src, transfer_dst);
+            const auto queue_family_count = static_cast<std::uint32_t>(queue_families.size());
 
-        // Create image views
-        std::ranges::transform(images, out_attachments.begin(), [format = desc.format, this](VkImage image) {
-            VkImageView image_view = VK_NULL_HANDLE;
-            {
-                const auto info = VkImageViewCreateInfo{
-                    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                    .pNext = nullptr,
-                    .flags = 0,
-                    .image = image,
-                    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                    .format = to_vulkan_type(format),
-                    .components = {
-                        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
-                    },
-                    .subresourceRange = {
-                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                        .baseMipLevel = 0,
-                        .levelCount = 1,
-                        .baseArrayLayer = 0,
-                        .layerCount = 1,
-                    },
-                };
-                vk_result_check(vkCreateImageView(device(), &info, alloc_callbacks(), &image_view));
-                SPDLOG_LOGGER_TRACE(logger(), "Created VkImageView {}", fmt::ptr(image_view));
-            }
-            const auto handle = AttachmentHandle::generate();
-            image_views_.add(handle, unique(image_view, device()));
-            return handle;
-        });
+            const auto image_info = VkImageCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .imageType = to_vulkan_type(desc.type),
+                .format = to_vulkan_type(desc.format),
+                .extent = to_vulkan_extent(desc.size),
+                .mipLevels = 1,
+                .arrayLayers = 1,
+                .samples = VK_SAMPLE_COUNT_1_BIT,
+                .tiling = to_vulkan_type(desc.tiling),
+                .usage = to_vulkan_type(desc.usage),
+                .sharingMode = queue_family_count > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+                .queueFamilyIndexCount = queue_family_count,
+                .pQueueFamilyIndices = queue_families.data(),
+                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+            const auto allocation_info = VmaAllocationCreateInfo{
+                .usage = VMA_MEMORY_USAGE_AUTO,
+            };
+
+            vk_result_check(vmaCreateImage(vma_allocator(), &image_info, &allocation_info, &image, &allocation, nullptr));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkImage {}", fmt::ptr(image));
+        }
+        const auto handle = ImageHandle::generate();
+        images_.add(handle, unique(image, vma_allocator(), allocation));
+        return handle;
     }
 
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
@@ -912,6 +875,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(FenceHandle fence_handle)
     {
         fences_.remove(fence_handle);
+    }
+
+    void VulkanDevice::destroy_api(ImageHandle image_handle)
+    {
+        images_.remove(image_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)

@@ -21,6 +21,7 @@ namespace orion
     ORION_DEFINE_HANDLE(DescriptorSetHandle);
     ORION_DEFINE_HANDLE(SemaphoreHandle);
     ORION_DEFINE_HANDLE(FenceHandle);
-    ORION_DEFINE_HANDLE(AttachmentHandle);
+    ORION_DEFINE_HANDLE(ImageHandle);
+    ORION_DEFINE_HANDLE(ImageViewHandle);
     ORION_DEFINE_HANDLE(FramebufferHandle);
 } // namespace orion

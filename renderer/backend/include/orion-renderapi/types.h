@@ -168,4 +168,24 @@ namespace orion
         OneTimeSubmit
     };
     using CommandBufferUsageFlags = Bitflag<CommandBufferUsage>;
+
+    enum class ImageType {
+        Image1D,
+        Image2D,
+        Image3D
+    };
+
+    enum class ImageTiling {
+        Optimal,
+        Linear
+    };
+
+    enum class ImageUsage : std::uint8_t {
+        TransferSrc,
+        TransferDst,
+        ColorAttachment,
+        DepthStencilAttachment,
+        InputAttachment
+    };
+    using ImageUsageFlags = Bitflag<ImageUsage>;
 } // namespace orion

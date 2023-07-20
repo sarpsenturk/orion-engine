@@ -2,6 +2,8 @@
 
 #include "type.h"
 
+#include "orion-utils/assertion.h"
+
 #include <limits>
 #include <numeric>
 #include <type_traits>
@@ -52,6 +54,14 @@ namespace orion
         constexpr bool has_any() const noexcept { return value_ != zero; }
         constexpr bool has_none() const noexcept { return value_ == zero; }
         constexpr bool has(enum_type bit) const noexcept { return (value_ & enum_to_value(bit)) != 0; }
+
+        // Modifiers
+        constexpr bool check_and_clear(enum_type bit) noexcept
+        {
+            const auto has_bit = has(bit);
+            value_ &= ~(1ull << to_underlying(bit));
+            return has_bit;
+        }
 
         // Equality operators
         constexpr bool operator==(const Bitflag& rhs) const noexcept = default;

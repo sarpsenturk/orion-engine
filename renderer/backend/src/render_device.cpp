@@ -108,23 +108,17 @@ namespace orion
         return handle;
     }
 
-    void RenderDevice::create_swapchain_attachments(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments)
+    ImageHandle RenderDevice::create_image(const ImageDesc& desc)
     {
-        create_swapchain_attachments_api(desc, out_attachments);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created {} attachment(s) for swapchain with handle {}",
-                            out_attachments.size(), desc.swapchain);
+        auto handle = create_image_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created image with handle {}", handle);
+        return handle;
     }
 
     void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         recreate_api(swapchain_handle, desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Recreated swapchain with handle {}", swapchain_handle);
-    }
-
-    void RenderDevice::recreate(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc)
-    {
-        recreate_api(attachments, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Recreated swapchain attachments for swapchain with handle {}", desc.swapchain);
     }
 
     void RenderDevice::recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
@@ -191,6 +185,11 @@ namespace orion
     void RenderDevice::destroy(FenceHandle fence_handle)
     {
         destroy_api(fence_handle);
+    }
+
+    void RenderDevice::destroy(ImageHandle image_handle)
+    {
+        destroy_api(image_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)

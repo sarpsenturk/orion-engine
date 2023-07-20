@@ -3,6 +3,8 @@
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/render_device.h"
 
+#include "orion-utils/static_vector.h"
+
 #include "vulkan_buffer.h"
 #include "vulkan_headers.h"
 #include "vulkan_pipeline.h"
@@ -31,11 +33,15 @@ namespace orion::vulkan
         [[nodiscard]] auto vma_allocator() const noexcept { return vma_allocator_.get(); }
 
     private:
-        [[nodiscard]] inline bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept { return queues_.transfer.index != family_index; }
+        [[nodiscard]] bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept;
+        [[nodiscard]] static_vector<std::uint32_t, 2> transfer_queue_families(bool src, bool dst) const noexcept;
 
         [[nodiscard]] VkQueue graphics_queue() const noexcept { return queues_.graphics.queue; }
         [[nodiscard]] VkQueue transfer_queue() const noexcept { return queues_.transfer.queue; }
         [[nodiscard]] VkQueue compute_queue() const noexcept { return queues_.compute.queue; }
+        [[nodiscard]] std::uint32_t graphics_queue_family() const noexcept { return queues_.graphics.index; }
+        [[nodiscard]] std::uint32_t transfer_queue_family() const noexcept { return queues_.transfer.index; }
+        [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.index; }
 
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
@@ -56,10 +62,9 @@ namespace orion::vulkan
         DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
         SemaphoreHandle create_semaphore_api() override;
         FenceHandle create_fence_api(bool create_signaled) override;
-        void create_swapchain_attachments_api(const SwapchainAttachmentDesc& desc, std::span<AttachmentHandle> out_attachments) override;
+        ImageHandle create_image_api(const ImageDesc& desc) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
-        void recreate_api(std::span<const AttachmentHandle> attachments, const SwapchainAttachmentDesc& desc) override;
         void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) override;
 
         void destroy_api(SwapchainHandle swapchain_handle) override;
@@ -74,6 +79,7 @@ namespace orion::vulkan
         void destroy_api(DescriptorSetHandle descriptor_set_handle) override;
         void destroy_api(SemaphoreHandle semaphore_handle) override;
         void destroy_api(FenceHandle fence_handle) override;
+        void destroy_api(ImageHandle image_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
@@ -113,7 +119,8 @@ namespace orion::vulkan
 
         VulkanStore<SwapchainHandle, UniqueVkSurfaceKHR> surfaces_;
         VulkanStore<SwapchainHandle, UniqueVkSwapchainKHR> swapchains_;
-        VulkanStore<AttachmentHandle, UniqueVkImageView> image_views_;
+        VulkanStore<ImageHandle, UniqueVkImage> images_;
+        VulkanStore<ImageViewHandle, UniqueVkImageView> image_views_;
         VulkanStore<RenderPassHandle, UniqueVkRenderPass> render_passes_;
         VulkanStore<FramebufferHandle, UniqueVkFramebuffer> framebuffers_;
         VulkanStore<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
