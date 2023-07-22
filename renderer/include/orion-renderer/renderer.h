@@ -25,6 +25,21 @@ namespace orion
         Vector2_u render_size = {};
     };
 
+    struct FrameData {
+        CommandPoolHandle render_command_pool;
+        CommandPoolHandle transfer_command_pool;
+
+        CommandList render_command;
+
+        FenceHandle render_fence;
+        SemaphoreHandle render_semaphore;
+        SemaphoreHandle present_semaphore;
+
+        ImageHandle image;
+        ImageViewHandle image_view;
+        FramebufferHandle render_target;
+    };
+
     class Renderer
     {
     public:
@@ -37,24 +52,18 @@ namespace orion
 
         void begin_frame();
         void end_frame();
-        void present(const SwapchainPresentDesc& desc);
+        void present(SwapchainHandle swapchain);
 
-        [[nodiscard]] auto frame_index() const noexcept { return current_frame_; }
+        [[nodiscard]] auto current_frame_index() const noexcept { return current_frame_; }
+        [[nodiscard]] auto& current_frame_data() noexcept { return frame_data_[current_frame_index()]; }
+        [[nodiscard]] auto& current_frame_data() const noexcept { return frame_data_[current_frame_index()]; }
 
         static spdlog::logger* logger();
 
     private:
-        struct FrameData {
-            CommandPoolHandle render_command_pool;
-            CommandList render_command;
-            FenceHandle render_fence;
-
-            ImageHandle color_image;
-            ImageViewHandle color_image_view;
-            FramebufferHandle color_render_target;
-        };
-
         static constexpr auto render_command_size = 2048;
+
+        void submit_frame(const FrameData& frame_data) const;
 
         std::unique_ptr<RenderBackend> create_backend(const Module& backend_module) const;
         std::unique_ptr<RenderDevice> create_device(RenderBackend* backend, pfnSelectPhysicalDevice device_select_fn) const;
@@ -64,11 +73,13 @@ namespace orion
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+
         Vector2_u render_size_;
+        Vector4_f color_clear_ = {1.f, 0.f, 1.f, 1.f};
 
         RenderPassHandle render_pass_;
 
         static_vector<FrameData, frames_in_flight> frame_data_;
-        std::uint32_t current_frame_ = 0;
+        std::uint8_t current_frame_ = 0;
     };
 } // namespace orion

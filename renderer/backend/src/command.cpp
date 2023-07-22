@@ -31,6 +31,7 @@ namespace orion
     {
         ORION_ASSERT(is_recording() && "Command buffer is not in recording state");
         flush();
+        clear();
         device_->end_command_buffer(command_buffer_);
         set_state(CommandBufferState::Executable);
     }

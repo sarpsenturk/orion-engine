@@ -216,12 +216,6 @@ namespace orion::vulkan
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
     UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation);
 
-    struct VulkanSubmission {
-        UniqueVkFence fence = VK_NULL_HANDLE;
-        UniqueVkSemaphore semaphore = VK_NULL_HANDLE;
-        std::vector<VkSemaphore> wait_semaphores;
-    };
-
     struct SwapchainData {
         std::vector<VkImage> images;
     };
