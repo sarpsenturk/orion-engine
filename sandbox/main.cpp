@@ -31,10 +31,20 @@ public:
             };
             swapchain_ = device->create_swapchain(window_, desc);
         }
+
+        // Recreate swapchain on window resize
+        window_.on_resize_end().subscribe([device, swapchain = swapchain_](const auto& resize) {
+            const auto desc = orion::SwapchainDesc{
+                .image_count = swapchain_image_count,
+                .image_format = swapchain_image_format,
+                .image_size = resize.size,
+            };
+            device->recreate(swapchain, desc);
+        });
     }
 
 private:
-    void on_user_update(orion::frame_time dt) override
+    void on_user_update([[maybe_unused]] orion::frame_time dt) override
     {
         window_.poll_events();
     }

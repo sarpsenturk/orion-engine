@@ -120,7 +120,7 @@ namespace orion::vulkan
         std::unordered_map<std::size_t, VmaAllocation> allocations_;
 
         VulkanStore<SwapchainHandle, UniqueVkSurfaceKHR> surfaces_;
-        VulkanStore<SwapchainHandle, UniqueVkSwapchainKHR> swapchains_;
+        VulkanStore<SwapchainHandle, UniqueVkSwapchainKHR, SwapchainData> swapchains_;
         VulkanStore<ImageHandle, UniqueVkImage> images_;
         VulkanStore<ImageViewHandle, UniqueVkImageView> image_views_;
         VulkanStore<RenderPassHandle, UniqueVkRenderPass> render_passes_;

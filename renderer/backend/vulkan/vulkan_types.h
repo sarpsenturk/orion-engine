@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <span>
+#include <vector>
 
 namespace orion::vulkan
 {
@@ -219,5 +220,9 @@ namespace orion::vulkan
         UniqueVkFence fence = VK_NULL_HANDLE;
         UniqueVkSemaphore semaphore = VK_NULL_HANDLE;
         std::vector<VkSemaphore> wait_semaphores;
+    };
+
+    struct SwapchainData {
+        std::vector<VkImage> images;
     };
 } // namespace orion::vulkan

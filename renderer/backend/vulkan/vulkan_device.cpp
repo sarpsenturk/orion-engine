@@ -14,6 +14,18 @@
 
 namespace orion::vulkan
 {
+    namespace
+    {
+        std::vector<VkImage> get_swapchain_images(VkDevice device, VkSwapchainKHR swapchain)
+        {
+            std::uint32_t image_count = 0;
+            vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr));
+            std::vector<VkImage> images(image_count);
+            vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, images.data()));
+            return images;
+        }
+    } // namespace
+
     VulkanDevice::VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues)
         : RenderDevice(logger)
         , instance_(instance)
@@ -94,7 +106,7 @@ namespace orion::vulkan
         const auto hash = layout.hash();
         if (auto iter = descriptor_set_layouts_.find(hash); iter != descriptor_set_layouts_.end()) {
             SPDLOG_LOGGER_TRACE(logger(), "Found cached descriptor set layout");
-            return iter->second.get();
+            return iter->second.resource.get();
         }
         SPDLOG_LOGGER_TRACE(logger(), "Could not find cached descriptor set layout. Creating.");
         VkDescriptorSetLayout vk_layout = create_descriptor_set_layout(layout.bindings());
@@ -181,7 +193,7 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchain {}", fmt::ptr(swapchain));
         }
 
-        swapchains_.add(handle, unique(swapchain, device()));
+        swapchains_.add(handle, unique(swapchain, device()), {get_swapchain_images(device(), swapchain)});
         return handle;
     }
 
@@ -258,7 +270,7 @@ namespace orion::vulkan
     {
         std::vector<VkImageView> image_views(desc.attachments.size());
         std::ranges::transform(desc.attachments, image_views.begin(), [this](auto handle) {
-            return image_views_.at(handle);
+            return image_views_.handle_at(handle);
         });
 
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
@@ -267,7 +279,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = render_passes_.at(desc.render_pass),
+                .renderPass = render_passes_.handle_at(desc.render_pass),
                 .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
                 .pAttachments = image_views.data(),
                 .width = desc.size.x(),
@@ -349,7 +361,7 @@ namespace orion::vulkan
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                     .pNext = nullptr,
                     .stage = static_cast<VkShaderStageFlagBits>(to_vulkan_type(shader.stage)),
-                    .module = shader_modules_.at(shader.module),
+                    .module = shader_modules_.handle_at(shader.module),
                     .pName = shader.entry_point,
                     .pSpecializationInfo = nullptr,
                 });
@@ -498,7 +510,7 @@ namespace orion::vulkan
         }();
 
         // Find associated render pass
-        VkRenderPass render_pass = render_passes_.at(desc.render_pass);
+        VkRenderPass render_pass = render_passes_.handle_at(desc.render_pass);
 
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
@@ -594,7 +606,7 @@ namespace orion::vulkan
     void VulkanDevice::recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         // Find existing swapchain
-        VkSwapchainKHR swapchain = swapchains_.at(swapchain_handle);
+        VkSwapchainKHR swapchain = swapchains_.handle_at(swapchain_handle);
 
         // Wait until graphics/presentation queue is idle
         vkQueueWaitIdle(graphics_queue());
@@ -603,9 +615,7 @@ namespace orion::vulkan
         const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
         // Get surface
-        VkSurfaceKHR surface = surfaces_.at(swapchain_handle);
-
-        const auto format = to_vulkan_type(desc.image_format);
+        VkSurfaceKHR surface = surfaces_.handle_at(swapchain_handle);
 
         // Recreate swapchain
         VkSwapchainKHR new_swapchain = VK_NULL_HANDLE;
@@ -623,7 +633,7 @@ namespace orion::vulkan
                 .flags = 0,
                 .surface = surface,
                 .minImageCount = desc.image_count,
-                .imageFormat = format,
+                .imageFormat = to_vulkan_type(desc.image_format),
                 .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
                 .imageExtent = to_vulkan_extent(desc.image_size),
                 .imageArrayLayers = 1,
@@ -638,14 +648,14 @@ namespace orion::vulkan
             vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &new_swapchain));
         }
 
-        swapchains_.add_or_assign(swapchain_handle, unique(new_swapchain, device()));
+        swapchains_.add_or_assign(swapchain_handle, unique(new_swapchain, device()), {get_swapchain_images(device(), new_swapchain)});
     }
 
     void VulkanDevice::recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
     {
         std::vector<VkImageView> image_views(desc.attachments.size());
         std::ranges::transform(desc.attachments, image_views.begin(), [this](auto handle) {
-            return image_views_.at(handle);
+            return image_views_.handle_at(handle);
         });
 
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
@@ -654,7 +664,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = render_passes_.at(desc.render_pass),
+                .renderPass = render_passes_.handle_at(desc.render_pass),
                 .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
                 .pAttachments = image_views.data(),
                 .width = desc.size.x(),
@@ -670,7 +680,7 @@ namespace orion::vulkan
 
     CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
     {
-        VkCommandPool command_pool = command_pools_.at(desc.command_pool);
+        VkCommandPool command_pool = command_pools_.handle_at(desc.command_pool);
 
         VkCommandBuffer command_buffer = VK_NULL_HANDLE;
         {
@@ -724,7 +734,7 @@ namespace orion::vulkan
     DescriptorSetHandle VulkanDevice::create_descriptor_set_api(const DescriptorSetDesc& desc)
     {
         VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        VkDescriptorPool pool = descriptor_pools_.at(desc.descriptor_pool);
+        VkDescriptorPool pool = descriptor_pools_.handle_at(desc.descriptor_pool);
         // Create descriptor set
         {
             VkDescriptorSetLayout layout = make_descriptor_set_layout(*desc.layout);
@@ -823,7 +833,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .image = images_.at(desc.image),
+                .image = images_.handle_at(desc.image),
                 .viewType = to_vulkan_type(desc.type),
                 .format = to_vulkan_type(desc.format),
                 .components = {
@@ -936,13 +946,13 @@ namespace orion::vulkan
 
     void VulkanDevice::reset_command_pool_api(CommandPoolHandle command_pool)
     {
-        vk_result_check(vkResetCommandPool(device(), command_pools_.at(command_pool), 0));
+        vk_result_check(vkResetCommandPool(device(), command_pools_.handle_at(command_pool), 0));
     }
 
     void VulkanDevice::begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc)
     {
         // Find and reset command buffer
-        VkCommandBuffer vk_command_buffer = command_buffers_.at(command_buffer);
+        VkCommandBuffer vk_command_buffer = command_buffers_.handle_at(command_buffer);
         vkResetCommandBuffer(vk_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
         // Begin command buffer recording
@@ -957,18 +967,18 @@ namespace orion::vulkan
 
     void VulkanDevice::end_command_buffer_api(CommandBufferHandle command_buffer)
     {
-        vk_result_check(vkEndCommandBuffer(command_buffers_.at(command_buffer)));
+        vk_result_check(vkEndCommandBuffer(command_buffers_.handle_at(command_buffer)));
     }
 
     void VulkanDevice::reset_command_buffer_api(CommandBufferHandle command_buffer)
     {
-        vkResetCommandBuffer(command_buffers_.at(command_buffer), 0);
+        vkResetCommandBuffer(command_buffers_.handle_at(command_buffer), 0);
     }
 
     void VulkanDevice::compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
     {
         // Find command buffer
-        VkCommandBuffer vk_command_buffer = command_buffers_.at(command_buffer);
+        VkCommandBuffer vk_command_buffer = command_buffers_.handle_at(command_buffer);
 
         // Compile commands
         for (const auto& command : commands) {
@@ -981,10 +991,10 @@ namespace orion::vulkan
         // Find command buffers
         std::vector<VkCommandBuffer> command_buffers(desc.command_buffers.size());
         std::ranges::transform(desc.command_buffers, command_buffers.begin(), [this](auto handle) {
-            return command_buffers_.at(handle);
+            return command_buffers_.handle_at(handle);
         });
 
-        auto find_semaphore_fn = [this](auto handle) { return semaphores_.at(handle); };
+        auto find_semaphore_fn = [this](auto handle) { return semaphores_.handle_at(handle); };
         // Find wait semaphores
         std::vector<VkSemaphore> wait_semaphores(desc.wait_semaphores.size());
         std::ranges::transform(desc.wait_semaphores, wait_semaphores.begin(), find_semaphore_fn);
@@ -993,7 +1003,7 @@ namespace orion::vulkan
         std::ranges::transform(desc.signal_semaphores, signal_semaphores.begin(), find_semaphore_fn);
 
         // Find signal fence
-        VkFence signal_fence = fences_.at(desc.fence);
+        VkFence signal_fence = fences_.handle_at(desc.fence);
 
         // Submit command buffer
         const VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1017,10 +1027,12 @@ namespace orion::vulkan
         VkQueue present_queue = get_queue(CommandQueueType::Graphics);
 
         // Find swapchain and resources
-        VkSwapchainKHR swapchain = swapchains_.at(desc.swapchain);
+        VkSwapchainKHR swapchain = swapchains_.handle_at(desc.swapchain);
+
+        // Get swapchain images
 
         // Wait semaphore
-        VkSemaphore semaphore = semaphores_.at(desc.wait_semaphore);
+        VkSemaphore semaphore = semaphores_.handle_at(desc.wait_semaphore);
 
         // Present image
         const VkPresentInfoKHR present_info{
@@ -1038,7 +1050,7 @@ namespace orion::vulkan
 
     void VulkanDevice::wait_for_fence_api(FenceHandle fence)
     {
-        VkFence vk_fence = fences_.at(fence);
+        VkFence vk_fence = fences_.handle_at(fence);
         vk_result_check(vkWaitForFences(device(), 1, &vk_fence, VK_TRUE, UINT64_MAX));
         vk_result_check(vkResetFences(device(), 1, &vk_fence));
     }
@@ -1063,7 +1075,7 @@ namespace orion::vulkan
                 std::ranges::views::join;
             for (const auto& buffer_write : buffer_writes) {
                 descriptor_buffer_infos.push_back({
-                    .buffer = buffers_.at(buffer_write.buffer),
+                    .buffer = buffers_.handle_at(buffer_write.buffer),
                     .offset = buffer_write.offset,
                     .range = buffer_write.range,
                 });
@@ -1085,7 +1097,7 @@ namespace orion::vulkan
                 descriptor_writes.push_back({
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = nullptr,
-                    .dstSet = descriptor_sets_.at(write.descriptor_set),
+                    .dstSet = descriptor_sets_.handle_at(write.descriptor_set),
                     .dstBinding = write.binding,
                     .descriptorCount = count,
                     .descriptorType = to_vulkan_type(write.descriptor_type),
@@ -1106,11 +1118,11 @@ namespace orion::vulkan
     uint32_t VulkanDevice::acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)
     {
         // Find swapchain
-        VkSwapchainKHR vk_swapchain = swapchains_.at(swapchain);
+        VkSwapchainKHR vk_swapchain = swapchains_.handle_at(swapchain);
 
         // Find semaphore and fence if valid
-        VkSemaphore vk_semaphore = semaphore.is_valid() ? semaphores_.at(semaphore) : VK_NULL_HANDLE;
-        VkFence vk_fence = fence.is_valid() ? fences_.at(fence) : VK_NULL_HANDLE;
+        VkSemaphore vk_semaphore = semaphore.is_valid() ? semaphores_.handle_at(semaphore) : VK_NULL_HANDLE;
+        VkFence vk_fence = fence.is_valid() ? fences_.handle_at(fence) : VK_NULL_HANDLE;
 
         // Get image index
         std::uint32_t image_index = 0;
@@ -1151,8 +1163,8 @@ namespace orion::vulkan
         const auto* cmd_data = static_cast<const CmdBufferCopy*>(data);
 
         // Find related buffers
-        VkBuffer src_buffer = buffers_.at(cmd_data->src);
-        VkBuffer dst_buffer = buffers_.at(cmd_data->dst);
+        VkBuffer src_buffer = buffers_.handle_at(cmd_data->src);
+        VkBuffer dst_buffer = buffers_.handle_at(cmd_data->dst);
 
         // Set copy regions
         const auto regions = std::array{
@@ -1175,9 +1187,9 @@ namespace orion::vulkan
         const auto* cmd_data = static_cast<const CmdBeginFrame*>(data);
 
         // Find render pass
-        VkRenderPass render_pass = render_passes_.at(cmd_data->render_pass);
+        VkRenderPass render_pass = render_passes_.handle_at(cmd_data->render_pass);
         // Find frame buffer
-        VkFramebuffer framebuffer = framebuffers_.at(cmd_data->framebuffer);
+        VkFramebuffer framebuffer = framebuffers_.handle_at(cmd_data->framebuffer);
 
         // Set clear values
         const auto clear_values = std::array{
@@ -1208,11 +1220,11 @@ namespace orion::vulkan
         const auto* cmd_data = static_cast<const CmdDraw*>(data);
 
         // Find and bind the pipeline
-        VkPipeline pipeline = pipelines_.at(cmd_data->graphics_pipeline);
+        VkPipeline pipeline = pipelines_.handle_at(cmd_data->graphics_pipeline);
         vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         // Find and bind vertex buffer
-        VkBuffer vertex_buffer = buffers_.at(cmd_data->vertex_buffer);
+        VkBuffer vertex_buffer = buffers_.handle_at(cmd_data->vertex_buffer);
         const auto offset = VkDeviceSize{};
         vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offset);
 
@@ -1230,16 +1242,16 @@ namespace orion::vulkan
         const auto* cmd_data = static_cast<const CmdDrawIndexed*>(data);
 
         // Find and bind the pipeline
-        VkPipeline pipeline = pipelines_.at(cmd_data->graphics_pipeline);
+        VkPipeline pipeline = pipelines_.handle_at(cmd_data->graphics_pipeline);
         vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         // Find and bind vertex buffer
-        VkBuffer vertex_buffer = buffers_.at(cmd_data->vertex_buffer);
+        VkBuffer vertex_buffer = buffers_.handle_at(cmd_data->vertex_buffer);
         const auto offset = VkDeviceSize{};
         vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offset);
 
         // Find and bind index buffer
-        VkBuffer index_buffer = buffers_.at(cmd_data->index_buffer);
+        VkBuffer index_buffer = buffers_.handle_at(cmd_data->index_buffer);
         vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
         // Issue command
@@ -1260,12 +1272,12 @@ namespace orion::vulkan
         const auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
         // Find pipeline layout
-        VkPipelineLayout pipeline_layout = pipeline_layouts_.at(cmd_data->pipeline);
+        VkPipelineLayout pipeline_layout = pipeline_layouts_.handle_at(cmd_data->pipeline);
 
         // Find descriptor sets
         std::vector<VkDescriptorSet> descriptor_sets(cmd_data->descriptor_sets.size());
         std::ranges::transform(cmd_data->descriptor_sets, descriptor_sets.begin(), [this](auto handle) {
-            return descriptor_sets_.at(handle);
+            return descriptor_sets_.handle_at(handle);
         });
 
         // Issue command

@@ -4,9 +4,7 @@
 #include "orion-renderer/mesh.h"
 #include "orion-utils/assertion.h"
 
-#include <algorithm>
 #include <array>
-#include <ranges>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
     #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
@@ -36,7 +34,7 @@ namespace orion
         , render_backend_(create_backend(backend_module_))
         , render_device_(create_device(backend(), desc.device_select_fn))
         , render_size_(desc.render_size)
-        , color_pass_(create_color_pass(device()))
+        , render_pass_(create_render_pass(device()))
         , frame_data_(create_frame_data(device()))
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
@@ -109,7 +107,7 @@ namespace orion
         return backend->create_device(physical_device_index);
     }
 
-    RenderPassHandle Renderer::create_color_pass(RenderDevice* device) const
+    RenderPassHandle Renderer::create_render_pass(RenderDevice* device) const
     {
         const auto color_attachments = std::array{
             RenderPassAttachmentDesc{
@@ -147,7 +145,7 @@ namespace orion
             });
 
             auto color_render_target = device->create_framebuffer({
-                .render_pass = color_pass_,
+                .render_pass = render_pass_,
                 .attachments = {&color_image_view, 1},
                 .size = render_size_,
             });

@@ -58,7 +58,7 @@ namespace orion
 
         std::unique_ptr<RenderBackend> create_backend(const Module& backend_module) const;
         std::unique_ptr<RenderDevice> create_device(RenderBackend* backend, pfnSelectPhysicalDevice device_select_fn) const;
-        RenderPassHandle create_color_pass(RenderDevice* device) const;
+        RenderPassHandle create_render_pass(RenderDevice* device) const;
         static_vector<FrameData, frames_in_flight> create_frame_data(RenderDevice* device) const;
 
         Module backend_module_;
@@ -66,7 +66,7 @@ namespace orion
         std::unique_ptr<RenderDevice> render_device_;
         Vector2_u render_size_;
 
-        RenderPassHandle color_pass_;
+        RenderPassHandle render_pass_;
 
         static_vector<FrameData, frames_in_flight> frame_data_;
         std::uint32_t current_frame_ = 0;
