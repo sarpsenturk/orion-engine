@@ -13,9 +13,6 @@
 
 #include <vector>
 
-// TODO:
-//  Separate surface and swapchain creation
-//  Move unique() calls into VulkanDevice
 
 namespace orion::vulkan
 {

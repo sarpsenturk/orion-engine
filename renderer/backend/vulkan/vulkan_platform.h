@@ -3,9 +3,10 @@
 #include "vulkan_headers.h"
 #include "vulkan_types.h"
 
-#include <exception>           // std::exception
-#include <orion-core/config.h> // orion::current_platform
-#include <orion-core/window.h> // orion::Window
+#include "orion-core/config.h"
+#include "orion-core/window.h"
+
+#include <exception>
 
 namespace orion::vulkan
 {

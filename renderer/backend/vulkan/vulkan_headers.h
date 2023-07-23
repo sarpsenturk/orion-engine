@@ -3,19 +3,15 @@
 #include "orion-core/defs.h"
 #include "orion-core/exception.h"
 #include "orion-core/types.h"
-#include "orion-vulkan/config.h"
 
-#ifndef ORION_VULKAN_LOG_LEVEL
-    #define ORION_VULKAN_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
-#endif
-
-#include <vma/vk_mem_alloc.h> // Vma*
-#include <vulkan/vulkan.h>    // Vk*
+#include <vma/vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
 
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include <initializer_list>
+#include <string>
 
 constexpr auto format_as(VkResult vk_result)
 {
@@ -50,6 +46,25 @@ constexpr auto format_as(VkResult vk_result)
     return "Unknown VkResult";
 }
 
+constexpr auto format_as(VkQueueFlagBits queue_flags) -> std::string
+{
+    if (!queue_flags) {
+        return {};
+    }
+
+    std::string result;
+    if (queue_flags & VK_QUEUE_GRAPHICS_BIT) {
+        result += "Graphics | ";
+    }
+    if (queue_flags & VK_QUEUE_COMPUTE_BIT) {
+        result += "Compute | ";
+    }
+    if (queue_flags & VK_QUEUE_TRANSFER_BIT) {
+        result += "Transfer | ";
+    }
+    return result.substr(0, result.size() - 3);
+}
+
 namespace orion
 {
     // Gets VkResult description
@@ -77,7 +92,7 @@ namespace orion
             case VK_ERROR_INCOMPATIBLE_DRIVER:
                 return "The requested version of Vulkan is not supported by the driver or is otherwise incompatible for implementation-specific reasons.";
             case VK_ERROR_FRAGMENTED_POOL:
-                return "A pool allocation has failed due to fragmentation of the pool�s memory.";
+                return "A pool allocation has failed due to fragmentation of the pools memory.";
             case VK_ERROR_OUT_OF_POOL_MEMORY:
                 return "A pool memory allocation has failed";
             default:

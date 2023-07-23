@@ -1,9 +1,3 @@
-# Vulkan specific options
-option(ORION_VULKAN_SWAPCHAIN_SUPPORT "Enable swapchain support the Vulkan backend" ON)
-
-# Create configure file
-configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-vulkan/config.h)
-
 # Set vulkan platform implementation
 if (ORION_PLATFORM_WINDOWS)
     set(vulkan_platform_impl vulkan_win32.cpp)

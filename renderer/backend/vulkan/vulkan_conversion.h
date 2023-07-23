@@ -1,11 +1,15 @@
 #pragma once
 
-#include "orion-renderapi/types.h"
 #include "vulkan_headers.h"
 
-#include <orion-core/config.h>
-#include <orion-math/vector/vector2.h>
-#include <orion-utils/assertion.h>
+#include "orion-renderapi/types.h"
+
+#include "orion-core/config.h"
+
+#include "orion-math/vector/vector2.h"
+
+#include "orion-utils/assertion.h"
+
 #include <string>
 
 namespace orion::vulkan
@@ -27,25 +31,6 @@ namespace orion::vulkan
                 break;
         }
         return PhysicalDeviceType::Other;
-    }
-
-    constexpr auto format_as(VkQueueFlags queue_flags) -> std::string
-    {
-        if (!queue_flags) {
-            return {};
-        }
-
-        std::string result;
-        if (queue_flags & VK_QUEUE_GRAPHICS_BIT) {
-            result += "Graphics | ";
-        }
-        if (queue_flags & VK_QUEUE_COMPUTE_BIT) {
-            result += "Compute | ";
-        }
-        if (queue_flags & VK_QUEUE_TRANSFER_BIT) {
-            result += "Transfer | ";
-        }
-        return result.substr(0, result.size() - 3);
     }
 
     constexpr auto to_vulkan_type(Format format) noexcept -> VkFormat
@@ -239,7 +224,7 @@ namespace orion::vulkan
         return {};
     }
 
-    constexpr auto to_vulkan_type(CommandBufferUsageFlags command_buffer_usage) -> VkCommandBufferUsageFlags
+    constexpr auto to_vulkan_type(CommandBufferUsageFlags command_buffer_usage) noexcept -> VkCommandBufferUsageFlags
     {
         if (command_buffer_usage.has_none()) {
             return {};
@@ -254,7 +239,7 @@ namespace orion::vulkan
         return {};
     }
 
-    constexpr auto to_vulkan_type(ImageType image_type) -> VkImageType
+    constexpr auto to_vulkan_type(ImageType image_type) noexcept -> VkImageType
     {
         switch (image_type) {
             case ImageType::Image1D:
@@ -268,7 +253,7 @@ namespace orion::vulkan
         return {};
     }
 
-    constexpr auto to_vulkan_type(ImageTiling image_tiling) -> VkImageTiling
+    constexpr auto to_vulkan_type(ImageTiling image_tiling) noexcept -> VkImageTiling
     {
         switch (image_tiling) {
             case ImageTiling::Optimal:
@@ -280,7 +265,7 @@ namespace orion::vulkan
         return {};
     }
 
-    constexpr auto to_vulkan_type(ImageUsageFlags image_usage_flags) -> VkImageUsageFlags
+    constexpr auto to_vulkan_type(ImageUsageFlags image_usage_flags) noexcept -> VkImageUsageFlags
     {
         if (image_usage_flags.has_none()) {
             return {};
@@ -307,7 +292,7 @@ namespace orion::vulkan
         return vk_usage_flags;
     }
 
-    constexpr auto to_vulkan_type(ImageViewType image_view_type) -> VkImageViewType
+    constexpr auto to_vulkan_type(ImageViewType image_view_type) noexcept -> VkImageViewType
     {
         switch (image_view_type) {
             case ImageViewType::View1D:

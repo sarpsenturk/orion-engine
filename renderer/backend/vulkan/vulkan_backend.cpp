@@ -5,9 +5,13 @@
 #include "vulkan_platform.h"
 #include "vulkan_types.h"
 
+#include "orion-core/config.h"
+#include "orion-renderer/config.h"
+
+#include "orion-utils/static_vector.h"
+
 #include <algorithm>
 #include <cstring>
-#include <orion-utils/static_vector.h>
 #include <span>
 #include <spdlog/spdlog.h>
 #include <unordered_set>
@@ -45,7 +49,7 @@ namespace orion::vulkan
             if constexpr (debug_build) {
                 extensions.push_back("VK_EXT_debug_utils");
             }
-            if constexpr (ORION_VULKAN_SWAPCHAIN_SUPPORT) {
+            if constexpr (!ORION_RENDERER_HEADLESS) {
                 extensions.push_back("VK_KHR_surface");
                 extensions.push_back(platform_surface_ext());
             }
@@ -56,7 +60,7 @@ namespace orion::vulkan
         {
             constexpr auto max_extensions = 2;
             static_vector<const char*, max_extensions> extensions;
-            if constexpr (ORION_VULKAN_SWAPCHAIN_SUPPORT) {
+            if constexpr (!ORION_RENDERER_HEADLESS) {
                 extensions.push_back("VK_KHR_swapchain");
             }
             return extensions;
@@ -94,7 +98,9 @@ namespace orion::vulkan
         bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions)
         {
             for (const char* extension : enabled_extensions) {
-                const auto pred = [extension](const VkExtensionProperties& extension_properties) { return std::strcmp(extension, extension_properties.extensionName) == 0; };
+                const auto pred = [extension](const VkExtensionProperties& extension_properties) {
+                    return std::strcmp(extension, extension_properties.extensionName) == 0;
+                };
                 const auto supported = std::ranges::find_if(supported_extensions, pred) != supported_extensions.end();
                 if (!supported) {
                     return false;
@@ -102,39 +108,39 @@ namespace orion::vulkan
             }
             return true;
         }
-    } // namespace
 
-    static std::vector<VkQueueFamilyProperties> get_queue_family_properties(VkPhysicalDevice physical_device)
-    {
-        std::uint32_t count = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
-        std::vector<VkQueueFamilyProperties> queue_families(count);
-        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, queue_families.data());
-        return queue_families;
-    }
-
-    static std::uint32_t get_best_queue_family(std::span<const VkQueueFamilyProperties> queue_family_properties, VkQueueFlagBits requested) noexcept
-    {
-        std::uint32_t best_index = UINT32_MAX;
-        VkQueueFlags best_score = UINT32_MAX;
-        for (std::uint32_t index = 0; const auto& queue_family : queue_family_properties) {
-            if (queue_family.queueFlags & requested) {
-                const auto score = queue_family.queueFlags ^ requested;
-                if (score < best_score) {
-                    best_index = index;
-                    best_score = score;
-                }
-            }
-            ++index;
+        std::vector<VkQueueFamilyProperties> get_queue_family_properties(VkPhysicalDevice physical_device)
+        {
+            std::uint32_t count = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
+            std::vector<VkQueueFamilyProperties> queue_families(count);
+            vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, queue_families.data());
+            return queue_families;
         }
-        return best_index;
-    }
+
+        std::uint32_t get_best_queue_family(std::span<const VkQueueFamilyProperties> queue_family_properties, VkQueueFlagBits requested) noexcept
+        {
+            std::uint32_t best_index = UINT32_MAX;
+            VkQueueFlags best_score = UINT32_MAX;
+            for (std::uint32_t index = 0; const auto& queue_family : queue_family_properties) {
+                if (queue_family.queueFlags & requested) {
+                    const auto score = queue_family.queueFlags ^ requested;
+                    if (score < best_score) {
+                        best_index = index;
+                        best_score = score;
+                    }
+                }
+                ++index;
+            }
+            return best_index;
+        }
+    } // namespace
 
     VulkanBackend::VulkanBackend()
         : RenderBackend("orion-vulkan")
     {
         const auto vulkan_version = to_vulkan_version(current_version);
-        const VkApplicationInfo application_info{
+        const auto application_info = VkApplicationInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
             .pNext = nullptr,
             .pApplicationName = "OrionEngineApp",
@@ -167,7 +173,7 @@ namespace orion::vulkan
         }
 
         // Create vulkan instance
-        const VkInstanceCreateInfo instance_info{
+        const auto instance_info = VkInstanceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pNext = nullptr,
             .flags = {},
@@ -252,7 +258,7 @@ namespace orion::vulkan
         SPDLOG_LOGGER_TRACE(logger(), "Found {} queue families:", queue_family_props.size());
         for (std::uint32_t index = 0; const auto& queue_family : queue_family_props) {
             SPDLOG_LOGGER_TRACE(logger(), "-- Queue Family {}:", index);
-            SPDLOG_LOGGER_TRACE(logger(), "      Flags: {}", queue_family.queueFlags);
+            SPDLOG_LOGGER_TRACE(logger(), "      Flags: {}", static_cast<VkQueueFlagBits>(queue_family.queueFlags));
             SPDLOG_LOGGER_TRACE(logger(), "      Queue count: {}", queue_family.queueCount);
         }
 
@@ -363,12 +369,11 @@ namespace orion::vulkan
                                                    void* user_data)
     {
         static constexpr const char* validation_error_format = R"(
---- Vulkan Validation Error Begin ---
-Message ID: {}, Message ID Name: {}
-{}
--- Vulkan Validation Error End ---
+--- Vulkan Validation Message Begin ---
+- Message ID: {}
+- {}
+-- Vulkan Validation Message End ---
 )";
-        auto* logger = static_cast<spdlog::logger*>(user_data);
         const auto level = [message_severity]() {
             if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
                 return spdlog::level::err;
@@ -379,7 +384,10 @@ Message ID: {}, Message ID Name: {}
             }
             return spdlog::level::level_enum::off;
         }();
-        SPDLOG_LOGGER_CALL(logger, level, validation_error_format, callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+        auto* logger = static_cast<spdlog::logger*>(user_data);
+        SPDLOG_LOGGER_CALL(logger, level, validation_error_format,
+                           callback_data->pMessageIdName,
+                           callback_data->pMessage);
         return VK_FALSE;
     }
 } // namespace orion::vulkan

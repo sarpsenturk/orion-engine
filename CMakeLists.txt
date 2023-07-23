@@ -17,11 +17,11 @@ project(orion-engine
         )
 
 # Platform detection
-set(ORION_PLATFORM ${CMAKE_SYSTEM_NAME} CACHE STRING "Current platform name" FORCE)
+set(ORION_PLATFORM ${CMAKE_SYSTEM_NAME} CACHE INTERNAL "Current platform name" FORCE)
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    set(ORION_PLATFORM_WINDOWS ON CACHE BOOL "Current platform is Windows" FORCE)
+    set(ORION_PLATFORM_WINDOWS ON CACHE INTERNAL "Current platform is Windows" FORCE)
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(ORION_PLATFORM_LINUX ON CACHE BOOL "Current platform is Linux" FORCE)
+    set(ORION_PLATFORM_LINUX ON CACHE INTERNAL "Current platform is Linux" FORCE)
 endif ()
 
 # Create a target for precompiled headers
