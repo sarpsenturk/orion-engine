@@ -8,6 +8,8 @@
 #include "orion-renderapi/descriptor.h"
 #include "orion-renderapi/handles.h"
 
+#include "orion-utils/assertion.h"
+
 #include <memory>
 
 namespace orion::vulkan
@@ -30,7 +32,8 @@ namespace orion::vulkan
 
         void add(handle_type handle, resource_type resource, store_data_type data = {})
         {
-            resources_.insert(std::make_pair(handle, ResourceData{std::move(resource), std::move(data)}));
+            auto [_, success] = resources_.insert(std::make_pair(handle, ResourceData{std::move(resource), std::move(data)}));
+            ORION_ENSURES(success);
         }
 
         void add_or_assign(handle_type handle, resource_type resource, store_data_type data = {})

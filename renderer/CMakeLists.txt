@@ -1,9 +1,9 @@
 # Module specific options
 option(ORION_RENDERER_TEST "Enable tests for the orion renderer" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_RENDERER_HEADLESS "Build renderer in headless mode (disables support for surfaces etc.)" OFF)
 set(ORION_FRAMES_IN_FLIGHT 2 CACHE STRING "Number of frames in flight")
 
 # Builtin backend targets
-option(ORION_RENDERER_HEADLESS "Build renderer in headless mode (disables support for surfaces etc.)" OFF)
 option(ORION_RENDER_BACKEND_VULKAN "Enable the Vulkan backend for the orion renderer" ON)
 set(ORION_VULKAN_MODULE "orion-vulkan" CACHE STRING "Name of the Vulkan render backend shared library")
 

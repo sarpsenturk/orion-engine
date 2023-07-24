@@ -138,6 +138,7 @@ namespace orion::vulkan
                 .pBindings = descriptor_bindings.data(),
             };
             vk_result_check(vkCreateDescriptorSetLayout(device(), &info, alloc_callbacks(), &descriptor_set_layout));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorSetLayout {}", fmt::ptr(descriptor_set_layout));
         }
         return descriptor_set_layout;
     }
@@ -312,6 +313,7 @@ namespace orion::vulkan
                 .pCode = spirv.data(),
             };
             vk_result_check(vkCreateShaderModule(device(), &info, alloc_callbacks(), &shader_module));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkShaderModule {}", fmt::ptr(shader_module));
         }
 
         auto handle = ShaderModuleHandle::generate();
@@ -348,8 +350,9 @@ namespace orion::vulkan
                 .pPushConstantRanges = nullptr,
             };
             vk_result_check(vkCreatePipelineLayout(device(), &info, alloc_callbacks(), &pipeline_layout));
-            pipeline_layouts_.add(handle, unique(pipeline_layout, device()));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
         }
+        pipeline_layouts_.add(handle, unique(pipeline_layout, device()));
 
         // Convert to VkPipelineShaderStageCreateInfo
         ORION_EXPECTS(desc.shaders.size() <= UINT32_MAX);
@@ -537,6 +540,7 @@ namespace orion::vulkan
                 .basePipelineIndex = 0,
             };
             vk_result_check(vkCreateGraphicsPipelines(device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkPipeline {}", fmt::ptr(pipeline));
         }
 
         pipelines_.add(handle, unique(pipeline, device()));
@@ -589,14 +593,17 @@ namespace orion::vulkan
 
     CommandPoolHandle VulkanDevice::create_command_pool_api(const CommandPoolDesc& desc)
     {
-        const VkCommandPoolCreateInfo info{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = get_queue_family(desc.queue_type),
-        };
         VkCommandPool command_pool = VK_NULL_HANDLE;
-        vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
+        {
+            const auto info = VkCommandPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                .queueFamilyIndex = get_queue_family(desc.queue_type),
+            };
+            vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkCommandPool {}", fmt::ptr(command_pool));
+        }
 
         auto handle = CommandPoolHandle::generate();
         command_pools_.add(handle, unique(command_pool, device()));
@@ -646,6 +653,7 @@ namespace orion::vulkan
                 .oldSwapchain = swapchain,
             };
             vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &new_swapchain));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchainKHR {}", fmt::ptr(new_swapchain));
         }
 
         swapchains_.add_or_assign(swapchain_handle, unique(new_swapchain, device()), {get_swapchain_images(device(), new_swapchain)});
@@ -684,7 +692,7 @@ namespace orion::vulkan
 
         VkCommandBuffer command_buffer = VK_NULL_HANDLE;
         {
-            const VkCommandBufferAllocateInfo info{
+            const auto info = VkCommandBufferAllocateInfo{
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
                 .pNext = nullptr,
                 .commandPool = command_pool,
@@ -692,6 +700,7 @@ namespace orion::vulkan
                 .commandBufferCount = 1,
             };
             vk_result_check(vkAllocateCommandBuffers(device(), &info, &command_buffer));
+            SPDLOG_LOGGER_TRACE(logger(), "Allocated VkCommandBuffer {}", fmt::ptr(command_buffer));
         }
 
         const auto handle = CommandBufferHandle::generate();
@@ -715,7 +724,7 @@ namespace orion::vulkan
                 }
                 return pool_sizes;
             }();
-            const VkDescriptorPoolCreateInfo info{
+            const auto info = VkDescriptorPoolCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
@@ -724,6 +733,7 @@ namespace orion::vulkan
                 .pPoolSizes = pool_sizes.data(),
             };
             vk_result_check(vkCreateDescriptorPool(device(), &info, alloc_callbacks(), &descriptor_pool));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorPool {}", fmt::ptr(descriptor_pool));
         }
 
         auto handle = DescriptorPoolHandle::generate();
@@ -738,7 +748,7 @@ namespace orion::vulkan
         // Create descriptor set
         {
             VkDescriptorSetLayout layout = make_descriptor_set_layout(*desc.layout);
-            const VkDescriptorSetAllocateInfo info{
+            const auto info = VkDescriptorSetAllocateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
                 .pNext = nullptr,
                 .descriptorPool = pool,
@@ -746,6 +756,7 @@ namespace orion::vulkan
                 .pSetLayouts = &layout,
             };
             vk_result_check(vkAllocateDescriptorSets(device(), &info, &descriptor_set));
+            SPDLOG_LOGGER_TRACE(logger(), "Allocated VkDescriptorSet {}", fmt::ptr(descriptor_set));
         }
         auto handle = DescriptorSetHandle::generate();
         descriptor_sets_.add(handle, unique(descriptor_set, device(), pool));
@@ -762,6 +773,7 @@ namespace orion::vulkan
                 .flags = 0,
             };
             vk_result_check(vkCreateSemaphore(device(), &info, alloc_callbacks(), &semaphore));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkSemaphore {}", fmt::ptr(semaphore));
         }
 
         auto handle = SemaphoreHandle::generate();
@@ -778,6 +790,7 @@ namespace orion::vulkan
                 .pNext = nullptr,
                 .flags = create_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{}};
             vk_result_check(vkCreateFence(device(), &info, alloc_callbacks(), &fence));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkFence {}", fmt::ptr(fence));
         }
 
         auto handle = FenceHandle::generate();

@@ -5,7 +5,7 @@
 
 // clang-format off
 
-#define ORION_PLATFORM "@ORION_PLATFORM@"
+#cmakedefine ORION_PLATFORM "@ORION_PLATFORM@"
 #cmakedefine01 ORION_PLATFORM_WINDOWS
 #cmakedefine01 ORION_PLATFORM_LINUX
 

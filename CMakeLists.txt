@@ -53,7 +53,7 @@ if (ORION_ENGINE_SANITIZE_ADDRESS)
 endif ()
 
 option(ORION_ENGINE_SANITIZE_UNDEFINED "Enable undefined behaviour sanitizer" ${ORION_ENGINE_DEVELOPER_MODE})
-if (ORION_ENGINE_SANITIZE_UNDEFINED )
+if (ORION_ENGINE_SANITIZE_UNDEFINED)
     target_compile_options(orion-base INTERFACE ${CXX_SANITIZE_UNDEFINED})
 endif ()
 
