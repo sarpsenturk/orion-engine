@@ -30,10 +30,12 @@ namespace orion
         CommandPoolHandle transfer_command_pool;
 
         CommandList render_command;
+        CommandList present_command;
 
         FenceHandle render_fence;
         SemaphoreHandle render_semaphore;
-        SemaphoreHandle present_semaphore;
+        SemaphoreHandle swapchain_image_semaphore;
+        SemaphoreHandle swapchain_copy_semaphore;
 
         ImageHandle image;
         ImageViewHandle image_view;
@@ -54,14 +56,23 @@ namespace orion
         void end_frame();
         void present(SwapchainHandle swapchain);
 
+        void advance_frame_index() noexcept
+        {
+            previous_frame_ = current_frame_;
+            current_frame_ = (current_frame_ + 1) % frames_in_flight;
+        }
         [[nodiscard]] auto current_frame_index() const noexcept { return current_frame_; }
+        [[nodiscard]] auto previous_frame_index() const noexcept { return previous_frame_; }
         [[nodiscard]] auto& current_frame_data() noexcept { return frame_data_[current_frame_index()]; }
         [[nodiscard]] auto& current_frame_data() const noexcept { return frame_data_[current_frame_index()]; }
+        [[nodiscard]] auto& previous_frame_data() noexcept { return frame_data_[previous_frame_index()]; }
+        [[nodiscard]] auto& previous_frame_data() const noexcept { return frame_data_[previous_frame_index()]; }
 
         static spdlog::logger* logger();
 
     private:
         static constexpr auto render_command_size = 2048;
+        static constexpr auto present_command_size = 256;
 
         void submit_frame(const FrameData& frame_data) const;
 
@@ -81,5 +92,6 @@ namespace orion
 
         static_vector<FrameData, frames_in_flight> frame_data_;
         std::uint8_t current_frame_ = 0;
+        std::uint8_t previous_frame_ = 0;
     };
 } // namespace orion

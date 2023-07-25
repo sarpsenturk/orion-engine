@@ -14,18 +14,6 @@
 
 namespace orion::vulkan
 {
-    namespace
-    {
-        std::vector<VkImage> get_swapchain_images(VkDevice device, VkSwapchainKHR swapchain)
-        {
-            std::uint32_t image_count = 0;
-            vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr));
-            std::vector<VkImage> images(image_count);
-            vk_result_check(vkGetSwapchainImagesKHR(device, swapchain, &image_count, images.data()));
-            return images;
-        }
-    } // namespace
-
     VulkanDevice::VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues)
         : RenderDevice(logger)
         , instance_(instance)
@@ -172,7 +160,7 @@ namespace orion::vulkan
                 return surface_capabilities;
             }();
 
-            const VkSwapchainCreateInfoKHR info{
+            const auto info = VkSwapchainCreateInfoKHR{
                 .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                 .pNext = nullptr,
                 .flags = 0,
@@ -182,7 +170,7 @@ namespace orion::vulkan
                 .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
                 .imageExtent = to_vulkan_extent(desc.image_size),
                 .imageArrayLayers = 1,
-                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                 .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
                 .preTransform = surface_capabilities.currentTransform,
                 .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
@@ -194,7 +182,21 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchain {}", fmt::ptr(swapchain));
         }
 
-        swapchains_.add(handle, unique(swapchain, device()), {get_swapchain_images(device(), swapchain)});
+        std::vector<ImageHandle> image_handles;
+        // Get swapchain images
+        {
+            std::uint32_t image_count = 0;
+            vk_result_check(vkGetSwapchainImagesKHR(device(), swapchain, &image_count, nullptr));
+            std::vector<VkImage> images(image_count);
+            vk_result_check(vkGetSwapchainImagesKHR(device(), swapchain, &image_count, images.data()));
+            for (VkImage image : images) {
+                const auto image_handle = ImageHandle::generate();
+                images_.add(image_handle, unique(image, VK_NULL_HANDLE, VK_NULL_HANDLE, false));
+                image_handles.push_back(image_handle);
+            }
+        }
+
+        swapchains_.add(handle, unique(swapchain, device()), {image_handles});
         return handle;
     }
 
@@ -613,7 +615,10 @@ namespace orion::vulkan
     void VulkanDevice::recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
     {
         // Find existing swapchain
-        VkSwapchainKHR swapchain = swapchains_.handle_at(swapchain_handle);
+        auto& swapchain_resource = swapchains_.at(swapchain_handle);
+
+        // Get existing swapchain
+        VkSwapchainKHR swapchain = swapchain_resource.resource.get();
 
         // Wait until graphics/presentation queue is idle
         vkQueueWaitIdle(graphics_queue());
@@ -634,7 +639,7 @@ namespace orion::vulkan
                 return surface_capabilities;
             }();
 
-            const VkSwapchainCreateInfoKHR info{
+            const auto info = VkSwapchainCreateInfoKHR{
                 .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                 .pNext = nullptr,
                 .flags = 0,
@@ -644,7 +649,7 @@ namespace orion::vulkan
                 .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
                 .imageExtent = to_vulkan_extent(desc.image_size),
                 .imageArrayLayers = 1,
-                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                 .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
                 .preTransform = surface_capabilities.currentTransform,
                 .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
@@ -656,7 +661,19 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchainKHR {}", fmt::ptr(new_swapchain));
         }
 
-        swapchains_.add_or_assign(swapchain_handle, unique(new_swapchain, device()), {get_swapchain_images(device(), new_swapchain)});
+        {
+            std::uint32_t image_count = 0;
+            vk_result_check(vkGetSwapchainImagesKHR(device(), new_swapchain, &image_count, nullptr));
+            std::vector<VkImage> images(image_count);
+            vk_result_check(vkGetSwapchainImagesKHR(device(), new_swapchain, &image_count, images.data()));
+            const auto& image_handles = swapchain_resource.data.images;
+            for (std::uint32_t index = 0; VkImage image : images) {
+                const auto image_handle = image_handles[index++];
+                images_.set_resource(image_handle, unique(image, VK_NULL_HANDLE, VK_NULL_HANDLE, false));
+            }
+        }
+
+        swapchains_.set_resource(swapchain_handle, unique(new_swapchain, device()));
     }
 
     void VulkanDevice::recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
@@ -834,7 +851,7 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkImage {}", fmt::ptr(image));
         }
         const auto handle = ImageHandle::generate();
-        images_.add(handle, unique(image, vma_allocator(), allocation));
+        images_.add(handle, unique(image, vma_allocator(), allocation, true));
         return handle;
     }
 
@@ -1016,16 +1033,21 @@ namespace orion::vulkan
         std::ranges::transform(desc.signal_semaphores, signal_semaphores.begin(), find_semaphore_fn);
 
         // Find signal fence
-        VkFence signal_fence = fences_.handle_at(desc.fence);
+        VkFence signal_fence = fences_.handle_or_null(desc.fence);
+
+        // Set wait stages
+        std::vector<VkPipelineStageFlags> wait_stages(desc.wait_stages.size());
+        std::ranges::transform(desc.wait_stages, wait_stages.begin(), [](auto stage) {
+            return to_vulkan_type(stage);
+        });
 
         // Submit command buffer
-        const VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         const VkSubmitInfo submit_info{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .pNext = nullptr,
             .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores.size()),
             .pWaitSemaphores = wait_semaphores.data(),
-            .pWaitDstStageMask = &wait_stage,
+            .pWaitDstStageMask = wait_stages.data(),
             .commandBufferCount = static_cast<std::uint32_t>(command_buffers.size()),
             .pCommandBuffers = command_buffers.data(),
             .signalSemaphoreCount = static_cast<std::uint32_t>(signal_semaphores.size()),
@@ -1041,8 +1063,6 @@ namespace orion::vulkan
 
         // Find swapchain and resources
         VkSwapchainKHR swapchain = swapchains_.handle_at(desc.swapchain);
-
-        // Get swapchain images
 
         // Wait semaphore
         VkSemaphore semaphore = semaphores_.handle_at(desc.wait_semaphore);
@@ -1145,6 +1165,15 @@ namespace orion::vulkan
         return image_index;
     }
 
+    ImageHandle VulkanDevice::get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index)
+    {
+        // Find swapchain images
+        const auto& images = swapchains_.data_at(swapchain).images;
+
+        // Return image at index
+        return images[image_index];
+    }
+
     void VulkanDevice::compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet)
     {
         switch (command_packet.type) {
@@ -1165,6 +1194,12 @@ namespace orion::vulkan
                 break;
             case CommandType::BindDescriptorSets:
                 cmd_bind_descriptor_sets(command_buffer, command_packet.data);
+                break;
+            case CommandType::PipelineBarrier:
+                cmd_pipeline_barrier(command_buffer, command_packet.data);
+                break;
+            case CommandType::BlitImage:
+                cmd_blit_image(command_buffer, command_packet.data);
                 break;
             default:
                 ORION_ASSERT(!"Command type not handled!");
@@ -1303,5 +1338,96 @@ namespace orion::vulkan
             descriptor_sets.data(),
             0,
             nullptr);
+    }
+
+    void VulkanDevice::cmd_pipeline_barrier(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* cmd_data = static_cast<const CmdPipelineBarrier*>(data);
+
+        std::vector<VkMemoryBarrier> memory_barriers;
+
+        std::vector<VkBufferMemoryBarrier> buffer_memory_barriers;
+
+        std::vector<VkImageMemoryBarrier> image_memory_barriers(cmd_data->image_barriers.size());
+        std::ranges::transform(cmd_data->image_barriers, image_memory_barriers.begin(), [this](const auto& barrier) {
+            return VkImageMemoryBarrier{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                .pNext = nullptr,
+                .srcAccessMask = to_vulkan_type(barrier.src_access),
+                .dstAccessMask = to_vulkan_type(barrier.dst_access),
+                .oldLayout = to_vulkan_type(barrier.old_layout),
+                .newLayout = to_vulkan_type(barrier.new_layout),
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = images_.handle_at(barrier.image),
+                // TODO: Allow this to be customized
+                .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            };
+        });
+
+        vkCmdPipelineBarrier(
+            command_buffer,
+            to_vulkan_type(cmd_data->src_stages),
+            to_vulkan_type(cmd_data->dst_stages),
+            0,
+            static_cast<std::uint32_t>(memory_barriers.size()), memory_barriers.data(),
+            static_cast<std::uint32_t>(buffer_memory_barriers.size()), buffer_memory_barriers.data(),
+            static_cast<std::uint32_t>(image_memory_barriers.size()), image_memory_barriers.data());
+    }
+
+    void VulkanDevice::cmd_blit_image(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* cmd_data = static_cast<const CmdBlitImage*>(data);
+
+        // Find source image
+        VkImage src_image = images_.handle_at(cmd_data->src_image);
+
+        // Find destination image
+        VkImage dst_image = images_.handle_at(cmd_data->dst_image);
+
+        // Get sizes
+        const auto src_size = vector_cast<int>(cmd_data->src_size);
+        const auto dst_size = vector_cast<int>(cmd_data->dst_size);
+
+        // Blit info
+        // TODO: Allow for customization of sub resources and offsets
+        const auto blit = VkImageBlit{
+            .srcSubresource = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .srcOffsets = {
+                VkOffset3D{0, 0, 0},
+                VkOffset3D{src_size.x(), src_size.y(), 1},
+            },
+            .dstSubresource = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .dstOffsets = {
+                VkOffset3D{0, 0, 0},
+                VkOffset3D{dst_size.x(), dst_size.y(), 1},
+            },
+        };
+
+        vkCmdBlitImage(
+            command_buffer,
+            src_image,
+            to_vulkan_type(cmd_data->src_layout),
+            dst_image,
+            to_vulkan_type(cmd_data->dst_layout),
+            1,
+            &blit,
+            VK_FILTER_NEAREST);
     }
 } // namespace orion::vulkan

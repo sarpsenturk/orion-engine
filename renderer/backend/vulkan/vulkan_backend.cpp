@@ -257,7 +257,7 @@ namespace orion::vulkan
         ORION_ASSERT(!queue_family_props.empty());
         SPDLOG_LOGGER_TRACE(logger(), "Found {} queue families:", queue_family_props.size());
         for (std::uint32_t index = 0; const auto& queue_family : queue_family_props) {
-            SPDLOG_LOGGER_TRACE(logger(), "-- Queue Family {}:", index);
+            SPDLOG_LOGGER_TRACE(logger(), "-- Queue Family {}:", index++);
             SPDLOG_LOGGER_TRACE(logger(), "      Flags: {}", static_cast<VkQueueFlagBits>(queue_family.queueFlags));
             SPDLOG_LOGGER_TRACE(logger(), "      Queue count: {}", queue_family.queueCount);
         }

@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <orion-math/vector/vector2.h>
 #include <orion-utils/bitflag.h>
+
+#include <cstdint>
 #include <span>
 #include <string>
 
@@ -153,7 +154,9 @@ namespace orion
         EndFrame,
         Draw,
         DrawIndexed,
-        BindDescriptorSets
+        BindDescriptorSets,
+        PipelineBarrier,
+        BlitImage
     };
 
     enum class DescriptorType : std::uint8_t {
@@ -200,4 +203,20 @@ namespace orion
         View2DArray,
         ViewCubeArray,
     };
+
+    enum class ResourceAccess : std::uint8_t {
+        ColorAttachmentWrite,
+        TransferRead,
+        TransferWrite,
+        MemoryRead
+    };
+    using ResourceAccessFlags = Bitflag<ResourceAccess>;
+
+    enum class PipelineStage : std::uint8_t {
+        TopOfPipe,
+        ColorAttachmentOutput,
+        Transfer,
+        BottomOfPipe
+    };
+    using PipelineStageFlags = Bitflag<PipelineStage>;
 } // namespace orion

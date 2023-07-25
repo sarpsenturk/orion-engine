@@ -24,9 +24,10 @@ namespace orion
     class RenderDevice;
 
     struct SubmitDesc {
-        std::span<const CommandBufferHandle> command_buffers = {};
         CommandQueueType queue_type = CommandQueueType::Any;
+        std::span<const CommandBufferHandle> command_buffers = {};
         std::span<const SemaphoreHandle> wait_semaphores = {};
+        std::span<const PipelineStage> wait_stages = {};
         std::span<const SemaphoreHandle> signal_semaphores = {};
         FenceHandle fence = FenceHandle::invalid_handle();
     };
@@ -178,6 +179,7 @@ namespace orion
         void update_descriptors(const DescriptorUpdate& update);
 
         std::uint32_t acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence);
+        ImageHandle get_swapchain_image(SwapchainHandle swapchain, std::uint32_t image_index);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
@@ -240,6 +242,7 @@ namespace orion
         virtual void update_descriptors_api(const DescriptorUpdate& update) = 0;
 
         virtual std::uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) = 0;
+        virtual ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) = 0;
 
         spdlog::logger* logger_;
     };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "barrier.h"
 #include "handles.h"
 #include "types.h"
 
@@ -10,6 +11,7 @@
 
 #include <spdlog/logger.h>
 
+#include <span>
 #include <type_traits>
 #include <vector>
 
@@ -75,6 +77,7 @@ namespace orion
         CommandList(RenderDevice* device, CommandBufferHandle command_buffer, std::size_t size);
 
         template<typename Command>
+            requires(is_valid_cmd_type<Command>::value)
         auto* add_command(std::uint64_t key)
         {
             return static_cast<Command*>(add_command(key, sizeof(Command), alignof(Command), Command::type));
@@ -153,6 +156,23 @@ namespace orion
         PipelineHandle pipeline = PipelineHandle::invalid_handle();
         std::uint32_t first_set = 0;
         std::span<DescriptorSetHandle> descriptor_sets = {};
+    };
+
+    DEFINE_COMMAND(PipelineBarrier, Any)
+    {
+        PipelineStageFlags src_stages;
+        PipelineStageFlags dst_stages;
+        std::span<const ImageBarrierDesc> image_barriers;
+    };
+
+    DEFINE_COMMAND(BlitImage, Transfer)
+    {
+        ImageHandle src_image;
+        ImageLayout src_layout;
+        Vector2_u src_size;
+        ImageHandle dst_image;
+        ImageLayout dst_layout;
+        Vector2_u dst_size;
     };
 } // namespace orion
 

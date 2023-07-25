@@ -1,8 +1,6 @@
 #pragma once
 
-#include "vulkan_buffer.h"
 #include "vulkan_headers.h"
-#include "vulkan_pipeline.h"
 #include "vulkan_types.h"
 
 #include "orion-renderapi/descriptor.h"
@@ -24,6 +22,7 @@ namespace orion::vulkan
         using handle_type = HandleType;
         using resource_type = ResourceType;
         using store_data_type = StoreData;
+        using vulkan_handle_type = typename resource_type::pointer;
 
         struct ResourceData {
             resource_type resource;
@@ -41,6 +40,16 @@ namespace orion::vulkan
             resources_.insert_or_assign(handle, ResourceData{std::move(resource), std::move(data)});
         }
 
+        void set_resource(handle_type handle, resource_type resource)
+        {
+            resources_.at(handle).resource = std::move(resource);
+        }
+
+        void set_data(handle_type handle, store_data_type data)
+        {
+            resources_.at(handle).data = std::move(data);
+        }
+
         void remove(handle_type handle)
         {
             resources_.erase(handle);
@@ -54,6 +63,21 @@ namespace orion::vulkan
 
         auto handle_at(handle_type handle) { return resources_.at(handle).resource.get(); }
         auto handle_at(handle_type handle) const { return resources_.at(handle).resource.get(); }
+
+        auto handle_or_null(handle_type handle) -> vulkan_handle_type
+        {
+            if (auto iter = resources_.find(handle); iter != resources_.end()) {
+                return iter->second.resource.get();
+            }
+            return VK_NULL_HANDLE;
+        }
+        auto handle_or_null(handle_type handle) const -> vulkan_handle_type
+        {
+            if (auto iter = resources_.find(handle); iter != resources_.end()) {
+                return iter->second.resource.get();
+            }
+            return VK_NULL_HANDLE;
+        }
 
         auto& data_at(handle_type handle) { return resources_.at(handle).data; }
         auto& data_at(handle_type handle) const { return resources_.at(handle).data; }

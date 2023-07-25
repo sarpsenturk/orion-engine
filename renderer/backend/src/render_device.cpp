@@ -278,4 +278,9 @@ namespace orion
     {
         return acquire_next_image_api(swapchain, semaphore, fence);
     }
+
+    ImageHandle RenderDevice::get_swapchain_image(SwapchainHandle swapchain, std::uint32_t image_index)
+    {
+        return get_swapchain_image_api(swapchain, image_index);
+    }
 } // namespace orion

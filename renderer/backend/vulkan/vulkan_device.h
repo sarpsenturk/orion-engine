@@ -5,17 +5,18 @@
 
 #include "orion-utils/static_vector.h"
 
-#include "vulkan_buffer.h"
 #include "vulkan_headers.h"
-#include "vulkan_pipeline.h"
 #include "vulkan_store.h"
 #include "vulkan_types.h"
 
 #include <vector>
 
-
 namespace orion::vulkan
 {
+    struct SwapchainData {
+        std::vector<ImageHandle> images;
+    };
+
     class VulkanDevice final : public RenderDevice
     {
     public:
@@ -99,6 +100,7 @@ namespace orion::vulkan
         void update_descriptors_api(const DescriptorUpdate& update) override;
 
         uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) override;
+        ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) override;
 
         void compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet);
         void cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data);
@@ -107,6 +109,8 @@ namespace orion::vulkan
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data);
         void cmd_bind_descriptor_sets(VkCommandBuffer command_buffer, const void* data);
+        void cmd_pipeline_barrier(VkCommandBuffer command_buffer, const void* data);
+        void cmd_blit_image(VkCommandBuffer command_buffer, const void* data);
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;

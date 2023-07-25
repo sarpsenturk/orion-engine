@@ -51,6 +51,7 @@ namespace orion
 
         // Reset command list
         device()->reset_command_pool(frame_data.render_command_pool);
+        device()->reset_command_pool(frame_data.transfer_command_pool);
 
         // Get render command
         auto& render_command = frame_data.render_command;
@@ -82,10 +83,112 @@ namespace orion
 
         // Submit frame
         submit_frame(frame_data);
+
+        // Advance to next frame
+        advance_frame_index();
     }
 
     void Renderer::present(SwapchainHandle swapchain)
     {
+        // Get frame data
+        auto& frame_data = previous_frame_data();
+
+        // Get present semaphore
+        const auto swapchain_image_semaphore = frame_data.swapchain_image_semaphore;
+
+        // Acquire swapchain image
+        const auto image_index = device()->acquire_next_image(swapchain, swapchain_image_semaphore, {});
+        const auto swapchain_image = device()->get_swapchain_image(swapchain, image_index);
+
+        // Get present command list
+        auto& present_command = frame_data.present_command;
+
+        present_command.begin({.usage = CommandBufferUsage::OneTimeSubmit});
+
+        // Transition render output image to transfer src
+        const auto render_output_barrier = ImageBarrierDesc{
+            .src_access = ResourceAccess::ColorAttachmentWrite,
+            .dst_access = ResourceAccess::TransferRead,
+            .old_layout = ImageLayout::TransferSrc,
+            .new_layout = ImageLayout::TransferSrc,
+            .image = frame_data.image,
+        };
+        {
+            auto* cmd_pipeline_barrier = present_command.add_command<CmdPipelineBarrier>({});
+            cmd_pipeline_barrier->src_stages = PipelineStage::ColorAttachmentOutput;
+            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->image_barriers = {&render_output_barrier, 1};
+        }
+
+        // Transition swapchain image to transfer dst
+        const auto swapchain_transfer_barrier = ImageBarrierDesc{
+            .src_access = {},
+            .dst_access = ResourceAccess::TransferWrite,
+            .old_layout = ImageLayout::Undefined,
+            .new_layout = ImageLayout::TransferDst,
+            .image = swapchain_image,
+        };
+        {
+            auto* cmd_pipeline_barrier = present_command.add_command<CmdPipelineBarrier>({});
+            cmd_pipeline_barrier->src_stages = PipelineStage::TopOfPipe;
+            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->image_barriers = {&swapchain_transfer_barrier, 1};
+        }
+
+        // Blit render output image to swapchain image
+        {
+            auto* cmd_blit_image = present_command.add_command<CmdBlitImage>({});
+            cmd_blit_image->src_image = frame_data.image;
+            cmd_blit_image->src_layout = ImageLayout::TransferSrc;
+            cmd_blit_image->src_size = render_size_;
+            cmd_blit_image->dst_image = swapchain_image;
+            cmd_blit_image->dst_layout = ImageLayout::TransferDst;
+            cmd_blit_image->dst_size = render_size_;
+        }
+
+        // Transition swapchain image to present source
+        const auto swapchain_present_barrier = ImageBarrierDesc{
+            .src_access = ResourceAccess::TransferWrite,
+            .dst_access = ResourceAccess::MemoryRead,
+            .old_layout = ImageLayout::TransferDst,
+            .new_layout = ImageLayout::PresentSrc,
+            .image = swapchain_image,
+        };
+        {
+            auto* cmd_pipeline_barrier = present_command.add_command<CmdPipelineBarrier>({});
+            cmd_pipeline_barrier->src_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->dst_stages = PipelineStage::BottomOfPipe;
+            cmd_pipeline_barrier->image_barriers = {&swapchain_present_barrier, 1};
+        }
+
+        present_command.end();
+
+        // Submit command buffer
+        const auto swapchain_copy_semaphore = frame_data.swapchain_copy_semaphore;
+        const auto command_buffers = std::array{present_command.command_buffer()};
+        const auto wait_semaphores = std::array{
+            frame_data.render_semaphore,
+            swapchain_image_semaphore,
+        };
+        const auto wait_stages = std::array{
+            PipelineStage::Transfer,
+            PipelineStage::Transfer,
+        };
+        device()->submit({
+            .queue_type = CommandQueueType::Any,
+            .command_buffers = command_buffers,
+            .wait_semaphores = wait_semaphores,
+            .wait_stages = wait_stages,
+            .signal_semaphores = {&swapchain_copy_semaphore, 1},
+            .fence = {},
+        });
+
+        // Present copied image
+        device()->present({
+            .swapchain = swapchain,
+            .wait_semaphore = swapchain_copy_semaphore,
+            .image_index = image_index,
+        });
     }
 
     spdlog::logger* Renderer::logger()
@@ -103,8 +206,8 @@ namespace orion
             frame_data.render_semaphore,
         };
         const auto desc = SubmitDesc{
-            .command_buffers = command_buffers,
             .queue_type = CommandQueueType::Graphics,
+            .command_buffers = command_buffers,
             .wait_semaphores = {},
             .signal_semaphores = signal_semaphores,
             .fence = frame_data.render_fence,
@@ -186,13 +289,7 @@ namespace orion
 
             // Create command buffers
             auto render_command_buffer = device->create_command_buffer({.command_pool = render_command_pool});
-            auto present_command_buffer = device->create_command_buffer({.command_pool = transfer_command_pool});
-
-            // Create sync objects
-            auto render_fence = device->create_fence(true);
-            auto render_semaphore = device->create_semaphore();
-            auto swapchain_copy_semaphore = device->create_semaphore();
-            auto present_semaphore = device->create_semaphore();
+            auto present_command_buffer = device->create_command_buffer({.command_pool = render_command_pool});
 
             // Create render images
             auto image = device->create_image({
@@ -207,22 +304,23 @@ namespace orion
                 .type = ImageViewType::View2D,
                 .format = Format::B8G8R8A8_Srgb,
             });
-            auto render_target = device->create_framebuffer({
-                .render_pass = render_pass_,
-                .attachments = {&image_view, 1},
-                .size = render_size_,
-            });
 
             return {
                 .render_command_pool = render_command_pool,
                 .transfer_command_pool = transfer_command_pool,
                 .render_command = {device, render_command_buffer, render_command_size},
-                .render_fence = render_fence,
-                .render_semaphore = render_semaphore,
-                .present_semaphore = present_semaphore,
+                .present_command = {device, present_command_buffer, present_command_size},
+                .render_fence = device->create_fence(true),
+                .render_semaphore = device->create_semaphore(),
+                .swapchain_image_semaphore = device->create_semaphore(),
+                .swapchain_copy_semaphore = device->create_semaphore(),
                 .image = image,
                 .image_view = image_view,
-                .render_target = render_target,
+                .render_target = device->create_framebuffer({
+                    .render_pass = render_pass_,
+                    .attachments = {&image_view, 1},
+                    .size = render_size_,
+                }),
             };
         };
 

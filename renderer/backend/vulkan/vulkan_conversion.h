@@ -314,6 +314,54 @@ namespace orion::vulkan
         return {};
     }
 
+    constexpr auto to_vulkan_type(PipelineStageFlags pipeline_stage_flags) -> VkPipelineStageFlags
+    {
+        if (pipeline_stage_flags.has_none()) {
+            return {};
+        }
+
+        VkPipelineStageFlags vk_pipeline_stage_flags = {};
+        if (pipeline_stage_flags.check_and_clear(PipelineStage::TopOfPipe)) {
+            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        }
+        if (pipeline_stage_flags.check_and_clear(PipelineStage::ColorAttachmentOutput)) {
+            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
+        if (pipeline_stage_flags.check_and_clear(PipelineStage::Transfer)) {
+            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+        }
+        if (pipeline_stage_flags.check_and_clear(PipelineStage::BottomOfPipe)) {
+            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        }
+        ORION_ASSERT(pipeline_stage_flags.has_none() &&
+                     "Pipeline stage not handled in to_vulkan_type()");
+        return vk_pipeline_stage_flags;
+    }
+
+    constexpr auto to_vulkan_type(ResourceAccessFlags resource_access_flags) -> VkAccessFlags
+    {
+        if (resource_access_flags.has_none()) {
+            return {};
+        }
+
+        VkAccessFlags vk_access_flags = {};
+        if (resource_access_flags.check_and_clear(ResourceAccess::ColorAttachmentWrite)) {
+            vk_access_flags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        }
+        if (resource_access_flags.check_and_clear(ResourceAccess::TransferRead)) {
+            vk_access_flags |= VK_ACCESS_TRANSFER_READ_BIT;
+        }
+        if (resource_access_flags.check_and_clear(ResourceAccess::TransferWrite)) {
+            vk_access_flags |= VK_ACCESS_TRANSFER_WRITE_BIT;
+        }
+        if (resource_access_flags.check_and_clear(ResourceAccess::MemoryRead)) {
+            vk_access_flags |= VK_ACCESS_MEMORY_READ_BIT;
+        }
+        ORION_ASSERT(resource_access_flags.has_none() &&
+                     "Resource access not handled in to_vulkan_type()");
+        return vk_access_flags;
+    }
+
     template<typename T>
     constexpr auto to_vulkan_extent(const Vector2_t<T>& vec2) noexcept -> VkExtent2D
     {

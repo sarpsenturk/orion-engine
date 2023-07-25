@@ -51,6 +51,11 @@ private:
 
     void on_user_render() override
     {
+        renderer_.begin_frame();
+
+        renderer_.end_frame();
+
+        renderer_.present(swapchain_);
     }
 
     [[nodiscard]] bool user_should_exit() const noexcept override
