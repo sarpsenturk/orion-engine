@@ -1,4 +1,5 @@
-﻿AccessModifierOffset: -4
+﻿AlignConsecutiveBitFields: Consecutive
+AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
 AlignEscapedNewlines: Left
 AlignOperands: true
