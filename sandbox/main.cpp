@@ -33,15 +33,21 @@ public:
             swapchain_ = device->create_swapchain(window_, desc);
         }
 
-        // Recreate swapchain on window resize
-        window_.on_resize_end().subscribe([device, swapchain = swapchain_](const auto& resize) {
-            const auto desc = orion::SwapchainDesc{
-                .image_count = swapchain_image_count,
-                .image_format = swapchain_image_format,
-                .image_size = resize.size,
-                .image_usage = swapchain_image_usage,
-            };
-            device->recreate(swapchain, desc);
+        // Handle window resize
+        window_.on_resize_end().subscribe([device, this](const auto& resize) {
+            // Recreate swapchain
+            {
+                const auto desc = orion::SwapchainDesc{
+                    .image_count = swapchain_image_count,
+                    .image_format = swapchain_image_format,
+                    .image_size = resize.size,
+                    .image_usage = swapchain_image_usage,
+                };
+                device->recreate(swapchain_, desc);
+            }
+
+            // Resize renderer images
+            renderer_.resize_images(resize.size);
         });
     }
 

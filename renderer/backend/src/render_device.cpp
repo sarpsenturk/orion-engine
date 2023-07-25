@@ -128,6 +128,18 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Recreated swapchain with handle {}", swapchain_handle);
     }
 
+    void RenderDevice::recreate(ImageHandle image_handle, const ImageDesc& desc)
+    {
+        recreate_api(image_handle, desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Recreated image with handle {}", image_handle);
+    }
+
+    void RenderDevice::recreate(ImageViewHandle image_view_handle, const ImageViewDesc& desc)
+    {
+        recreate_api(image_view_handle, desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Recreated image view with handle {}", image_view_handle);
+    }
+
     void RenderDevice::recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
     {
         recreate_api(framebuffer_handle, desc);

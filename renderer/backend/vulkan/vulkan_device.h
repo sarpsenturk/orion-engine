@@ -63,6 +63,8 @@ namespace orion::vulkan
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
 
         void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
+        void recreate_api(ImageHandle image_handle, const ImageDesc& desc) override;
+        void recreate_api(ImageViewHandle image_view_handle, const ImageViewDesc& desc) override;
         void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) override;
 
         void destroy_api(SwapchainHandle swapchain_handle) override;

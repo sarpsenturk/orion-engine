@@ -142,6 +142,8 @@ namespace orion
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
 
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
+        void recreate(ImageHandle image_handle, const ImageDesc& desc);
+        void recreate(ImageViewHandle image_view_handle, const ImageViewDesc& desc);
         void recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc);
 
         void destroy(SwapchainHandle swapchain_handle);
@@ -206,6 +208,8 @@ namespace orion
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
 
         virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
+        virtual void recreate_api(ImageHandle image_handle, const ImageDesc& desc) = 0;
+        virtual void recreate_api(ImageViewHandle image_view_handle, const ImageViewDesc& desc) = 0;
         virtual void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) = 0;
 
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;

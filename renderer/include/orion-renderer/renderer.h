@@ -57,11 +57,8 @@ namespace orion
         void end_frame();
         void present(SwapchainHandle swapchain);
 
-        void advance_frame_index() noexcept
-        {
-            previous_frame_ = current_frame_;
-            current_frame_ = (current_frame_ + 1) % frames_in_flight;
-        }
+        void resize_images(const Vector2_u& size);
+
         [[nodiscard]] auto current_frame_index() const noexcept { return current_frame_; }
         [[nodiscard]] auto previous_frame_index() const noexcept { return previous_frame_; }
         [[nodiscard]] auto& current_frame_data() noexcept { return frame_data_[current_frame_index()]; }
@@ -74,6 +71,12 @@ namespace orion
     private:
         static constexpr auto render_command_size = 2048;
         static constexpr auto present_command_size = 256;
+
+        void advance_frame_index() noexcept
+        {
+            previous_frame_ = current_frame_;
+            current_frame_ = (current_frame_ + 1) % frames_in_flight;
+        }
 
         void submit_frame(const FrameData& frame_data) const;
 

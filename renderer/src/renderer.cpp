@@ -193,6 +193,47 @@ namespace orion
         device()->wait_for_fence(frame_data.swapchain_copy_fence);
     }
 
+    void Renderer::resize_images(const Vector2_u& size)
+    {
+        // Set new render size
+        render_size_ = size;
+
+        SPDLOG_LOGGER_TRACE(logger(), "Render size set to {}, recreating images", size);
+
+        // Recreate render images
+        for (const auto& frame_data : frame_data_) {
+            // Recreate image
+            {
+                const auto desc = ImageDesc{
+                    .type = ImageType::Image2D,
+                    .format = Format::B8G8R8A8_Srgb,
+                    .size = {render_size_.x(), render_size_.y(), 1},
+                    .tiling = ImageTiling::Optimal,
+                    .usage = ImageUsageFlags::disjunction({ImageUsage::ColorAttachment, ImageUsage::TransferSrc}),
+                };
+                device()->recreate(frame_data.image, desc);
+            }
+            // Recreate image view
+            {
+                const auto desc = ImageViewDesc{
+                    .image = frame_data.image,
+                    .type = ImageViewType::View2D,
+                    .format = Format::B8G8R8A8_Srgb,
+                };
+                device()->recreate(frame_data.image_view, desc);
+            }
+            // Recreate framebuffer
+            {
+                const auto desc = FramebufferDesc{
+                    .render_pass = render_pass_,
+                    .attachments = {&frame_data.image_view, 1},
+                    .size = render_size_,
+                };
+                device()->recreate(frame_data.render_target, desc);
+            }
+        }
+    }
+
     spdlog::logger* Renderer::logger()
     {
         static const auto renderer_logger = create_logger("orion-renderer", static_cast<spdlog::level::level_enum>(ORION_RENDERER_LOG_LEVEL));
