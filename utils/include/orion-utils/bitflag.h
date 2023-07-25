@@ -54,6 +54,7 @@ namespace orion
         constexpr bool has_any() const noexcept { return value_ != zero; }
         constexpr bool has_none() const noexcept { return value_ == zero; }
         constexpr bool has(enum_type bit) const noexcept { return (value_ & enum_to_value(bit)) != 0; }
+        constexpr bool has(Bitflag bitflag) const noexcept { return (*this & bitflag).has_any(); }
 
         // Modifiers
         constexpr bool check_and_clear(enum_type bit) noexcept

@@ -180,7 +180,7 @@ namespace orion
             .wait_semaphores = wait_semaphores,
             .wait_stages = wait_stages,
             .signal_semaphores = {&swapchain_copy_semaphore, 1},
-            .fence = {},
+            .fence = frame_data.swapchain_copy_fence,
         });
 
         // Present copied image
@@ -189,6 +189,8 @@ namespace orion
             .wait_semaphore = swapchain_copy_semaphore,
             .image_index = image_index,
         });
+
+        device()->wait_for_fence(frame_data.swapchain_copy_fence);
     }
 
     spdlog::logger* Renderer::logger()
@@ -314,6 +316,7 @@ namespace orion
                 .render_semaphore = device->create_semaphore(),
                 .swapchain_image_semaphore = device->create_semaphore(),
                 .swapchain_copy_semaphore = device->create_semaphore(),
+                .swapchain_copy_fence = device->create_fence(false),
                 .image = image,
                 .image_view = image_view,
                 .render_target = device->create_framebuffer({

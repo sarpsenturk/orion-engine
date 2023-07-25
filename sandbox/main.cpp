@@ -28,6 +28,7 @@ public:
                 .image_count = swapchain_image_count,
                 .image_format = swapchain_image_format,
                 .image_size = window_.size(),
+                .image_usage = swapchain_image_usage,
             };
             swapchain_ = device->create_swapchain(window_, desc);
         }
@@ -38,6 +39,7 @@ public:
                 .image_count = swapchain_image_count,
                 .image_format = swapchain_image_format,
                 .image_size = resize.size,
+                .image_usage = swapchain_image_usage,
             };
             device->recreate(swapchain, desc);
         });
@@ -67,6 +69,8 @@ private:
     static constexpr auto window_size = orion::WindowSize{800, 600};
     static constexpr auto swapchain_image_count = 2;
     static constexpr auto swapchain_image_format = orion::Format::B8G8R8A8_Srgb;
+    static constexpr auto swapchain_image_usage =
+        orion::ImageUsageFlags::disjunction({orion::ImageUsage::ColorAttachment, orion::ImageUsage::TransferDst});
 
     orion::Window window_;
     orion::Renderer renderer_;

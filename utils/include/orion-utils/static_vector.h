@@ -3,13 +3,13 @@
 #include "orion-utils/assertion.h"     // ORION_ASSERT
 #include "orion-utils/uninitialized.h" // orion::UninitializedArray, orion::uninitialized_default_construct
 
-#include <algorithm>        // std::move_backwards, std::move, std::equal
-#include <cstddef>          // std::size_t, std::ptrdiff_t
-#include <initializer_list> // std::initializer_list
-#include <iterator>         // std::reverse_iterator
-#include <limits>           // std::numeric_limits
-#include <memory>           // std::destroy_n
-#include <type_traits>      // std::make_signed, std::is_*
+#include <algorithm>                   // std::move_backwards, std::move, std::equal
+#include <cstddef>                     // std::size_t, std::ptrdiff_t
+#include <initializer_list>            // std::initializer_list
+#include <iterator>                    // std::reverse_iterator
+#include <limits>                      // std::numeric_limits
+#include <memory>                      // std::destroy_n
+#include <type_traits>                 // std::make_signed, std::is_*
 
 namespace orion
 {

@@ -12,6 +12,7 @@ namespace orion
         std::uint32_t image_count = default_swapchain_image_count;
         Format image_format = default_swapchain_format;
         Vector2_u image_size = {};
+        ImageUsageFlags image_usage = ImageUsage::ColorAttachment;
     };
 
     struct SwapchainAttachmentDesc {

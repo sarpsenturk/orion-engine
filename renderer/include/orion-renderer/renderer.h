@@ -36,6 +36,7 @@ namespace orion
         SemaphoreHandle render_semaphore;
         SemaphoreHandle swapchain_image_semaphore;
         SemaphoreHandle swapchain_copy_semaphore;
+        FenceHandle swapchain_copy_fence;
 
         ImageHandle image;
         ImageViewHandle image_view;

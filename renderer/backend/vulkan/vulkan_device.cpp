@@ -42,21 +42,6 @@ namespace orion::vulkan
         vkDeviceWaitIdle(device_.get());
     }
 
-    bool VulkanDevice::transfer_requires_concurrent(std::uint32_t family_index) const noexcept
-    {
-        return queues_.transfer.index != family_index;
-    }
-
-    static_vector<uint32_t, 2> VulkanDevice::transfer_queue_families(bool src, bool dst) const noexcept
-    {
-        static_vector<std::uint32_t, 2> result;
-        result.push_back(graphics_queue_family());
-        if (src || dst) {
-            result.push_back(transfer_queue_family());
-        }
-        return result;
-    }
-
     VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
     {
         switch (queue_type) {
@@ -87,6 +72,16 @@ namespace orion::vulkan
         }
         ORION_ASSERT(!"Invalid queue type");
         return UINT32_MAX;
+    }
+
+    std::vector<std::uint32_t> VulkanDevice::get_unique_queue_families(const std::vector<CommandQueueType>& queue_types) const
+    {
+        std::vector<std::uint32_t> queue_families(queue_types.size());
+        std::ranges::transform(queue_types, queue_families.begin(), [this](auto queue_type) {
+            return get_queue_family(queue_type);
+        });
+        queue_families.erase(std::unique(queue_families.begin(), queue_families.end()), queue_families.end());
+        return queue_families;
     }
 
     VkDescriptorSetLayout VulkanDevice::make_descriptor_set_layout(const DescriptorSetLayout& layout)
@@ -160,6 +155,15 @@ namespace orion::vulkan
                 return surface_capabilities;
             }();
 
+            // Find set of queue families to be used
+            auto queue_types = std::vector{CommandQueueType::Graphics};
+            const auto has_transfer = desc.image_usage.has(image_usage_transfer_flags);
+            if (has_transfer) {
+                queue_types.push_back(CommandQueueType::Transfer);
+            }
+            const auto queue_families = get_unique_queue_families(queue_types);
+            const auto sharing_mode = queue_families.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+
             const auto info = VkSwapchainCreateInfoKHR{
                 .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                 .pNext = nullptr,
@@ -170,8 +174,10 @@ namespace orion::vulkan
                 .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
                 .imageExtent = to_vulkan_extent(desc.image_size),
                 .imageArrayLayers = 1,
-                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                .imageUsage = to_vulkan_type(desc.image_usage),
+                .imageSharingMode = sharing_mode,
+                .queueFamilyIndexCount = static_cast<std::uint32_t>(queue_families.size()),
+                .pQueueFamilyIndices = queue_families.data(),
                 .preTransform = surface_capabilities.currentTransform,
                 .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
                 .presentMode = present_mode,
@@ -551,13 +557,14 @@ namespace orion::vulkan
 
     GPUBufferHandle VulkanDevice::create_buffer_api(const GPUBufferDesc& desc)
     {
-        // Check if  buffer will be used for transfer ops
-        const bool transfer_src = desc.usage.has(GPUBufferUsage::TransferSrc);
-        const bool transfer_dst = desc.usage.has(GPUBufferUsage::TransferDst);
-
         // Find set of queue families to be used
-        const auto queue_families = transfer_queue_families(transfer_src, transfer_dst);
-        const auto queue_family_count = static_cast<std::uint32_t>(queue_families.size());
+        auto queue_types = std::vector{CommandQueueType::Graphics};
+        const auto has_transfer = desc.usage.has(gpu_buffer_usage_transfer_flags);
+        if (has_transfer) {
+            queue_types.push_back(CommandQueueType::Transfer);
+        }
+        const auto queue_families = get_unique_queue_families(queue_types);
+        const auto sharing_mode = queue_families.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
 
         // Create buffer and allocation
         VkBuffer buffer = VK_NULL_HANDLE;
@@ -569,8 +576,8 @@ namespace orion::vulkan
                 .flags = 0,
                 .size = desc.size,
                 .usage = to_vulkan_type(desc.usage),
-                .sharingMode = queue_family_count > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-                .queueFamilyIndexCount = queue_family_count,
+                .sharingMode = sharing_mode,
+                .queueFamilyIndexCount = static_cast<std::uint32_t>(queue_families.size()),
                 .pQueueFamilyIndices = queue_families.data(),
             };
             const auto allocation_info = VmaAllocationCreateInfo{
@@ -639,6 +646,14 @@ namespace orion::vulkan
                 return surface_capabilities;
             }();
 
+            auto queue_types = std::vector{CommandQueueType::Graphics};
+            const auto has_transfer = desc.image_usage.has(image_usage_transfer_flags);
+            if (has_transfer) {
+                queue_types.push_back(CommandQueueType::Transfer);
+            }
+            const auto queue_families = get_unique_queue_families(queue_types);
+            const auto sharing_mode = queue_families.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+
             const auto info = VkSwapchainCreateInfoKHR{
                 .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                 .pNext = nullptr,
@@ -649,8 +664,10 @@ namespace orion::vulkan
                 .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
                 .imageExtent = to_vulkan_extent(desc.image_size),
                 .imageArrayLayers = 1,
-                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                .imageUsage = to_vulkan_type(desc.image_usage),
+                .imageSharingMode = sharing_mode,
+                .queueFamilyIndexCount = static_cast<std::uint32_t>(queue_families.size()),
+                .pQueueFamilyIndices = queue_families.data(),
                 .preTransform = surface_capabilities.currentTransform,
                 .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
                 .presentMode = present_mode,
@@ -820,11 +837,13 @@ namespace orion::vulkan
         VkImage image = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
         {
-            const bool transfer_src = desc.usage.has(ImageUsage::TransferSrc);
-            const bool transfer_dst = desc.usage.has(ImageUsage::TransferDst);
-
-            const auto queue_families = transfer_queue_families(transfer_src, transfer_dst);
-            const auto queue_family_count = static_cast<std::uint32_t>(queue_families.size());
+            auto queue_types = std::vector{CommandQueueType::Graphics};
+            const auto has_transfer = desc.usage.has(image_usage_transfer_flags);
+            if (has_transfer) {
+                queue_types.push_back(CommandQueueType::Transfer);
+            }
+            const auto queue_families = get_unique_queue_families(queue_types);
+            const auto sharing_mode = queue_families.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
 
             const auto image_info = VkImageCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -838,8 +857,8 @@ namespace orion::vulkan
                 .samples = VK_SAMPLE_COUNT_1_BIT,
                 .tiling = to_vulkan_type(desc.tiling),
                 .usage = to_vulkan_type(desc.usage),
-                .sharingMode = queue_family_count > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-                .queueFamilyIndexCount = queue_family_count,
+                .sharingMode = sharing_mode,
+                .queueFamilyIndexCount = static_cast<std::uint32_t>(queue_families.size()),
                 .pQueueFamilyIndices = queue_families.data(),
                 .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             };
@@ -1345,7 +1364,6 @@ namespace orion::vulkan
         const auto* cmd_data = static_cast<const CmdPipelineBarrier*>(data);
 
         std::vector<VkMemoryBarrier> memory_barriers;
-
         std::vector<VkBufferMemoryBarrier> buffer_memory_barriers;
 
         std::vector<VkImageMemoryBarrier> image_memory_barriers(cmd_data->image_barriers.size());

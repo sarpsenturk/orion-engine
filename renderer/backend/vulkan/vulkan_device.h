@@ -31,9 +31,6 @@ namespace orion::vulkan
         [[nodiscard]] auto vma_allocator() const noexcept { return vma_allocator_.get(); }
 
     private:
-        [[nodiscard]] bool transfer_requires_concurrent(std::uint32_t family_index) const noexcept;
-        [[nodiscard]] static_vector<std::uint32_t, 2> transfer_queue_families(bool src, bool dst) const noexcept;
-
         [[nodiscard]] VkQueue graphics_queue() const noexcept { return queues_.graphics.queue; }
         [[nodiscard]] VkQueue transfer_queue() const noexcept { return queues_.transfer.queue; }
         [[nodiscard]] VkQueue compute_queue() const noexcept { return queues_.compute.queue; }
@@ -43,6 +40,8 @@ namespace orion::vulkan
 
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
+
+        [[nodiscard]] std::vector<std::uint32_t> get_unique_queue_families(const std::vector<CommandQueueType>& queue_types) const;
 
         VkDescriptorSetLayout make_descriptor_set_layout(const DescriptorSetLayout& layout);
         [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(std::span<const DescriptorBinding> bindings) const;

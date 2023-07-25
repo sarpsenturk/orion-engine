@@ -136,6 +136,9 @@ namespace orion
     };
     using GPUBufferUsageFlags = Bitflag<GPUBufferUsage>;
 
+    inline constexpr auto gpu_buffer_usage_transfer_flags =
+        GPUBufferUsageFlags::disjunction({GPUBufferUsage::TransferSrc, GPUBufferUsage::TransferDst});
+
     struct Viewport {
         Vector2_f position;
         Vector2_f size;
@@ -193,6 +196,9 @@ namespace orion
         InputAttachment
     };
     using ImageUsageFlags = Bitflag<ImageUsage>;
+
+    inline constexpr auto image_usage_transfer_flags =
+        ImageUsageFlags::disjunction({ImageUsage::TransferSrc, ImageUsage::TransferDst});
 
     enum class ImageViewType {
         View1D,
