@@ -2,9 +2,12 @@
 
 #include "event.h"
 
+#include "orion-math/vector/vector2.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 
 namespace orion
@@ -131,8 +134,6 @@ namespace orion
         Max
     };
 
-    std::string format_as(KeyCode keycode) noexcept;
-
     constexpr bool is_numeric_key(KeyCode keycode) noexcept
     {
         return (keycode >= KeyCode::Alpha0) && (keycode <= KeyCode::Alpha9);
@@ -182,8 +183,7 @@ namespace orion
 
         Keyboard();
 
-        [[nodiscard]] KeyState key_state(KeyCode key) const noexcept { return key_states_[static_cast<std::size_t>(key)]; }
-
+        [[nodiscard]] KeyState key_state(KeyCode key) const noexcept { return key_states_[get_key_index(key)]; }
         [[nodiscard]] bool key_down(KeyCode key) const noexcept { return key_state(key) == KeyState::Down; }
         [[nodiscard]] bool key_up(KeyCode key) const noexcept { return key_state(key) == KeyState::Up; }
         [[nodiscard]] bool key_pressed(KeyCode key) const noexcept;
@@ -196,12 +196,90 @@ namespace orion
         [[nodiscard]] auto& on_key_repeat() const noexcept { return on_key_repeat_; }
 
     private:
+        [[nodiscard]] std::size_t get_key_index(KeyCode key) const noexcept;
         void set_state(KeyCode key, KeyState state) noexcept;
 
-        std::array<KeyState, max_key> key_states_;
+        std::array<KeyState, max_key> key_states_ = {};
 
         EventDispatcher<void(const events::KeyRelease&)> on_key_release_;
         EventDispatcher<void(const events::KeyPress&)> on_key_press_;
         EventDispatcher<void(const events::KeyRepeat&)> on_key_repeat_;
     };
+
+    enum class MouseButton {
+        Left,
+        Right,
+        Middle,
+        X1,
+        X2,
+        Max
+    };
+    inline constexpr auto max_mouse_button = static_cast<std::size_t>(MouseButton::Max);
+
+    using MousePosition = Vector2_i;
+
+    inline constexpr auto x_button_max = 15;
+    using MouseXButtonID = std::uint8_t;
+    static_assert(x_button_max < std::numeric_limits<MouseXButtonID>::max());
+
+    namespace events
+    {
+        struct MouseMove {
+            MousePosition position;
+        };
+
+        struct MouseButtonDown {
+            MouseButton button;
+            MousePosition position;
+        };
+
+        struct MouseButtonUp {
+            MouseButton button;
+            MousePosition position;
+        };
+
+        struct MouseScroll {
+            int delta;
+            MousePosition position;
+        };
+
+        std::string format_as(const MouseMove& mouse_move);
+        std::string format_as(const MouseButtonDown& mouse_button_down);
+        std::string format_as(const MouseButtonUp& mouse_button_up);
+        std::string format_as(const MouseScroll& mouse_scroll);
+    } // namespace events
+
+    class Mouse
+    {
+    public:
+        Mouse();
+
+        [[nodiscard]] bool button(MouseButton button) const noexcept { return button_states_[get_button_index(button)]; }
+        [[nodiscard]] auto& position() const noexcept { return position_; }
+
+        [[nodiscard]] auto& on_move() noexcept { return on_move_; }
+        [[nodiscard]] auto& on_move() const noexcept { return on_move_; }
+        [[nodiscard]] auto& on_button_down() noexcept { return on_button_down_; }
+        [[nodiscard]] auto& on_button_down() const noexcept { return on_button_down_; }
+        [[nodiscard]] auto& on_button_up() noexcept { return on_button_up_; }
+        [[nodiscard]] auto& on_button_up() const noexcept { return on_button_up_; }
+        [[nodiscard]] auto& on_scroll() const noexcept { return on_scroll_; }
+        [[nodiscard]] auto& on_scroll() noexcept { return on_scroll_; }
+
+    private:
+        [[nodiscard]] std::size_t get_button_index(MouseButton button) const noexcept;
+        void set_button_state(MouseButton button, bool is_down);
+        void set_position(MousePosition position);
+
+        std::array<bool, max_mouse_button> button_states_ = {};
+        MousePosition position_ = {};
+
+        EventDispatcher<void(const events::MouseMove&)> on_move_;
+        EventDispatcher<void(const events::MouseButtonDown&)> on_button_down_;
+        EventDispatcher<void(const events::MouseButtonUp&)> on_button_up_;
+        EventDispatcher<void(const events::MouseScroll&)> on_scroll_;
+    };
+
+    std::string format_as(KeyCode keycode);
+    const char* format_as(MouseButton mouse_button);
 } // namespace orion

@@ -19,6 +19,20 @@ public:
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size})
     {
+        // Log mouse events
+        window_.mouse().on_move().subscribe([this](const auto& move) {
+            SPDLOG_LOGGER_TRACE(logger(), "{}", move);
+        });
+        window_.mouse().on_button_down().subscribe([this](const auto& button_down) {
+            SPDLOG_LOGGER_TRACE(logger(), "{}", button_down);
+        });
+        window_.mouse().on_button_up().subscribe([this](const auto& button_up) {
+            SPDLOG_LOGGER_TRACE(logger(), "{}", button_up);
+        });
+        window_.mouse().on_scroll().subscribe([this](const auto& scroll) {
+            SPDLOG_LOGGER_TRACE(logger(), "{}", scroll);
+        });
+
         // Get device from renderer
         auto* device = renderer_.device();
 

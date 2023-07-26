@@ -111,6 +111,9 @@ namespace orion
         [[nodiscard]] auto& keyboard() noexcept { return keyboard_; }
         [[nodiscard]] auto& keyboard() const noexcept { return keyboard_; }
 
+        [[nodiscard]] auto& mouse() noexcept { return mouse_; }
+        [[nodiscard]] auto& mouse() const noexcept { return mouse_; }
+
     private:
         static spdlog::logger* logger();
 
@@ -143,5 +146,6 @@ namespace orion
 
         // Window related input devices
         Keyboard keyboard_;
+        Mouse mouse_;
     };
 } // namespace orion

@@ -1,8 +1,11 @@
 #include "orion-core/platform/win32/win32_window.h"
-
 #include "orion-core/platform/win32/win32_input.h"
 
-#include <spdlog/spdlog.h> // SPDLOG_LOGGER_*
+#include "orion-utils/type.h"
+
+#include <spdlog/spdlog.h>
+
+#include <windowsx.h> // Needed for GET_X_LPARAM, GET_Y_LPARAM, etc.
 
 namespace orion
 {
@@ -126,11 +129,22 @@ namespace orion
             }
 
             // Helper lambdas
-            auto window_size = [](LPARAM lparam) -> WindowSize {
+            static constexpr auto window_size = [](LPARAM lparam) -> WindowSize {
                 return {LOWORD(lparam), HIWORD(lparam)};
             };
-            auto window_position = [](LPARAM lparam) -> WindowPosition {
+            static constexpr auto window_position = [](LPARAM lparam) -> WindowPosition {
                 return {LOWORD(lparam), HIWORD(lparam)};
+            };
+            static constexpr auto mouse_position = [](LPARAM lparam) -> MousePosition {
+                return {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+            };
+            static constexpr auto wheel_delta = [](WPARAM wparam) -> int {
+                return GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
+            };
+            static constexpr auto x_button = [](WPARAM wparam) -> MouseButton {
+                const auto button = GET_XBUTTON_WPARAM(wparam);
+                const auto offset = button - XBUTTON1;
+                return static_cast<MouseButton>(to_underlying(MouseButton::X1) + offset);
             };
 
             // Windows message handler
@@ -184,6 +198,38 @@ namespace orion
                     return 0;
                 case WM_KEYUP:
                     window->keyboard().on_key_release().invoke({.key = win32_vk_to_keycode(wparam)});
+                    return 0;
+                case WM_LBUTTONDOWN:
+                    window->mouse().on_button_down().invoke({.button = MouseButton::Left, .position = mouse_position(lparam)});
+                    return 0;
+                case WM_LBUTTONUP:
+                    window->mouse().on_button_up().invoke({.button = MouseButton::Left, .position = mouse_position(lparam)});
+                    return 0;
+                case WM_MBUTTONDOWN:
+                    window->mouse().on_button_down().invoke({.button = MouseButton::Middle, .position = mouse_position(lparam)});
+                    return 0;
+                case WM_MBUTTONUP:
+                    window->mouse().on_button_up().invoke({.button = MouseButton::Middle, .position = mouse_position(lparam)});
+                    return 0;
+                case WM_RBUTTONDOWN:
+                    window->mouse().on_button_down().invoke({.button = MouseButton::Right, .position = mouse_position(lparam)});
+                    return 0;
+                case WM_RBUTTONUP:
+                    window->mouse().on_button_up().invoke({.button = MouseButton::Right, .position = mouse_position(lparam)});
+                    return 0;
+                case WM_MOUSEMOVE:
+                    window->mouse().on_move().invoke({.position = mouse_position(lparam)});
+                    return 0;
+                case WM_MOUSEWHEEL:
+                    // TODO: Convert screen coordinates to client coordinates
+                    //  See: https://stackoverflow.com/questions/29915639/why-get-x-lparam-does-return-an-absolute-position-on-mouse-wheel
+                    window->mouse().on_scroll().invoke({.delta = wheel_delta(wparam), .position = mouse_position(lparam)});
+                    return 0;
+                case WM_XBUTTONDOWN:
+                    window->mouse().on_button_down().invoke({.button = x_button(wparam), .position = mouse_position(lparam)});
+                    return 0;
+                case WM_XBUTTONUP:
+                    window->mouse().on_button_up().invoke({.button = x_button(wparam), .position = mouse_position(lparam)});
                     return 0;
                 default:
                     break;
