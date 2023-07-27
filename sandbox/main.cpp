@@ -19,30 +19,11 @@ public:
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_({.device_select_fn = orion::device_select_discrete})
     {
-        // Get device from renderer
-        auto* device = renderer_.device();
+        create_surface();
+        create_swapchain();
 
-        // Create swapchain
-        {
-            const auto desc = orion::SwapchainDesc{
-                .window = &window_,
-                .image_count = swapchain_image_count,
-                .image_format = swapchain_image_format,
-                .image_size = window_.size(),
-                .image_usage = swapchain_image_usage,
-            };
-            swapchain_ = device->create_swapchain(desc);
-        }
-
-        // Handle window resize
-        window_.on_resize_end().subscribe([device, this](const auto& resize) {
-            const auto desc = orion::SwapchainDesc{
-                .image_count = swapchain_image_count,
-                .image_format = swapchain_image_format,
-                .image_size = resize.size,
-                .image_usage = swapchain_image_usage,
-            };
-            device->recreate(swapchain_, desc);
+        window_.on_resize_end() += ([this](const auto&) {
+            create_swapchain();
         });
     }
 
@@ -61,6 +42,23 @@ private:
         return window_.should_close();
     }
 
+    void create_surface()
+    {
+        surface_ = renderer_.device()->make_unique(orion::SurfaceHandle_tag{}, window_);
+    }
+
+    void create_swapchain()
+    {
+        const auto desc = orion::SwapchainDesc{
+            .surface = surface_.get(),
+            .image_count = swapchain_image_count,
+            .image_format = swapchain_image_format,
+            .image_size = window_.size(),
+            .image_usage = swapchain_image_usage,
+        };
+        swapchain_ = renderer_.device()->make_unique(orion::SwapchainHandle_tag{}, desc);
+    }
+
     static constexpr auto window_position = orion::WindowPosition{400, 200};
     static constexpr auto window_size = orion::WindowSize{800, 600};
     static constexpr auto swapchain_image_count = 2;
@@ -70,7 +68,8 @@ private:
 
     orion::Window window_;
     orion::Renderer renderer_;
-    orion::SwapchainHandle swapchain_;
+    orion::UniqueSurface surface_;
+    orion::UniqueSwapchain swapchain_;
 };
 
 ORION_MAIN(args)

@@ -31,6 +31,11 @@ namespace orion
 
         constexpr Handle() noexcept = default;
 
+        constexpr Handle(std::nullptr_t) noexcept
+            : value_(invalid)
+        {
+        }
+
         constexpr explicit Handle(value_type value) noexcept
             : value_(value)
         {
@@ -41,6 +46,8 @@ namespace orion
         [[nodiscard]] constexpr auto is_valid() const noexcept { return value_ != invalid; }
 
         [[nodiscard]] constexpr friend bool operator==(Handle, Handle) noexcept = default;
+
+        [[nodiscard]] constexpr operator bool() const noexcept { return is_valid(); }
 
     private:
         value_type value_ = invalid;

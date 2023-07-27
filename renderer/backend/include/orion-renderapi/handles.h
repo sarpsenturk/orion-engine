@@ -10,6 +10,7 @@
 
 namespace orion
 {
+    ORION_DEFINE_HANDLE(SurfaceHandle);
     ORION_DEFINE_HANDLE(SwapchainHandle);
     ORION_DEFINE_HANDLE(RenderPassHandle);
     ORION_DEFINE_HANDLE(ShaderModuleHandle);

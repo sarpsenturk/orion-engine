@@ -5,13 +5,11 @@
 
 namespace orion
 {
-    class Window;
-
     inline constexpr auto default_swapchain_image_count = 2;
     inline constexpr auto default_swapchain_format = Format::B8G8R8A8_Srgb;
 
     struct SwapchainDesc {
-        Window* window = nullptr;
+        SurfaceHandle surface;
         std::uint32_t image_count = default_swapchain_image_count;
         Format image_format = default_swapchain_format;
         Vector2_u image_size = {};

@@ -12,7 +12,7 @@
 #include "swapchain.h"
 #include "types.h"
 
-#include <atomic>
+#include <memory>
 #include <span>
 
 #include <spdlog/logger.h>
@@ -20,6 +20,7 @@
 namespace orion
 {
     // Forward declarations
+    class Window;
     class RenderDevice;
 
     struct SubmitDesc {
@@ -31,93 +32,36 @@ namespace orion
         FenceHandle fence = FenceHandle::invalid_handle();
     };
 
-    class DeviceResourceControlBlock
-    {
-    public:
-        explicit DeviceResourceControlBlock(RenderDevice* device);
+    template<typename Tag>
+    struct ResourceDeleter {
+        using pointer = Handle<Tag>;
 
-        std::size_t add_ref();
-        std::size_t remove_ref();
+        RenderDevice* device;
 
-        [[nodiscard]] auto device() const noexcept { return device_; }
-
-    private:
-        RenderDevice* device_ = nullptr;
-        std::atomic_size_t ref_count_ = 1;
+        void operator()(pointer handle) const
+        {
+            device->destroy(handle);
+        }
     };
 
     template<typename Tag>
-    class DeviceResource
-    {
-    public:
-        using handle_type = Handle<Tag>;
+    using unique_device_resource = std::unique_ptr<Handle<Tag>, ResourceDeleter<Tag>>;
 
-        DeviceResource() = default;
-        DeviceResource(RenderDevice* device, handle_type handle)
-            : handle_(handle)
-            , control_block_(new DeviceResourceControlBlock(device))
-        {
-        }
-        DeviceResource(const DeviceResource& other)
-            : handle_(other.handle_)
-            , control_block_(other.control_block_)
-        {
-            control_block_->add_ref();
-        }
-        DeviceResource(DeviceResource&& other) noexcept
-            : handle_(std::exchange(other.handle_, handle_type::invalid_handle()))
-            , control_block_(other.control_block_)
-        {
-        }
-        DeviceResource& operator=(const DeviceResource& other)
-        {
-            if ((&other) == this) {
-                return *this;
-            }
-            handle_ = other.handle_;
-            control_block_ = other.control_block_;
-            control_block_->add_ref();
-            return *this;
-        }
-        DeviceResource& operator=(DeviceResource&& other) noexcept
-        {
-            if ((&other) == this) {
-                return *this;
-            }
-            handle_ = std::exchange(other.handle_, handle_type::invalid_handle());
-            control_block_ = other.control_block_;
-            return *this;
-        }
-        ~DeviceResource()
-        {
-            if (control_block_->remove_ref() == 0) {
-                // TODO: This is a hack and not performant AT ALL!
-                //  It will block the CPU until there's ZERO work being done
-                //  on the GPU. This should probably be handled by the backends
-                //  if they require manual synchronization of resources
-                //  using some sort of deferred destruction.
-                control_block_->device()->wait_idle();
-                control_block_->device()->destroy(handle_);
-                delete control_block_;
-            }
-        }
-
-        [[nodiscard]] handle_type get() const noexcept { return handle_; }
-
-    private:
-        handle_type handle_;
-        DeviceResourceControlBlock* control_block_ = nullptr;
-    };
-
-    using SwapchainResource = DeviceResource<SwapchainHandle_tag>;
-    using RenderPassResource = DeviceResource<RenderPassHandle_tag>;
-    using ShaderResource = DeviceResource<ShaderModuleHandle_tag>;
-    using PipelineResource = DeviceResource<PipelineHandle_tag>;
-    using GPUBufferResource = DeviceResource<GPUBufferHandle_tag>;
-    using CommandPoolResource = DeviceResource<CommandPoolHandle_tag>;
-    using CommandBufferResource = DeviceResource<CommandBufferHandle_tag>;
-    using DescriptorPoolResource = DeviceResource<DescriptorPoolHandle_tag>;
-    using DescriptorSetResource = DeviceResource<DescriptorSetHandle_tag>;
+    using UniqueSurface = unique_device_resource<SurfaceHandle_tag>;
+    using UniqueSwapchain = unique_device_resource<SwapchainHandle_tag>;
+    using UniqueRenderPass = unique_device_resource<RenderPassHandle_tag>;
+    using UniqueFramebuffer = unique_device_resource<FramebufferHandle_tag>;
+    using UniqueShaderModule = unique_device_resource<ShaderModuleHandle_tag>;
+    using UniquePipeline = unique_device_resource<PipelineHandle_tag>;
+    using UniqueGPUBuffer = unique_device_resource<GPUBufferHandle_tag>;
+    using UniqueCommandPool = unique_device_resource<CommandPoolHandle_tag>;
+    using UniqueCommandBuffer = unique_device_resource<CommandBufferHandle_tag>;
+    using UniqueDescriptorPool = unique_device_resource<DescriptorPoolHandle_tag>;
+    using UniqueDescriptorSet = unique_device_resource<DescriptorSetHandle_tag>;
+    using UniqueSemaphore = unique_device_resource<SemaphoreHandle_tag>;
+    using UniqueFence = unique_device_resource<FenceHandle_tag>;
+    using UniqueImage = unique_device_resource<ImageHandle_tag>;
+    using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
 
     class RenderDevice
     {
@@ -125,6 +69,7 @@ namespace orion
         explicit RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
 
+        [[nodiscard]] SurfaceHandle create_surface(const Window& window);
         [[nodiscard]] SwapchainHandle create_swapchain(const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
         [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
@@ -140,6 +85,7 @@ namespace orion
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
 
+        [[nodiscard]] SurfaceHandle create(SurfaceHandle_tag, const Window& window) { return create_surface(window); }
         [[nodiscard]] SwapchainHandle create(SwapchainHandle_tag, const SwapchainDesc& desc) { return create_swapchain(desc); }
         [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
@@ -156,16 +102,12 @@ namespace orion
         [[nodiscard]] ImageViewHandle create(ImageViewHandle_tag, const ImageViewDesc& desc) { return create_image_view(desc); }
 
         template<typename Tag, typename... Args>
-        auto make_resource(Tag tag, Args&&... args)
+        auto make_unique(Tag tag, Args&&... args)
         {
-            return DeviceResource<Tag>{this, create(tag, std::forward<Args>(args)...)};
+            return unique_device_resource<Tag>{create(tag, std::forward<Args>(args)...), {this}};
         }
 
-        void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
-        void recreate(ImageHandle image_handle, const ImageDesc& desc);
-        void recreate(ImageViewHandle image_view_handle, const ImageViewDesc& desc);
-        void recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc);
-
+        void destroy(SurfaceHandle surface_handle);
         void destroy(SwapchainHandle swapchain_handle);
         void destroy(RenderPassHandle render_pass_handle);
         void destroy(FramebufferHandle framebuffer_handle);
@@ -212,6 +154,7 @@ namespace orion
         RenderDevice& operator=(RenderDevice&&) noexcept = default;
 
     private:
+        [[nodiscard]] virtual SurfaceHandle create_surface_api(const Window& window) = 0;
         [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const SwapchainDesc& desc) = 0;
         [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
         [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
@@ -227,11 +170,7 @@ namespace orion
         [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
 
-        virtual void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) = 0;
-        virtual void recreate_api(ImageHandle image_handle, const ImageDesc& desc) = 0;
-        virtual void recreate_api(ImageViewHandle image_view_handle, const ImageViewDesc& desc) = 0;
-        virtual void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) = 0;
-
+        virtual void destroy_api(SurfaceHandle surface_handle) = 0;
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;

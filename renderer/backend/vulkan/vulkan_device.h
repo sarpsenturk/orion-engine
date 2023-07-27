@@ -9,12 +9,12 @@
 #include "vulkan_store.h"
 #include "vulkan_types.h"
 
+#include <orion-core/window.h>
 #include <vector>
 
 namespace orion::vulkan
 {
     struct SwapchainData {
-        UniqueVkSurfaceKHR surface;
         std::vector<ImageHandle> images;
     };
 
@@ -50,6 +50,7 @@ namespace orion::vulkan
         [[nodiscard]] VkRenderPass create_compatible_render_pass(const AttachmentList& attachments) const;
 
         // Interface Overrides
+        SurfaceHandle create_surface_api(const Window& window) override;
         SwapchainHandle create_swapchain_api(const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
@@ -65,11 +66,7 @@ namespace orion::vulkan
         ImageHandle create_image_api(const ImageDesc& desc) override;
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
 
-        void recreate_api(SwapchainHandle swapchain_handle, const SwapchainDesc& desc) override;
-        void recreate_api(ImageHandle image_handle, const ImageDesc& desc) override;
-        void recreate_api(ImageViewHandle image_view_handle, const ImageViewDesc& desc) override;
-        void recreate_api(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc) override;
-
+        void destroy_api(SurfaceHandle surface_handle) override;
         void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(RenderPassHandle render_pass_handle) override;
         void destroy_api(FramebufferHandle framebuffer_handle) override;
@@ -124,6 +121,7 @@ namespace orion::vulkan
 
         std::unordered_map<std::size_t, VmaAllocation> allocations_;
 
+        VulkanStore<SurfaceHandle, UniqueVkSurfaceKHR> surfaces_;
         VulkanStore<SwapchainHandle, UniqueVkSwapchainKHR, SwapchainData> swapchains_;
         VulkanStore<ImageHandle, UniqueVkImage> images_;
         VulkanStore<ImageViewHandle, UniqueVkImageView> image_views_;

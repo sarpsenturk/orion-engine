@@ -4,24 +4,16 @@
 
 namespace orion
 {
-    DeviceResourceControlBlock::DeviceResourceControlBlock(RenderDevice* device)
-        : device_(device)
-    {
-    }
-
-    std::size_t DeviceResourceControlBlock::add_ref()
-    {
-        return ref_count_.fetch_add(1, std::memory_order_relaxed) + 1;
-    }
-
-    std::size_t DeviceResourceControlBlock::remove_ref()
-    {
-        return ref_count_.fetch_sub(1, std::memory_order_acq_rel) - 1;
-    }
-
     RenderDevice::RenderDevice(spdlog::logger* logger)
         : logger_(logger)
     {
+    }
+
+    SurfaceHandle RenderDevice::create_surface(const Window& window)
+    {
+        auto handle = create_surface_api(window);
+        SPDLOG_LOGGER_DEBUG(logger(), "Create surface {}", handle);
+        return handle;
     }
 
     SwapchainHandle RenderDevice::create_swapchain(const SwapchainDesc& desc)
@@ -122,28 +114,10 @@ namespace orion
         return handle;
     }
 
-    void RenderDevice::recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc)
+    void RenderDevice::destroy(SurfaceHandle surface_handle)
     {
-        recreate_api(swapchain_handle, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Recreated swapchain with handle {}", swapchain_handle);
-    }
-
-    void RenderDevice::recreate(ImageHandle image_handle, const ImageDesc& desc)
-    {
-        recreate_api(image_handle, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Recreated image with handle {}", image_handle);
-    }
-
-    void RenderDevice::recreate(ImageViewHandle image_view_handle, const ImageViewDesc& desc)
-    {
-        recreate_api(image_view_handle, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Recreated image view with handle {}", image_view_handle);
-    }
-
-    void RenderDevice::recreate(FramebufferHandle framebuffer_handle, const FramebufferDesc& desc)
-    {
-        recreate_api(framebuffer_handle, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Recreated framebuffer with handle {}", framebuffer_handle);
+        destroy_api(surface_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed surface {}", surface_handle);
     }
 
     void RenderDevice::destroy(SwapchainHandle swapchain_handle)

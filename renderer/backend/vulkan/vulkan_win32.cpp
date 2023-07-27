@@ -8,18 +8,20 @@
 
 namespace orion::vulkan
 {
-    UniqueVkSurfaceKHR create_surface(VkInstance instance, const Window* window)
+    VkSurfaceKHR create_platform_surface(VkInstance instance, const Window& window)
     {
-        auto* platform_window = window->platform_window();
-        const VkWin32SurfaceCreateInfoKHR info{
-            .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-            .pNext = nullptr,
-            .flags = 0,
-            .hinstance = platform_window->hinstance(),
-            .hwnd = platform_window->hwnd(),
-        };
+        auto* platform_window = window.platform_window();
         VkSurfaceKHR surface = VK_NULL_HANDLE;
-        vk_result_check(vkCreateWin32SurfaceKHR(instance, &info, alloc_callbacks(), &surface));
-        return unique(surface, instance);
+        {
+            const auto info = VkWin32SurfaceCreateInfoKHR{
+                .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+                .pNext = nullptr,
+                .flags = 0,
+                .hinstance = platform_window->hinstance(),
+                .hwnd = platform_window->hwnd(),
+            };
+            vk_result_check(vkCreateWin32SurfaceKHR(instance, &info, alloc_callbacks(), &surface));
+        }
+        return surface;
     }
 } // namespace orion::vulkan
