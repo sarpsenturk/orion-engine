@@ -140,6 +140,27 @@ namespace orion
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
 
+        [[nodiscard]] SwapchainHandle create(SwapchainHandle_tag, const SwapchainDesc& desc) { return create_swapchain(desc); }
+        [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
+        [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
+        [[nodiscard]] ShaderModuleHandle create(ShaderModuleHandle_tag, const ShaderModuleDesc& desc) { return create_shader_module(desc); }
+        [[nodiscard]] PipelineHandle create(PipelineHandle_tag, const GraphicsPipelineDesc& desc) { return create_graphics_pipeline(desc); }
+        [[nodiscard]] GPUBufferHandle create(GPUBufferHandle_tag, const GPUBufferDesc& desc) { return create_buffer(desc); }
+        [[nodiscard]] CommandPoolHandle create(CommandPoolHandle_tag, const CommandPoolDesc& desc) { return create_command_pool(desc); }
+        [[nodiscard]] CommandBufferHandle create(CommandBufferHandle_tag, const CommandBufferDesc& desc) { return create_command_buffer(desc); }
+        [[nodiscard]] DescriptorPoolHandle create(DescriptorPoolHandle_tag, const DescriptorPoolDesc& desc) { return create_descriptor_pool(desc); }
+        [[nodiscard]] DescriptorSetHandle create(DescriptorSetHandle_tag, const DescriptorSetDesc& desc) { return create_descriptor_set(desc); }
+        [[nodiscard]] SemaphoreHandle create(SemaphoreHandle_tag) { return create_semaphore(); }
+        [[nodiscard]] FenceHandle create(FenceHandle_tag, bool create_signaled) { return create_fence(create_signaled); }
+        [[nodiscard]] ImageHandle create(ImageHandle_tag, const ImageDesc& desc) { return create_image(desc); }
+        [[nodiscard]] ImageViewHandle create(ImageViewHandle_tag, const ImageViewDesc& desc) { return create_image_view(desc); }
+
+        template<typename Tag, typename... Args>
+        auto make_resource(Tag tag, Args&&... args)
+        {
+            return DeviceResource<Tag>{this, create(tag, std::forward<Args>(args)...)};
+        }
+
         void recreate(SwapchainHandle swapchain_handle, const SwapchainDesc& desc);
         void recreate(ImageHandle image_handle, const ImageDesc& desc);
         void recreate(ImageViewHandle image_view_handle, const ImageViewDesc& desc);

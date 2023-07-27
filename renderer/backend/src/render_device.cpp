@@ -149,71 +149,85 @@ namespace orion
     void RenderDevice::destroy(SwapchainHandle swapchain_handle)
     {
         destroy_api(swapchain_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed swapchain {}", swapchain_handle);
     }
 
     void RenderDevice::destroy(RenderPassHandle render_pass_handle)
     {
         destroy_api(render_pass_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed render pass {}", render_pass_handle);
     }
 
     void RenderDevice::destroy(FramebufferHandle framebuffer_handle)
     {
         destroy_api(framebuffer_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed framebuffer {}", framebuffer_handle);
     }
 
     void RenderDevice::destroy(ShaderModuleHandle shader_module_handle)
     {
         destroy_api(shader_module_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed shader module {}", shader_module_handle);
     }
 
     void RenderDevice::destroy(PipelineHandle pipeline_handle)
     {
         destroy_api(pipeline_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed pipeline {}", pipeline_handle);
     }
 
     void RenderDevice::destroy(GPUBufferHandle buffer_handle)
     {
         destroy_api(buffer_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed GPUBuffer {}", buffer_handle);
     }
 
     void RenderDevice::destroy(CommandPoolHandle command_pool_handle)
     {
         destroy_api(command_pool_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed command pool {}", command_pool_handle);
     }
 
     void RenderDevice::destroy(CommandBufferHandle command_buffer_handle)
     {
         destroy_api(command_buffer_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed command buffer {}", command_buffer_handle);
     }
 
     void RenderDevice::destroy(DescriptorPoolHandle descriptor_pool_handle)
     {
         destroy_api(descriptor_pool_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor pool {}", descriptor_pool_handle);
     }
 
     void RenderDevice::destroy(DescriptorSetHandle descriptor_set_handle)
     {
         destroy_api(descriptor_set_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor set {}", descriptor_set_handle);
     }
 
     void RenderDevice::destroy(SemaphoreHandle semaphore_handle)
     {
         destroy_api(semaphore_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed semaphore {}", semaphore_handle);
     }
 
     void RenderDevice::destroy(FenceHandle fence_handle)
     {
         destroy_api(fence_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed fence {}", fence_handle);
     }
 
     void RenderDevice::destroy(ImageHandle image_handle)
     {
         destroy_api(image_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed image {}", image_handle);
     }
 
     void RenderDevice::destroy(ImageViewHandle image_view_handle)
     {
         destroy_api(image_view_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed image view {}", image_view_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)
