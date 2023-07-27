@@ -3,6 +3,7 @@ target_sources(
         orion-renderapi PUBLIC
         FILE_SET public_headers
         FILES
+        attachment.h
         barrier.h
         buffer.h
         command.h

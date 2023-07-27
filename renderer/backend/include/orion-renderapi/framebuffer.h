@@ -1,6 +1,6 @@
 #pragma once
 
-#include "handles.h"
+#include "attachment.h"
 
 #include <orion-math/vector/vector2.h>
 
@@ -9,7 +9,7 @@
 namespace orion
 {
     struct FramebufferDesc {
-        RenderPassHandle render_pass = RenderPassHandle::invalid_handle();
+        AttachmentList attachment_list;
         std::span<const ImageViewHandle> attachments = {};
         Vector2_u size = {};
     };

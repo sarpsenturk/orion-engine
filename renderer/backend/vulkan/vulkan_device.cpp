@@ -126,6 +126,71 @@ namespace orion::vulkan
         return descriptor_set_layout;
     }
 
+    VkRenderPass VulkanDevice::create_compatible_render_pass(const AttachmentList& attachment_list) const
+    {
+        // Add all attachment counts
+        const auto attachment_count = static_cast<std::uint32_t>(attachment_list.attachment_count());
+
+        // Convert our attachment descriptions to VkAttachmentDescription's
+        auto to_attachment = [](const auto& attachment) {
+            return VkAttachmentDescription{
+                .flags = 0,
+                .format = to_vulkan_type(attachment.format),
+                .samples = VK_SAMPLE_COUNT_1_BIT,
+            };
+        };
+
+        // Insert attachments
+        std::vector<VkAttachmentDescription> attachments(attachment_count);
+        auto iter = attachments.begin();
+        iter = std::ranges::transform(attachment_list.color_attachments, iter, to_attachment).out;
+
+        // Get attachment index offsets
+        const auto color_attachment_offset = 0;
+
+        // Convert attachment
+        auto to_attachment_ref = [](std::uint32_t attachment_offset) {
+            return [index = attachment_offset](const auto&) mutable {
+                return VkAttachmentReference{
+                    .attachment = index++,
+                };
+            };
+        };
+
+        // Create attachment references
+        std::vector<VkAttachmentReference> color_attachments(attachment_list.color_attachments.size());
+        std::ranges::transform(attachment_list.color_attachments, color_attachments.begin(), to_attachment_ref(color_attachment_offset));
+
+        VkRenderPass render_pass = VK_NULL_HANDLE;
+        {
+            const auto subpass = VkSubpassDescription{
+                .flags = 0,
+                .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+                .inputAttachmentCount = 0,
+                .pInputAttachments = nullptr,
+                .colorAttachmentCount = static_cast<std::uint32_t>(color_attachments.size()),
+                .pColorAttachments = color_attachments.data(),
+                .pResolveAttachments = nullptr,
+                .pDepthStencilAttachment = nullptr,
+                .preserveAttachmentCount = 0,
+                .pPreserveAttachments = nullptr,
+            };
+            const auto info = VkRenderPassCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .attachmentCount = attachment_count,
+                .pAttachments = attachments.data(),
+                .subpassCount = 1,
+                .pSubpasses = &subpass,
+                .dependencyCount = 0,
+                .pDependencies = nullptr,
+            };
+            vk_result_check(vkCreateRenderPass(device(), &info, alloc_callbacks(), &render_pass));
+        }
+        return render_pass;
+    }
+
     SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc)
     {
         // Generate handle for swapchain and surface
@@ -277,18 +342,23 @@ namespace orion::vulkan
 
     FramebufferHandle VulkanDevice::create_framebuffer_api(const FramebufferDesc& desc)
     {
+        // Find image views
         std::vector<VkImageView> image_views(desc.attachments.size());
         std::ranges::transform(desc.attachments, image_views.begin(), [this](auto handle) {
             return image_views_.handle_at(handle);
         });
 
+        // Create temporary compatible render pass
+        VkRenderPass render_pass = create_compatible_render_pass(desc.attachment_list);
+
+        // Create framebuffer
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
         {
             const auto info = VkFramebufferCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = render_passes_.handle_at(desc.render_pass),
+                .renderPass = render_pass,
                 .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
                 .pAttachments = image_views.data(),
                 .width = desc.size.x(),
@@ -298,6 +368,9 @@ namespace orion::vulkan
             vk_result_check(vkCreateFramebuffer(device(), &info, alloc_callbacks(), &framebuffer));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkFramebuffer {}", fmt::ptr(framebuffer));
         }
+
+        // Destroy temporary render pass
+        vkDestroyRenderPass(device(), render_pass, alloc_callbacks());
 
         const auto handle = FramebufferHandle::generate();
         framebuffers_.add(handle, unique(framebuffer, device()));
@@ -520,8 +593,8 @@ namespace orion::vulkan
             };
         }();
 
-        // Find associated render pass
-        VkRenderPass render_pass = render_passes_.handle_at(desc.render_pass);
+        // Create temporary compatible render pass
+        VkRenderPass render_pass = create_compatible_render_pass(desc.attachment_list);
 
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
@@ -550,6 +623,9 @@ namespace orion::vulkan
             vk_result_check(vkCreateGraphicsPipelines(device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkPipeline {}", fmt::ptr(pipeline));
         }
+
+        // Destroy temporary render pass
+        vkDestroyRenderPass(device(), render_pass, alloc_callbacks());
 
         pipelines_.add(handle, unique(pipeline, device()));
         return handle;
@@ -958,13 +1034,16 @@ namespace orion::vulkan
             return image_views_.handle_at(handle);
         });
 
+        // Create temporary compatible render pass
+        VkRenderPass render_pass = create_compatible_render_pass(desc.attachment_list);
+
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
         {
             const auto info = VkFramebufferCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = render_passes_.handle_at(desc.render_pass),
+                .renderPass = render_pass,
                 .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
                 .pAttachments = image_views.data(),
                 .width = desc.size.x(),
@@ -974,6 +1053,9 @@ namespace orion::vulkan
             vk_result_check(vkCreateFramebuffer(device(), &info, alloc_callbacks(), &framebuffer));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkFramebuffer {}", fmt::ptr(framebuffer));
         }
+
+        // Destroy temporary render pass
+        vkDestroyRenderPass(device(), render_pass, alloc_callbacks());
 
         framebuffers_.add_or_assign(framebuffer_handle, unique(framebuffer, device()));
     }

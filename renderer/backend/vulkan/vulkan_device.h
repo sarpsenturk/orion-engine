@@ -46,6 +46,8 @@ namespace orion::vulkan
         VkDescriptorSetLayout make_descriptor_set_layout(const DescriptorSetLayout& layout);
         [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(std::span<const DescriptorBinding> bindings) const;
 
+        [[nodiscard]] VkRenderPass create_compatible_render_pass(const AttachmentList& attachments) const;
+
         // Interface Overrides
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;

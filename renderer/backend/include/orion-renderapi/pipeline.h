@@ -1,8 +1,8 @@
 #pragma once
 
+#include "attachment.h"
 #include "descriptor.h"
 #include "handles.h"
-#include "render_pass.h"
 #include "shader.h"
 #include "types.h"
 
@@ -77,6 +77,6 @@ namespace orion
         std::span<const DescriptorSetLayout> descriptor_layouts = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
-        RenderPassHandle render_pass;
+        AttachmentList attachment_list;
     };
 } // namespace orion
