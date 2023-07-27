@@ -17,22 +17,8 @@ class SandboxApp : public orion::Application
 public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
-        , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size})
+        , renderer_({.device_select_fn = orion::device_select_discrete})
     {
-        // Log mouse events
-        window_.mouse().on_move().subscribe([this](const auto& move) {
-            SPDLOG_LOGGER_TRACE(logger(), "{}", move);
-        });
-        window_.mouse().on_button_down().subscribe([this](const auto& button_down) {
-            SPDLOG_LOGGER_TRACE(logger(), "{}", button_down);
-        });
-        window_.mouse().on_button_up().subscribe([this](const auto& button_up) {
-            SPDLOG_LOGGER_TRACE(logger(), "{}", button_up);
-        });
-        window_.mouse().on_scroll().subscribe([this](const auto& scroll) {
-            SPDLOG_LOGGER_TRACE(logger(), "{}", scroll);
-        });
-
         // Get device from renderer
         auto* device = renderer_.device();
 
@@ -49,19 +35,13 @@ public:
 
         // Handle window resize
         window_.on_resize_end().subscribe([device, this](const auto& resize) {
-            // Recreate swapchain
-            {
-                const auto desc = orion::SwapchainDesc{
-                    .image_count = swapchain_image_count,
-                    .image_format = swapchain_image_format,
-                    .image_size = resize.size,
-                    .image_usage = swapchain_image_usage,
-                };
-                device->recreate(swapchain_, desc);
-            }
-
-            // Resize renderer images
-            renderer_.resize_images(resize.size);
+            const auto desc = orion::SwapchainDesc{
+                .image_count = swapchain_image_count,
+                .image_format = swapchain_image_format,
+                .image_size = resize.size,
+                .image_usage = swapchain_image_usage,
+            };
+            device->recreate(swapchain_, desc);
         });
     }
 
@@ -73,11 +53,6 @@ private:
 
     void on_user_render() override
     {
-        renderer_.begin_frame();
-
-        renderer_.end_frame();
-
-        renderer_.present(swapchain_);
     }
 
     [[nodiscard]] bool user_should_exit() const noexcept override

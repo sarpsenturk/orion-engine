@@ -105,8 +105,8 @@ namespace orion::vulkan
 
         void compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet);
         void cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data);
-        void cmd_begin_frame(VkCommandBuffer command_buffer, const void* data);
-        void cmd_end_frame(VkCommandBuffer command_buffer, const void* data);
+        void cmd_begin_render_pass(VkCommandBuffer command_buffer, const void* data);
+        void cmd_end_render_pass(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data);
         void cmd_bind_descriptor_sets(VkCommandBuffer command_buffer, const void* data);

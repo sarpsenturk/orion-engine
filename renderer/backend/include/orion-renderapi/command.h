@@ -123,7 +123,7 @@ namespace orion
         std::size_t size = 0;
     };
 
-    DEFINE_COMMAND(BeginFrame, Graphics)
+    DEFINE_COMMAND(BeginRenderPass, Graphics)
     {
         RenderPassHandle render_pass = RenderPassHandle::invalid_handle();
         FramebufferHandle framebuffer = FramebufferHandle::invalid_handle();
@@ -131,7 +131,7 @@ namespace orion
         Vector4_f clear_color = {};
     };
 
-    DEFINE_COMMAND(EndFrame, Graphics){};
+    DEFINE_COMMAND(EndRenderPass, Graphics){};
 
     DEFINE_COMMAND(Draw, Graphics)
     {

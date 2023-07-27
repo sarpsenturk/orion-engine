@@ -1270,11 +1270,11 @@ namespace orion::vulkan
             case CommandType::BufferCopy:
                 cmd_buffer_copy(command_buffer, command_packet.data);
                 break;
-            case CommandType::BeginFrame:
-                cmd_begin_frame(command_buffer, command_packet.data);
+            case CommandType::BeginRenderPass:
+                cmd_begin_render_pass(command_buffer, command_packet.data);
                 break;
-            case CommandType::EndFrame:
-                cmd_end_frame(command_buffer, command_packet.data);
+            case CommandType::EndRenderPass:
+                cmd_end_render_pass(command_buffer, command_packet.data);
                 break;
             case CommandType::Draw:
                 cmd_draw(command_buffer, command_packet.data);
@@ -1320,9 +1320,9 @@ namespace orion::vulkan
             static_cast<std::uint32_t>(regions.size()), regions.data());
     }
 
-    void VulkanDevice::cmd_begin_frame(VkCommandBuffer command_buffer, const void* data)
+    void VulkanDevice::cmd_begin_render_pass(VkCommandBuffer command_buffer, const void* data)
     {
-        const auto* cmd_data = static_cast<const CmdBeginFrame*>(data);
+        const auto* cmd_data = static_cast<const CmdBeginRenderPass*>(data);
 
         // Find render pass
         VkRenderPass render_pass = render_passes_.handle_at(cmd_data->render_pass);
@@ -1347,7 +1347,7 @@ namespace orion::vulkan
         vkCmdBeginRenderPass(command_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
     }
 
-    void VulkanDevice::cmd_end_frame(VkCommandBuffer command_buffer, const void* data)
+    void VulkanDevice::cmd_end_render_pass(VkCommandBuffer command_buffer, const void* data)
     {
         (void)data;
         vkCmdEndRenderPass(command_buffer);

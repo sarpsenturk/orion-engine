@@ -153,8 +153,8 @@ namespace orion
 
     enum class CommandType {
         BufferCopy,
-        BeginFrame,
-        EndFrame,
+        BeginRenderPass,
+        EndRenderPass,
         Draw,
         DrawIndexed,
         BindDescriptorSets,
