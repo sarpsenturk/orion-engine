@@ -197,12 +197,7 @@ namespace orion::vulkan
         auto handle = SwapchainHandle::generate();
 
         // Create the surface
-        VkSurfaceKHR surface = VK_NULL_HANDLE;
-        {
-            auto unique_surface = create_surface(instance_, window);
-            surface = unique_surface.get();
-            surfaces_.add(handle, std::move(unique_surface));
-        }
+        auto surface = create_surface(instance_, window);
 
         // Chose present mode TODO: Allow user to select this
         const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
@@ -214,9 +209,9 @@ namespace orion::vulkan
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;
         {
             // Get the surface capabilities
-            const auto surface_capabilities = [physical_device = physical_device_, surface]() {
+            const auto surface_capabilities = [physical_device = physical_device_, &surface]() {
                 VkSurfaceCapabilitiesKHR surface_capabilities;
-                vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities));
+                vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface.get(), &surface_capabilities));
                 return surface_capabilities;
             }();
 
@@ -233,7 +228,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                 .pNext = nullptr,
                 .flags = 0,
-                .surface = surface,
+                .surface = surface.get(),
                 .minImageCount = desc.image_count,
                 .imageFormat = format,
                 .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
@@ -267,7 +262,7 @@ namespace orion::vulkan
             }
         }
 
-        swapchains_.add(handle, unique(swapchain, device()), {image_handles});
+        swapchains_.add(handle, unique(swapchain, device()), {std::move(surface), image_handles});
         return handle;
     }
 
@@ -897,7 +892,7 @@ namespace orion::vulkan
         const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
         // Get surface
-        VkSurfaceKHR surface = surfaces_.handle_at(swapchain_handle);
+        VkSurfaceKHR surface = swapchain_resource.data.surface.get();
 
         // Recreate swapchain
         VkSwapchainKHR new_swapchain = VK_NULL_HANDLE;
@@ -1063,7 +1058,6 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
     {
         swapchains_.remove(swapchain_handle);
-        surfaces_.remove(swapchain_handle);
     }
 
     void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
