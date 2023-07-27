@@ -8,9 +8,9 @@
 
 namespace orion::vulkan
 {
-    UniqueVkSurfaceKHR create_surface(VkInstance instance, const Window& window)
+    UniqueVkSurfaceKHR create_surface(VkInstance instance, const Window* window)
     {
-        auto* platform_window = window.platform_window();
+        auto* platform_window = window->platform_window();
         const VkWin32SurfaceCreateInfoKHR info{
             .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
             .pNext = nullptr,

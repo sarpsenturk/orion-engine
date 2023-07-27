@@ -21,5 +21,5 @@ namespace orion::vulkan
         }
     }
 
-    UniqueVkSurfaceKHR create_surface(VkInstance instance, const Window& window);
+    UniqueVkSurfaceKHR create_surface(VkInstance instance, const Window* window);
 } // namespace orion::vulkan

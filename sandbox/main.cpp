@@ -25,12 +25,13 @@ public:
         // Create swapchain
         {
             const auto desc = orion::SwapchainDesc{
+                .window = &window_,
                 .image_count = swapchain_image_count,
                 .image_format = swapchain_image_format,
                 .image_size = window_.size(),
                 .image_usage = swapchain_image_usage,
             };
-            swapchain_ = device->create_swapchain(window_, desc);
+            swapchain_ = device->create_swapchain(desc);
         }
 
         // Handle window resize

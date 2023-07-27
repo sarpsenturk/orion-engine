@@ -20,7 +20,6 @@
 namespace orion
 {
     // Forward declarations
-    class Window;
     class RenderDevice;
 
     struct SubmitDesc {
@@ -47,14 +46,14 @@ namespace orion
         std::atomic_size_t ref_count_ = 1;
     };
 
-    template<typename HandleType>
+    template<typename Tag>
     class DeviceResource
     {
     public:
-        using handle_type = HandleType;
+        using handle_type = Handle<Tag>;
 
         DeviceResource() = default;
-        DeviceResource(handle_type handle, RenderDevice* device)
+        DeviceResource(RenderDevice* device, handle_type handle)
             : handle_(handle)
             , control_block_(new DeviceResourceControlBlock(device))
         {
@@ -92,27 +91,33 @@ namespace orion
         ~DeviceResource()
         {
             if (control_block_->remove_ref() == 0) {
+                // TODO: This is a hack and not performant AT ALL!
+                //  It will block the CPU until there's ZERO work being done
+                //  on the GPU. This should probably be handled by the backends
+                //  if they require manual synchronization of resources
+                //  using some sort of deferred destruction.
+                control_block_->device()->wait_idle();
                 control_block_->device()->destroy(handle_);
                 delete control_block_;
             }
         }
 
-        [[nodiscard]] HandleType get() const noexcept { return handle_; }
+        [[nodiscard]] handle_type get() const noexcept { return handle_; }
 
     private:
         handle_type handle_;
         DeviceResourceControlBlock* control_block_ = nullptr;
     };
 
-    using SwapchainResource = DeviceResource<SwapchainHandle>;
-    using RenderPassResource = DeviceResource<RenderPassHandle>;
-    using ShaderResource = DeviceResource<ShaderModuleHandle>;
-    using PipelineResource = DeviceResource<PipelineHandle>;
-    using GPUBufferResource = DeviceResource<GPUBufferHandle>;
-    using CommandPoolResource = DeviceResource<CommandPoolHandle>;
-    using CommandBufferResource = DeviceResource<CommandBufferHandle>;
-    using DescriptorPoolResource = DeviceResource<DescriptorPoolHandle>;
-    using DescriptorSetResource = DeviceResource<DescriptorSetHandle>;
+    using SwapchainResource = DeviceResource<SwapchainHandle_tag>;
+    using RenderPassResource = DeviceResource<RenderPassHandle_tag>;
+    using ShaderResource = DeviceResource<ShaderModuleHandle_tag>;
+    using PipelineResource = DeviceResource<PipelineHandle_tag>;
+    using GPUBufferResource = DeviceResource<GPUBufferHandle_tag>;
+    using CommandPoolResource = DeviceResource<CommandPoolHandle_tag>;
+    using CommandBufferResource = DeviceResource<CommandBufferHandle_tag>;
+    using DescriptorPoolResource = DeviceResource<DescriptorPoolHandle_tag>;
+    using DescriptorSetResource = DeviceResource<DescriptorSetHandle_tag>;
 
     class RenderDevice
     {
@@ -120,13 +125,7 @@ namespace orion
         explicit RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
 
-        template<typename Handle>
-        auto make_resource(Handle handle)
-        {
-            return DeviceResource(handle, this);
-        }
-
-        [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, const SwapchainDesc& desc);
+        [[nodiscard]] SwapchainHandle create_swapchain(const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
         [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
@@ -192,7 +191,7 @@ namespace orion
         RenderDevice& operator=(RenderDevice&&) noexcept = default;
 
     private:
-        [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) = 0;
+        [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const SwapchainDesc& desc) = 0;
         [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
         [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;

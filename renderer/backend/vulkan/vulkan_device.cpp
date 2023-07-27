@@ -191,13 +191,13 @@ namespace orion::vulkan
         return render_pass;
     }
 
-    SwapchainHandle VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc)
+    SwapchainHandle VulkanDevice::create_swapchain_api(const SwapchainDesc& desc)
     {
         // Generate handle for swapchain and surface
         auto handle = SwapchainHandle::generate();
 
         // Create the surface
-        auto surface = create_surface(instance_, window);
+        auto surface = create_surface(instance_, desc.window);
 
         // Chose present mode TODO: Allow user to select this
         const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;

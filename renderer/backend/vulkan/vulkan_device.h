@@ -50,7 +50,7 @@ namespace orion::vulkan
         [[nodiscard]] VkRenderPass create_compatible_render_pass(const AttachmentList& attachments) const;
 
         // Interface Overrides
-        SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
+        SwapchainHandle create_swapchain_api(const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
