@@ -38,6 +38,49 @@ namespace orion
                     registered = true;
                 }
             }
+
+            auto window_size(LPARAM lparam) -> WindowSize
+            {
+                return {LOWORD(lparam), HIWORD(lparam)};
+            };
+            auto window_position(LPARAM lparam) -> WindowPosition
+            {
+                return {LOWORD(lparam), HIWORD(lparam)};
+            };
+            auto mouse_position(LPARAM lparam) -> MousePosition
+            {
+                return {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+            };
+            auto wheel_delta(WPARAM wparam) -> int
+            {
+                return GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
+            };
+            auto x_button(WPARAM wparam) -> MouseButton
+            {
+                const auto button = GET_XBUTTON_WPARAM(wparam);
+                const auto offset = button - XBUTTON1;
+                return static_cast<MouseButton>(to_underlying(MouseButton::X1) + offset);
+            };
+            auto mouse_button(UINT msg, WPARAM wparam) -> MouseButton
+            {
+                switch (msg) {
+                    case WM_LBUTTONDOWN:
+                    case WM_LBUTTONUP:
+                        return MouseButton::Left;
+                    case WM_MBUTTONDOWN:
+                    case WM_MBUTTONUP:
+                        return MouseButton::Middle;
+                    case WM_RBUTTONDOWN:
+                    case WM_RBUTTONUP:
+                        return MouseButton::Right;
+                    case WM_XBUTTONDOWN:
+                    case WM_XBUTTONUP:
+                        return x_button(wparam);
+                    default:
+                        break;
+                }
+                return {};
+            }
         } // namespace
 
         PlatformWindow* create_window(Window* this_ptr, const WindowCreateInfo& window_create_info)
@@ -128,25 +171,6 @@ namespace orion
                 return DefWindowProc(hwnd, msg, wparam, lparam);
             }
 
-            // Helper lambdas
-            static constexpr auto window_size = [](LPARAM lparam) -> WindowSize {
-                return {LOWORD(lparam), HIWORD(lparam)};
-            };
-            static constexpr auto window_position = [](LPARAM lparam) -> WindowPosition {
-                return {LOWORD(lparam), HIWORD(lparam)};
-            };
-            static constexpr auto mouse_position = [](LPARAM lparam) -> MousePosition {
-                return {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-            };
-            static constexpr auto wheel_delta = [](WPARAM wparam) -> int {
-                return GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
-            };
-            static constexpr auto x_button = [](WPARAM wparam) -> MouseButton {
-                const auto button = GET_XBUTTON_WPARAM(wparam);
-                const auto offset = button - XBUTTON1;
-                return static_cast<MouseButton>(to_underlying(MouseButton::X1) + offset);
-            };
-
             // Windows message handler
             switch (msg) {
                 case WM_CLOSE:
@@ -160,16 +184,16 @@ namespace orion
                     // WM_EXITSIZEMOVE is not sent after SIZE_MINIMIZED & SIZE_MAXIMIZED
                     switch (wparam) {
                         case SIZE_MINIMIZED:
-                            window->on_resize_end().invoke({window->size()});
+                            window->on_resize_end().invoke({.size = window->size()});
                             window->on_minimize().invoke({});
                             break;
                         case SIZE_MAXIMIZED:
-                            window->on_resize_end().invoke({window->size()});
+                            window->on_resize_end().invoke({.size = window->size()});
                             window->on_maximize().invoke({});
                             break;
                         case SIZE_RESTORED:
                             if (window->is_maximized() || window->is_minimized()) {
-                                window->on_resize_end().invoke({window->size()});
+                                window->on_resize_end().invoke({.size = window->size()});
                             }
                             window->on_restore().invoke({});
                             break;
@@ -178,14 +202,14 @@ namespace orion
                     }
                     return 0;
                 case WM_MOVE:
-                    window->on_move().invoke({window_position(lparam)});
+                    window->on_move().invoke({.position = window_position(lparam)});
                     return 0;
                 case WM_EXITSIZEMOVE:
                     if (window->is_resizing()) {
-                        window->on_resize_end().invoke({window->size()});
+                        window->on_resize_end().invoke({.size = window->size()});
                     }
                     if (window->is_moving()) {
-                        window->on_move_end().invoke({window->position()});
+                        window->on_move_end().invoke({.position = window->position()});
                     }
                     return 0;
                 case WM_KEYDOWN:
@@ -200,22 +224,16 @@ namespace orion
                     window->keyboard().on_key_release().invoke({.key = win32_vk_to_keycode(wparam)});
                     return 0;
                 case WM_LBUTTONDOWN:
-                    window->mouse().on_button_down().invoke({.button = MouseButton::Left, .position = mouse_position(lparam)});
+                case WM_MBUTTONDOWN:
+                case WM_RBUTTONDOWN:
+                case WM_XBUTTONDOWN:
+                    window->mouse().on_button_down().invoke({.button = mouse_button(msg, wparam), .position = mouse_position(lparam)});
                     return 0;
                 case WM_LBUTTONUP:
-                    window->mouse().on_button_up().invoke({.button = MouseButton::Left, .position = mouse_position(lparam)});
-                    return 0;
-                case WM_MBUTTONDOWN:
-                    window->mouse().on_button_down().invoke({.button = MouseButton::Middle, .position = mouse_position(lparam)});
-                    return 0;
                 case WM_MBUTTONUP:
-                    window->mouse().on_button_up().invoke({.button = MouseButton::Middle, .position = mouse_position(lparam)});
-                    return 0;
-                case WM_RBUTTONDOWN:
-                    window->mouse().on_button_down().invoke({.button = MouseButton::Right, .position = mouse_position(lparam)});
-                    return 0;
                 case WM_RBUTTONUP:
-                    window->mouse().on_button_up().invoke({.button = MouseButton::Right, .position = mouse_position(lparam)});
+                case WM_XBUTTONUP:
+                    window->mouse().on_button_up().invoke({.button = mouse_button(msg, wparam), .position = mouse_position(lparam)});
                     return 0;
                 case WM_MOUSEMOVE:
                     window->mouse().on_move().invoke({.position = mouse_position(lparam)});
@@ -224,12 +242,6 @@ namespace orion
                     // TODO: Convert screen coordinates to client coordinates
                     //  See: https://stackoverflow.com/questions/29915639/why-get-x-lparam-does-return-an-absolute-position-on-mouse-wheel
                     window->mouse().on_scroll().invoke({.delta = wheel_delta(wparam), .position = mouse_position(lparam)});
-                    return 0;
-                case WM_XBUTTONDOWN:
-                    window->mouse().on_button_down().invoke({.button = x_button(wparam), .position = mouse_position(lparam)});
-                    return 0;
-                case WM_XBUTTONUP:
-                    window->mouse().on_button_up().invoke({.button = x_button(wparam), .position = mouse_position(lparam)});
                     return 0;
                 default:
                     break;
