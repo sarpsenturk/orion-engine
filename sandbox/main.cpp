@@ -2,6 +2,7 @@
 
 #include <orion-core/window.h>
 
+#include <imgui.h>
 #include <orion-renderer/renderer.h>
 
 #include <orion-math/vector/vector3.h>
@@ -12,12 +13,12 @@
 #include <algorithm>
 #include <array>
 
-class SandboxApp : public orion::Application
+class SandboxApp final : public orion::Application
 {
 public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
-        , renderer_({.device_select_fn = orion::device_select_discrete})
+        , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size, .clear_color = {1.f, 0.f, 1.f, 1.f}})
     {
         create_surface();
         create_swapchain();
@@ -25,6 +26,14 @@ public:
         window_.on_resize_end() += ([this](const auto&) {
             create_swapchain();
         });
+
+        // Initialize imgui
+        renderer_.imgui_init(&window_);
+    }
+
+    ~SandboxApp() override
+    {
+        renderer_.imgui_shutdown();
     }
 
 private:
@@ -35,6 +44,22 @@ private:
 
     void on_user_render() override
     {
+        // Begin new frame
+        renderer_.begin();
+
+        // Begin imgui frame
+        renderer_.imgui_begin();
+
+        ImGui::ShowDemoWindow();
+
+        // End imgui frame
+        renderer_.imgui_render();
+
+        // End frame
+        renderer_.end();
+
+        // Present renderer image to swapchain
+        renderer_.present(swapchain_);
     }
 
     [[nodiscard]] bool user_should_exit() const noexcept override
@@ -44,19 +69,20 @@ private:
 
     void create_surface()
     {
-        surface_ = renderer_.device()->make_unique(orion::SurfaceHandle_tag{}, window_);
+        surface_ = renderer_.device()->create_surface(window_);
     }
 
     void create_swapchain()
     {
+        renderer_.device()->destroy(swapchain_);
         const auto desc = orion::SwapchainDesc{
-            .surface = surface_.get(),
+            .surface = surface_,
             .image_count = swapchain_image_count,
             .image_format = swapchain_image_format,
             .image_size = window_.size(),
             .image_usage = swapchain_image_usage,
         };
-        swapchain_ = renderer_.device()->make_unique(orion::SwapchainHandle_tag{}, desc);
+        swapchain_ = renderer_.device()->create_swapchain(desc);
     }
 
     static constexpr auto window_position = orion::WindowPosition{400, 200};
@@ -68,8 +94,8 @@ private:
 
     orion::Window window_;
     orion::Renderer renderer_;
-    orion::UniqueSurface surface_;
-    orion::UniqueSwapchain swapchain_;
+    orion::SurfaceHandle surface_;
+    orion::SwapchainHandle swapchain_;
 };
 
 ORION_MAIN(args)

@@ -8,6 +8,7 @@ target_sources(
         bitflag.h
         functors.h
         hash.h
+        overload.h
         static_vector.h
         type.h
         uninitialized.h

@@ -69,6 +69,8 @@ namespace orion
         explicit RenderDevice(spdlog::logger* logger);
         virtual ~RenderDevice() = default;
 
+        [[nodiscard]] virtual ShaderObjectType shader_object_type() const noexcept = 0;
+
         [[nodiscard]] SurfaceHandle create_surface(const Window& window);
         [[nodiscard]] SwapchainHandle create_swapchain(const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
@@ -140,7 +142,7 @@ namespace orion
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
-        void update_descriptors(const DescriptorUpdate& update);
+        void bind_descriptor(const DescriptorBufferBinding& binding);
 
         std::uint32_t acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence);
         ImageHandle get_swapchain_image(SwapchainHandle swapchain, std::uint32_t image_index);
@@ -202,7 +204,7 @@ namespace orion
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 
-        virtual void update_descriptors_api(const DescriptorUpdate& update) = 0;
+        virtual void bind_descriptor_api(const DescriptorBufferBinding& binding) = 0;
 
         virtual std::uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) = 0;
         virtual ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) = 0;

@@ -1,0 +1,17 @@
+#pragma once
+
+#include <orion-math/vector/vector2.h>
+#include <orion-math/vector/vector4.h>
+
+#define IM_VEC2_CLASS_EXTRA \
+    template<typename T>\
+    constexpr ImVec2(const ::orion::Vector2_t<T>& vec2) : x(static_cast<float>(vec2.x())), y(static_cast<float>(vec2.y())) {}
+
+#define IM_VEC4_CLASS_EXTRA\
+    template<typename T>\
+    constexpr ImVec4(const ::orion::Vector4_t<T>& vec4) \
+        : x(static_cast<float>(vec4.x()))\
+        , y(static_cast<float>(vec4.y()))\
+        , z(static_cast<float>(vec4.z()))\
+        , w(static_cast<float>(vec4.w()))\
+        {}

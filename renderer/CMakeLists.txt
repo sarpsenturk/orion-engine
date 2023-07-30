@@ -30,6 +30,7 @@ target_link_libraries(
         orion::math
         orion::utils
         orion::renderapi
+        imgui
         PRIVATE
         Microsoft::DirectXShaderCompiler
 )

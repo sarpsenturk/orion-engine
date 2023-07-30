@@ -9,11 +9,12 @@ namespace orion
     template<typename T>
     class EventDispatcher;
 
+    using handler_index = std::int64_t;
+
     template<typename Return, typename Event>
     class EventDispatcher<Return(Event)>
     {
     public:
-        using handler_index = std::int64_t;
         using handler_function = std::function<Return(Event)>;
 
         void invoke(const Event& event) const

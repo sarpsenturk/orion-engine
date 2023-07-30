@@ -10,7 +10,7 @@ namespace orion
 {
     struct FramebufferDesc {
         AttachmentList attachment_list;
-        std::span<const ImageViewHandle> attachments = {};
+        std::span<const ImageViewHandle> image_views = {};
         Vector2_u size = {};
     };
 } // namespace orion

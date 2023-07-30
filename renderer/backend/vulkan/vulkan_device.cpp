@@ -3,8 +3,9 @@
 #include "vulkan_conversion.h"
 #include "vulkan_platform.h"
 
-#include <orion-utils/assertion.h>
-#include <orion-utils/static_vector.h>
+#include "orion-utils/assertion.h"
+#include "orion-utils/overload.h"
+#include "orion-utils/static_vector.h"
 
 #include <numeric>
 #include <ranges>
@@ -126,7 +127,7 @@ namespace orion::vulkan
         return descriptor_set_layout;
     }
 
-    VkRenderPass VulkanDevice::create_compatible_render_pass(const AttachmentList& attachment_list) const
+    VkRenderPass VulkanDevice::create_vkrender_pass(const AttachmentList& attachment_list) const
     {
         // Add all attachment counts
         const auto attachment_count = static_cast<std::uint32_t>(attachment_list.attachment_count());
@@ -137,6 +138,12 @@ namespace orion::vulkan
                 .flags = 0,
                 .format = to_vulkan_type(attachment.format),
                 .samples = VK_SAMPLE_COUNT_1_BIT,
+                .loadOp = to_vulkan_type(attachment.load_op),
+                .storeOp = to_vulkan_type(attachment.store_op),
+                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout = to_vulkan_type(attachment.initial_layout),
+                .finalLayout = to_vulkan_type(attachment.final_layout),
             };
         };
 
@@ -150,9 +157,10 @@ namespace orion::vulkan
 
         // Convert attachment
         auto to_attachment_ref = [](std::uint32_t attachment_offset) {
-            return [index = attachment_offset](const auto&) mutable {
+            return [index = attachment_offset](const auto& attachment) mutable {
                 return VkAttachmentReference{
                     .attachment = index++,
+                    .layout = to_vulkan_type(attachment.layout),
                 };
             };
         };
@@ -161,6 +169,7 @@ namespace orion::vulkan
         std::vector<VkAttachmentReference> color_attachments(attachment_list.color_attachments.size());
         std::ranges::transform(attachment_list.color_attachments, color_attachments.begin(), to_attachment_ref(color_attachment_offset));
 
+        // Create render pass
         VkRenderPass render_pass = VK_NULL_HANDLE;
         {
             const auto subpass = VkSubpassDescription{
@@ -187,6 +196,7 @@ namespace orion::vulkan
                 .pDependencies = nullptr,
             };
             vk_result_check(vkCreateRenderPass(device(), &info, alloc_callbacks(), &render_pass));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
         }
         return render_pass;
     }
@@ -276,67 +286,7 @@ namespace orion::vulkan
 
     RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
     {
-        std::vector<VkAttachmentDescription> attachments;
-        auto to_vulkan_attachments = [&attachments, attachment_index = 0u](auto input) mutable {
-            // Reserve space for new attachment descriptions
-            attachments.reserve(attachments.size() + input.size());
-
-            // Return new attachment references
-            std::vector<VkAttachmentReference> attachment_refs;
-            attachment_refs.reserve(input.size());
-            for (const auto& attachment : input) {
-                // Create new VkAttachmentDescription
-                attachments.push_back({
-                    .flags = 0,
-                    .format = to_vulkan_type(attachment.format),
-                    .samples = VK_SAMPLE_COUNT_1_BIT,
-                    .loadOp = to_vulkan_type(attachment.load_op),
-                    .storeOp = to_vulkan_type(attachment.store_op),
-                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .initialLayout = to_vulkan_type(attachment.initial_layout),
-                    .finalLayout = to_vulkan_type(attachment.final_layout),
-                });
-                // Create new VkAttachmentReference
-                attachment_refs.push_back({
-                    .attachment = attachment_index++,
-                    .layout = to_vulkan_type(attachment.layout),
-                });
-            }
-            return attachment_refs;
-        };
-
-        // Attachment references for subpass
-        const auto color_attachments = to_vulkan_attachments(desc.color_attachments);
-
-        // Create render pass
-        VkRenderPass render_pass = VK_NULL_HANDLE;
-        {
-            const VkSubpassDescription subpass{
-                .flags = 0,
-                .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                .inputAttachmentCount = 0,
-                .pInputAttachments = nullptr,
-                .colorAttachmentCount = static_cast<std::uint32_t>(color_attachments.size()),
-                .pColorAttachments = color_attachments.data(),
-                .pResolveAttachments = nullptr,
-                .pDepthStencilAttachment = nullptr,
-                .preserveAttachmentCount = 0,
-                .pPreserveAttachments = nullptr,
-            };
-
-            const VkRenderPassCreateInfo info{
-                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .attachmentCount = static_cast<std::uint32_t>(attachments.size()),
-                .pAttachments = attachments.data(),
-                .subpassCount = 1,
-                .pSubpasses = &subpass,
-            };
-            vk_result_check(vkCreateRenderPass(device_.get(), &info, alloc_callbacks(), &render_pass));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
-        }
+        VkRenderPass render_pass = create_vkrender_pass(desc.attachments);
 
         auto handle = RenderPassHandle::generate();
         render_passes_.add(handle, unique(render_pass, device()));
@@ -346,13 +296,13 @@ namespace orion::vulkan
     FramebufferHandle VulkanDevice::create_framebuffer_api(const FramebufferDesc& desc)
     {
         // Find image views
-        std::vector<VkImageView> image_views(desc.attachments.size());
-        std::ranges::transform(desc.attachments, image_views.begin(), [this](auto handle) {
+        std::vector<VkImageView> image_views(desc.image_views.size());
+        std::ranges::transform(desc.image_views, image_views.begin(), [this](auto handle) {
             return image_views_.handle_at(handle);
         });
 
         // Create temporary compatible render pass
-        VkRenderPass render_pass = create_compatible_render_pass(desc.attachment_list);
+        VkRenderPass render_pass = create_vkrender_pass(desc.attachment_list);
 
         // Create framebuffer
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
@@ -597,7 +547,7 @@ namespace orion::vulkan
         }();
 
         // Create temporary compatible render pass
-        VkRenderPass render_pass = create_compatible_render_pass(desc.attachment_list);
+        VkRenderPass render_pass = create_vkrender_pass(desc.attachment_list);
 
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
@@ -1099,54 +1049,26 @@ namespace orion::vulkan
         vk_result_check(vkDeviceWaitIdle(device()));
     }
 
-    void VulkanDevice::update_descriptors_api(const DescriptorUpdate& update)
+    void VulkanDevice::bind_descriptor_api(const DescriptorBufferBinding& binding)
     {
-        const auto descriptor_buffer_infos = [writes = update.writes, this]() {
-            std::vector<VkDescriptorBufferInfo> descriptor_buffer_infos;
-            auto buffer_writes =
-                std::ranges::views::filter(writes, [](const auto& write) { return !write.buffers.empty(); }) |
-                std::ranges::views::transform([](const auto& write) { return write.buffers; }) |
-                std::ranges::views::join;
-            for (const auto& buffer_write : buffer_writes) {
-                descriptor_buffer_infos.push_back({
-                    .buffer = buffers_.handle_at(buffer_write.buffer),
-                    .offset = buffer_write.offset,
-                    .range = buffer_write.range,
-                });
-            }
-            return descriptor_buffer_infos;
-        }();
-
-        const auto descriptor_writes = [writes = update.writes, &descriptor_buffer_infos, this]() {
-            std::vector<VkWriteDescriptorSet> descriptor_writes;
-            descriptor_writes.reserve(writes.size());
-
-            std::uint32_t buffers_index = 0;
-            for (const auto& write : writes) {
-                const auto buffers_count = static_cast<std::uint32_t>(write.buffers.size());
-                buffers_index += buffers_count;
-                const auto buffers_begin = std::next(descriptor_buffer_infos.begin(), buffers_index);
-
-                const auto count = buffers_count;
-                descriptor_writes.push_back({
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = nullptr,
-                    .dstSet = descriptor_sets_.handle_at(write.descriptor_set),
-                    .dstBinding = write.binding,
-                    .descriptorCount = count,
-                    .descriptorType = to_vulkan_type(write.descriptor_type),
-                    .pImageInfo = nullptr,
-                    .pBufferInfo = buffers_count > 0 ? std::addressof(*buffers_begin) : nullptr,
-                    .pTexelBufferView = nullptr,
-                });
-            }
-            return descriptor_writes;
-        }();
-
-        vkUpdateDescriptorSets(
-            device(),
-            static_cast<std::uint32_t>(descriptor_writes.size()), descriptor_writes.data(), // Descriptor writes
-            0, nullptr);                                                                    // Descriptor copies
+        const auto buffer_write = VkDescriptorBufferInfo{
+            .buffer = buffers_.handle_at(binding.buffer),
+            .offset = binding.offset,
+            .range = binding.size,
+        };
+        const auto descriptor_write = VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = descriptor_sets_.handle_at(binding.dst_set),
+            .dstBinding = binding.index,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = to_vulkan_type(binding.descriptor_type),
+            .pImageInfo = nullptr,
+            .pBufferInfo = &buffer_write,
+            .pTexelBufferView = nullptr,
+        };
+        vkUpdateDescriptorSets(device(), 1, &descriptor_write, 0, nullptr);
     }
 
     uint32_t VulkanDevice::acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)
@@ -1272,6 +1194,17 @@ namespace orion::vulkan
         VkPipeline pipeline = pipelines_.handle_at(cmd_data->graphics_pipeline);
         vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+        // Set viewport
+        const auto viewport = to_vulkan_viewport(cmd_data->viewport);
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+        // Set scissor
+        const auto scissor = VkRect2D{
+            .offset = {},
+            .extent = to_vulkan_extent(cmd_data->viewport.size),
+        };
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
         // Find and bind vertex buffer
         VkBuffer vertex_buffer = buffers_.handle_at(cmd_data->vertex_buffer);
         const auto offset = VkDeviceSize{};
@@ -1294,6 +1227,14 @@ namespace orion::vulkan
         VkPipeline pipeline = pipelines_.handle_at(cmd_data->graphics_pipeline);
         vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+        // Set viewport
+        const auto viewport = to_vulkan_viewport(cmd_data->viewport);
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+        // Set scissor
+        const auto scissor = to_vulkan_rect(cmd_data->scissor);
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
         // Find and bind vertex buffer
         VkBuffer vertex_buffer = buffers_.handle_at(cmd_data->vertex_buffer);
         const auto offset = VkDeviceSize{};
@@ -1301,15 +1242,15 @@ namespace orion::vulkan
 
         // Find and bind index buffer
         VkBuffer index_buffer = buffers_.handle_at(cmd_data->index_buffer);
-        vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, to_vulkan_type(cmd_data->index_type));
 
         // Issue command
         vkCmdDrawIndexed(
             command_buffer,
             cmd_data->index_count,
             1u,
-            0u,
-            0,
+            cmd_data->index_offset,
+            cmd_data->vertex_offset,
             0u);
     }
 

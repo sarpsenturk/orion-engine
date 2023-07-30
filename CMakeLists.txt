@@ -57,11 +57,13 @@ if (ORION_ENGINE_SANITIZE_UNDEFINED)
     target_compile_options(orion-base INTERFACE ${CXX_SANITIZE_UNDEFINED})
 endif ()
 
-
 # Enable/disable testing
 if (ORION_ENGINE_TEST)
     enable_testing()
 endif ()
+
+# Add external dependencies
+add_subdirectory(external)
 
 # Add sources for submodules
 add_subdirectory(utils)

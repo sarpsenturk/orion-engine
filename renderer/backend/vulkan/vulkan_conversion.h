@@ -44,6 +44,10 @@ namespace orion::vulkan
                 return VK_FORMAT_R32G32B32_SFLOAT;
             case Format::R32G32B32A32_Float:
                 return VK_FORMAT_R32G32B32A32_SFLOAT;
+            case Format::R8G8B8A8_Unorm:
+                return VK_FORMAT_R8G8B8A8_UNORM;
+            case Format::Undefined:
+                break;
         }
         ORION_ASSERT(!"Format not handled in to_vulkan_type() or is invalid");
         return {};
@@ -360,6 +364,38 @@ namespace orion::vulkan
         ORION_ASSERT(resource_access_flags.has_none() &&
                      "Resource access not handled in to_vulkan_type()");
         return vk_access_flags;
+    }
+
+    constexpr auto to_vulkan_type(IndexType index_type) -> VkIndexType
+    {
+        switch (index_type) {
+            case IndexType::Uint16:
+                return VK_INDEX_TYPE_UINT16;
+            case IndexType::Uint32:
+                return VK_INDEX_TYPE_UINT32;
+        }
+        ORION_ASSERT(!"Index type not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_viewport(const Viewport& viewport) -> VkViewport
+    {
+        return {
+            .x = viewport.position.x(),
+            .y = viewport.position.y(),
+            .width = viewport.size.x(),
+            .height = viewport.size.y(),
+            .minDepth = viewport.depth.x(),
+            .maxDepth = viewport.depth.y(),
+        };
+    }
+
+    constexpr auto to_vulkan_rect(const Scissor& scissor) -> VkRect2D
+    {
+        return {
+            .offset = {scissor.offset.x(), scissor.offset.y()},
+            .extent = {scissor.size.x(), scissor.size.y()},
+        };
     }
 
     template<typename T>

@@ -146,8 +146,12 @@ namespace orion
     {
         GPUBufferHandle vertex_buffer = GPUBufferHandle::invalid_handle();
         GPUBufferHandle index_buffer = GPUBufferHandle::invalid_handle();
+        IndexType index_type = IndexType::Uint32;
         PipelineHandle graphics_pipeline = PipelineHandle::invalid_handle();
         Viewport viewport = {};
+        Scissor scissor = {};
+        std::uint32_t vertex_offset = 0;
+        std::uint32_t index_offset = 0;
         std::uint32_t index_count = 0;
     };
 

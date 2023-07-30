@@ -12,6 +12,7 @@ namespace orion
     enum class Format : std::uint32_t {
         Undefined,
         B8G8R8A8_Srgb,
+        R8G8B8A8_Unorm,
         R32G32_Float,
         R32G32B32_Float,
         R32G32B32A32_Float,
@@ -23,6 +24,7 @@ namespace orion
             case Format::Undefined:
                 break;
             case Format::B8G8R8A8_Srgb:
+            case Format::R8G8B8A8_Unorm:
                 return sizeof(uint8_t) * 4;
             case Format::R32G32_Float:
                 return sizeof(float) * 2;
@@ -142,6 +144,12 @@ namespace orion
     struct Viewport {
         Vector2_f position;
         Vector2_f size;
+        Vector2_f depth;
+    };
+
+    struct Scissor {
+        Vector2_i offset;
+        Vector2_u size;
     };
 
     enum class CommandQueueType {
@@ -225,4 +233,9 @@ namespace orion
         BottomOfPipe
     };
     using PipelineStageFlags = Bitflag<PipelineStage>;
+
+    enum class IndexType {
+        Uint16,
+        Uint32,
+    };
 } // namespace orion

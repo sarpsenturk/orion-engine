@@ -31,6 +31,8 @@ namespace orion::vulkan
         [[nodiscard]] auto device() const noexcept { return device_.get(); }
         [[nodiscard]] auto vma_allocator() const noexcept { return vma_allocator_.get(); }
 
+        [[nodiscard]] ShaderObjectType shader_object_type() const noexcept override { return ShaderObjectType::SpirV; }
+
     private:
         [[nodiscard]] VkQueue graphics_queue() const noexcept { return queues_.graphics.queue; }
         [[nodiscard]] VkQueue transfer_queue() const noexcept { return queues_.transfer.queue; }
@@ -47,7 +49,7 @@ namespace orion::vulkan
         VkDescriptorSetLayout make_descriptor_set_layout(const DescriptorSetLayout& layout);
         [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(std::span<const DescriptorBinding> bindings) const;
 
-        [[nodiscard]] VkRenderPass create_compatible_render_pass(const AttachmentList& attachments) const;
+        [[nodiscard]] VkRenderPass create_vkrender_pass(const AttachmentList& attachment_list) const;
 
         // Interface Overrides
         SurfaceHandle create_surface_api(const Window& window) override;
@@ -98,7 +100,7 @@ namespace orion::vulkan
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
-        void update_descriptors_api(const DescriptorUpdate& update) override;
+        void bind_descriptor_api(const DescriptorBufferBinding& binding) override;
 
         uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) override;
         ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) override;

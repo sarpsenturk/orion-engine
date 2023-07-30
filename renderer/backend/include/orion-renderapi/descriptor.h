@@ -44,21 +44,12 @@ namespace orion
         const DescriptorSetLayout* layout;
     };
 
-    struct DescriptorBuffer {
-        GPUBufferHandle buffer = GPUBufferHandle::invalid_handle();
-        std::size_t offset = SIZE_MAX;
-        std::size_t range = SIZE_MAX;
-    };
-
-    struct DescriptorWrite {
-        std::uint32_t binding = UINT32_MAX;
-        std::uint32_t array_element = 0;
-        DescriptorSetHandle descriptor_set = DescriptorSetHandle::invalid_handle();
-        DescriptorType descriptor_type = DescriptorType::Unknown;
-        std::span<const DescriptorBuffer> buffers = {};
-    };
-
-    struct DescriptorUpdate {
-        std::span<const DescriptorWrite> writes;
+    struct DescriptorBufferBinding {
+        DescriptorSetHandle dst_set;
+        std::uint32_t index;
+        DescriptorType descriptor_type;
+        GPUBufferHandle buffer;
+        std::size_t offset;
+        std::size_t size;
     };
 } // namespace orion
