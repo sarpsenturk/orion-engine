@@ -1,4 +1,4 @@
-#include "orion-renderapi/descriptor.h"
+#include "orion-renderapi/types.h"
 
 #include "orion-utils/hash.h"
 

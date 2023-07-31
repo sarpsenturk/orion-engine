@@ -3,8 +3,7 @@
 #include "vulkan_headers.h"
 #include "vulkan_types.h"
 
-#include "orion-renderapi/descriptor.h"
-#include "orion-renderapi/handles.h"
+#include "orion-core/handle.h"
 
 #include "orion-utils/assertion.h"
 

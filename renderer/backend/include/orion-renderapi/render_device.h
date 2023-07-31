@@ -1,15 +1,7 @@
 #pragma once
 
-#include "buffer.h"
 #include "command.h"
-#include "descriptor.h"
-#include "framebuffer.h"
 #include "handles.h"
-#include "image.h"
-#include "pipeline.h"
-#include "render_pass.h"
-#include "shader.h"
-#include "swapchain.h"
 #include "types.h"
 
 #include <memory>

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "orion-renderer/config.h"
-#include "orion-renderer/imgui.h"
 #include "shader_compiler.h"
 
 #include "orion-renderapi/render_backend.h"
@@ -43,7 +42,7 @@ namespace orion
         void imgui_init(Window* window);
         void imgui_shutdown();
 
-        void imgui_begin();
+        void imgui_new_frame();
         void imgui_render();
 
         static spdlog::logger* logger();

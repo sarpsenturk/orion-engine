@@ -1,13 +1,12 @@
 #pragma once
 
-#include "barrier.h"
 #include "handles.h"
 #include "types.h"
 
-#include <orion-utils/allocators/linear_allocator.h>
+#include "orion-utils/allocators/linear_allocator.h"
 
-#include <orion-math/vector/vector2.h>
-#include <orion-math/vector/vector4.h>
+#include "orion-math/vector/vector2.h"
+#include "orion-math/vector/vector4.h"
 
 #include <spdlog/logger.h>
 
@@ -17,14 +16,6 @@
 
 namespace orion
 {
-    struct CommandPoolDesc {
-        CommandQueueType queue_type;
-    };
-
-    struct CommandBufferBeginDesc {
-        CommandBufferUsageFlags usage;
-    };
-
     // This is the implementation of std::is_implicit_lifetime as seen at: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2674r0.pdf
     // We require commands to be implicit lifetime types, so we can simply allocate memory for them and move on
     template<typename T>
@@ -45,10 +36,6 @@ namespace orion
         std::uint64_t key;
         CommandType type;
         const void* data;
-    };
-
-    struct CommandBufferDesc {
-        CommandPoolHandle command_pool;
     };
 
     // All available commands
