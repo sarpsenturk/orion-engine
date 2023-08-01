@@ -378,7 +378,7 @@ namespace orion::vulkan
                     .offset = offset,
                     .size = static_cast<std::uint32_t>(push_constant.size),
                 };
-                offset += push_constant.size;
+                offset += static_cast<std::uint32_t>(push_constant.size);
                 return push_constant_range;
             });
 
@@ -843,6 +843,39 @@ namespace orion::vulkan
         return handle;
     }
 
+    SamplerHandle VulkanDevice::create_sampler_api(const SamplerDesc& desc)
+    {
+        VkSampler sampler = VK_NULL_HANDLE;
+        {
+            const auto filter = to_vulkan_type(desc.filter);
+            const auto info = VkSamplerCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .magFilter = filter,
+                .minFilter = filter,
+                .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR, // TODO: Make this customizable
+                .addressModeU = to_vulkan_type(desc.address_mode_u),
+                .addressModeV = to_vulkan_type(desc.address_mode_v),
+                .addressModeW = to_vulkan_type(desc.address_mode_w),
+                .mipLodBias = desc.mip_load_bias,
+                .anisotropyEnable = desc.max_anisotropy > 0 ? VK_TRUE : VK_FALSE,
+                .maxAnisotropy = desc.max_anisotropy,
+                .compareEnable = VK_TRUE,
+                .compareOp = to_vulkan_type(desc.compare_func),
+                .minLod = desc.min_lod,
+                .maxLod = desc.max_lod,
+                .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, // TODO: Make this customizable
+                .unnormalizedCoordinates = VK_FALSE,
+            };
+            vk_result_check(vkCreateSampler(device(), &info, alloc_callbacks(), &sampler));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkSampler {}", fmt::ptr(sampler));
+        }
+        const auto handle = SamplerHandle::generate();
+        samplers_.add(handle, unique(sampler, device()));
+        return handle;
+    }
+
     void VulkanDevice::destroy_api(SurfaceHandle surface_handle)
     {
         surfaces_.remove(surface_handle);
@@ -917,6 +950,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(ImageViewHandle image_view_handle)
     {
         image_views_.remove(image_view_handle);
+    }
+
+    void VulkanDevice::destroy_api(SamplerHandle sampler_handle)
+    {
+        samplers_.remove(sampler_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)

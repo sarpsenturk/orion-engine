@@ -221,8 +221,8 @@ namespace orion::vulkan
         switch (descriptor_type) {
             case DescriptorType::ConstantBuffer:
                 return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            default:
-                break;
+            case DescriptorType::ImageSampler:
+                return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         }
         ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type() or is invalid");
         return {};
@@ -375,6 +375,56 @@ namespace orion::vulkan
                 return VK_INDEX_TYPE_UINT32;
         }
         ORION_ASSERT(!"Index type not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(Filter filter) -> VkFilter
+    {
+        switch (filter) {
+            case Filter::Nearest:
+                return VK_FILTER_NEAREST;
+            case Filter::Linear:
+                return VK_FILTER_LINEAR;
+        }
+        ORION_ASSERT(!"Filter type not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(AddressMode address_mode) -> VkSamplerAddressMode
+    {
+        switch (address_mode) {
+            case AddressMode::Repeat:
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+            case AddressMode::Mirror:
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+            case AddressMode::Clamp:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            case AddressMode::Border:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        }
+        ORION_ASSERT(!"Address mode not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(CompareFunc compare_func) -> VkCompareOp
+    {
+        switch (compare_func) {
+            case CompareFunc::Never:
+                return VK_COMPARE_OP_NEVER;
+            case CompareFunc::Less:
+                return VK_COMPARE_OP_LESS;
+            case CompareFunc::LessOrEqual:
+                return VK_COMPARE_OP_LESS_OR_EQUAL;
+            case CompareFunc::Greater:
+                return VK_COMPARE_OP_GREATER;
+            case CompareFunc::NotEqual:
+                return VK_COMPARE_OP_NOT_EQUAL;
+            case CompareFunc::GreaterOrEqual:
+                return VK_COMPARE_OP_GREATER_OR_EQUAL;
+            case CompareFunc::Always:
+                return VK_COMPARE_OP_ALWAYS;
+        }
+        ORION_ASSERT(!"Compare function not handled in to_vulkan_type()");
         return {};
     }
 

@@ -177,7 +177,8 @@ namespace orion
 
     enum class DescriptorType : std::uint8_t {
         Unknown,
-        ConstantBuffer
+        ConstantBuffer,
+        ImageSampler
     };
 
     enum class ShaderObjectType {
@@ -242,6 +243,28 @@ namespace orion
     enum class IndexType {
         Uint16,
         Uint32,
+    };
+
+    enum class Filter {
+        Nearest,
+        Linear
+    };
+
+    enum class AddressMode {
+        Repeat,
+        Mirror,
+        Clamp,
+        Border
+    };
+
+    enum class CompareFunc {
+        Never,
+        Less,
+        LessOrEqual,
+        Greater,
+        NotEqual,
+        GreaterOrEqual,
+        Always
     };
 
     // Only format is needed except when creating render passes
@@ -456,5 +479,17 @@ namespace orion
         SwapchainHandle swapchain = SwapchainHandle::invalid_handle();
         SemaphoreHandle wait_semaphore = SemaphoreHandle::invalid_handle();
         std::uint32_t image_index = UINT32_MAX;
+    };
+
+    struct SamplerDesc {
+        Filter filter;
+        AddressMode address_mode_u;
+        AddressMode address_mode_v;
+        AddressMode address_mode_w;
+        float mip_load_bias;
+        float max_anisotropy;
+        CompareFunc compare_func;
+        float min_lod;
+        float max_lod;
     };
 } // namespace orion

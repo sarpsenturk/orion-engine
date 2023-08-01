@@ -166,6 +166,12 @@ namespace orion::vulkan
         vmaDestroyImage(allocator, image, allocation);
     }
 
+    void SamplerDeleter::operator()(VkSampler sampler) const
+    {
+        ORION_EXPECTS(device != VK_NULL_HANDLE);
+        vkDestroySampler(device, sampler, alloc_callbacks());
+    }
+
     UniqueVkInstance unique(VkInstance instance)
     {
         return UniqueVkInstance{instance};
@@ -186,7 +192,7 @@ namespace orion::vulkan
         return UniqueVkSurfaceKHR{surface, SurfaceDeleter{instance}};
     }
 
-    UniqueVkSwapchainKHR vulkan::unique(VkSwapchainKHR swapchain, VkDevice device)
+    UniqueVkSwapchainKHR unique(VkSwapchainKHR swapchain, VkDevice device)
     {
         return UniqueVkSwapchainKHR{swapchain, SwapchainDeleter{device}};
     }
@@ -268,5 +274,10 @@ namespace orion::vulkan
     UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation, bool application_owned)
     {
         return UniqueVkImage{image, ImageDeleter{allocator, allocation, application_owned}};
+    }
+
+    UniqueVkSampler unique(VkSampler sampler, VkDevice device)
+    {
+        return UniqueVkSampler{sampler, SamplerDeleter{device}};
     }
 } // namespace orion::vulkan

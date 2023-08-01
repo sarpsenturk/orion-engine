@@ -114,6 +114,13 @@ namespace orion
         return handle;
     }
 
+    SamplerHandle RenderDevice::create_sampler(const SamplerDesc& desc)
+    {
+        auto handle = create_sampler_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created sampler {}", handle);
+        return handle;
+    }
+
     void RenderDevice::destroy(SurfaceHandle surface_handle)
     {
         destroy_api(surface_handle);
@@ -202,6 +209,12 @@ namespace orion
     {
         destroy_api(image_view_handle);
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed image view {}", image_view_handle);
+    }
+
+    void RenderDevice::destroy(SamplerHandle sampler_handle)
+    {
+        destroy_api(sampler_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed sampler {}", sampler_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)

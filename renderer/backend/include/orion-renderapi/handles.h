@@ -25,4 +25,5 @@ namespace orion
     ORION_DEFINE_HANDLE(ImageHandle);
     ORION_DEFINE_HANDLE(ImageViewHandle);
     ORION_DEFINE_HANDLE(FramebufferHandle);
+    ORION_DEFINE_HANDLE(SamplerHandle);
 } // namespace orion

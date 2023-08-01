@@ -54,6 +54,7 @@ namespace orion
     using UniqueFence = unique_device_resource<FenceHandle_tag>;
     using UniqueImage = unique_device_resource<ImageHandle_tag>;
     using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
+    using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
 
     class RenderDevice
     {
@@ -78,6 +79,7 @@ namespace orion
         [[nodiscard]] FenceHandle create_fence(bool create_signaled);
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
+        [[nodiscard]] SamplerHandle create_sampler(const SamplerDesc& desc);
 
         [[nodiscard]] SurfaceHandle create(SurfaceHandle_tag, const Window& window) { return create_surface(window); }
         [[nodiscard]] SwapchainHandle create(SwapchainHandle_tag, const SwapchainDesc& desc) { return create_swapchain(desc); }
@@ -94,6 +96,7 @@ namespace orion
         [[nodiscard]] FenceHandle create(FenceHandle_tag, bool create_signaled) { return create_fence(create_signaled); }
         [[nodiscard]] ImageHandle create(ImageHandle_tag, const ImageDesc& desc) { return create_image(desc); }
         [[nodiscard]] ImageViewHandle create(ImageViewHandle_tag, const ImageViewDesc& desc) { return create_image_view(desc); }
+        [[nodiscard]] SamplerHandle create(SamplerHandle_tag, const SamplerDesc& desc) { return create_sampler(desc); }
 
         template<typename Tag, typename... Args>
         auto make_unique(Tag tag, Args&&... args)
@@ -116,6 +119,7 @@ namespace orion
         void destroy(FenceHandle fence_handle);
         void destroy(ImageHandle image_handle);
         void destroy(ImageViewHandle image_view_handle);
+        void destroy(SamplerHandle sampler_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
@@ -163,6 +167,7 @@ namespace orion
         [[nodiscard]] virtual FenceHandle create_fence_api(bool create_signaled) = 0;
         [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
+        [[nodiscard]] virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
 
         virtual void destroy_api(SurfaceHandle surface_handle) = 0;
         virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
@@ -179,6 +184,7 @@ namespace orion
         virtual void destroy_api(FenceHandle fence_handle) = 0;
         virtual void destroy_api(ImageHandle image_handle) = 0;
         virtual void destroy_api(ImageViewHandle image_view_handle) = 0;
+        virtual void destroy_api(SamplerHandle sampler_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;

@@ -67,6 +67,7 @@ namespace orion::vulkan
         FenceHandle create_fence_api(bool create_signaled) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
+        SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
 
         void destroy_api(SurfaceHandle surface_handle) override;
         void destroy_api(SwapchainHandle swapchain_handle) override;
@@ -83,6 +84,7 @@ namespace orion::vulkan
         void destroy_api(FenceHandle fence_handle) override;
         void destroy_api(ImageHandle image_handle) override;
         void destroy_api(ImageViewHandle image_view_handle) override;
+        void destroy_api(SamplerHandle sampler_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
@@ -141,5 +143,6 @@ namespace orion::vulkan
         VulkanStore<SemaphoreHandle, UniqueVkSemaphore> semaphores_;
         VulkanStore<FenceHandle, UniqueVkFence> fences_;
         VulkanStore<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
+        VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
     };
 } // namespace orion::vulkan

@@ -173,6 +173,14 @@ namespace orion::vulkan
         void operator()(VkImage image) const;
     };
 
+    struct SamplerDeleter {
+        using pointer = VkSampler;
+
+        VkDevice device = VK_NULL_HANDLE;
+
+        void operator()(VkSampler sampler) const;
+    };
+
     using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
     using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
     using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter>;
@@ -194,6 +202,7 @@ namespace orion::vulkan
     using UniqueVkDescriptorSet = std::unique_ptr<VkDescriptorSet, DescriptorSetDeleter>;
     using UniqueVkBuffer = std::unique_ptr<VkBuffer, BufferDeleter>;
     using UniqueVkImage = std::unique_ptr<VkImage, ImageDeleter>;
+    using UniqueVkSampler = std::unique_ptr<VkSampler, SamplerDeleter>;
 
     UniqueVkInstance unique(VkInstance instance);
     UniqueVkDevice unique(VkDevice device);
@@ -216,4 +225,5 @@ namespace orion::vulkan
     UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool);
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
     UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation, bool application_owned);
+    UniqueVkSampler unique(VkSampler sampler, VkDevice device);
 } // namespace orion::vulkan
