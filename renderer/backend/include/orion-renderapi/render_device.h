@@ -64,6 +64,10 @@ namespace orion
 
         [[nodiscard]] virtual ShaderObjectType shader_object_type() const noexcept = 0;
 
+        [[nodiscard]] CommandPoolHandle default_command_pool();
+        [[nodiscard]] CommandBufferHandle default_command_buffer();
+        [[nodiscard]] FenceHandle default_fence();
+
         [[nodiscard]] SurfaceHandle create_surface(const Window& window);
         [[nodiscard]] SwapchainHandle create_swapchain(const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
@@ -131,7 +135,22 @@ namespace orion
         void compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands);
 
         void submit(const SubmitDesc& desc);
-        void submit_immediate(const SubmitDesc& desc);
+
+        // Record into and immediately submit command buffer
+        template<typename F>
+        void submit_immediate(auto&& record_function)
+        {
+            const auto command_buffer = default_command_buffer();
+            record_function(command_buffer);
+            const auto fence = default_fence();
+            const auto submit_desc = SubmitDesc{
+                .queue_type = CommandQueueType::Any,
+                .command_buffers = {&command_buffer, 1},
+                .fence = fence,
+            };
+            wait_for_fence(fence);
+        }
+
         void present(const SwapchainPresentDesc& desc);
 
         void wait_for_fence(FenceHandle fence);
@@ -208,5 +227,9 @@ namespace orion
         virtual ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) = 0;
 
         spdlog::logger* logger_;
+
+        CommandPoolHandle default_command_pool_;
+        CommandBufferHandle default_command_buffer_;
+        FenceHandle default_fence_;
     };
 } // namespace orion

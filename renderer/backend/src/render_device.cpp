@@ -9,6 +9,30 @@ namespace orion
     {
     }
 
+    CommandPoolHandle RenderDevice::default_command_pool()
+    {
+        if (!default_command_pool_.is_valid()) {
+            default_command_pool_ = create_command_pool({.queue_type = CommandQueueType::Any});
+        }
+        return default_command_pool_;
+    }
+
+    CommandBufferHandle RenderDevice::default_command_buffer()
+    {
+        if (!default_command_buffer_.is_valid()) {
+            default_command_buffer_ = create_command_buffer({.command_pool = default_command_pool()});
+        }
+        return default_command_buffer_;
+    }
+
+    FenceHandle RenderDevice::default_fence()
+    {
+        if (!default_fence_.is_valid()) {
+            default_fence_ = create_fence(false);
+        }
+        return default_fence_;
+    }
+
     SurfaceHandle RenderDevice::create_surface(const Window& window)
     {
         auto handle = create_surface_api(window);
@@ -253,11 +277,6 @@ namespace orion
     }
 
     void RenderDevice::submit(const SubmitDesc& desc)
-    {
-        submit_api(desc);
-    }
-
-    void RenderDevice::submit_immediate(const SubmitDesc& desc)
     {
         submit_api(desc);
     }
