@@ -12,6 +12,7 @@
 #include "orion-core/log.h"
 #include <spdlog/spdlog.h>
 
+#include "imgui_impl_orion.h"
 #include <imgui.h>
 
 namespace orion
@@ -200,33 +201,36 @@ namespace orion
         });
     }
 
-    void Renderer::imgui_init(class Window* window)
+    void Renderer::imgui_init(Window* window)
     {
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
         // Setup Platform/Renderer backends
+        ImGui_ImplOrion_Init({.window = window, .device = device()});
         SPDLOG_LOGGER_DEBUG(logger(), "ImGui initialized");
     }
 
     void Renderer::imgui_shutdown()
     {
+        ImGui_ImplOrion_Shutdow();
         ImGui::DestroyContext();
         SPDLOG_LOGGER_DEBUG(logger(), "ImGui shut down");
     }
 
-    void Renderer::imgui_begin()
+    void Renderer::imgui_new_frame()
     {
+        ImGui_ImplOrion_NewFrame();
         ImGui::NewFrame();
     }
 
     void Renderer::imgui_render()
     {
         ImGui::Render();
+        ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), render_command_);
     }
 
     spdlog::logger* Renderer::logger()

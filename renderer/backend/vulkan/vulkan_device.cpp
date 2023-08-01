@@ -357,16 +357,6 @@ namespace orion::vulkan
 
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
-        // Create or get descriptor set layouts
-        const auto descriptor_set_layouts = [layouts = desc.descriptor_layouts, this]() {
-            std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
-            descriptor_set_layouts.resize(layouts.size());
-            std::ranges::transform(layouts, descriptor_set_layouts.begin(), [this](const auto& layout) {
-                return make_descriptor_set_layout(layout);
-            });
-            return descriptor_set_layouts;
-        }();
-
         // Generate handle for pipeline layout and pipeline
         // TODO: Instead cache pipeline layouts
         const auto handle = PipelineHandle::generate();
@@ -374,14 +364,32 @@ namespace orion::vulkan
         // Create pipeline layout
         VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
         {
-            const VkPipelineLayoutCreateInfo info{
+            // Create or get descriptor set layouts
+            std::vector<VkDescriptorSetLayout> descriptor_set_layouts(desc.descriptor_layouts.size());
+            std::ranges::transform(desc.descriptor_layouts, descriptor_set_layouts.begin(), [this](const auto& layout) {
+                return make_descriptor_set_layout(layout);
+            });
+
+            // Get push constant ranges
+            std::vector<VkPushConstantRange> push_constants(desc.push_constants.size());
+            std::ranges::transform(desc.push_constants, push_constants.begin(), [offset = 0u](const auto& push_constant) mutable {
+                auto push_constant_range = VkPushConstantRange{
+                    .stageFlags = to_vulkan_type(push_constant.shader_stages),
+                    .offset = offset,
+                    .size = static_cast<std::uint32_t>(push_constant.size),
+                };
+                offset += push_constant.size;
+                return push_constant_range;
+            });
+
+            const auto info = VkPipelineLayoutCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
                 .setLayoutCount = static_cast<std::uint32_t>(descriptor_set_layouts.size()),
                 .pSetLayouts = descriptor_set_layouts.data(),
-                .pushConstantRangeCount = 0,
-                .pPushConstantRanges = nullptr,
+                .pushConstantRangeCount = static_cast<std::uint32_t>(push_constants.size()),
+                .pPushConstantRanges = push_constants.data(),
             };
             vk_result_check(vkCreatePipelineLayout(device(), &info, alloc_callbacks(), &pipeline_layout));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
@@ -1124,6 +1132,9 @@ namespace orion::vulkan
             case CommandType::BlitImage:
                 cmd_blit_image(command_buffer, command_packet.data);
                 break;
+            case CommandType::PushConstants:
+                cmd_push_constants(command_buffer, command_packet.data);
+                break;
             default:
                 ORION_ASSERT(!"Command type not handled!");
         }
@@ -1370,5 +1381,22 @@ namespace orion::vulkan
             1,
             &blit,
             VK_FILTER_NEAREST);
+    }
+
+    void VulkanDevice::cmd_push_constants(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* cmd_data = static_cast<const CmdPushConstants*>(data);
+
+        // Find pipeline layout
+        VkPipelineLayout pipeline_layout = pipeline_layouts_.handle_at(cmd_data->pipeline);
+
+        // Push the constants
+        vkCmdPushConstants(
+            command_buffer,
+            pipeline_layout,
+            to_vulkan_type(cmd_data->shader_stages),
+            static_cast<std::uint32_t>(cmd_data->offset),
+            static_cast<std::uint32_t>(cmd_data->size),
+            cmd_data->data);
     }
 } // namespace orion::vulkan

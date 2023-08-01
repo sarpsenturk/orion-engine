@@ -171,7 +171,8 @@ namespace orion
         DrawIndexed,
         BindDescriptorSets,
         PipelineBarrier,
-        BlitImage
+        BlitImage,
+        PushConstants
     };
 
     enum class DescriptorType : std::uint8_t {
@@ -333,6 +334,11 @@ namespace orion
         std::size_t size;
     };
 
+    struct PushConstantDesc {
+        std::size_t size;
+        ShaderStageFlags shader_stages;
+    };
+
     struct FramebufferDesc {
         AttachmentList attachment_list;
         std::span<const ImageViewHandle> image_views = {};
@@ -416,6 +422,7 @@ namespace orion
         std::span<const ShaderStageDesc> shaders = {};
         std::span<const VertexBinding> vertex_bindings = {};
         std::span<const DescriptorSetLayout> descriptor_layouts = {};
+        std::span<const PushConstantDesc> push_constants = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
         AttachmentList attachment_list;

@@ -165,6 +165,15 @@ namespace orion
         ImageLayout dst_layout;
         Vector2_u dst_size;
     };
+
+    DEFINE_COMMAND(PushConstants, Any)
+    {
+        PipelineHandle pipeline;
+        ShaderStageFlags shader_stages;
+        std::size_t offset;
+        std::size_t size;
+        const void* data;
+    };
 } // namespace orion
 
 #undef DEFINE_COMMAND

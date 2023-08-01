@@ -48,7 +48,7 @@ private:
         renderer_.begin();
 
         // Begin imgui frame
-        renderer_.imgui_begin();
+        renderer_.imgui_new_frame();
 
         ImGui::ShowDemoWindow();
 
@@ -74,7 +74,9 @@ private:
 
     void create_swapchain()
     {
-        renderer_.device()->destroy(swapchain_);
+        if (swapchain_.is_valid()) {
+            renderer_.device()->destroy(swapchain_);
+        }
         const auto desc = orion::SwapchainDesc{
             .surface = surface_,
             .image_count = swapchain_image_count,
@@ -86,7 +88,7 @@ private:
     }
 
     static constexpr auto window_position = orion::WindowPosition{400, 200};
-    static constexpr auto window_size = orion::WindowSize{800, 600};
+    static constexpr auto window_size = orion::WindowSize{1280, 720};
     static constexpr auto swapchain_image_count = 2;
     static constexpr auto swapchain_image_format = orion::Format::B8G8R8A8_Srgb;
     static constexpr auto swapchain_image_usage =

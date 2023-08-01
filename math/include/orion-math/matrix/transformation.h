@@ -112,27 +112,27 @@ namespace orion
     template<typename T>
     [[nodiscard]] constexpr Matrix4_t<T> orthographic_rh(T left, T right, T bottom, T top, T near, T far)
     {
-        const auto width = right - left;
-        const auto height = top - bottom;
-        const auto depth = near - far;
-        return {
-            T{2} / width, 0, 0, 0,
-            0, T{2} / height, 0, 0,
-            0, 0, T{1} / depth, 0,
-            (left + right) / width, (top + bottom) / height, near / depth, 1};
+        Matrix4_f projection = Matrix4_f::identity();
+        projection[0][0] = T{2} / (right - left);
+        projection[1][1] = T{2} / (top - bottom);
+        projection[2][2] = -T{2} / (far - near);
+        projection[3][0] = -(right + left) / (right - left);
+        projection[3][1] = -(top + bottom) / (top - bottom);
+        projection[3][2] = -(far + near) / (far - near);
+        return projection;
     }
 
     template<typename T>
     [[nodiscard]] constexpr Matrix4_t<T> orthographic_lh(T left, T right, T bottom, T top, T near, T far)
     {
-        const auto width = right - left;
-        const auto height = top - bottom;
-        const auto depth = far - near;
-        return {
-            T{2} / width, 0, 0, 0,
-            0, T{2} / height, 0, 0,
-            0, 0, 1 / depth, 0,
-            (left + right) / width, (top + bottom) / height, near / (near - far), 1};
+        Matrix4_f projection = Matrix4_f::identity();
+        projection[0][0] = T{2} / (right - left);
+        projection[1][1] = T{2} / (top - bottom);
+        projection[2][2] = T{2} / (far - near);
+        projection[3][0] = -(right + left) / (right - left);
+        projection[3][1] = -(top + bottom) / (top - bottom);
+        projection[3][2] = -(far + near) / (far - near);
+        return projection;
     }
 
     template<typename T>

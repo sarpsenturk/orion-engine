@@ -114,6 +114,7 @@ namespace orion::vulkan
         void cmd_bind_descriptor_sets(VkCommandBuffer command_buffer, const void* data);
         void cmd_pipeline_barrier(VkCommandBuffer command_buffer, const void* data);
         void cmd_blit_image(VkCommandBuffer command_buffer, const void* data);
+        void cmd_push_constants(VkCommandBuffer command_buffer, const void* data);
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;

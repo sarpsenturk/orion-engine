@@ -1,8 +1,8 @@
 #pragma once
 
-#include <algorithm>  // std::find_if
-#include <functional> // std::function
-#include <vector>     // std::vector
+#include <algorithm>
+#include <functional>
+#include <vector>
 
 namespace orion
 {
@@ -60,3 +60,5 @@ namespace orion
         std::vector<std::pair<handler_index, handler_function>> handlers_;
     };
 } // namespace orion
+
+#define ORION_LOG_EVENT_FN [this](const auto& event) { SPDLOG_LOGGER_TRACE(logger(), "{}", event); }
