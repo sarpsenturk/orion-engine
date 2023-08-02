@@ -514,29 +514,32 @@ namespace orion::vulkan
             };
         }();
 
-        // Create VkPipelineColorBlendStateCreateInfo
-        const auto vk_color_blend = []() {
-            static const VkPipelineColorBlendAttachmentState attachment{
-                .blendEnable = VK_TRUE,
-                .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-                .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-                .colorBlendOp = VK_BLEND_OP_ADD,
-                .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-                .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-                .alphaBlendOp = VK_BLEND_OP_ADD,
-                .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+        // Convert color blend attachments to VkPipelineColorBlendAttachmentState
+        std::vector<VkPipelineColorBlendAttachmentState> vk_blend_attachments(desc.color_blend.attachments.size());
+        std::ranges::transform(desc.color_blend.attachments, vk_blend_attachments.begin(), [](const auto& attachment) {
+            return VkPipelineColorBlendAttachmentState{
+                .blendEnable = attachment.enable_blend,
+                .srcColorBlendFactor = to_vulkan_type(attachment.src_blend),
+                .dstColorBlendFactor = to_vulkan_type(attachment.dst_blend),
+                .colorBlendOp = to_vulkan_type(attachment.blend_op),
+                .srcAlphaBlendFactor = to_vulkan_type(attachment.src_blend_alpha),
+                .dstAlphaBlendFactor = to_vulkan_type(attachment.dst_blend_alpha),
+                .alphaBlendOp = to_vulkan_type(attachment.blend_op_alpha),
+                .colorWriteMask = to_vulkan_type(attachment.color_component_flags),
             };
-            return VkPipelineColorBlendStateCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .logicOpEnable = VK_FALSE,
-                .logicOp = VK_LOGIC_OP_COPY,
-                .attachmentCount = 1,
-                .pAttachments = &attachment,
-                .blendConstants = {0.f, 0.f, 0.f, 0.f},
-            };
-        }();
+        });
+
+        const auto& blend_constants = desc.color_blend.blend_constants;
+        const auto vk_color_blend = VkPipelineColorBlendStateCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .logicOpEnable = desc.color_blend.enable_logic_op,
+            .logicOp = to_vulkan_type(desc.color_blend.logic_op),
+            .attachmentCount = static_cast<std::uint32_t>(vk_blend_attachments.size()),
+            .pAttachments = vk_blend_attachments.data(),
+            .blendConstants = {blend_constants[0], blend_constants[1], blend_constants[2], blend_constants[3]},
+        };
 
         // Create VkPipelineDynamicStateCreateInfo
         const auto vk_dynamic_state = []() {

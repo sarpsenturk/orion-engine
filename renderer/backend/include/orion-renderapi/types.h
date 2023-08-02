@@ -456,6 +456,73 @@ namespace orion
         FrontFace front_face = FrontFace::ClockWise;
     };
 
+    enum class BlendFactor {
+        Zero,
+        One,
+        SrcColor,
+        InvertedSrcColor,
+        DstColor,
+        InvertedDstColor,
+        SrcAlpha,
+        InvertedSrcAlpha,
+        DstAlpha,
+        InvertedDstAlpha
+    };
+
+    enum class BlendOp {
+        Add,
+        Subtract,
+        ReverseSubtract,
+        Min,
+        Max
+    };
+
+    enum class ColorComponent : std::uint8_t {
+        R,
+        G,
+        B,
+        A
+    };
+    using ColorComponentFlags = Bitflag<ColorComponent>;
+    inline constexpr auto color_components_all =
+        ColorComponentFlags::disjunction({ColorComponent::R, ColorComponent::G, ColorComponent::B, ColorComponent::A});
+
+    struct BlendAttachmentDesc {
+        bool enable_blend;
+        BlendFactor src_blend;
+        BlendFactor dst_blend;
+        BlendOp blend_op;
+        BlendFactor src_blend_alpha;
+        BlendFactor dst_blend_alpha;
+        BlendOp blend_op_alpha;
+        ColorComponentFlags color_component_flags;
+    };
+
+    enum class LogicOp {
+        NoOp,
+        Clear,
+        And,
+        AndReverse,
+        AndInverted,
+        Nand,
+        Or,
+        OrReverse,
+        OrInverted,
+        Copy,
+        CopyInverted,
+        Xor,
+        Nor,
+        Equivalent,
+        Set
+    };
+
+    struct ColorBlendDesc {
+        bool enable_logic_op;
+        LogicOp logic_op;
+        std::span<const BlendAttachmentDesc> attachments;
+        std::array<float, 4> blend_constants;
+    };
+
     struct GraphicsPipelineDesc {
         std::span<const ShaderStageDesc> shaders = {};
         std::span<const VertexBinding> vertex_bindings = {};
@@ -463,6 +530,7 @@ namespace orion
         std::span<const PushConstantDesc> push_constants = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
+        ColorBlendDesc color_blend = {};
         AttachmentList attachment_list;
     };
 

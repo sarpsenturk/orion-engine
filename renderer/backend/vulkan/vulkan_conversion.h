@@ -449,6 +449,113 @@ namespace orion::vulkan
         return {};
     }
 
+    constexpr auto to_vulkan_type(BlendFactor blend_factor) -> VkBlendFactor
+    {
+        switch (blend_factor) {
+            case BlendFactor::Zero:
+                return VK_BLEND_FACTOR_ZERO;
+            case BlendFactor::One:
+                return VK_BLEND_FACTOR_ONE;
+            case BlendFactor::SrcColor:
+                return VK_BLEND_FACTOR_SRC_COLOR;
+            case BlendFactor::InvertedSrcColor:
+                return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+            case BlendFactor::DstColor:
+                return VK_BLEND_FACTOR_DST_COLOR;
+            case BlendFactor::InvertedDstColor:
+                return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+            case BlendFactor::SrcAlpha:
+                return VK_BLEND_FACTOR_SRC_ALPHA;
+            case BlendFactor::InvertedSrcAlpha:
+                return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            case BlendFactor::DstAlpha:
+                return VK_BLEND_FACTOR_DST_ALPHA;
+            case BlendFactor::InvertedDstAlpha:
+                return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+        }
+        ORION_ASSERT(!"Blend factor not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(BlendOp blend_op) -> VkBlendOp
+    {
+        switch (blend_op) {
+            case BlendOp::Add:
+                return VK_BLEND_OP_ADD;
+            case BlendOp::Subtract:
+                return VK_BLEND_OP_SUBTRACT;
+            case BlendOp::ReverseSubtract:
+                return VK_BLEND_OP_REVERSE_SUBTRACT;
+            case BlendOp::Min:
+                return VK_BLEND_OP_MIN;
+            case BlendOp::Max:
+                return VK_BLEND_OP_MAX;
+        }
+        ORION_ASSERT(!"Blend factor not handled in to_vulkan_type()");
+        return {};
+    }
+
+    constexpr auto to_vulkan_type(ColorComponentFlags color_component_flags) -> VkColorComponentFlags
+    {
+        if (color_component_flags.has_none()) {
+            return {};
+        }
+        VkColorComponentFlags vk_color_component_flags = {};
+        if (color_component_flags.check_and_clear(ColorComponent::R)) {
+            vk_color_component_flags |= VK_COLOR_COMPONENT_R_BIT;
+        }
+        if (color_component_flags.check_and_clear(ColorComponent::G)) {
+            vk_color_component_flags |= VK_COLOR_COMPONENT_G_BIT;
+        }
+        if (color_component_flags.check_and_clear(ColorComponent::B)) {
+            vk_color_component_flags |= VK_COLOR_COMPONENT_B_BIT;
+        }
+        if (color_component_flags.check_and_clear(ColorComponent::A)) {
+            vk_color_component_flags |= VK_COLOR_COMPONENT_A_BIT;
+        }
+        ORION_ASSERT(color_component_flags.has_none() &&
+                     "Color component not handled in to_vulkan_type()");
+        return vk_color_component_flags;
+    }
+
+    constexpr auto to_vulkan_type(LogicOp logic_op) -> VkLogicOp
+    {
+        switch (logic_op) {
+            case LogicOp::NoOp:
+                return VK_LOGIC_OP_NO_OP;
+            case LogicOp::Clear:
+                return VK_LOGIC_OP_CLEAR;
+            case LogicOp::And:
+                return VK_LOGIC_OP_AND;
+            case LogicOp::AndReverse:
+                return VK_LOGIC_OP_AND_REVERSE;
+            case LogicOp::AndInverted:
+                return VK_LOGIC_OP_AND_INVERTED;
+            case LogicOp::Nand:
+                return VK_LOGIC_OP_NAND;
+            case LogicOp::Or:
+                return VK_LOGIC_OP_OR;
+            case LogicOp::OrReverse:
+                return VK_LOGIC_OP_OR_REVERSE;
+            case LogicOp::OrInverted:
+                return VK_LOGIC_OP_OR_INVERTED;
+            case LogicOp::Copy:
+                return VK_LOGIC_OP_COPY;
+            case LogicOp::CopyInverted:
+                return VK_LOGIC_OP_COPY_INVERTED;
+            case LogicOp::Xor:
+                return VK_LOGIC_OP_XOR;
+            case LogicOp::Nor:
+                return VK_LOGIC_OP_NOR;
+            case LogicOp::Equivalent:
+                return VK_LOGIC_OP_EQUIVALENT;
+            case LogicOp::Set:
+                return VK_LOGIC_OP_SET;
+        }
+        ORION_ASSERT(!"Logic op not handled in to_vulkan_type()");
+        return {};
+    }
+
     constexpr auto to_vulkan_viewport(const Viewport& viewport) -> VkViewport
     {
         return {

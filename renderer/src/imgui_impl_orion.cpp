@@ -334,6 +334,26 @@ float4 fs_main(FsInput input) : SV_Target
                 .front_face = orion::FrontFace::CounterClockWise,
             };
 
+            // Set color blend
+            const auto blend_attachments = std::array{
+                orion::BlendAttachmentDesc{
+                    .enable_blend = true,
+                    .src_blend = orion::BlendFactor::SrcAlpha,
+                    .dst_blend = orion::BlendFactor::InvertedSrcAlpha,
+                    .blend_op = orion::BlendOp::Add,
+                    .src_blend_alpha = orion::BlendFactor::One,
+                    .dst_blend_alpha = orion::BlendFactor::InvertedSrcAlpha,
+                    .blend_op_alpha = orion::BlendOp::Add,
+                    .color_component_flags = orion::color_components_all,
+                },
+            };
+            const auto color_blend = orion::ColorBlendDesc{
+                .enable_logic_op = false,
+                .logic_op = orion::LogicOp::NoOp,
+                .attachments = blend_attachments,
+                .blend_constants = {0.f, 0.f, 0.f, 0.f},
+            };
+
             // Set attachment list
             const auto color_attachments = std::array{
                 orion::AttachmentDesc{.format = orion::Format::B8G8R8A8_Srgb},
@@ -348,6 +368,7 @@ float4 fs_main(FsInput input) : SV_Target
                 push_constants,
                 input_assembly,
                 rasterization,
+                color_blend,
                 attachment_list,
             };
             renderer_data->pipeline = device->make_unique(orion::PipelineHandle_tag{}, desc);
