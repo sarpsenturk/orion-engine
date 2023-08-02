@@ -13,6 +13,8 @@
 #include "orion-math/matrix/matrix4.h"
 #include "orion-math/matrix/transformation.h"
 
+#include "orion-core/clock.h"
+
 namespace
 {
     constexpr auto imgui_shader_src = R"hlsl(
@@ -72,7 +74,108 @@ float4 fs_main(FsInput input) : SV_Target
 
     ImGuiKey to_imgui_key(orion::KeyCode key_code)
     {
-        return {};
+        switch (key_code) {
+            case orion::KeyCode::Backspace:
+                return ImGuiKey_Backspace;
+            case orion::KeyCode::Tab:
+                return ImGuiKey_Tab;
+            case orion::KeyCode::Enter:
+                return ImGuiKey_Enter;
+            case orion::KeyCode::Escape:
+                return ImGuiKey_Escape;
+            case orion::KeyCode::Space:
+                return ImGuiKey_Space;
+            case orion::KeyCode::Quote:
+                return ImGuiKey_Apostrophe;
+            case orion::KeyCode::Comma:
+                return ImGuiKey_Comma;
+            case orion::KeyCode::Minus:
+                return ImGuiKey_Minus;
+            case orion::KeyCode::Period:
+                return ImGuiKey_Period;
+            case orion::KeyCode::Slash:
+                return ImGuiKey_Slash;
+            case orion::KeyCode::Semicolon:
+                return ImGuiKey_Semicolon;
+            case orion::KeyCode::Equal:
+                return ImGuiKey_Equal;
+            case orion::KeyCode::LeftBracket:
+                return ImGuiKey_LeftBracket;
+            case orion::KeyCode::Backslash:
+                return ImGuiKey_Backslash;
+            case orion::KeyCode::RightBracket:
+                return ImGuiKey_RightBracket;
+            case orion::KeyCode::Backtick:
+                return ImGuiKey_GraveAccent;
+            case orion::KeyCode::Delete:
+                return ImGuiKey_Delete;
+            case orion::KeyCode::Insert:
+                return ImGuiKey_Insert;
+            case orion::KeyCode::Home:
+                return ImGuiKey_Home;
+            case orion::KeyCode::End:
+                return ImGuiKey_End;
+            case orion::KeyCode::PageUp:
+                return ImGuiKey_PageUp;
+            case orion::KeyCode::PageDown:
+                return ImGuiKey_PageDown;
+            case orion::KeyCode::PrintScreen:
+                return ImGuiKey_PrintScreen;
+            case orion::KeyCode::ScrollLock:
+                return ImGuiKey_ScrollLock;
+            case orion::KeyCode::Pause:
+                return ImGuiKey_Pause;
+            case orion::KeyCode::Caps:
+                return ImGuiKey_CapsLock;
+            case orion::KeyCode::Shift:
+                return ImGuiKey_LeftShift;
+            case orion::KeyCode::Control:
+                return ImGuiKey_LeftCtrl;
+            case orion::KeyCode::Alt:
+                return ImGuiKey_LeftAlt;
+            case orion::KeyCode::Command:
+                return ImGuiKey_LeftSuper;
+            case orion::KeyCode::NumDivide:
+                return ImGuiKey_KeypadDivide;
+            case orion::KeyCode::NumMultiply:
+                return ImGuiKey_KeypadMultiply;
+            case orion::KeyCode::NumMinus:
+                return ImGuiKey_KeypadSubtract;
+            case orion::KeyCode::NumPlus:
+                return ImGuiKey_KeypadAdd;
+            case orion::KeyCode::NumEnter:
+                return ImGuiKey_KeypadEnter;
+            case orion::KeyCode::NumPeriod:
+                return ImGuiKey_KeypadDecimal;
+            case orion::KeyCode::NumLock:
+                return ImGuiKey_NumLock;
+            case orion::KeyCode::LeftArrow:
+                return ImGuiKey_LeftArrow;
+            case orion::KeyCode::UpArrow:
+                return ImGuiKey_UpArrow;
+            case orion::KeyCode::RightArrow:
+                return ImGuiKey_RightArrow;
+            case orion::KeyCode::DownArrow:
+                return ImGuiKey_DownArrow;
+            default:
+                if (orion::is_numeric_key(key_code)) {
+                    const auto offset = orion::to_underlying(key_code) - orion::to_underlying(orion::KeyCode::Alpha0);
+                    return static_cast<ImGuiKey>(ImGuiKey_0 + offset);
+                } else if (orion::is_char_key(key_code)) {
+                    const auto offset = orion::to_underlying(key_code) - orion::to_underlying(orion::KeyCode::KeyA);
+                    return static_cast<ImGuiKey>(ImGuiKey_A + offset);
+                } else if (orion::is_fn_key(key_code)) {
+                    const auto offset = orion::to_underlying(key_code) - orion::to_underlying(orion::KeyCode::F1);
+                    constexpr auto imgui_max_fn_offset = 11;
+                    if (offset <= imgui_max_fn_offset) {
+                        return static_cast<ImGuiKey>(ImGuiKey_F1 + offset);
+                    }
+                } else if (orion::is_numpad_key(key_code)) {
+                    const auto offset = orion::to_underlying(key_code) - orion::to_underlying(orion::KeyCode::Num0);
+                    return static_cast<ImGuiKey>(ImGuiKey_Keypad0 + offset);
+                }
+        }
+        return static_cast<ImGuiKey>(-1);
     }
 
     ImGuiMouseButton to_imgui_mouse_button(orion::MouseButton button)
@@ -97,7 +200,9 @@ float4 fs_main(FsInput input) : SV_Target
 
     void imgui_on_key(orion::KeyCode key, bool down)
     {
-        ImGui::GetIO().AddKeyEvent(to_imgui_key(key), down);
+        if (const auto imgui_key = to_imgui_key(key); orion::to_underlying(imgui_key) != -1) {
+            ImGui::GetIO().AddKeyEvent(imgui_key, down);
+        }
     }
 
     void imgui_on_key_press(const orion::events::KeyPress& key_press)
@@ -154,6 +259,7 @@ float4 fs_main(FsInput input) : SV_Target
         orion::handler_index mouse_button_down_handler;
         orion::handler_index mouse_button_up_handler;
         orion::handler_index mouse_scroll_handler;
+        orion::clock::time_point last_frame = orion::clock::now();
     };
 
     ImGuiPlatformData* imgui_get_platform_data()
@@ -561,6 +667,14 @@ void ImGui_ImplOrion_Shutdow()
 
 void ImGui_ImplOrion_NewFrame()
 {
+    auto* platform_data = imgui_get_platform_data();
+    ORION_ASSERT(platform_data != nullptr && "Did you call ImGui_ImplOrion_Init()?");
+
+    const auto now = orion::clock::now();
+    const std::chrono::duration<float> delta_time = now - platform_data->last_frame;
+    platform_data->last_frame = now;
+    auto& io = ImGui::GetIO();
+    io.DeltaTime = delta_time.count();
 }
 
 void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& command_list)
@@ -638,14 +752,6 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
         cmd_push_constants->data = &renderer_data->scene_buffer;
     }
 
-    // Bind descriptor set
-    {
-        auto* cmd_bind_descriptor_set = command_list.add_command<orion::CmdBindDescriptorSet>({});
-        cmd_bind_descriptor_set->pipeline = renderer_data->pipeline.get();
-        cmd_bind_descriptor_set->binding = 0;
-        cmd_bind_descriptor_set->descriptor_set = renderer_data->font_descriptor.get();
-    }
-
     // Render command lists
     std::uint32_t global_idx_offset = 0u;
     std::uint32_t global_vtx_offset = 0u;
@@ -669,6 +775,16 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
                 .offset = {static_cast<int>(clip_min.x), static_cast<int>(clip_min.y)},
                 .size = {static_cast<uint32_t>(clip_max.x), static_cast<uint32_t>(clip_max.y)},
             };
+
+            // Bind descriptor set
+            // TODO: It probably makes more sense to use ImageViewHandle's as ImTextureID's
+            {
+                const auto descriptor_set_uint = reinterpret_cast<std::uint64_t>(draw_cmd.TextureId);
+                auto* cmd_bind_descriptor_set = command_list.add_command<orion::CmdBindDescriptorSet>({});
+                cmd_bind_descriptor_set->pipeline = renderer_data->pipeline.get();
+                cmd_bind_descriptor_set->binding = 0;
+                cmd_bind_descriptor_set->descriptor_set = orion::DescriptorSetHandle{descriptor_set_uint};
+            }
 
             auto* cmd_draw_indexed = command_list.add_command<orion::CmdDrawIndexed>({});
             cmd_draw_indexed->vertex_buffer = renderer_data->vertex_buffer.get();

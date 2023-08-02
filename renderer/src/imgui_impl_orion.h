@@ -1,3 +1,11 @@
+// dear imgui: Platform Backend for Orion
+// This backend handles both platform features (input, window resizing, etc.) and rendering.
+// It is easier if you use orion::Renderer class, but it is not required
+
+// Issues:
+//  [ ] No viewport support yet.
+//  [ ] No input character support as Orion doesn't support those yet.
+
 #pragma once
 
 #include "orion-core/window.h"
