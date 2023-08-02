@@ -15,6 +15,7 @@ namespace orion
 {
     enum class Format : std::uint32_t {
         Undefined,
+        R8_Unorm,
         B8G8R8A8_Srgb,
         R8G8B8A8_Unorm,
         R32G32_Float,
@@ -98,7 +99,8 @@ namespace orion
         ColorAttachment,
         PresentSrc,
         TransferSrc,
-        TransferDst
+        TransferDst,
+        ShaderReadOnly
     };
 
     enum class ShaderStage : std::uint8_t {
@@ -169,16 +171,18 @@ namespace orion
         EndRenderPass,
         Draw,
         DrawIndexed,
-        BindDescriptorSets,
+        BindDescriptorSet,
         PipelineBarrier,
         BlitImage,
-        PushConstants
+        PushConstants,
+        CopyBufferToImage
     };
 
     enum class DescriptorType : std::uint8_t {
         Unknown,
         ConstantBuffer,
-        ImageSampler
+        ImageSampler,
+        SampledImage
     };
 
     enum class ShaderObjectType {
@@ -207,7 +211,8 @@ namespace orion
         TransferDst,
         ColorAttachment,
         DepthStencilAttachment,
-        InputAttachment
+        InputAttachment,
+        SampledImage
     };
     using ImageUsageFlags = Bitflag<ImageUsage>;
 
@@ -228,7 +233,10 @@ namespace orion
         ColorAttachmentWrite,
         TransferRead,
         TransferWrite,
-        MemoryRead
+        MemoryRead,
+        MemoryWrite,
+        ShaderRead,
+        ShaderWrite
     };
     using ResourceAccessFlags = Bitflag<ResourceAccess>;
 
@@ -236,7 +244,8 @@ namespace orion
         TopOfPipe,
         ColorAttachmentOutput,
         Transfer,
-        BottomOfPipe
+        BottomOfPipe,
+        FragmentShader
     };
     using PipelineStageFlags = Bitflag<PipelineStage>;
 
@@ -348,13 +357,19 @@ namespace orion
         const DescriptorSetLayout* layout;
     };
 
-    struct DescriptorBufferBinding {
-        DescriptorSetHandle dst_set;
-        std::uint32_t index;
+    struct DescriptorSetUpdate {
+        DescriptorSetHandle descriptor_set;
+        std::uint32_t binding;
         DescriptorType descriptor_type;
-        GPUBufferHandle buffer;
-        std::size_t offset;
-        std::size_t size;
+
+        GPUBufferHandle buffer_handle;
+        std::size_t buffer_offset;
+        std::size_t buffer_size;
+
+        ImageViewHandle image_view;
+        ImageLayout image_layout = ImageLayout::Undefined;
+
+        SamplerHandle sampler;
     };
 
     struct PushConstantDesc {

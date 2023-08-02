@@ -301,9 +301,9 @@ namespace orion
         wait_idle_api();
     }
 
-    void RenderDevice::bind_descriptor(const DescriptorBufferBinding& binding)
+    void RenderDevice::update_descriptor_sets(std::span<const DescriptorSetUpdate> updates)
     {
-        bind_descriptor_api(binding);
+        update_descriptor_sets_api(updates);
     }
 
     std::uint32_t RenderDevice::acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)

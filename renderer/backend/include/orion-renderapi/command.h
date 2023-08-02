@@ -10,7 +10,6 @@
 
 #include <spdlog/logger.h>
 
-#include <span>
 #include <type_traits>
 #include <vector>
 
@@ -23,7 +22,8 @@ namespace orion
         : std::disjunction<
               std::is_scalar<T>,
               std::is_array<T>,
-              std::is_aggregate<T>,
+              std::conjunction<std::is_aggregate<T>,
+                               std::is_trivially_destructible<T>>,
               std::conjunction<
                   std::is_trivially_destructible<T>,
                   std::disjunction<
@@ -103,58 +103,65 @@ namespace orion
 
     DEFINE_COMMAND(BufferCopy, Graphics)
     {
-        GPUBufferHandle dst = GPUBufferHandle::invalid_handle();
-        std::size_t dst_offset = 0;
-        GPUBufferHandle src = GPUBufferHandle::invalid_handle();
-        std::size_t src_offset = 0;
-        std::size_t size = 0;
+        GPUBufferHandle dst;
+        std::size_t dst_offset;
+        GPUBufferHandle src;
+        std::size_t src_offset;
+        std::size_t size;
     };
+    static_assert(is_valid_cmd_type<CmdBufferCopy>::value);
 
     DEFINE_COMMAND(BeginRenderPass, Graphics)
     {
-        RenderPassHandle render_pass = RenderPassHandle::invalid_handle();
-        FramebufferHandle framebuffer = FramebufferHandle::invalid_handle();
-        Vector2_u render_area = {};
-        Vector4_f clear_color = {};
+        RenderPassHandle render_pass;
+        FramebufferHandle framebuffer;
+        Vector2_u render_area;
+        Vector4_f clear_color;
     };
+    static_assert(is_valid_cmd_type<CmdBeginRenderPass>::value);
 
     DEFINE_COMMAND(EndRenderPass, Graphics){};
+    static_assert(is_valid_cmd_type<CmdEndRenderPass>::value);
 
     DEFINE_COMMAND(Draw, Graphics)
     {
-        GPUBufferHandle vertex_buffer = GPUBufferHandle::invalid_handle();
-        PipelineHandle graphics_pipeline = PipelineHandle::invalid_handle();
-        Viewport viewport = {};
-        std::uint32_t vertex_count = 0;
-        std::uint32_t first_vertex = 0;
+        GPUBufferHandle vertex_buffer;
+        PipelineHandle graphics_pipeline;
+        Viewport viewport;
+        std::uint32_t vertex_count;
+        std::uint32_t first_vertex;
     };
+    static_assert(is_valid_cmd_type<CmdDraw>::value);
 
     DEFINE_COMMAND(DrawIndexed, Graphics)
     {
-        GPUBufferHandle vertex_buffer = GPUBufferHandle::invalid_handle();
-        GPUBufferHandle index_buffer = GPUBufferHandle::invalid_handle();
-        IndexType index_type = IndexType::Uint32;
-        PipelineHandle graphics_pipeline = PipelineHandle::invalid_handle();
-        Viewport viewport = {};
-        Scissor scissor = {};
-        std::uint32_t vertex_offset = 0;
-        std::uint32_t index_offset = 0;
-        std::uint32_t index_count = 0;
+        GPUBufferHandle vertex_buffer;
+        GPUBufferHandle index_buffer;
+        IndexType index_type;
+        PipelineHandle graphics_pipeline;
+        Viewport viewport;
+        Scissor scissor;
+        std::uint32_t vertex_offset;
+        std::uint32_t index_offset;
+        std::uint32_t index_count;
     };
+    static_assert(is_valid_cmd_type<CmdDrawIndexed>::value);
 
-    DEFINE_COMMAND(BindDescriptorSets, Any)
+    DEFINE_COMMAND(BindDescriptorSet, Any)
     {
-        PipelineHandle pipeline = PipelineHandle::invalid_handle();
-        std::uint32_t first_set = 0;
-        std::span<DescriptorSetHandle> descriptor_sets = {};
+        PipelineHandle pipeline;
+        std::uint32_t binding;
+        DescriptorSetHandle descriptor_set;
     };
+    static_assert(is_valid_cmd_type<CmdBindDescriptorSet>::value);
 
     DEFINE_COMMAND(PipelineBarrier, Any)
     {
         PipelineStageFlags src_stages;
         PipelineStageFlags dst_stages;
-        std::span<const ImageBarrierDesc> image_barriers;
+        ImageBarrierDesc image_barrier;
     };
+    static_assert(is_valid_cmd_type<CmdPipelineBarrier>::value);
 
     DEFINE_COMMAND(BlitImage, Transfer)
     {
@@ -165,6 +172,7 @@ namespace orion
         ImageLayout dst_layout;
         Vector2_u dst_size;
     };
+    static_assert(is_valid_cmd_type<CmdBlitImage>::value);
 
     DEFINE_COMMAND(PushConstants, Any)
     {
@@ -174,6 +182,16 @@ namespace orion
         std::size_t size;
         const void* data;
     };
+    static_assert(is_valid_cmd_type<CmdPushConstants>::value);
+
+    DEFINE_COMMAND(CopyBufferToImage, Transfer)
+    {
+        GPUBufferHandle src_buffer;
+        ImageHandle dst_image;
+        ImageLayout dst_image_layout;
+        Vector3_u dst_image_size;
+    };
+    static_assert(is_valid_cmd_type<CmdCopyBufferToImage>::value);
 } // namespace orion
 
 #undef DEFINE_COMMAND

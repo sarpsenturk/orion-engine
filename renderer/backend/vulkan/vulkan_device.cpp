@@ -4,7 +4,6 @@
 #include "vulkan_platform.h"
 
 #include "orion-utils/assertion.h"
-#include "orion-utils/overload.h"
 #include "orion-utils/static_vector.h"
 
 #include <numeric>
@@ -518,12 +517,12 @@ namespace orion::vulkan
         // Create VkPipelineColorBlendStateCreateInfo
         const auto vk_color_blend = []() {
             static const VkPipelineColorBlendAttachmentState attachment{
-                .blendEnable = VK_FALSE,
-                .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-                .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO,
+                .blendEnable = VK_TRUE,
+                .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+                .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                 .colorBlendOp = VK_BLEND_OP_ADD,
                 .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-                .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+                .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                 .alphaBlendOp = VK_BLEND_OP_ADD,
                 .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
             };
@@ -859,7 +858,7 @@ namespace orion::vulkan
                 .addressModeV = to_vulkan_type(desc.address_mode_v),
                 .addressModeW = to_vulkan_type(desc.address_mode_w),
                 .mipLodBias = desc.mip_load_bias,
-                .anisotropyEnable = desc.max_anisotropy > 0 ? VK_TRUE : VK_FALSE,
+                .anisotropyEnable = VK_FALSE, // TODO: Make this customizable
                 .maxAnisotropy = desc.max_anisotropy,
                 .compareEnable = VK_TRUE,
                 .compareOp = to_vulkan_type(desc.compare_func),
@@ -1081,7 +1080,9 @@ namespace orion::vulkan
     void VulkanDevice::wait_for_fence_api(FenceHandle fence)
     {
         VkFence vk_fence = fences_.handle_at(fence);
-        vk_result_check(vkWaitForFences(device(), 1, &vk_fence, VK_TRUE, UINT64_MAX));
+        vk_result_check(
+            vkWaitForFences(device(), 1, &vk_fence, VK_TRUE, UINT64_MAX),
+            {VK_SUCCESS, VK_TIMEOUT});
         vk_result_check(vkResetFences(device(), 1, &vk_fence));
     }
 
@@ -1095,26 +1096,47 @@ namespace orion::vulkan
         vk_result_check(vkDeviceWaitIdle(device()));
     }
 
-    void VulkanDevice::bind_descriptor_api(const DescriptorBufferBinding& binding)
+    void VulkanDevice::update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates)
     {
-        const auto buffer_write = VkDescriptorBufferInfo{
-            .buffer = buffers_.handle_at(binding.buffer),
-            .offset = binding.offset,
-            .range = binding.size,
-        };
-        const auto descriptor_write = VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = descriptor_sets_.handle_at(binding.dst_set),
-            .dstBinding = binding.index,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = to_vulkan_type(binding.descriptor_type),
-            .pImageInfo = nullptr,
-            .pBufferInfo = &buffer_write,
-            .pTexelBufferView = nullptr,
-        };
-        vkUpdateDescriptorSets(device(), 1, &descriptor_write, 0, nullptr);
+        std::vector<VkDescriptorBufferInfo> buffer_updates;
+        std::vector<VkDescriptorImageInfo> image_updates;
+        std::vector<VkWriteDescriptorSet> descriptor_writes(updates.size());
+        std::ranges::transform(updates, descriptor_writes.begin(), [&buffer_updates, &image_updates, this](const auto& update) {
+            VkDescriptorImageInfo* image_info = nullptr;
+            VkDescriptorBufferInfo* buffer_info = nullptr;
+            if (update.buffer_handle.is_valid()) {
+                buffer_updates.push_back({
+                    .buffer = buffers_.handle_at(update.buffer_handle),
+                    .offset = update.buffer_offset,
+                    .range = update.buffer_size,
+                });
+                buffer_info = &(buffer_updates.back());
+            } else if (update.image_view.is_valid() || update.sampler.is_valid()) {
+                image_updates.push_back({
+                    .sampler = samplers_.handle_or_null(update.sampler),
+                    .imageView = image_views_.handle_or_null(update.image_view),
+                    .imageLayout = to_vulkan_type(update.image_layout),
+                });
+                image_info = &(image_updates.back());
+            }
+
+            return VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = nullptr,
+                .dstSet = descriptor_sets_.handle_at(update.descriptor_set),
+                .dstBinding = update.binding,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = to_vulkan_type(update.descriptor_type),
+                .pImageInfo = image_info,
+                .pBufferInfo = buffer_info,
+                .pTexelBufferView = nullptr,
+            };
+        });
+        vkUpdateDescriptorSets(
+            device(),
+            static_cast<std::uint32_t>(descriptor_writes.size()), descriptor_writes.data(),
+            0u, nullptr);
     }
 
     uint32_t VulkanDevice::acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)
@@ -1161,8 +1183,8 @@ namespace orion::vulkan
             case CommandType::DrawIndexed:
                 cmd_draw_indexed(command_buffer, command_packet.data);
                 break;
-            case CommandType::BindDescriptorSets:
-                cmd_bind_descriptor_sets(command_buffer, command_packet.data);
+            case CommandType::BindDescriptorSet:
+                cmd_bind_descriptor_set(command_buffer, command_packet.data);
                 break;
             case CommandType::PipelineBarrier:
                 cmd_pipeline_barrier(command_buffer, command_packet.data);
@@ -1172,6 +1194,9 @@ namespace orion::vulkan
                 break;
             case CommandType::PushConstants:
                 cmd_push_constants(command_buffer, command_packet.data);
+                break;
+            case CommandType::CopyBufferToImage:
+                cmd_copy_buffer_to_image(command_buffer, command_packet.data);
                 break;
             default:
                 ORION_ASSERT(!"Command type not handled!");
@@ -1303,9 +1328,9 @@ namespace orion::vulkan
             0u);
     }
 
-    void VulkanDevice::cmd_bind_descriptor_sets(VkCommandBuffer command_buffer, const void* data)
+    void VulkanDevice::cmd_bind_descriptor_set(VkCommandBuffer command_buffer, const void* data)
     {
-        const auto* cmd_data = static_cast<const CmdBindDescriptorSets*>(data);
+        const auto* cmd_data = static_cast<const CmdBindDescriptorSet*>(data);
 
         // Set bind point TODO: Make this customizable
         const auto bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -1313,20 +1338,17 @@ namespace orion::vulkan
         // Find pipeline layout
         VkPipelineLayout pipeline_layout = pipeline_layouts_.handle_at(cmd_data->pipeline);
 
-        // Find descriptor sets
-        std::vector<VkDescriptorSet> descriptor_sets(cmd_data->descriptor_sets.size());
-        std::ranges::transform(cmd_data->descriptor_sets, descriptor_sets.begin(), [this](auto handle) {
-            return descriptor_sets_.handle_at(handle);
-        });
+        // Find descriptor set
+        VkDescriptorSet descriptor_set = descriptor_sets_.handle_at(cmd_data->descriptor_set);
 
         // Issue command
         vkCmdBindDescriptorSets(
             command_buffer,
             bind_point,
             pipeline_layout,
-            0,
-            static_cast<std::uint32_t>(descriptor_sets.size()),
-            descriptor_sets.data(),
+            cmd_data->binding,
+            1u,
+            &descriptor_set,
             0,
             nullptr);
     }
@@ -1335,40 +1357,34 @@ namespace orion::vulkan
     {
         const auto* cmd_data = static_cast<const CmdPipelineBarrier*>(data);
 
-        std::vector<VkMemoryBarrier> memory_barriers;
-        std::vector<VkBufferMemoryBarrier> buffer_memory_barriers;
-
-        std::vector<VkImageMemoryBarrier> image_memory_barriers(cmd_data->image_barriers.size());
-        std::ranges::transform(cmd_data->image_barriers, image_memory_barriers.begin(), [this](const auto& barrier) {
-            return VkImageMemoryBarrier{
-                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                .pNext = nullptr,
-                .srcAccessMask = to_vulkan_type(barrier.src_access),
-                .dstAccessMask = to_vulkan_type(barrier.dst_access),
-                .oldLayout = to_vulkan_type(barrier.old_layout),
-                .newLayout = to_vulkan_type(barrier.new_layout),
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image = images_.handle_at(barrier.image),
-                // TODO: Allow this to be customized
-                .subresourceRange = {
-                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1,
-                },
-            };
-        });
+        const auto image_memory_barrier = VkImageMemoryBarrier{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .pNext = nullptr,
+            .srcAccessMask = to_vulkan_type(cmd_data->image_barrier.src_access),
+            .dstAccessMask = to_vulkan_type(cmd_data->image_barrier.dst_access),
+            .oldLayout = to_vulkan_type(cmd_data->image_barrier.old_layout),
+            .newLayout = to_vulkan_type(cmd_data->image_barrier.new_layout),
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = images_.handle_at(cmd_data->image_barrier.image),
+            // TODO: Allow this to be customized
+            .subresourceRange = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        };
 
         vkCmdPipelineBarrier(
             command_buffer,
             to_vulkan_type(cmd_data->src_stages),
             to_vulkan_type(cmd_data->dst_stages),
             0,
-            static_cast<std::uint32_t>(memory_barriers.size()), memory_barriers.data(),
-            static_cast<std::uint32_t>(buffer_memory_barriers.size()), buffer_memory_barriers.data(),
-            static_cast<std::uint32_t>(image_memory_barriers.size()), image_memory_barriers.data());
+            0u, nullptr,
+            0u, nullptr,
+            1u, &image_memory_barrier);
     }
 
     void VulkanDevice::cmd_blit_image(VkCommandBuffer command_buffer, const void* data)
@@ -1436,5 +1452,38 @@ namespace orion::vulkan
             static_cast<std::uint32_t>(cmd_data->offset),
             static_cast<std::uint32_t>(cmd_data->size),
             cmd_data->data);
+    }
+
+    void VulkanDevice::cmd_copy_buffer_to_image(VkCommandBuffer command_buffer, const void* data)
+    {
+        const auto* cmd_data = static_cast<const CmdCopyBufferToImage*>(data);
+
+        // Find source buffer
+        VkBuffer src_buffer = buffers_.handle_at(cmd_data->src_buffer);
+
+        // Find destination image
+        VkImage dst_image = images_.handle_at(cmd_data->dst_image);
+
+        const auto copy = VkBufferImageCopy{
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .imageOffset = {},
+            .imageExtent = to_vulkan_extent(cmd_data->dst_image_size),
+        };
+
+        vkCmdCopyBufferToImage(
+            command_buffer,
+            src_buffer,
+            dst_image,
+            to_vulkan_type(cmd_data->dst_image_layout),
+            1u,
+            &copy);
     }
 } // namespace orion::vulkan

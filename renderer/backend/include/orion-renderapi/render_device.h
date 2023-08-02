@@ -137,17 +137,17 @@ namespace orion
         void submit(const SubmitDesc& desc);
 
         // Record into and immediately submit command buffer
-        template<typename F>
         void submit_immediate(auto&& record_function)
         {
             const auto command_buffer = default_command_buffer();
-            record_function(command_buffer);
+            record_function(this, command_buffer);
             const auto fence = default_fence();
             const auto submit_desc = SubmitDesc{
                 .queue_type = CommandQueueType::Any,
                 .command_buffers = {&command_buffer, 1},
                 .fence = fence,
             };
+            submit(submit_desc);
             wait_for_fence(fence);
         }
 
@@ -157,7 +157,7 @@ namespace orion
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
-        void bind_descriptor(const DescriptorBufferBinding& binding);
+        void update_descriptor_sets(std::span<const DescriptorSetUpdate> updates);
 
         std::uint32_t acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence);
         ImageHandle get_swapchain_image(SwapchainHandle swapchain, std::uint32_t image_index);
@@ -221,7 +221,7 @@ namespace orion
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 
-        virtual void bind_descriptor_api(const DescriptorBufferBinding& binding) = 0;
+        virtual void update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates) = 0;
 
         virtual std::uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) = 0;
         virtual ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) = 0;

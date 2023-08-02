@@ -108,37 +108,31 @@ namespace orion
         present_command_.begin({});
 
         // Transition render result to transfer source
-        const auto render_transfer_barriers = std::array{
-            ImageBarrierDesc{
+        {
+            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
+            cmd_pipeline_barrier->src_stages = PipelineStage::ColorAttachmentOutput;
+            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
                 .src_access = ResourceAccess::ColorAttachmentWrite,
                 .dst_access = ResourceAccess::TransferRead,
                 .old_layout = ImageLayout::TransferSrc,
                 .new_layout = ImageLayout::TransferSrc,
                 .image = render_image_,
-            },
-        };
-        {
-            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStage::ColorAttachmentOutput;
-            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
-            cmd_pipeline_barrier->image_barriers = render_transfer_barriers;
+            };
         }
 
         // Transition swapchain image to transfer dst
-        const auto swapchain_transfer_barriers = std::array{
-            ImageBarrierDesc{
+        {
+            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
+            cmd_pipeline_barrier->src_stages = PipelineStage::TopOfPipe;
+            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
                 .src_access = {},
                 .dst_access = ResourceAccess::TransferWrite,
                 .old_layout = ImageLayout::Undefined,
                 .new_layout = ImageLayout::TransferDst,
                 .image = swapchain_image,
-            },
-        };
-        {
-            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStage::TopOfPipe;
-            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
-            cmd_pipeline_barrier->image_barriers = swapchain_transfer_barriers;
+            };
         }
 
         // Blit the image
@@ -153,20 +147,17 @@ namespace orion
         }
 
         // Transition swapchain image to present source
-        const auto swapchain_present_barriers = std::array{
-            ImageBarrierDesc{
+        {
+            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
+            cmd_pipeline_barrier->src_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->dst_stages = PipelineStage::BottomOfPipe;
+            cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
                 .src_access = ResourceAccess::TransferWrite,
                 .dst_access = ResourceAccess::MemoryRead,
                 .old_layout = ImageLayout::TransferDst,
                 .new_layout = ImageLayout::PresentSrc,
                 .image = swapchain_image,
-            },
-        };
-        {
-            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStage::Transfer;
-            cmd_pipeline_barrier->dst_stages = PipelineStage::BottomOfPipe;
-            cmd_pipeline_barrier->image_barriers = swapchain_present_barriers;
+            };
         }
 
         // End presentation commands
@@ -210,7 +201,11 @@ namespace orion
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 
         // Setup Platform/Renderer backends
-        ImGui_ImplOrion_Init({.window = window, .device = device()});
+        ImGui_ImplOrion_Init({
+            .window = window,
+            .device = device(),
+            .descriptor_pool = descriptor_pool_,
+        });
         SPDLOG_LOGGER_DEBUG(logger(), "ImGui initialized");
     }
 
@@ -365,6 +360,14 @@ namespace orion
             DescriptorPoolSize{
                 .type = DescriptorType::ConstantBuffer,
                 .count = 16,
+            },
+            DescriptorPoolSize{
+                .type = DescriptorType::SampledImage,
+                .count = 16,
+            },
+            DescriptorPoolSize{
+                .type = DescriptorType::ImageSampler,
+                .count = 4,
             },
         };
         const auto desc = DescriptorPoolDesc{

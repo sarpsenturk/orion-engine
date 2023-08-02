@@ -102,7 +102,7 @@ namespace orion::vulkan
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
-        void bind_descriptor_api(const DescriptorBufferBinding& binding) override;
+        void update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates) override;
 
         uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) override;
         ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) override;
@@ -113,10 +113,11 @@ namespace orion::vulkan
         void cmd_end_render_pass(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data);
-        void cmd_bind_descriptor_sets(VkCommandBuffer command_buffer, const void* data);
+        void cmd_bind_descriptor_set(VkCommandBuffer command_buffer, const void* data);
         void cmd_pipeline_barrier(VkCommandBuffer command_buffer, const void* data);
         void cmd_blit_image(VkCommandBuffer command_buffer, const void* data);
         void cmd_push_constants(VkCommandBuffer command_buffer, const void* data);
+        void cmd_copy_buffer_to_image(VkCommandBuffer command_buffer, const void* data);
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;

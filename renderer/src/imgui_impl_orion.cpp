@@ -49,9 +49,14 @@ struct FsInput {
     float4 color : COLOR;
 };
 
+[[vk::binding(0)]]
+Texture2D font_texture : register(t0);
+[[vk::binding(1)]]
+SamplerState font_sampler : register(s0);
+
 float4 fs_main(FsInput input) : SV_Target
 {
-    return input.color;
+    return font_texture.Sample(font_sampler, input.uv) * input.color;
 }
 )hlsl";
 
@@ -222,6 +227,11 @@ float4 fs_main(FsInput input) : SV_Target
         void* index_buffer_ptr;
 
         ImGuiCSceneBuffer scene_buffer;
+
+        orion::UniqueImage font_image;
+        orion::UniqueImageView font_image_view;
+        orion::UniqueSampler font_sampler;
+        orion::UniqueDescriptorSet font_descriptor;
     };
 
     ImGuiRendererData* imgui_get_renderer_data()
@@ -243,6 +253,20 @@ float4 fs_main(FsInput input) : SV_Target
         // Get render device
         auto* device = init_desc.device;
         renderer_data->device = device;
+
+        // Set descriptor layout
+        const auto descriptor_set_layout = orion::DescriptorSetLayout({
+            orion::DescriptorBinding{
+                .type = orion::DescriptorType::SampledImage,
+                .shader_stages = orion::ShaderStage::Fragment,
+                .count = 1,
+            },
+            orion::DescriptorBinding{
+                .type = orion::DescriptorType::ImageSampler,
+                .shader_stages = orion::ShaderStage::Fragment,
+                .count = 1,
+            },
+        });
 
         // Create pipeline
         {
@@ -320,7 +344,7 @@ float4 fs_main(FsInput input) : SV_Target
             const auto desc = orion::GraphicsPipelineDesc{
                 shaders,
                 vertex_bindings,
-                {},
+                {&descriptor_set_layout, 1},
                 push_constants,
                 input_assembly,
                 rasterization,
@@ -329,14 +353,148 @@ float4 fs_main(FsInput input) : SV_Target
             renderer_data->pipeline = device->make_unique(orion::PipelineHandle_tag{}, desc);
         }
 
-        // Fake load font atlas
-        // TODO: Actually load and build font atlas
+        // Get font data
+        unsigned char* pixels;
+        int width;
+        int height;
+        int bytes_per_pixel;
+        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytes_per_pixel);
+        const auto upload_size = static_cast<std::size_t>(width * height * bytes_per_pixel);
+        const auto font_image_format = orion::Format::R8G8B8A8_Unorm;
+
+        // Create font image
         {
-            unsigned char* font_atlas;
-            int width;
-            int height;
-            io.Fonts->GetTexDataAsAlpha8(&font_atlas, &width, &height);
+            const auto desc = orion::ImageDesc{
+                .type = orion::ImageType::Image2D,
+                .format = font_image_format,
+                .size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1},
+                .tiling = orion::ImageTiling::Optimal,
+                .usage = orion::ImageUsageFlags::disjunction({orion::ImageUsage::SampledImage, orion::ImageUsage::TransferDst}),
+            };
+            renderer_data->font_image = device->make_unique(orion::ImageHandle_tag{}, desc);
         }
+
+        // Create font image view
+        {
+            const auto desc = orion::ImageViewDesc{
+                .image = renderer_data->font_image.get(),
+                .type = orion::ImageViewType::View2D,
+                .format = font_image_format,
+            };
+            renderer_data->font_image_view = device->make_unique(orion::ImageViewHandle_tag{}, desc);
+        }
+
+        // Create font upload buffer
+        orion::GPUBufferHandle upload_buffer;
+        {
+            const auto desc = orion::GPUBufferDesc{
+                .size = upload_size,
+                .usage = orion::GPUBufferUsage::TransferSrc,
+                .host_visible = true,
+            };
+            upload_buffer = device->create_buffer(desc);
+        }
+
+        // Upload image data to buffer
+        {
+            void* buffer_ptr = device->map(upload_buffer);
+            std::memcpy(buffer_ptr, pixels, upload_size);
+            device->unmap(upload_buffer);
+        }
+
+        // Copy buffer to image
+        {
+            device->submit_immediate([upload_buffer, width, height](auto* device, auto command_buffer) {
+                auto cmd_list = orion::CommandList{device, command_buffer, 256ull};
+                auto* renderer_data = imgui_get_renderer_data();
+                auto dst_image = renderer_data->font_image.get();
+                cmd_list.begin({.usage = orion::CommandBufferUsage::OneTimeSubmit});
+                // Transition image to transfer dst
+                {
+                    auto* cmd_pipeline_barrier = cmd_list.add_command<orion::CmdPipelineBarrier>({});
+                    cmd_pipeline_barrier->src_stages = orion::PipelineStage::TopOfPipe;
+                    cmd_pipeline_barrier->dst_stages = orion::PipelineStage::Transfer;
+                    cmd_pipeline_barrier->image_barrier = {
+                        .dst_access = orion::ResourceAccess::TransferWrite,
+                        .old_layout = orion::ImageLayout::Undefined,
+                        .new_layout = orion::ImageLayout::TransferDst,
+                        .image = dst_image,
+                    };
+                }
+                // Copy buffer to image
+                {
+                    auto* cmd_copy_buffer_to_image = cmd_list.add_command<orion::CmdCopyBufferToImage>({});
+                    cmd_copy_buffer_to_image->src_buffer = upload_buffer;
+                    cmd_copy_buffer_to_image->dst_image = dst_image;
+                    cmd_copy_buffer_to_image->dst_image_layout = orion::ImageLayout::TransferDst;
+                    cmd_copy_buffer_to_image->dst_image_size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1u};
+                }
+                // Transition image to shader read only
+                {
+                    auto* cmd_pipeline_barrier = cmd_list.add_command<orion::CmdPipelineBarrier>({});
+                    cmd_pipeline_barrier->src_stages = orion::PipelineStage::Transfer;
+                    cmd_pipeline_barrier->dst_stages = orion::PipelineStage::FragmentShader;
+                    cmd_pipeline_barrier->image_barrier = {
+                        .src_access = orion::ResourceAccess::TransferWrite,
+                        .dst_access = orion::ResourceAccess::ShaderRead,
+                        .old_layout = orion::ImageLayout::TransferDst,
+                        .new_layout = orion::ImageLayout::ShaderReadOnly,
+                        .image = dst_image,
+                    };
+                }
+                cmd_list.end();
+            });
+        }
+
+        // Destroy upload buffer
+        device->destroy(upload_buffer);
+
+        // Create font sampler
+        {
+            const auto desc = orion::SamplerDesc{
+                .filter = orion::Filter::Nearest,
+                .address_mode_u = orion::AddressMode::Repeat,
+                .address_mode_v = orion::AddressMode::Repeat,
+                .address_mode_w = orion::AddressMode::Repeat,
+                .mip_load_bias = 0.f,
+                .max_anisotropy = 1.f,
+                .min_lod = -1000,
+                .max_lod = 1000,
+            };
+            renderer_data->font_sampler = device->make_unique(orion::SamplerHandle_tag{}, desc);
+        }
+
+        // Create descriptor set
+        {
+            const auto desc = orion::DescriptorSetDesc{
+                .descriptor_pool = init_desc.descriptor_pool,
+                .layout = &descriptor_set_layout,
+            };
+            renderer_data->font_descriptor = device->make_unique(orion::DescriptorSetHandle_tag{}, desc);
+        }
+
+        // Update descriptor set
+        {
+            const auto descriptor_updates = std::array{
+                orion::DescriptorSetUpdate{
+                    .descriptor_set = renderer_data->font_descriptor.get(),
+                    .binding = 0,
+                    .descriptor_type = orion::DescriptorType::SampledImage,
+                    .image_view = renderer_data->font_image_view.get(),
+                    .image_layout = orion::ImageLayout::ShaderReadOnly,
+                },
+                orion::DescriptorSetUpdate{
+                    .descriptor_set = renderer_data->font_descriptor.get(),
+                    .binding = 1,
+                    .descriptor_type = orion::DescriptorType::ImageSampler,
+                    .sampler = renderer_data->font_sampler.get(),
+                },
+            };
+            device->update_descriptor_sets(descriptor_updates);
+        }
+
+        // Set font texture as descriptor set handle
+        io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(renderer_data->font_descriptor.get().value()));
 
         SPDLOG_LOGGER_TRACE(logger(), "ImGui_ImplOrion_Renderer initialized");
     }
@@ -457,6 +615,14 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
         cmd_push_constants->offset = 0;
         cmd_push_constants->size = sizeof(ImGuiCSceneBuffer);
         cmd_push_constants->data = &renderer_data->scene_buffer;
+    }
+
+    // Bind descriptor set
+    {
+        auto* cmd_bind_descriptor_set = command_list.add_command<orion::CmdBindDescriptorSet>({});
+        cmd_bind_descriptor_set->pipeline = renderer_data->pipeline.get();
+        cmd_bind_descriptor_set->binding = 0;
+        cmd_bind_descriptor_set->descriptor_set = renderer_data->font_descriptor.get();
     }
 
     // Render command lists

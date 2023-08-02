@@ -9,6 +9,7 @@
 struct ImGui_ImplOrion_InitDesc {
     orion::Window* window;
     orion::RenderDevice* device;
+    orion::DescriptorPoolHandle descriptor_pool;
 };
 
 void ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitDesc& desc);

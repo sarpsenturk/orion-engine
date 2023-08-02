@@ -36,6 +36,8 @@ namespace orion::vulkan
     constexpr auto to_vulkan_type(Format format) noexcept -> VkFormat
     {
         switch (format) {
+            case Format::R8_Unorm:
+                return VK_FORMAT_R8_UNORM;
             case Format::B8G8R8A8_Srgb:
                 return VK_FORMAT_B8G8R8A8_SRGB;
             case Format::R32G32_Float:
@@ -92,6 +94,8 @@ namespace orion::vulkan
                 return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             case ImageLayout::TransferDst:
                 return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            case ImageLayout::ShaderReadOnly:
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
         ORION_ASSERT(!"Image layout not handled in to_vulkan_type() or is invalid");
         return VK_IMAGE_LAYOUT_MAX_ENUM;
@@ -222,7 +226,9 @@ namespace orion::vulkan
             case DescriptorType::ConstantBuffer:
                 return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             case DescriptorType::ImageSampler:
-                return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                return VK_DESCRIPTOR_TYPE_SAMPLER;
+            case DescriptorType::SampledImage:
+                return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         }
         ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type() or is invalid");
         return {};
@@ -291,6 +297,9 @@ namespace orion::vulkan
         if (image_usage_flags.check_and_clear(ImageUsage::InputAttachment)) {
             vk_usage_flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
         }
+        if (image_usage_flags.check_and_clear(ImageUsage::SampledImage)) {
+            vk_usage_flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+        }
         ORION_ASSERT(image_usage_flags.has_none() &&
                      "Image usage not handled in to_vulkan_type()");
         return vk_usage_flags;
@@ -337,6 +346,9 @@ namespace orion::vulkan
         if (pipeline_stage_flags.check_and_clear(PipelineStage::BottomOfPipe)) {
             vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
         }
+        if (pipeline_stage_flags.check_and_clear(PipelineStage::FragmentShader)) {
+            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
         ORION_ASSERT(pipeline_stage_flags.has_none() &&
                      "Pipeline stage not handled in to_vulkan_type()");
         return vk_pipeline_stage_flags;
@@ -360,6 +372,15 @@ namespace orion::vulkan
         }
         if (resource_access_flags.check_and_clear(ResourceAccess::MemoryRead)) {
             vk_access_flags |= VK_ACCESS_MEMORY_READ_BIT;
+        }
+        if (resource_access_flags.check_and_clear(ResourceAccess::MemoryWrite)) {
+            vk_access_flags |= VK_ACCESS_MEMORY_WRITE_BIT;
+        }
+        if (resource_access_flags.check_and_clear(ResourceAccess::ShaderRead)) {
+            vk_access_flags |= VK_ACCESS_SHADER_READ_BIT;
+        }
+        if (resource_access_flags.check_and_clear(ResourceAccess::ShaderWrite)) {
+            vk_access_flags |= VK_ACCESS_SHADER_WRITE_BIT;
         }
         ORION_ASSERT(resource_access_flags.has_none() &&
                      "Resource access not handled in to_vulkan_type()");
