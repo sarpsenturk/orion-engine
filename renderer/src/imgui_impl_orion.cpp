@@ -773,7 +773,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
             // Set scissor
             const auto scissor = orion::Scissor{
                 .offset = {static_cast<int>(clip_min.x), static_cast<int>(clip_min.y)},
-                .size = {static_cast<uint32_t>(clip_max.x), static_cast<uint32_t>(clip_max.y)},
+                .size = {static_cast<uint32_t>(clip_max.x - clip_min.x), static_cast<uint32_t>(clip_max.y - clip_min.y)},
             };
 
             // Bind descriptor set
