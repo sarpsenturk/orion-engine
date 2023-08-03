@@ -1,6 +1,7 @@
 #include "orion-renderapi/types.h"
 
 #include "orion-utils/hash.h"
+#include "orion-utils/type.h"
 
 #include <numeric>
 
@@ -10,7 +11,7 @@ struct std::hash<orion::DescriptorBinding> {
     {
         return 0ull |
                to_underlying(binding.type) |
-               std::size_t{binding.shader_stages.value()} << 8ull |
+               std::size_t{orion::to_underlying(binding.shader_stages)} << 8ull |
                std::size_t{binding.count} << 16ull;
     }
 };

@@ -110,11 +110,11 @@ namespace orion
         // Transition render result to transfer source
         {
             auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStage::ColorAttachmentOutput;
-            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->src_stages = PipelineStageFlags::ColorAttachmentOutput;
+            cmd_pipeline_barrier->dst_stages = PipelineStageFlags::Transfer;
             cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
-                .src_access = ResourceAccess::ColorAttachmentWrite,
-                .dst_access = ResourceAccess::TransferRead,
+                .src_access = ResourceAccessFlags::ColorAttachmentWrite,
+                .dst_access = ResourceAccessFlags::TransferRead,
                 .old_layout = ImageLayout::TransferSrc,
                 .new_layout = ImageLayout::TransferSrc,
                 .image = render_image_,
@@ -124,11 +124,11 @@ namespace orion
         // Transition swapchain image to transfer dst
         {
             auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStage::TopOfPipe;
-            cmd_pipeline_barrier->dst_stages = PipelineStage::Transfer;
+            cmd_pipeline_barrier->src_stages = PipelineStageFlags::TopOfPipe;
+            cmd_pipeline_barrier->dst_stages = PipelineStageFlags::Transfer;
             cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
                 .src_access = {},
-                .dst_access = ResourceAccess::TransferWrite,
+                .dst_access = ResourceAccessFlags::TransferWrite,
                 .old_layout = ImageLayout::Undefined,
                 .new_layout = ImageLayout::TransferDst,
                 .image = swapchain_image,
@@ -149,11 +149,11 @@ namespace orion
         // Transition swapchain image to present source
         {
             auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStage::Transfer;
-            cmd_pipeline_barrier->dst_stages = PipelineStage::BottomOfPipe;
+            cmd_pipeline_barrier->src_stages = PipelineStageFlags::Transfer;
+            cmd_pipeline_barrier->dst_stages = PipelineStageFlags::BottomOfPipe;
             cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
-                .src_access = ResourceAccess::TransferWrite,
-                .dst_access = ResourceAccess::MemoryRead,
+                .src_access = ResourceAccessFlags::TransferWrite,
+                .dst_access = ResourceAccessFlags::MemoryRead,
                 .old_layout = ImageLayout::TransferDst,
                 .new_layout = ImageLayout::PresentSrc,
                 .image = swapchain_image,
@@ -169,8 +169,8 @@ namespace orion
             render_semaphore_,
         };
         const auto wait_stages = std::array{
-            PipelineStage::Transfer,
-            PipelineStage::Transfer,
+            PipelineStageFlags::Transfer,
+            PipelineStageFlags::Transfer,
         };
         device()->submit({
             .queue_type = CommandQueueType::Any,
@@ -303,7 +303,7 @@ namespace orion
             .format = Format::B8G8R8A8_Srgb,
             .size = {render_size_.x(), render_size_.y(), 1},
             .tiling = ImageTiling::Optimal,
-            .usage = ImageUsageFlags::disjunction({ImageUsage::ColorAttachment, ImageUsage::TransferSrc}),
+            .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::TransferSrc,
         };
         return device()->create_image(desc);
     }

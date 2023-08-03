@@ -19,7 +19,7 @@ namespace orion
         CommandQueueType queue_type = CommandQueueType::Any;
         std::span<const CommandBufferHandle> command_buffers = {};
         std::span<const SemaphoreHandle> wait_semaphores = {};
-        std::span<const PipelineStage> wait_stages = {};
+        std::span<const PipelineStageFlags> wait_stages = {};
         std::span<const SemaphoreHandle> signal_semaphores = {};
         FenceHandle fence = FenceHandle::invalid_handle();
     };

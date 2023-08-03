@@ -79,12 +79,12 @@ namespace orion
     namespace
     {
         // Returns the DXC shader profile appropriate for the shader type
-        const wchar_t* to_shader_profile(ShaderStage shader_type) noexcept
+        const wchar_t* to_shader_profile(ShaderStageFlags shader_type) noexcept
         {
             switch (shader_type) {
-                case ShaderStage::Vertex:
+                case ShaderStageFlags::Vertex:
                     return L"vs_6_0";
-                case ShaderStage::Fragment:
+                case ShaderStageFlags::Fragment:
                     return L"ps_6_0";
             }
             ORION_ASSERT(!"Invalid shader type");
@@ -163,10 +163,10 @@ namespace orion
         arguments.push_back(L"-E");
         arguments.push_back(entry_point.c_str());
         arguments.push_back(L"-T");
-        arguments.push_back(to_shader_profile(desc.shader_type));
+        arguments.push_back(to_shader_profile(desc.shader_stage));
         if (desc.object_type == ShaderObjectType::SpirV) {
             arguments.push_back(L"-spirv");
-            if (desc.shader_type == ShaderStage::Vertex) {
+            if (desc.shader_stage == ShaderStageFlags::Vertex) {
                 arguments.push_back(L"-fvk-invert-y");
             }
         }

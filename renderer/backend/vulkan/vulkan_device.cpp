@@ -234,7 +234,7 @@ namespace orion::vulkan
 
             // Find set of queue families to be used
             auto queue_types = std::vector{CommandQueueType::Graphics};
-            const auto has_transfer = desc.image_usage.has(image_usage_transfer_flags);
+            const auto has_transfer = !!(desc.image_usage & ImageUsageFlags::Transfer);
             if (has_transfer) {
                 queue_types.push_back(CommandQueueType::Transfer);
             }
@@ -598,7 +598,7 @@ namespace orion::vulkan
     {
         // Find set of queue families to be used
         auto queue_types = std::vector{CommandQueueType::Graphics};
-        const auto has_transfer = desc.usage.has(gpu_buffer_usage_transfer_flags);
+        const auto has_transfer = !!(desc.usage & GPUBufferUsageFlags::Transfer);
         if (has_transfer) {
             queue_types.push_back(CommandQueueType::Transfer);
         }
@@ -776,7 +776,7 @@ namespace orion::vulkan
         VmaAllocation allocation = VK_NULL_HANDLE;
         {
             auto queue_types = std::vector{CommandQueueType::Graphics};
-            const auto has_transfer = desc.usage.has(image_usage_transfer_flags);
+            const auto has_transfer = !!(desc.usage & ImageUsageFlags::Transfer);
             if (has_transfer) {
                 queue_types.push_back(CommandQueueType::Transfer);
             }

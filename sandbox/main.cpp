@@ -91,8 +91,7 @@ private:
     static constexpr auto window_size = orion::WindowSize{1280, 720};
     static constexpr auto swapchain_image_count = 2;
     static constexpr auto swapchain_image_format = orion::Format::B8G8R8A8_Srgb;
-    static constexpr auto swapchain_image_usage =
-        orion::ImageUsageFlags::disjunction({orion::ImageUsage::ColorAttachment, orion::ImageUsage::TransferDst});
+    static constexpr auto swapchain_image_usage = orion::ImageUsageFlags::ColorAttachment | orion::ImageUsageFlags::TransferDst;
 
     orion::Window window_;
     orion::Renderer renderer_;

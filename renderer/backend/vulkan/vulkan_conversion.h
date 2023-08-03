@@ -10,6 +10,7 @@
 
 #include "orion-utils/assertion.h"
 
+#include <numeric>
 #include <string>
 
 namespace orion::vulkan
@@ -103,20 +104,21 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(ShaderStageFlags shader_stages) noexcept -> VkShaderStageFlags
     {
-        if (shader_stages.has_none()) {
+        auto conversion_fn = [](auto acc, ShaderStageFlags shader_stage) -> VkShaderStageFlags {
+            if (!shader_stage) {
+                return acc;
+            }
+            switch (shader_stage) {
+                case ShaderStageFlags::Vertex:
+                    return acc | VK_SHADER_STAGE_VERTEX_BIT;
+                case ShaderStageFlags::Fragment:
+                    return acc | VK_SHADER_STAGE_FRAGMENT_BIT;
+            }
+            ORION_ASSERT(!"Shader stage not handled in to_vulkan_type()");
             return {};
-        }
-
-        VkShaderStageFlags vk_shader_stages = {};
-        if (shader_stages.check_and_clear(ShaderStage::Vertex)) {
-            vk_shader_stages |= VK_SHADER_STAGE_VERTEX_BIT;
-        }
-        if (shader_stages.check_and_clear(ShaderStage::Fragment)) {
-            vk_shader_stages |= VK_SHADER_STAGE_FRAGMENT_BIT;
-        }
-        ORION_ASSERT(shader_stages.has_none() &&
-                     "Shader stage not handled in to_vulkan_type() or is invalid");
-        return vk_shader_stages;
+        };
+        const auto bitwise_range = BitwiseRange{shader_stages};
+        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkShaderStageFlags{}, conversion_fn);
     }
 
     constexpr auto to_vulkan_type(InputRate input_rate) noexcept -> VkVertexInputRate
@@ -183,29 +185,27 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(GPUBufferUsageFlags buffer_usage) noexcept -> VkBufferUsageFlags
     {
-        if (buffer_usage.has_none()) {
+        auto conversion_fn = [](auto acc, GPUBufferUsageFlags buffer_usage) -> VkBufferUsageFlags {
+            if (!buffer_usage) {
+                return acc;
+            }
+            switch (buffer_usage) {
+                case GPUBufferUsageFlags::VertexBuffer:
+                    return acc | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+                case GPUBufferUsageFlags::IndexBuffer:
+                    return acc | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+                case GPUBufferUsageFlags::ConstantBuffer:
+                    return acc | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+                case GPUBufferUsageFlags::TransferSrc:
+                    return acc | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                case GPUBufferUsageFlags::TransferDst:
+                    return acc | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            }
+            ORION_ASSERT("Buffer usage flag not handled in to_vulkan_type()");
             return {};
-        }
-
-        VkBufferUsageFlags usage_flags = {};
-        if (buffer_usage.check_and_clear(GPUBufferUsage::VertexBuffer)) {
-            usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        }
-        if (buffer_usage.check_and_clear(GPUBufferUsage::IndexBuffer)) {
-            usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        }
-        if (buffer_usage.check_and_clear(GPUBufferUsage::ConstantBuffer)) {
-            usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-        }
-        if (buffer_usage.check_and_clear(GPUBufferUsage::TransferSrc)) {
-            usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        }
-        if (buffer_usage.check_and_clear(GPUBufferUsage::TransferDst)) {
-            usage_flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        }
-        ORION_ASSERT(buffer_usage.has_none() &&
-                     "Buffer usage flag not handled in to_vulkan_type() or is invalid");
-        return usage_flags;
+        };
+        const auto bitwise_range = BitwiseRange{buffer_usage};
+        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkBufferUsageFlags{}, conversion_fn);
     }
 
     constexpr auto to_vulkan_type(const Viewport& viewport) noexcept -> VkViewport
@@ -236,17 +236,19 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(CommandBufferUsageFlags command_buffer_usage) noexcept -> VkCommandBufferUsageFlags
     {
-        if (command_buffer_usage.has_none()) {
+        auto conversion_fn = [](auto acc, CommandBufferUsageFlags usage_flags) -> VkCommandBufferUsageFlags {
+            if (!usage_flags) {
+                return acc;
+            }
+            switch (usage_flags) {
+                case CommandBufferUsageFlags::OneTimeSubmit:
+                    return acc | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            }
+            ORION_ASSERT("Command buffer usage flag not handled in to_vulkan_type()");
             return {};
-        }
-
-        VkCommandBufferUsageFlags usage_flags = {};
-        if (command_buffer_usage.check_and_clear(CommandBufferUsage::OneTimeSubmit)) {
-            usage_flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        }
-        ORION_ASSERT(command_buffer_usage.has_none() &&
-                     "Command buffer usage flag not handled in to_vulkan_type() or is invalid");
-        return {};
+        };
+        const auto bitwise_range = BitwiseRange{command_buffer_usage};
+        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkCommandBufferUsageFlags{}, conversion_fn);
     }
 
     constexpr auto to_vulkan_type(ImageType image_type) noexcept -> VkImageType
@@ -277,32 +279,29 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(ImageUsageFlags image_usage_flags) noexcept -> VkImageUsageFlags
     {
-        if (image_usage_flags.has_none()) {
+        auto conversion_fn = [](auto acc, ImageUsageFlags usage_flags) -> VkImageUsageFlags {
+            if (!usage_flags) {
+                return acc;
+            }
+            switch (usage_flags) {
+                case ImageUsageFlags::TransferSrc:
+                    return acc | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+                case ImageUsageFlags::TransferDst:
+                    return acc | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                case ImageUsageFlags::ColorAttachment:
+                    return acc | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                case ImageUsageFlags::DepthStencilAttachment:
+                    return acc | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                case ImageUsageFlags::InputAttachment:
+                    return acc | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+                case ImageUsageFlags::SampledImage:
+                    return acc | VK_IMAGE_USAGE_SAMPLED_BIT;
+            }
+            ORION_ASSERT("Image usage not handled in to_vulkan_type()");
             return {};
-        }
-
-        VkImageUsageFlags vk_usage_flags = {};
-        if (image_usage_flags.check_and_clear(ImageUsage::TransferSrc)) {
-            vk_usage_flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        }
-        if (image_usage_flags.check_and_clear(ImageUsage::TransferDst)) {
-            vk_usage_flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        }
-        if (image_usage_flags.check_and_clear(ImageUsage::ColorAttachment)) {
-            vk_usage_flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        }
-        if (image_usage_flags.check_and_clear(ImageUsage::DepthStencilAttachment)) {
-            vk_usage_flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        }
-        if (image_usage_flags.check_and_clear(ImageUsage::InputAttachment)) {
-            vk_usage_flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-        }
-        if (image_usage_flags.check_and_clear(ImageUsage::SampledImage)) {
-            vk_usage_flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
-        }
-        ORION_ASSERT(image_usage_flags.has_none() &&
-                     "Image usage not handled in to_vulkan_type()");
-        return vk_usage_flags;
+        };
+        const auto bitwise_range = BitwiseRange{image_usage_flags};
+        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkImageUsageFlags{}, conversion_fn);
     }
 
     constexpr auto to_vulkan_type(ImageViewType image_view_type) noexcept -> VkImageViewType
@@ -329,62 +328,56 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(PipelineStageFlags pipeline_stage_flags) -> VkPipelineStageFlags
     {
-        if (pipeline_stage_flags.has_none()) {
+        auto conversion_fn = [](auto acc, PipelineStageFlags stage_flags) -> VkPipelineStageFlags {
+            if (!stage_flags) {
+                return acc;
+            }
+            switch (stage_flags) {
+                case PipelineStageFlags::TopOfPipe:
+                    return acc | VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                case PipelineStageFlags::ColorAttachmentOutput:
+                    return acc | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                case PipelineStageFlags::Transfer:
+                    return acc | VK_PIPELINE_STAGE_TRANSFER_BIT;
+                case PipelineStageFlags::BottomOfPipe:
+                    return acc | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+                case PipelineStageFlags::FragmentShader:
+                    return acc | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            }
+            ORION_ASSERT("Pipeline stage not handled in to_vulkan_type()");
             return {};
-        }
-
-        VkPipelineStageFlags vk_pipeline_stage_flags = {};
-        if (pipeline_stage_flags.check_and_clear(PipelineStage::TopOfPipe)) {
-            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        }
-        if (pipeline_stage_flags.check_and_clear(PipelineStage::ColorAttachmentOutput)) {
-            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        }
-        if (pipeline_stage_flags.check_and_clear(PipelineStage::Transfer)) {
-            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
-        }
-        if (pipeline_stage_flags.check_and_clear(PipelineStage::BottomOfPipe)) {
-            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        }
-        if (pipeline_stage_flags.check_and_clear(PipelineStage::FragmentShader)) {
-            vk_pipeline_stage_flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        }
-        ORION_ASSERT(pipeline_stage_flags.has_none() &&
-                     "Pipeline stage not handled in to_vulkan_type()");
-        return vk_pipeline_stage_flags;
+        };
+        const auto bitwise_range = BitwiseRange{pipeline_stage_flags};
+        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkPipelineStageFlags{}, conversion_fn);
     }
 
     constexpr auto to_vulkan_type(ResourceAccessFlags resource_access_flags) -> VkAccessFlags
     {
-        if (resource_access_flags.has_none()) {
+        auto conversion_fn = [](auto acc, ResourceAccessFlags access_flags) -> VkAccessFlags {
+            if (!access_flags) {
+                return acc;
+            }
+            switch (access_flags) {
+                case ResourceAccessFlags::ColorAttachmentWrite:
+                    return acc | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                case ResourceAccessFlags::TransferRead:
+                    return acc | VK_ACCESS_TRANSFER_READ_BIT;
+                case ResourceAccessFlags::TransferWrite:
+                    return acc | VK_ACCESS_TRANSFER_WRITE_BIT;
+                case ResourceAccessFlags::MemoryRead:
+                    return acc | VK_ACCESS_MEMORY_READ_BIT;
+                case ResourceAccessFlags::MemoryWrite:
+                    return acc | VK_ACCESS_MEMORY_WRITE_BIT;
+                case ResourceAccessFlags::ShaderRead:
+                    return acc | VK_ACCESS_SHADER_READ_BIT;
+                case ResourceAccessFlags::ShaderWrite:
+                    return acc | VK_ACCESS_SHADER_WRITE_BIT;
+            }
+            ORION_ASSERT("Resource access not handled in to_vulkan_type()");
             return {};
-        }
-
-        VkAccessFlags vk_access_flags = {};
-        if (resource_access_flags.check_and_clear(ResourceAccess::ColorAttachmentWrite)) {
-            vk_access_flags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        }
-        if (resource_access_flags.check_and_clear(ResourceAccess::TransferRead)) {
-            vk_access_flags |= VK_ACCESS_TRANSFER_READ_BIT;
-        }
-        if (resource_access_flags.check_and_clear(ResourceAccess::TransferWrite)) {
-            vk_access_flags |= VK_ACCESS_TRANSFER_WRITE_BIT;
-        }
-        if (resource_access_flags.check_and_clear(ResourceAccess::MemoryRead)) {
-            vk_access_flags |= VK_ACCESS_MEMORY_READ_BIT;
-        }
-        if (resource_access_flags.check_and_clear(ResourceAccess::MemoryWrite)) {
-            vk_access_flags |= VK_ACCESS_MEMORY_WRITE_BIT;
-        }
-        if (resource_access_flags.check_and_clear(ResourceAccess::ShaderRead)) {
-            vk_access_flags |= VK_ACCESS_SHADER_READ_BIT;
-        }
-        if (resource_access_flags.check_and_clear(ResourceAccess::ShaderWrite)) {
-            vk_access_flags |= VK_ACCESS_SHADER_WRITE_BIT;
-        }
-        ORION_ASSERT(resource_access_flags.has_none() &&
-                     "Resource access not handled in to_vulkan_type()");
-        return vk_access_flags;
+        };
+        const auto bitwise_range = BitwiseRange{resource_access_flags};
+        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkAccessFlags{}, conversion_fn);
     }
 
     constexpr auto to_vulkan_type(IndexType index_type) -> VkIndexType
@@ -497,25 +490,25 @@ namespace orion::vulkan
 
     constexpr auto to_vulkan_type(ColorComponentFlags color_component_flags) -> VkColorComponentFlags
     {
-        if (color_component_flags.has_none()) {
+        auto conversion_fn = [](auto acc, ColorComponentFlags component_flags) -> VkColorComponentFlags {
+            if (!component_flags) {
+                return acc;
+            }
+            switch (component_flags) {
+                case ColorComponentFlags::R:
+                    return acc | VK_COLOR_COMPONENT_R_BIT;
+                case ColorComponentFlags::G:
+                    return acc | VK_COLOR_COMPONENT_G_BIT;
+                case ColorComponentFlags::B:
+                    return acc | VK_COLOR_COMPONENT_B_BIT;
+                case ColorComponentFlags::A:
+                    return acc | VK_COLOR_COMPONENT_A_BIT;
+            }
+            ORION_ASSERT("Color component not handled in to_vulkan_type()");
             return {};
-        }
-        VkColorComponentFlags vk_color_component_flags = {};
-        if (color_component_flags.check_and_clear(ColorComponent::R)) {
-            vk_color_component_flags |= VK_COLOR_COMPONENT_R_BIT;
-        }
-        if (color_component_flags.check_and_clear(ColorComponent::G)) {
-            vk_color_component_flags |= VK_COLOR_COMPONENT_G_BIT;
-        }
-        if (color_component_flags.check_and_clear(ColorComponent::B)) {
-            vk_color_component_flags |= VK_COLOR_COMPONENT_B_BIT;
-        }
-        if (color_component_flags.check_and_clear(ColorComponent::A)) {
-            vk_color_component_flags |= VK_COLOR_COMPONENT_A_BIT;
-        }
-        ORION_ASSERT(color_component_flags.has_none() &&
-                     "Color component not handled in to_vulkan_type()");
-        return vk_color_component_flags;
+        };
+        const auto bitwise_range = BitwiseRange{color_component_flags};
+        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkColorComponentFlags{}, conversion_fn);
     }
 
     constexpr auto to_vulkan_type(LogicOp logic_op) -> VkLogicOp

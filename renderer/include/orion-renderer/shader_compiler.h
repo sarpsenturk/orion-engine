@@ -55,7 +55,7 @@ namespace orion
         std::string source_string;
         std::string source_file;
         const char* entry_point = "main";
-        ShaderStage shader_type;
+        ShaderStageFlags shader_stage;
         ShaderObjectType object_type;
         bool enable_debug = orion::debug_build;
     };

@@ -103,11 +103,14 @@ namespace orion
         ShaderReadOnly
     };
 
-    enum class ShaderStage : std::uint8_t {
-        Vertex,
-        Fragment
+    enum class ShaderStageFlags : std::uint8_t {
+        Vertex = 0x1,
+        Fragment = 0x2
     };
-    using ShaderStageFlags = Bitflag<ShaderStage>;
+
+    template<>
+    struct enum_bitwise_enabled<ShaderStageFlags> : std::true_type {
+    };
 
     enum class PrimitiveTopology {
         TriangleList
@@ -135,17 +138,17 @@ namespace orion
         Instance
     };
 
-    enum class GPUBufferUsage : std::uint8_t {
-        VertexBuffer,
-        IndexBuffer,
-        ConstantBuffer,
-        TransferSrc,
-        TransferDst
+    enum class GPUBufferUsageFlags : std::uint8_t {
+        VertexBuffer = 0x1,
+        IndexBuffer = 0x2,
+        ConstantBuffer = 0x4,
+        TransferSrc = 0x8,
+        TransferDst = 0x10,
+        Transfer = TransferSrc | TransferDst
     };
-    using GPUBufferUsageFlags = Bitflag<GPUBufferUsage>;
-
-    inline constexpr auto gpu_buffer_usage_transfer_flags =
-        GPUBufferUsageFlags::disjunction({GPUBufferUsage::TransferSrc, GPUBufferUsage::TransferDst});
+    template<>
+    struct enum_bitwise_enabled<GPUBufferUsageFlags> : std::true_type {
+    };
 
     struct Viewport {
         Vector2_f position;
@@ -190,10 +193,12 @@ namespace orion
         DXIL
     };
 
-    enum class CommandBufferUsage : std::uint8_t {
-        OneTimeSubmit
+    enum class CommandBufferUsageFlags : std::uint8_t {
+        OneTimeSubmit = 0x1
     };
-    using CommandBufferUsageFlags = Bitflag<CommandBufferUsage>;
+    template<>
+    struct enum_bitwise_enabled<CommandBufferUsageFlags> : std::true_type {
+    };
 
     enum class ImageType {
         Image1D,
@@ -206,18 +211,18 @@ namespace orion
         Linear
     };
 
-    enum class ImageUsage : std::uint8_t {
-        TransferSrc,
-        TransferDst,
-        ColorAttachment,
-        DepthStencilAttachment,
-        InputAttachment,
-        SampledImage
+    enum class ImageUsageFlags : std::uint8_t {
+        TransferSrc = 0x1,
+        TransferDst = 0x2,
+        ColorAttachment = 0x4,
+        DepthStencilAttachment = 0x8,
+        InputAttachment = 0x10,
+        SampledImage = 0x20,
+        Transfer = TransferSrc | TransferDst
     };
-    using ImageUsageFlags = Bitflag<ImageUsage>;
-
-    inline constexpr auto image_usage_transfer_flags =
-        ImageUsageFlags::disjunction({ImageUsage::TransferSrc, ImageUsage::TransferDst});
+    template<>
+    struct enum_bitwise_enabled<ImageUsageFlags> : std::true_type {
+    };
 
     enum class ImageViewType {
         View1D,
@@ -229,25 +234,29 @@ namespace orion
         ViewCubeArray,
     };
 
-    enum class ResourceAccess : std::uint8_t {
-        ColorAttachmentWrite,
-        TransferRead,
-        TransferWrite,
-        MemoryRead,
-        MemoryWrite,
-        ShaderRead,
-        ShaderWrite
+    enum class ResourceAccessFlags : std::uint8_t {
+        ColorAttachmentWrite = 0x1,
+        TransferRead = 0x2,
+        TransferWrite = 0x4,
+        MemoryRead = 0x8,
+        MemoryWrite = 0x10,
+        ShaderRead = 0x20,
+        ShaderWrite = 0x40
     };
-    using ResourceAccessFlags = Bitflag<ResourceAccess>;
+    template<>
+    struct enum_bitwise_enabled<ResourceAccessFlags> : std::true_type {
+    };
 
-    enum class PipelineStage : std::uint8_t {
-        TopOfPipe,
-        ColorAttachmentOutput,
-        Transfer,
-        BottomOfPipe,
-        FragmentShader
+    enum class PipelineStageFlags : std::uint8_t {
+        TopOfPipe = 0x1,
+        ColorAttachmentOutput = 0x2,
+        Transfer = 0x4,
+        BottomOfPipe = 0x8,
+        FragmentShader = 0x10
     };
-    using PipelineStageFlags = Bitflag<PipelineStage>;
+    template<>
+    struct enum_bitwise_enabled<PipelineStageFlags> : std::true_type {
+    };
 
     enum class IndexType {
         Uint16,
@@ -399,7 +408,7 @@ namespace orion
 
     struct ShaderStageDesc {
         ShaderModuleHandle module = ShaderModuleHandle::invalid_handle();
-        ShaderStage stage = {};
+        ShaderStageFlags stage = {};
         const char* entry_point = "main";
     };
 
@@ -477,15 +486,16 @@ namespace orion
         Max
     };
 
-    enum class ColorComponent : std::uint8_t {
-        R,
-        G,
-        B,
-        A
+    enum class ColorComponentFlags : std::uint8_t {
+        R = 0x1,
+        G = 0x2,
+        B = 0x4,
+        A = 0x8,
+        All = R | G | B | A
     };
-    using ColorComponentFlags = Bitflag<ColorComponent>;
-    inline constexpr auto color_components_all =
-        ColorComponentFlags::disjunction({ColorComponent::R, ColorComponent::G, ColorComponent::B, ColorComponent::A});
+    template<>
+    struct enum_bitwise_enabled<ColorComponentFlags> : std::true_type {
+    };
 
     struct BlendAttachmentDesc {
         bool enable_blend;
@@ -550,7 +560,7 @@ namespace orion
         std::uint32_t image_count = default_swapchain_image_count;
         Format image_format = default_swapchain_format;
         Vector2_u image_size = {};
-        ImageUsageFlags image_usage = ImageUsage::ColorAttachment;
+        ImageUsageFlags image_usage = ImageUsageFlags::ColorAttachment;
     };
 
     struct SwapchainAttachmentDesc {

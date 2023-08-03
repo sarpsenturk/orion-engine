@@ -364,12 +364,12 @@ float4 fs_main(FsInput input) : SV_Target
         const auto descriptor_set_layout = orion::DescriptorSetLayout({
             orion::DescriptorBinding{
                 .type = orion::DescriptorType::SampledImage,
-                .shader_stages = orion::ShaderStage::Fragment,
+                .shader_stages = orion::ShaderStageFlags::Fragment,
                 .count = 1,
             },
             orion::DescriptorBinding{
                 .type = orion::DescriptorType::ImageSampler,
-                .shader_stages = orion::ShaderStage::Fragment,
+                .shader_stages = orion::ShaderStageFlags::Fragment,
                 .count = 1,
             },
         });
@@ -383,7 +383,7 @@ float4 fs_main(FsInput input) : SV_Target
                 auto compile_result = shader_compiler.compile({
                     .source_string = imgui_shader_src,
                     .entry_point = "vs_main",
-                    .shader_type = orion::ShaderStage::Vertex,
+                    .shader_stage = orion::ShaderStageFlags::Vertex,
                     .object_type = device->shader_object_type(),
                 });
                 const auto desc = orion::ShaderModuleDesc{.byte_code = compile_result.binary};
@@ -393,7 +393,7 @@ float4 fs_main(FsInput input) : SV_Target
                 auto compile_result = shader_compiler.compile({
                     .source_string = imgui_shader_src,
                     .entry_point = "fs_main",
-                    .shader_type = orion::ShaderStage::Fragment,
+                    .shader_stage = orion::ShaderStageFlags::Fragment,
                     .object_type = device->shader_object_type(),
                 });
                 const auto desc = orion::ShaderModuleDesc{.byte_code = compile_result.binary};
@@ -402,12 +402,12 @@ float4 fs_main(FsInput input) : SV_Target
             const auto shaders = std::array{
                 orion::ShaderStageDesc{
                     .module = vs_module.get(),
-                    .stage = orion::ShaderStage::Vertex,
+                    .stage = orion::ShaderStageFlags::Vertex,
                     .entry_point = "vs_main",
                 },
                 orion::ShaderStageDesc{
                     .module = fs_module.get(),
-                    .stage = orion::ShaderStage::Fragment,
+                    .stage = orion::ShaderStageFlags::Fragment,
                     .entry_point = "fs_main",
                 },
             };
@@ -424,7 +424,7 @@ float4 fs_main(FsInput input) : SV_Target
             const auto push_constants = std::array{
                 orion::PushConstantDesc{
                     .size = sizeof(ImGuiCSceneBuffer),
-                    .shader_stages = orion::ShaderStage::Vertex,
+                    .shader_stages = orion::ShaderStageFlags::Vertex,
                 },
             };
 
@@ -450,7 +450,7 @@ float4 fs_main(FsInput input) : SV_Target
                     .src_blend_alpha = orion::BlendFactor::One,
                     .dst_blend_alpha = orion::BlendFactor::InvertedSrcAlpha,
                     .blend_op_alpha = orion::BlendOp::Add,
-                    .color_component_flags = orion::color_components_all,
+                    .color_component_flags = orion::ColorComponentFlags::All,
                 },
             };
             const auto color_blend = orion::ColorBlendDesc{
@@ -496,7 +496,7 @@ float4 fs_main(FsInput input) : SV_Target
                 .format = font_image_format,
                 .size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1},
                 .tiling = orion::ImageTiling::Optimal,
-                .usage = orion::ImageUsageFlags::disjunction({orion::ImageUsage::SampledImage, orion::ImageUsage::TransferDst}),
+                .usage = orion::ImageUsageFlags::SampledImage | orion::ImageUsageFlags::TransferDst,
             };
             renderer_data->font_image = device->make_unique(orion::ImageHandle_tag{}, desc);
         }
@@ -516,7 +516,7 @@ float4 fs_main(FsInput input) : SV_Target
         {
             const auto desc = orion::GPUBufferDesc{
                 .size = upload_size,
-                .usage = orion::GPUBufferUsage::TransferSrc,
+                .usage = orion::GPUBufferUsageFlags::TransferSrc,
                 .host_visible = true,
             };
             upload_buffer = device->create_buffer(desc);
@@ -535,14 +535,14 @@ float4 fs_main(FsInput input) : SV_Target
                 auto cmd_list = orion::CommandList{device, command_buffer, 256ull};
                 auto* renderer_data = imgui_get_renderer_data();
                 auto dst_image = renderer_data->font_image.get();
-                cmd_list.begin({.usage = orion::CommandBufferUsage::OneTimeSubmit});
+                cmd_list.begin({.usage = orion::CommandBufferUsageFlags::OneTimeSubmit});
                 // Transition image to transfer dst
                 {
                     auto* cmd_pipeline_barrier = cmd_list.add_command<orion::CmdPipelineBarrier>({});
-                    cmd_pipeline_barrier->src_stages = orion::PipelineStage::TopOfPipe;
-                    cmd_pipeline_barrier->dst_stages = orion::PipelineStage::Transfer;
+                    cmd_pipeline_barrier->src_stages = orion::PipelineStageFlags::TopOfPipe;
+                    cmd_pipeline_barrier->dst_stages = orion::PipelineStageFlags::Transfer;
                     cmd_pipeline_barrier->image_barrier = {
-                        .dst_access = orion::ResourceAccess::TransferWrite,
+                        .dst_access = orion::ResourceAccessFlags::TransferWrite,
                         .old_layout = orion::ImageLayout::Undefined,
                         .new_layout = orion::ImageLayout::TransferDst,
                         .image = dst_image,
@@ -559,11 +559,11 @@ float4 fs_main(FsInput input) : SV_Target
                 // Transition image to shader read only
                 {
                     auto* cmd_pipeline_barrier = cmd_list.add_command<orion::CmdPipelineBarrier>({});
-                    cmd_pipeline_barrier->src_stages = orion::PipelineStage::Transfer;
-                    cmd_pipeline_barrier->dst_stages = orion::PipelineStage::FragmentShader;
+                    cmd_pipeline_barrier->src_stages = orion::PipelineStageFlags::Transfer;
+                    cmd_pipeline_barrier->dst_stages = orion::PipelineStageFlags::FragmentShader;
                     cmd_pipeline_barrier->image_barrier = {
-                        .src_access = orion::ResourceAccess::TransferWrite,
-                        .dst_access = orion::ResourceAccess::ShaderRead,
+                        .src_access = orion::ResourceAccessFlags::TransferWrite,
+                        .dst_access = orion::ResourceAccessFlags::ShaderRead,
                         .old_layout = orion::ImageLayout::TransferDst,
                         .new_layout = orion::ImageLayout::ShaderReadOnly,
                         .image = dst_image,
@@ -703,7 +703,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
         }
         const auto desc = orion::GPUBufferDesc{
             .size = vb_size,
-            .usage = orion::GPUBufferUsage::VertexBuffer,
+            .usage = orion::GPUBufferUsageFlags::VertexBuffer,
             .host_visible = true,
         };
         renderer_data->vertex_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
@@ -716,7 +716,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
         }
         const auto desc = orion::GPUBufferDesc{
             .size = ib_size,
-            .usage = orion::GPUBufferUsage::IndexBuffer,
+            .usage = orion::GPUBufferUsageFlags::IndexBuffer,
             .host_visible = true,
         };
         renderer_data->index_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
@@ -746,7 +746,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
     {
         auto* cmd_push_constants = command_list.add_command<orion::CmdPushConstants>({});
         cmd_push_constants->pipeline = renderer_data->pipeline.get();
-        cmd_push_constants->shader_stages = orion::ShaderStage::Vertex;
+        cmd_push_constants->shader_stages = orion::ShaderStageFlags::Vertex;
         cmd_push_constants->offset = 0;
         cmd_push_constants->size = sizeof(ImGuiCSceneBuffer);
         cmd_push_constants->data = &renderer_data->scene_buffer;
