@@ -22,6 +22,14 @@ add_subdirectory(backend)
 # Shader compilation library
 find_package(directx-dxc CONFIG REQUIRED)
 
+# Imgui static library
+find_package(imgui CONFIG REQUIRED)
+
+# Create user imgui config file
+set(imgui_config_file ${CMAKE_BINARY_DIR}/include/imconfig.h)
+configure_file(imconfig.h.in ${imgui_config_file})
+target_compile_definitions(orion-renderer PUBLIC IMGUI_USER_CONFIG="${imgui_config_file}")
+
 # Link with dependencies
 target_link_libraries(
         orion-renderer
@@ -30,7 +38,7 @@ target_link_libraries(
         orion::math
         orion::utils
         orion::renderapi
-        imgui
+        imgui::imgui
         PRIVATE
         Microsoft::DirectXShaderCompiler
 )

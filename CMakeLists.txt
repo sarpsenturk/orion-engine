@@ -62,9 +62,6 @@ if (ORION_ENGINE_TEST)
     enable_testing()
 endif ()
 
-# Add external dependencies
-add_subdirectory(external)
-
 # Add sources for submodules
 add_subdirectory(utils)
 add_subdirectory(math)
