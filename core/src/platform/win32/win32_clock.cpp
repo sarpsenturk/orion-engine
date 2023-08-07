@@ -1,6 +1,6 @@
 #include "orion-core/clock.h"
 
-#include "orion-core/platform/win32/win32_headers.h"
+#include "orion-core/platform/win32/win32_platform.h"
 
 namespace orion::platform
 {
