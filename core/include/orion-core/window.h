@@ -17,10 +17,10 @@ namespace orion
     using WindowSize = Vector2_u;
 
     // Window create info
-    struct WindowCreateInfo {
+    struct WindowCreateDesc {
         std::string name = "Orion Window";
-        WindowPosition position = {200, 200};
-        WindowSize size = {800, 600};
+        WindowPosition position;
+        WindowSize size;
     };
 
     // Forward declarations
@@ -31,7 +31,7 @@ namespace orion
     namespace platform
     {
         // TODO: Return gsl::owner<PlatformWindow>
-        PlatformWindow* create_window(Window* this_ptr, const WindowCreateInfo& window_create_info);
+        PlatformWindow* create_window(Window* this_ptr, const WindowCreateDesc& window_desc);
         void destroy_window(PlatformWindow* platform_window);
         void update_window(PlatformWindow* platform_window);
     } // namespace platform
@@ -83,7 +83,7 @@ namespace orion
     class Window
     {
     public:
-        explicit Window(WindowCreateInfo window_create_info);
+        explicit Window(WindowCreateDesc window_desc);
 
         void poll_events();
 

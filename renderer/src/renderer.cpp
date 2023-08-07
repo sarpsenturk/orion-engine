@@ -230,7 +230,7 @@ namespace orion
 
     spdlog::logger* Renderer::logger()
     {
-        static const auto renderer_logger = create_logger("orion-renderer", static_cast<spdlog::level::level_enum>(ORION_RENDERER_LOG_LEVEL));
+        static const auto renderer_logger = create_logger("orion-renderer", ORION_RENDERER_LOG_LEVEL);
         return renderer_logger.get();
     }
 

@@ -6,7 +6,7 @@ namespace orion
 {
     spdlog::logger* win32::logger()
     {
-        static const auto win32_logger = create_logger("orion-win32", static_cast<spdlog::level::level_enum>(ORION_WIN32_LOG_LEVEL));
+        static const auto win32_logger = create_logger("orion-win32", ORION_WIN32_LOG_LEVEL);
         return win32_logger.get();
     }
 

@@ -10,11 +10,11 @@
 
 namespace orion
 {
-    Window::Window(WindowCreateInfo window_create_info)
-        : platform_window_(platform::create_window(this, window_create_info), platform::destroy_window)
-        , name_(std::move(window_create_info.name))
-        , position_(window_create_info.position)
-        , size_(window_create_info.size)
+    Window::Window(WindowCreateDesc window_desc)
+        : platform_window_(platform::create_window(this, window_desc), platform::destroy_window)
+        , name_(std::move(window_desc.name))
+        , position_(window_desc.position)
+        , size_(window_desc.size)
     {
         // Set up window events handlers
         // Events are invoked from platform implementations
@@ -58,7 +58,7 @@ namespace orion
 
     spdlog::logger* Window::logger()
     {
-        static const auto window_logger = create_logger("orion-window", static_cast<spdlog::level::level_enum>(ORION_WINDOW_LOG_LEVEL));
+        static const auto window_logger = create_logger("orion-window", ORION_WINDOW_LOG_LEVEL);
         return window_logger.get();
     }
 

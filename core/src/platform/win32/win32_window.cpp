@@ -42,25 +42,25 @@ namespace orion
             auto window_size(LPARAM lparam) -> WindowSize
             {
                 return {LOWORD(lparam), HIWORD(lparam)};
-            };
+            }
             auto window_position(LPARAM lparam) -> WindowPosition
             {
                 return {LOWORD(lparam), HIWORD(lparam)};
-            };
+            }
             auto mouse_position(LPARAM lparam) -> MousePosition
             {
                 return {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-            };
+            }
             auto wheel_delta(WPARAM wparam) -> int
             {
                 return GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
-            };
+            }
             auto x_button(WPARAM wparam) -> MouseButton
             {
                 const auto button = GET_XBUTTON_WPARAM(wparam);
                 const auto offset = button - XBUTTON1;
                 return static_cast<MouseButton>(to_underlying(MouseButton::X1) + offset);
-            };
+            }
             auto mouse_button(UINT msg, WPARAM wparam) -> MouseButton
             {
                 switch (msg) {
@@ -83,7 +83,7 @@ namespace orion
             }
         } // namespace
 
-        PlatformWindow* create_window(Window* this_ptr, const WindowCreateInfo& window_create_info)
+        PlatformWindow* create_window(Window* this_ptr, const WindowCreateDesc& window_desc)
         {
             // Get the module instance
             HINSTANCE hinstance = GetModuleHandle(nullptr);
@@ -96,20 +96,20 @@ namespace orion
             const auto window_style = WS_OVERLAPPEDWINDOW;
 
             // Adjust the window client area to match user specified size
-            const auto size = [window_size = window_create_info.size]() {
+            const auto size = [window_size = window_desc.size]() {
                 RECT wnd_rect{0, 0, static_cast<LONG>(window_size.x()), static_cast<LONG>(window_size.y())};
                 AdjustWindowRect(&wnd_rect, window_style, FALSE);
                 return Vector2_t<int>{(wnd_rect.right - wnd_rect.left), (wnd_rect.bottom - wnd_rect.top)};
             }();
 
             // Extract from window_create_info for easier reading
-            const auto& position = window_create_info.position;
+            const auto& position = window_desc.position;
 
             // Create the window
             HWND hwnd = CreateWindowEx(
                 0,                               // Optional window styles
                 wnd_class_name,                  // Window class
-                window_create_info.name.c_str(), // Window name
+                window_desc.name.c_str(), // Window name
                 window_style,                    // Window style
                 position.x(),                    // Window position x
                 position.y(),                    // Window position y

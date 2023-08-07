@@ -3,12 +3,6 @@
 
 #include "orion-utils/assertion.h"
 
-#ifndef ORION_COMMAND_BUFFER_LOG_LEVEL
-    #define ORION_COMMAND_BUFFER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
-#endif
-#include "orion-core/log.h"
-#include <spdlog/spdlog.h>
-
 namespace orion
 {
     CommandList::CommandList(RenderDevice* device, CommandBufferHandle command_buffer, std::size_t size)
@@ -66,11 +60,5 @@ namespace orion
         auto [cmd_ptr, cmd_size] = command_allocator_.allocate(size, align);
         command_packets_.push_back({key, type, cmd_ptr});
         return cmd_ptr;
-    }
-
-    spdlog::logger* CommandList::logger()
-    {
-        static const auto logger = create_logger("orion-render-cmd", static_cast<spdlog::level::level_enum>(ORION_COMMAND_BUFFER_LOG_LEVEL));
-        return logger.get();
     }
 } // namespace orion

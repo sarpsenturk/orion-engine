@@ -91,8 +91,6 @@ namespace orion
         void set_state(CommandBufferState state) noexcept;
         void* add_command(std::uint64_t key, std::size_t size, std::size_t align, CommandType type);
 
-        static spdlog::logger* logger();
-
         RenderDevice* device_;
         CommandBufferHandle command_buffer_;
         LinearAllocator command_allocator_;

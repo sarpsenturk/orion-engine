@@ -37,7 +37,7 @@ namespace orion
     }
 
     RenderBackend::RenderBackend(const char* logger_name)
-        : logger_(create_logger(logger_name, static_cast<spdlog::level::level_enum>(ORION_RENDERAPI_LOG_LEVEL)))
+        : logger_(create_logger(logger_name, ORION_RENDERAPI_LOG_LEVEL))
     {
     }
 

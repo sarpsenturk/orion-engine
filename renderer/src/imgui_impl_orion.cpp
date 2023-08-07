@@ -68,7 +68,7 @@ float4 fs_main(FsInput input) : SV_Target
 
     auto* logger()
     {
-        static const auto logger = orion::create_logger("orion-imgui", static_cast<spdlog::level::level_enum>(ORION_IMGUI_LOG_LEVEL));
+        static const auto logger = orion::create_logger("orion-imgui", ORION_IMGUI_LOG_LEVEL);
         return logger.get();
     }
 

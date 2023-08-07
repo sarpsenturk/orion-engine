@@ -210,7 +210,7 @@ namespace orion
 
     spdlog::logger* ShaderCompiler::logger()
     {
-        static const auto dxc_logger = create_logger("orion-shader-compiler", static_cast<spdlog::level::level_enum>(ORION_SHADER_COMPILER_LOG_LEVEL));
+        static const auto dxc_logger = create_logger("orion-shader-compiler", ORION_SHADER_COMPILER_LOG_LEVEL);
         return dxc_logger.get();
     }
 } // namespace orion

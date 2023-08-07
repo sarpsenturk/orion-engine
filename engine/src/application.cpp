@@ -11,7 +11,7 @@
 namespace orion
 {
     Application::Application()
-        : logger_(orion::create_logger("orion-application", static_cast<spdlog::level::level_enum>(ORION_APPLICATION_LOG_LEVEL)))
+        : logger_(orion::create_logger("orion-application", ORION_APPLICATION_LOG_LEVEL))
     {
         SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, debug_build: {}",
                            current_version, current_platform, debug_build);

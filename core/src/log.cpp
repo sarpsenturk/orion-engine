@@ -4,7 +4,7 @@
 
 namespace orion
 {
-    std::shared_ptr<spdlog::logger> create_logger(const char* name, spdlog::level::level_enum log_level, const char* format)
+    std::shared_ptr<spdlog::logger> create_logger(const char* name, int log_level, const char* format)
     {
         auto logger = spdlog::stdout_color_st(name);
         logger->set_pattern(format);
