@@ -183,6 +183,19 @@ namespace orion::vulkan
                 .preserveAttachmentCount = 0,
                 .pPreserveAttachments = nullptr,
             };
+            const auto subpass_dependencies = std::array{
+                VkSubpassDependency{
+                    .srcSubpass = VK_SUBPASS_EXTERNAL,
+                    .dstSubpass = 0,
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                                    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                    .srcAccessMask = 0,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .dependencyFlags = 0,
+                },
+            };
             const auto info = VkRenderPassCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
                 .pNext = nullptr,
@@ -191,8 +204,8 @@ namespace orion::vulkan
                 .pAttachments = attachments.data(),
                 .subpassCount = 1,
                 .pSubpasses = &subpass,
-                .dependencyCount = 0,
-                .pDependencies = nullptr,
+                .dependencyCount = static_cast<std::uint32_t>(subpass_dependencies.size()),
+                .pDependencies = subpass_dependencies.data(),
             };
             vk_result_check(vkCreateRenderPass(device(), &info, alloc_callbacks(), &render_pass));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
