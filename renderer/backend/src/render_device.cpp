@@ -256,24 +256,14 @@ namespace orion
         reset_command_pool_api(command_pool);
     }
 
-    void RenderDevice::begin_command_buffer(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc)
-    {
-        begin_command_buffer_api(command_buffer, desc);
-    }
-
-    void RenderDevice::end_command_buffer(CommandBufferHandle command_buffer)
-    {
-        end_command_buffer_api(command_buffer);
-    }
-
     void RenderDevice::reset_command_buffer(CommandBufferHandle command_buffer)
     {
         reset_command_buffer_api(command_buffer);
     }
 
-    void RenderDevice::compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
+    void RenderDevice::compile_commands(CommandBufferHandle command_buffer, const CommandList& command_list)
     {
-        compile_commands_api(command_buffer, commands);
+        compile_commands_api(command_buffer, command_list);
     }
 
     void RenderDevice::submit(const SubmitDesc& desc)

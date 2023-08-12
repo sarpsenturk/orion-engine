@@ -39,7 +39,7 @@ namespace orion
         , clear_color_(desc.clear_color)
         , command_pool_(create_command_pool())
         , command_buffer_(create_command_buffer())
-        , render_command_(device(), command_buffer_, render_command_size)
+        , render_command_(render_command_size)
         , render_image_(create_render_image())
         , render_image_view_(create_render_image_view())
         , render_target_(create_render_target())
@@ -47,7 +47,7 @@ namespace orion
         , render_fence_(create_render_fence())
         , render_semaphore_(device()->create_semaphore())
         , present_command_buffer_(device()->create_command_buffer({.command_pool = command_pool_}))
-        , present_command_({device(), present_command_buffer_, present_command_size})
+        , present_command_(present_command_size)
         , swapchain_image_semaphore_(device()->create_semaphore())
         , swapchain_copy_semaphore_(device()->create_semaphore())
         , swapchain_copy_fence_(device()->create_fence(false))
@@ -66,7 +66,8 @@ namespace orion
         device()->reset_command_pool(command_pool_);
 
         // Begin command list recording
-        render_command_.begin({});
+        render_command_.reset();
+        render_command_.begin();
 
         // Begin render pass
         {
@@ -86,8 +87,11 @@ namespace orion
         // End command list recording
         render_command_.end();
 
+        // Compile commands
+        device()->compile_commands(command_buffer_, render_command_);
+
         // Submit render command
-        const auto command_buffers = std::array{render_command_.command_buffer()};
+        const auto command_buffers = std::array{command_buffer_};
         device()->submit({
             .queue_type = CommandQueueType::Graphics,
             .command_buffers = command_buffers,
@@ -105,7 +109,8 @@ namespace orion
         auto swapchain_image = device()->get_swapchain_image(swapchain, image_index);
 
         // Begin presentation commands
-        present_command_.begin({});
+        present_command_.reset();
+        present_command_.begin();
 
         // Transition render result to transfer source
         {
@@ -162,6 +167,7 @@ namespace orion
 
         // End presentation commands
         present_command_.end();
+        device()->compile_commands(present_command_buffer_, present_command_);
 
         // Submit commands
         const auto wait_semaphores = std::array{

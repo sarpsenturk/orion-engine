@@ -61,7 +61,7 @@ namespace orion
     class CommandList
     {
     public:
-        CommandList(RenderDevice* device, CommandBufferHandle command_buffer, std::size_t size);
+        explicit CommandList(std::size_t max_size);
 
         template<typename Command>
             requires(is_valid_cmd_type<Command>::value)
@@ -70,7 +70,7 @@ namespace orion
             return static_cast<Command*>(add_command(key, sizeof(Command), alignof(Command), Command::type));
         }
 
-        [[nodiscard]] auto command_buffer() const noexcept { return command_buffer_; }
+        [[nodiscard]] auto& commands() const { return command_packets_; }
 
         [[nodiscard]] auto state() const noexcept { return state_; }
         [[nodiscard]] bool is_recording() const noexcept { return state_ == CommandBufferState::Recording; }
@@ -78,21 +78,14 @@ namespace orion
         [[nodiscard]] bool is_pending() const noexcept { return state_ == CommandBufferState::Pending; }
         [[nodiscard]] bool is_invalid() const noexcept { return state_ == CommandBufferState::Invalid; }
 
-        void begin(const CommandBufferBeginDesc& desc);
+        void begin();
         void end();
         void reset();
-
-        // Flush commands from CPU side to GPU side
-        void flush();
-        // Clear commands from CPU side without flushing to GPU side
-        void clear();
 
     private:
         void set_state(CommandBufferState state) noexcept;
         void* add_command(std::uint64_t key, std::size_t size, std::size_t align, CommandType type);
 
-        RenderDevice* device_;
-        CommandBufferHandle command_buffer_;
         LinearAllocator command_allocator_;
         std::vector<CommandPacket> command_packets_;
 

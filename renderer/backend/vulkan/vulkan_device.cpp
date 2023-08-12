@@ -991,41 +991,31 @@ namespace orion::vulkan
         vk_result_check(vkResetCommandPool(device(), command_pools_.handle_at(command_pool), 0));
     }
 
-    void VulkanDevice::begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc)
-    {
-        // Find and reset command buffer
-        VkCommandBuffer vk_command_buffer = command_buffers_.handle_at(command_buffer);
-        vkResetCommandBuffer(vk_command_buffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-
-        // Begin command buffer recording
-        const auto begin_info = VkCommandBufferBeginInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .pNext = nullptr,
-            .flags = to_vulkan_type(desc.usage),
-            .pInheritanceInfo = nullptr,
-        };
-        vk_result_check(vkBeginCommandBuffer(vk_command_buffer, &begin_info));
-    }
-
-    void VulkanDevice::end_command_buffer_api(CommandBufferHandle command_buffer)
-    {
-        vk_result_check(vkEndCommandBuffer(command_buffers_.handle_at(command_buffer)));
-    }
-
     void VulkanDevice::reset_command_buffer_api(CommandBufferHandle command_buffer)
     {
         vkResetCommandBuffer(command_buffers_.handle_at(command_buffer), 0);
     }
 
-    void VulkanDevice::compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
+    void VulkanDevice::compile_commands_api(CommandBufferHandle command_buffer, const CommandList& command_list)
     {
         // Find command buffer
         VkCommandBuffer vk_command_buffer = command_buffers_.handle_at(command_buffer);
 
+        // Begin command buffer recording
+        const auto begin_info = VkCommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .pInheritanceInfo = nullptr,
+        };
+        vk_result_check(vkBeginCommandBuffer(vk_command_buffer, &begin_info));
+
         // Compile commands
-        for (const auto& command : commands) {
+        for (const auto& command : command_list.commands()) {
             compile_command(vk_command_buffer, command);
         }
+
+        vk_result_check(vkEndCommandBuffer(command_buffers_.handle_at(command_buffer)));
     }
 
     void VulkanDevice::submit_api(const SubmitDesc& desc)

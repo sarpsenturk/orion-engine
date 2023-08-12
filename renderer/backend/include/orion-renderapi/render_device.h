@@ -129,18 +129,17 @@ namespace orion
         void unmap(GPUBufferHandle buffer_handle);
 
         void reset_command_pool(CommandPoolHandle command_pool);
-        void begin_command_buffer(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc);
-        void end_command_buffer(CommandBufferHandle command_buffer);
         void reset_command_buffer(CommandBufferHandle command_buffer);
-        void compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands);
+        void compile_commands(CommandBufferHandle command_buffer, const CommandList& command_list);
 
         void submit(const SubmitDesc& desc);
 
         // Record into and immediately submit command buffer
-        void submit_immediate(auto&& record_function)
+        void submit_immediate(auto&& create_command_list_fn)
         {
             const auto command_buffer = default_command_buffer();
-            record_function(this, command_buffer);
+            const auto command_list = create_command_list_fn();
+            compile_commands(command_buffer, command_list);
             const auto fence = default_fence();
             const auto submit_desc = SubmitDesc{
                 .queue_type = CommandQueueType::Any,
@@ -209,10 +208,8 @@ namespace orion
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
 
         virtual void reset_command_pool_api(CommandPoolHandle command_pool) = 0;
-        virtual void begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc) = 0;
-        virtual void end_command_buffer_api(CommandBufferHandle command_buffer) = 0;
         virtual void reset_command_buffer_api(CommandBufferHandle command_buffer) = 0;
-        virtual void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) = 0;
+        virtual void compile_commands_api(CommandBufferHandle command_buffer, const CommandList& command_list) = 0;
 
         virtual void submit_api(const SubmitDesc& desc) = 0;
         virtual void present_api(const SwapchainPresentDesc& desc) = 0;

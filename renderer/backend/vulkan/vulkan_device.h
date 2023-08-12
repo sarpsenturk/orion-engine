@@ -90,10 +90,8 @@ namespace orion::vulkan
         void unmap_api(GPUBufferHandle buffer_handle) override;
 
         void reset_command_pool_api(CommandPoolHandle command_pool) override;
-        void begin_command_buffer_api(CommandBufferHandle command_buffer, const CommandBufferBeginDesc& desc) override;
-        void end_command_buffer_api(CommandBufferHandle command_buffer) override;
         void reset_command_buffer_api(CommandBufferHandle command_buffer) override;
-        void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) override;
+        void compile_commands_api(CommandBufferHandle command_buffer, const CommandList& command_list) override;
 
         void submit_api(const SubmitDesc& desc) override;
         void present_api(const SwapchainPresentDesc& desc) override;

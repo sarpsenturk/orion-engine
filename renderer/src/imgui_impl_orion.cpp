@@ -531,11 +531,11 @@ float4 fs_main(FsInput input) : SV_Target
 
         // Copy buffer to image
         {
-            device->submit_immediate([upload_buffer, width, height](auto* device, auto command_buffer) {
-                auto cmd_list = orion::CommandList{device, command_buffer, 256ull};
+            device->submit_immediate([upload_buffer, width, height]() {
+                auto cmd_list = orion::CommandList{256ull};
                 auto* renderer_data = imgui_get_renderer_data();
                 auto dst_image = renderer_data->font_image.get();
-                cmd_list.begin({.usage = orion::CommandBufferUsageFlags::OneTimeSubmit});
+                cmd_list.begin();
                 // Transition image to transfer dst
                 {
                     auto* cmd_pipeline_barrier = cmd_list.add_command<orion::CmdPipelineBarrier>({});
@@ -570,6 +570,7 @@ float4 fs_main(FsInput input) : SV_Target
                     };
                 }
                 cmd_list.end();
+                return cmd_list;
             });
         }
 
