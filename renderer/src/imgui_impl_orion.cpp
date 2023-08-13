@@ -380,22 +380,22 @@ float4 fs_main(FsInput input) : SV_Target
 
             // Create shaders
             auto vs_module = [device, &shader_compiler]() {
-                auto compile_result = shader_compiler.compile({
-                    .source_string = imgui_shader_src,
+                const auto compile_desc = orion::ShaderCompileDesc{
                     .entry_point = "vs_main",
                     .shader_stage = orion::ShaderStageFlags::Vertex,
                     .object_type = device->shader_object_type(),
-                });
+                };
+                const auto compile_result = shader_compiler.compile_from_source(imgui_shader_src, compile_desc);
                 const auto desc = orion::ShaderModuleDesc{.byte_code = compile_result.binary};
                 return device->make_unique(orion::ShaderModuleHandle_tag{}, desc);
             }();
             auto fs_module = [device, &shader_compiler]() {
-                auto compile_result = shader_compiler.compile({
-                    .source_string = imgui_shader_src,
+                const auto compile_desc = orion::ShaderCompileDesc{
                     .entry_point = "fs_main",
                     .shader_stage = orion::ShaderStageFlags::Fragment,
                     .object_type = device->shader_object_type(),
-                });
+                };
+                const auto compile_result = shader_compiler.compile_from_source(imgui_shader_src, compile_desc);
                 const auto desc = orion::ShaderModuleDesc{.byte_code = compile_result.binary};
                 return device->make_unique(orion::ShaderModuleHandle_tag{}, desc);
             }();

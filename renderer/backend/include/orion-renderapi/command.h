@@ -18,7 +18,7 @@ namespace orion
     // This is the implementation of std::is_implicit_lifetime as seen at: https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/p2674r0.pdf
     // We require commands to be implicit lifetime types, so we can simply allocate memory for them and move on
     template<typename T>
-    struct is_valid_cmd_type
+    struct IsValidCmdType
         : std::disjunction<
               std::is_scalar<T>,
               std::is_array<T>,
@@ -64,7 +64,7 @@ namespace orion
         explicit CommandList(std::size_t max_size);
 
         template<typename Command>
-            requires(is_valid_cmd_type<Command>::value)
+            requires(IsValidCmdType<Command>::value)
         auto* add_command(std::uint64_t key)
         {
             return static_cast<Command*>(add_command(key, sizeof(Command), alignof(Command), Command::type));
@@ -100,7 +100,7 @@ namespace orion
         std::size_t src_offset;
         std::size_t size;
     };
-    static_assert(is_valid_cmd_type<CmdBufferCopy>::value);
+    static_assert(IsValidCmdType<CmdBufferCopy>::value);
 
     DEFINE_COMMAND(BeginRenderPass, Graphics)
     {
@@ -109,10 +109,10 @@ namespace orion
         Vector2_u render_area;
         Vector4_f clear_color;
     };
-    static_assert(is_valid_cmd_type<CmdBeginRenderPass>::value);
+    static_assert(IsValidCmdType<CmdBeginRenderPass>::value);
 
     DEFINE_COMMAND(EndRenderPass, Graphics){};
-    static_assert(is_valid_cmd_type<CmdEndRenderPass>::value);
+    static_assert(IsValidCmdType<CmdEndRenderPass>::value);
 
     DEFINE_COMMAND(Draw, Graphics)
     {
@@ -122,7 +122,7 @@ namespace orion
         std::uint32_t vertex_count;
         std::uint32_t first_vertex;
     };
-    static_assert(is_valid_cmd_type<CmdDraw>::value);
+    static_assert(IsValidCmdType<CmdDraw>::value);
 
     DEFINE_COMMAND(DrawIndexed, Graphics)
     {
@@ -136,7 +136,7 @@ namespace orion
         std::uint32_t index_offset;
         std::uint32_t index_count;
     };
-    static_assert(is_valid_cmd_type<CmdDrawIndexed>::value);
+    static_assert(IsValidCmdType<CmdDrawIndexed>::value);
 
     DEFINE_COMMAND(BindDescriptorSet, Any)
     {
@@ -144,7 +144,7 @@ namespace orion
         std::uint32_t binding;
         DescriptorSetHandle descriptor_set;
     };
-    static_assert(is_valid_cmd_type<CmdBindDescriptorSet>::value);
+    static_assert(IsValidCmdType<CmdBindDescriptorSet>::value);
 
     DEFINE_COMMAND(PipelineBarrier, Any)
     {
@@ -152,7 +152,7 @@ namespace orion
         PipelineStageFlags dst_stages;
         ImageBarrierDesc image_barrier;
     };
-    static_assert(is_valid_cmd_type<CmdPipelineBarrier>::value);
+    static_assert(IsValidCmdType<CmdPipelineBarrier>::value);
 
     DEFINE_COMMAND(BlitImage, Transfer)
     {
@@ -163,7 +163,7 @@ namespace orion
         ImageLayout dst_layout;
         Vector2_u dst_size;
     };
-    static_assert(is_valid_cmd_type<CmdBlitImage>::value);
+    static_assert(IsValidCmdType<CmdBlitImage>::value);
 
     DEFINE_COMMAND(PushConstants, Any)
     {
@@ -173,7 +173,7 @@ namespace orion
         std::size_t size;
         const void* data;
     };
-    static_assert(is_valid_cmd_type<CmdPushConstants>::value);
+    static_assert(IsValidCmdType<CmdPushConstants>::value);
 
     DEFINE_COMMAND(CopyBufferToImage, Transfer)
     {
@@ -182,7 +182,7 @@ namespace orion
         ImageLayout dst_image_layout;
         Vector3_u dst_image_size;
     };
-    static_assert(is_valid_cmd_type<CmdCopyBufferToImage>::value);
+    static_assert(IsValidCmdType<CmdCopyBufferToImage>::value);
 } // namespace orion
 
 #undef DEFINE_COMMAND

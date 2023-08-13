@@ -1,12 +1,13 @@
 #pragma once
 
 #include "orion-core/config.h"
+#include "orion-core/exception.h"
+
 #include "orion-renderapi/types.h"
 
 #include <cstddef>
 #include <memory>
-#include <orion-core/exception.h>
-#include <spdlog/logger.h>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -52,8 +53,6 @@ namespace orion
     } // namespace detail
 
     struct ShaderCompileDesc {
-        std::string source_string;
-        std::string source_file;
         const char* entry_point = "main";
         ShaderStageFlags shader_stage;
         ShaderObjectType object_type;
@@ -69,9 +68,8 @@ namespace orion
     public:
         ShaderCompiler();
 
-        ShaderCompileResult compile(const ShaderCompileDesc& desc) const;
-
-        static spdlog::logger* logger();
+        ShaderCompileResult compile_from_source(std::string_view source, const ShaderCompileDesc& desc) const;
+        ShaderCompileResult compile_from_file(const std::string& source_file, const ShaderCompileDesc& desc) const;
 
     private:
         detail::DxcInstancePtr dxc_instance_;

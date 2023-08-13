@@ -47,10 +47,10 @@ namespace orion::vulkan
             constexpr auto max_extensions = 3;
             static_vector<const char*, max_extensions> extensions;
             if constexpr (debug_build) {
-                extensions.push_back("VK_EXT_debug_utils");
+                extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
             }
             if constexpr (!ORION_RENDERER_HEADLESS) {
-                extensions.push_back("VK_KHR_surface");
+                extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
                 extensions.push_back(platform_surface_ext());
             }
             return extensions;
@@ -61,7 +61,7 @@ namespace orion::vulkan
             constexpr auto max_extensions = 2;
             static_vector<const char*, max_extensions> extensions;
             if constexpr (!ORION_RENDERER_HEADLESS) {
-                extensions.push_back("VK_KHR_swapchain");
+                extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
             }
             return extensions;
         }
