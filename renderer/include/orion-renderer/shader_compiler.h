@@ -1,9 +1,10 @@
 #pragma once
 
 #include "orion-core/config.h"
-#include "orion-core/exception.h"
 
 #include "orion-renderapi/types.h"
+
+#include "orion-utils/expected.h"
 
 #include <cstddef>
 #include <memory>
@@ -13,37 +14,6 @@
 
 namespace orion
 {
-    class DxcInitError : public OrionException
-    {
-    public:
-        explicit DxcInitError(long hresult);
-
-        [[nodiscard]] const char* type() const noexcept override { return "DxcInitError"; }
-        [[nodiscard]] int return_code() const noexcept override { return hresult_; }
-
-    private:
-        long hresult_;
-    };
-
-    enum class ShaderCompileError : int {
-        InternalError,
-        CompilationFail
-    };
-
-    class DxcCompileError : public OrionException
-    {
-    public:
-        explicit DxcCompileError(ShaderCompileError compile_error, const char* msg = "Shader compilation error");
-
-        [[nodiscard]] const char* type() const noexcept override { return "DxcCompileError"; }
-        [[nodiscard]] int return_code() const noexcept override { return static_cast<int>(compile_error_); }
-        [[nodiscard]] const char* what() const override { return msg_; }
-
-    private:
-        ShaderCompileError compile_error_;
-        const char* msg_;
-    };
-
     namespace detail
     {
         struct DxcInstance;
@@ -59,17 +29,26 @@ namespace orion
         bool enable_debug = orion::debug_build;
     };
 
-    struct ShaderCompileResult {
+    enum class ShaderCompileError {
+        InternalError,
+        CompilationFail,
+        InvalidSource,
+        FailedLoadFile
+    };
+
+    struct ShaderCompileSuccess {
         std::vector<std::byte> binary;
     };
+
+    using ShaderCompileResult = expected<ShaderCompileSuccess, ShaderCompileError>;
 
     class ShaderCompiler
     {
     public:
         ShaderCompiler();
 
-        ShaderCompileResult compile_from_source(std::string_view source, const ShaderCompileDesc& desc) const;
-        ShaderCompileResult compile_from_file(const std::string& source_file, const ShaderCompileDesc& desc) const;
+        [[nodiscard]] ShaderCompileResult compile_from_source(std::string_view source, const ShaderCompileDesc& desc) const;
+        [[nodiscard]] ShaderCompileResult compile_from_file(const std::string& source_file, const ShaderCompileDesc& desc) const;
 
     private:
         detail::DxcInstancePtr dxc_instance_;

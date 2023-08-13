@@ -11,7 +11,8 @@
       "features": [
         "docking-experimental"
       ]
-    }
+    },
+    "tl-expected"
   ],
   "features": {
     "tests": {

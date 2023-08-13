@@ -4,6 +4,7 @@
 #define WIN32_LEAN_AND_MEA
 
 #include "dxc_include.h"
+
 #include "orion-utils/assertion.h"
 #include "orion-utils/static_vector.h"
 
@@ -45,17 +46,20 @@ namespace orion
         {
             ComPtr<IDxcUtils> utils;
             if (auto hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils)); FAILED(hr)) {
-                throw DxcInitError(hr);
+                SPDLOG_LOGGER_ERROR(logger(), "Failed to create IDxcUtils. HRESULT: {}", hr);
+                return nullptr;
             }
             SPDLOG_LOGGER_TRACE(logger(), "Created IDxcUtils");
             ComPtr<IDxcCompiler3> compiler;
             if (auto hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)); FAILED(hr)) {
-                throw DxcInitError(hr);
+                SPDLOG_LOGGER_ERROR(logger(), "Failed to create IDxcCompiler3. HRESULT: {}", hr);
+                return nullptr;
             }
             SPDLOG_LOGGER_TRACE(logger(), "Created IDxcCompiler3");
             ComPtr<IDxcIncludeHandler> include_handler;
             if (auto hr = utils->CreateDefaultIncludeHandler(&include_handler); FAILED(hr)) {
-                throw DxcInitError(hr);
+                SPDLOG_LOGGER_ERROR(logger(), "Failed to create IDxcIncludeHandler. HRESULT: {}", hr);
+                return nullptr;
             }
             SPDLOG_LOGGER_TRACE(logger(), "Created IDxcIncludeHandler");
             SPDLOG_LOGGER_DEBUG(logger(), "Created Dxc instance");
@@ -68,20 +72,10 @@ namespace orion
         }
     } // namespace detail
 
-    DxcInitError::DxcInitError(long hresult)
-        : hresult_(hresult)
-    {
-    }
-
-    DxcCompileError::DxcCompileError(ShaderCompileError compile_error, const char* msg)
-        : compile_error_(compile_error)
-        , msg_(msg)
-    {
-    }
-
     ShaderCompiler::ShaderCompiler()
         : dxc_instance_(detail::dxc_create_instance(), &detail::dxc_destroy_instance)
     {
+        ORION_ENSURES(dxc_instance_ != nullptr);
     }
 
     // Internal helpers for shader compilation
@@ -100,13 +94,6 @@ namespace orion
             return nullptr;
         }
 
-        void hresult_check(HRESULT hr, const char* msg)
-        {
-            if (FAILED(hr)) {
-                throw DxcCompileError(ShaderCompileError::InternalError, msg);
-            }
-        }
-
         auto to_wstring(const char* string)
         {
 #ifdef _MSC_VER
@@ -118,18 +105,6 @@ namespace orion
 #ifdef _MSC_VER
     #pragma warning(pop)
 #endif
-        }
-
-        ComPtr<IDxcResult> dxc_compile(IDxcCompiler3* compiler, IDxcIncludeHandler* include_handler, const DxcBuffer* buffer, std::span<LPCWSTR> arguments)
-        {
-            ComPtr<IDxcResult> results;
-            hresult_check(compiler->Compile(
-                              buffer,
-                              arguments.data(), static_cast<uint32_t>(arguments.size()),
-                              include_handler,
-                              IID_PPV_ARGS(&results)),
-                          "Call to Compile() failed");
-            return results;
         }
 
         ShaderCompileResult compile_blob(IDxcBlobEncoding* source, const ShaderCompileDesc& desc, detail::DxcInstance* dxc)
@@ -163,11 +138,21 @@ namespace orion
             auto include_handler = dxc->include_handler;
 
             // Compile and check for failed HRESULT. Additional error checking is performed after by checking the error buffer
-            const auto results = dxc_compile(compiler.Get(), include_handler.Get(), &dxc_buffer, arguments);
+            ComPtr<IDxcResult> results;
+            const auto compile_hresult = compiler->Compile(&dxc_buffer,
+                                                           arguments.data(), static_cast<uint32_t>(arguments.size()),
+                                                           include_handler.Get(), IID_PPV_ARGS(&results));
+            if (FAILED(compile_hresult)) {
+                SPDLOG_LOGGER_ERROR(logger(), "Call to IDxcCompiler3::Compile() failed. HRESULT: {}", compile_hresult);
+                return make_unexpected(ShaderCompileError::InternalError);
+            }
 
             // Check error buffer
             ComPtr<IDxcBlobUtf8> errors = nullptr;
-            hresult_check(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr), "GetOutput(DXC_OUT_ERRORS) failed");
+            if (FAILED(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr))) {
+                SPDLOG_LOGGER_ERROR(logger(), "Call to GetOutput(DXC_OUT_ERRORS) failed");
+                return make_unexpected(ShaderCompileError::InternalError);
+            }
             if (errors != nullptr && errors->GetStringLength() != 0) {
                 SPDLOG_LOGGER_ERROR(logger(), "Shader compilation errors:");
                 SPDLOG_LOGGER_ERROR(logger(), "{}", errors->GetStringPointer());
@@ -175,18 +160,24 @@ namespace orion
 
             // Quit if compilation failed
             HRESULT compilation_status = S_OK;
-            hresult_check(results->GetStatus(&compilation_status), "GetStatus() failed");
+            if (FAILED(results->GetStatus(&compilation_status))) {
+                SPDLOG_LOGGER_ERROR(logger(), "Call to GetStatus() failed");
+                return make_unexpected(ShaderCompileError::InternalError);
+            }
             if (FAILED(compilation_status)) {
                 SPDLOG_LOGGER_ERROR(logger(), "Shader compilation failed!");
-                throw DxcCompileError(ShaderCompileError::CompilationFail, nullptr);
+                return make_unexpected(ShaderCompileError::CompilationFail);
             }
 
             // The returned compile result
-            ShaderCompileResult compile_result;
+            ShaderCompileSuccess compile_result;
 
             // Get the object code
             ComPtr<IDxcBlob> shader_binary = nullptr;
-            hresult_check(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader_binary), nullptr), "GetOutput(DXC_OUT_OBJECT) failed");
+            if (FAILED(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader_binary), nullptr))) {
+                SPDLOG_LOGGER_ERROR(logger(), "Call to GetOutput(DXC_OUT_OBJECT) failed");
+                return make_unexpected(ShaderCompileError::InternalError);
+            }
             if (shader_binary != nullptr) {
                 compile_result.binary.resize(shader_binary->GetBufferSize());
                 std::memcpy(compile_result.binary.data(), shader_binary->GetBufferPointer(), shader_binary->GetBufferSize());
@@ -205,7 +196,10 @@ namespace orion
 
         // Create blob from source string
         ComPtr<IDxcBlobEncoding> source_blob = nullptr;
-        hresult_check(utils->CreateBlob(source.data(), static_cast<UINT32>(source.size()), 0, &source_blob), "Failed to create IDxcBlobEncoding");
+        if (FAILED(utils->CreateBlob(source.data(), static_cast<UINT32>(source.size()), 0, &source_blob))) {
+            SPDLOG_LOGGER_ERROR(logger(), "Failed to create source blob from source string");
+            return make_unexpected(ShaderCompileError::InvalidSource);
+        }
 
         return compile_blob(source_blob.Get(), desc, dxc_instance_.get());
     }
@@ -220,7 +214,10 @@ namespace orion
 
         // Create blob from file
         const auto w_filename = to_wstring(source_file.c_str());
-        hresult_check(utils->LoadFile(w_filename.c_str(), nullptr, &source_blob), "Failed to load source file");
+        if (FAILED(utils->LoadFile(w_filename.c_str(), nullptr, &source_blob))) {
+            SPDLOG_LOGGER_ERROR(logger(), "Failed to load shader source file '{}'", source_file);
+            return make_unexpected(ShaderCompileError::FailedLoadFile);
+        }
 
         return compile_blob(source_blob.Get(), desc, dxc_instance_.get());
     }
