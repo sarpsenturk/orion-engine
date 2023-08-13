@@ -52,9 +52,13 @@ namespace orion
         , swapchain_copy_semaphore_(device()->create_semaphore())
         , swapchain_copy_fence_(device()->create_fence(false))
         , descriptor_pool_(create_descriptor_pool())
+        , mesh_manager_(render_device_.get())
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
+
+        // Add cube mesh
+        mesh_manager_.add("default-cube", default_meshes::cube_vertices, default_meshes::cube_indices);
     }
 
     void Renderer::begin()

@@ -108,6 +108,12 @@ namespace orion
             return unique_device_resource<Tag>{create(tag, std::forward<Args>(args)...), {this}};
         }
 
+        template<typename Tag>
+        auto to_unique(Handle<Tag> handle)
+        {
+            return unique_device_resource<Tag>{handle, {this}};
+        }
+
         void destroy(SurfaceHandle surface_handle);
         void destroy(SwapchainHandle swapchain_handle);
         void destroy(RenderPassHandle render_pass_handle);

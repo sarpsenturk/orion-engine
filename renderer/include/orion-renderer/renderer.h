@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mesh.h"
 #include "orion-renderer/config.h"
 #include "shader_compiler.h"
 
@@ -34,6 +35,7 @@ namespace orion
 
         [[nodiscard]] auto backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto device() const noexcept { return render_device_.get(); }
+        [[nodiscard]] auto& mesh_manager() noexcept { return mesh_manager_; }
 
         void begin();
         void end();
@@ -89,5 +91,7 @@ namespace orion
         FenceHandle swapchain_copy_fence_;
 
         DescriptorPoolHandle descriptor_pool_;
+
+        MeshManager mesh_manager_;
     };
 } // namespace orion
