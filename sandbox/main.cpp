@@ -19,12 +19,16 @@ public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size, .clear_color = {1.f, 0.f, 1.f, 1.f}})
+        , cube_mesh_(renderer_.mesh_manager().find(orion::Renderer::cube_mesh_name))
     {
         create_surface();
-        create_swapchain();
+        create_swapchain(window_.size());
 
-        window_.on_resize_end() += ([this](const auto&) {
-            create_swapchain();
+        window_.on_resize_end() += ([this](const auto& resize) {
+            if (const auto& new_size = resize.size; new_size.sqr_magnitude() != 0) {
+                create_swapchain(new_size);
+                renderer_.resize_images(new_size);
+            }
         });
 
         // Initialize imgui
@@ -44,8 +48,16 @@ private:
 
     void on_user_render() override
     {
+        // Don't render if minimized
+        if (window_.is_minimized()) {
+            return;
+        }
+
         // Begin new frame
         renderer_.begin();
+
+        // Draw cube
+        renderer_.draw_mesh(cube_mesh_);
 
         // Begin imgui frame
         renderer_.imgui_new_frame();
@@ -72,7 +84,7 @@ private:
         surface_ = renderer_.device()->create_surface(window_);
     }
 
-    void create_swapchain()
+    void create_swapchain(const orion::Vector2_u& size)
     {
         if (swapchain_.is_valid()) {
             renderer_.device()->destroy(swapchain_);
@@ -81,7 +93,7 @@ private:
             .surface = surface_,
             .image_count = swapchain_image_count,
             .image_format = swapchain_image_format,
-            .image_size = window_.size(),
+            .image_size = size,
             .image_usage = swapchain_image_usage,
         };
         swapchain_ = renderer_.device()->create_swapchain(desc);
@@ -97,6 +109,7 @@ private:
     orion::Renderer renderer_;
     orion::SurfaceHandle surface_;
     orion::SwapchainHandle swapchain_;
+    const orion::Mesh* cube_mesh_ = nullptr;
 };
 
 ORION_MAIN(args)

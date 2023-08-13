@@ -30,6 +30,7 @@ namespace orion
     {
     public:
         static constexpr auto frames_in_flight = ORION_FRAMES_IN_FLIGHT;
+        static constexpr auto cube_mesh_name = "default-cube";
 
         explicit Renderer(const RendererDesc& desc);
 
@@ -41,11 +42,15 @@ namespace orion
         void end();
         void present(SwapchainHandle swapchain);
 
+        void resize_images(const Vector2_u& new_size);
+
         void imgui_init(Window* window);
         void imgui_shutdown();
 
         void imgui_new_frame();
         void imgui_render();
+
+        void draw_mesh(const Mesh* mesh);
 
         static spdlog::logger* logger();
 
@@ -55,6 +60,8 @@ namespace orion
 
         [[nodiscard]] std::unique_ptr<RenderBackend> create_backend(const Module& backend_module) const;
         [[nodiscard]] std::unique_ptr<RenderDevice> create_device(RenderBackend* backend, pfnSelectPhysicalDevice device_select_fn) const;
+        [[nodiscard]] Viewport create_viewport() const;
+        [[nodiscard]] Scissor create_scissor() const;
         [[nodiscard]] CommandPoolHandle create_command_pool() const;
         [[nodiscard]] CommandBufferHandle create_command_buffer() const;
         [[nodiscard]] FenceHandle create_render_fence() const;
@@ -70,6 +77,9 @@ namespace orion
 
         Vector2_u render_size_;
         Vector4_f clear_color_;
+
+        Viewport viewport_;
+        Scissor scissor_;
 
         CommandPoolHandle command_pool_;
         CommandBufferHandle command_buffer_;

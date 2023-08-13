@@ -31,12 +31,20 @@ namespace orion
         return nullptr;
     }
 
+    spdlog::logger* Renderer::logger()
+    {
+        static const auto renderer_logger = create_logger("orion-renderer", ORION_RENDERER_LOG_LEVEL);
+        return renderer_logger.get();
+    }
+
     Renderer::Renderer(const RendererDesc& desc)
         : backend_module_(desc.backend_module)
         , render_backend_(create_backend(backend_module_))
         , render_device_(create_device(backend(), desc.device_select_fn))
         , render_size_(desc.render_size)
         , clear_color_(desc.clear_color)
+        , viewport_(create_viewport())
+        , scissor_(create_scissor())
         , command_pool_(create_command_pool())
         , command_buffer_(create_command_buffer())
         , render_command_(render_command_size)
@@ -58,7 +66,7 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
 
         // Add cube mesh
-        mesh_manager_.add("default-cube", default_meshes::cube_vertices, default_meshes::cube_indices);
+        mesh_manager_.add(cube_mesh_name, default_meshes::cube_vertices, default_meshes::cube_indices);
     }
 
     void Renderer::begin()
@@ -202,6 +210,24 @@ namespace orion
         });
     }
 
+    void Renderer::resize_images(const Vector2_u& new_size)
+    {
+        // Destroy old resources
+        device()->destroy(render_target_);
+        device()->destroy(render_image_view_);
+        device()->destroy(render_image_);
+
+        // Update render size
+        render_size_ = new_size;
+
+        // Create new resources
+        render_image_ = create_render_image();
+        render_image_view_ = create_render_image_view();
+        render_target_ = create_render_target();
+        viewport_ = create_viewport();
+        scissor_ = create_scissor();
+    }
+
     void Renderer::imgui_init(Window* window)
     {
         // Setup Dear ImGui context
@@ -238,10 +264,13 @@ namespace orion
         ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), render_command_);
     }
 
-    spdlog::logger* Renderer::logger()
+    void Renderer::draw_mesh(const Mesh* mesh)
     {
-        static const auto renderer_logger = create_logger("orion-renderer", ORION_RENDERER_LOG_LEVEL);
-        return renderer_logger.get();
+        ORION_EXPECTS(mesh != nullptr);
+        auto* cmd_draw_indexed = render_command_.add_command<CmdDrawIndexed>({});
+        cmd_draw_indexed->vertex_buffer = mesh->vertex_buffer();
+        cmd_draw_indexed->index_buffer = mesh->index_buffer();
+        cmd_draw_indexed->index_type = IndexType::Uint32;
     }
 
     std::unique_ptr<RenderBackend> Renderer::create_backend(const Module& backend_module) const
@@ -289,6 +318,16 @@ namespace orion
 
         // Create device
         return backend->create_device(physical_device_index);
+    }
+
+    Viewport Renderer::create_viewport() const
+    {
+        return {.position = {}, .size = vector_cast<float>(render_size_), .depth = {0.f, 1.f}};
+    }
+
+    Scissor Renderer::create_scissor() const
+    {
+        return {.offset = {}, .size = render_size_};
     }
 
     CommandPoolHandle Renderer::create_command_pool() const
