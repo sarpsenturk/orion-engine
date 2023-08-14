@@ -61,12 +61,16 @@ namespace orion
         , swapchain_copy_fence_(device()->create_fence(false))
         , descriptor_pool_(create_descriptor_pool())
         , mesh_manager_(render_device_.get())
+        , shader_manager_(render_device_.get())
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
 
         // Add cube mesh
         mesh_manager_.add(cube_mesh_name, default_meshes::cube_vertices, default_meshes::cube_indices);
+
+        // Add basic shader
+        shader_manager_.add_from_file(basic_shader_name, ORION_SHADER_DIR "/basic.hlsl", ShaderStageFlags::Vertex | ShaderStageFlags::Fragment);
     }
 
     void Renderer::begin()
@@ -271,6 +275,12 @@ namespace orion
         cmd_draw_indexed->vertex_buffer = mesh->vertex_buffer();
         cmd_draw_indexed->index_buffer = mesh->index_buffer();
         cmd_draw_indexed->index_type = IndexType::Uint32;
+        cmd_draw_indexed->graphics_pipeline = {}; // TODO: Create mesh pipeline
+        cmd_draw_indexed->viewport = viewport_;
+        cmd_draw_indexed->scissor = scissor_;
+        cmd_draw_indexed->vertex_offset = 0;
+        cmd_draw_indexed->index_offset = 0;
+        cmd_draw_indexed->index_count = mesh->index_count();
     }
 
     std::unique_ptr<RenderBackend> Renderer::create_backend(const Module& backend_module) const

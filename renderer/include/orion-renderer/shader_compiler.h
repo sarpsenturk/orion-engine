@@ -36,6 +36,21 @@ namespace orion
         FailedLoadFile
     };
 
+    constexpr auto format_as(ShaderCompileError compile_error)
+    {
+        switch (compile_error) {
+            case ShaderCompileError::InternalError:
+                return "An internal compiler error has occurred in DXC";
+            case ShaderCompileError::CompilationFail:
+                return "Shader compilation failed";
+            case ShaderCompileError::InvalidSource:
+                return "Shader source could not be loaded into blob";
+            case ShaderCompileError::FailedLoadFile:
+                return "Shader file could not opened/loaded";
+        }
+        return "";
+    }
+
     struct ShaderCompileSuccess {
         std::vector<std::byte> binary;
     };
@@ -47,10 +62,12 @@ namespace orion
     public:
         ShaderCompiler();
 
-        [[nodiscard]] ShaderCompileResult compile_from_source(std::string_view source, const ShaderCompileDesc& desc) const;
+        [[nodiscard]] ShaderCompileResult compile_from_source(const std::string& source, const ShaderCompileDesc& desc) const;
         [[nodiscard]] ShaderCompileResult compile_from_file(const std::string& source_file, const ShaderCompileDesc& desc) const;
 
     private:
         detail::DxcInstancePtr dxc_instance_;
     };
+
+    using shader_compiler_compile_fn = ShaderCompileResult (ShaderCompiler::*)(const std::string&, const ShaderCompileDesc&) const;
 } // namespace orion

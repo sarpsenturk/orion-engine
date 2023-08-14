@@ -18,6 +18,29 @@ struct std::hash<orion::DescriptorBinding> {
 
 namespace orion
 {
+    std::string orion::format_as(ShaderStageFlags shader_stages)
+    {
+        if (!shader_stages) {
+            return {};
+        }
+
+        std::string result{};
+        for (auto stage : BitwiseRange{shader_stages}) {
+            if (!stage) {
+                continue;
+            }
+            switch (stage) {
+                case ShaderStageFlags::Vertex:
+                    result += "Vertex | ";
+                    break;
+                case ShaderStageFlags::Fragment:
+                    result += "Fragment | ";
+                    break;
+            }
+        }
+        return result.substr(0, result.size() - 3);
+    }
+
     DescriptorSetLayout::DescriptorSetLayout(std::initializer_list<DescriptorBinding> bindings)
         : bindings_(bindings)
         , hash_(hash_bindings(bindings))

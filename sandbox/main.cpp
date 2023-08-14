@@ -57,7 +57,7 @@ private:
         renderer_.begin();
 
         // Draw cube
-        renderer_.draw_mesh(cube_mesh_);
+        //        renderer_.draw_mesh(cube_mesh_);
 
         // Begin imgui frame
         renderer_.imgui_new_frame();

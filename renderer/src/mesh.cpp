@@ -31,7 +31,7 @@ namespace orion
     {
     }
 
-    const Mesh* MeshManager::add(std::string name, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices)
+    const Mesh* MeshManager::add(const std::string& name, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices)
     {
         if (auto iter = meshes_.find(name); iter != meshes_.end()) {
             SPDLOG_LOGGER_WARN(logger(), "Mesh with name {} already exists, returning existing mesh.");
@@ -98,9 +98,9 @@ namespace orion
         device_->destroy(staging_buffer);
 
         // Insert new mesh entry
-        auto [iter, inserted] = meshes_.emplace(std::move(name), Mesh{device_->to_unique(vertex_buffer),
-                                                                      device_->to_unique(index_buffer),
-                                                                      static_cast<uint32_t>(indices.size())});
+        auto [iter, inserted] = meshes_.emplace(name, Mesh{device_->to_unique(vertex_buffer),
+                                                           device_->to_unique(index_buffer),
+                                                           static_cast<uint32_t>(indices.size())});
         ORION_ENSURES(inserted);
 
         auto& mesh = iter->second;

@@ -112,6 +112,8 @@ namespace orion
     struct enum_bitwise_enabled<ShaderStageFlags> : std::true_type {
     };
 
+    std::string format_as(ShaderStageFlags shader_stages);
+
     enum class PrimitiveTopology {
         TriangleList
     };

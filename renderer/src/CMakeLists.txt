@@ -6,5 +6,6 @@ target_sources(
         imgui_impl_orion.h imgui_impl_orion.cpp
         mesh.cpp
         renderer.cpp
+        shader.cpp
         shader_compiler.cpp
 )

@@ -187,7 +187,7 @@ namespace orion
         }
     } // namespace
 
-    ShaderCompileResult ShaderCompiler::compile_from_source(std::string_view source, const ShaderCompileDesc& desc) const
+    ShaderCompileResult ShaderCompiler::compile_from_source(const std::string& source, const ShaderCompileDesc& desc) const
     {
         ORION_EXPECTS(!source.empty());
 

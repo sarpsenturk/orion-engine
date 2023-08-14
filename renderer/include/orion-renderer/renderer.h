@@ -2,6 +2,7 @@
 
 #include "mesh.h"
 #include "orion-renderer/config.h"
+#include "shader.h"
 #include "shader_compiler.h"
 
 #include "orion-renderapi/render_backend.h"
@@ -31,6 +32,7 @@ namespace orion
     public:
         static constexpr auto frames_in_flight = ORION_FRAMES_IN_FLIGHT;
         static constexpr auto cube_mesh_name = "default-cube";
+        static constexpr auto basic_shader_name = "basic-shader";
 
         explicit Renderer(const RendererDesc& desc);
 
@@ -103,5 +105,6 @@ namespace orion
         DescriptorPoolHandle descriptor_pool_;
 
         MeshManager mesh_manager_;
+        ShaderManager shader_manager_;
     };
 } // namespace orion

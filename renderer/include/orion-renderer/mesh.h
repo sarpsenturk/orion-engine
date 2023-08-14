@@ -52,7 +52,7 @@ namespace orion
     public:
         explicit MeshManager(RenderDevice* device);
 
-        const Mesh* add(std::string name, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
+        const Mesh* add(const std::string& name, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
         void remove(const std::string& name);
 
         [[nodiscard]] const Mesh* find(const std::string& name) const;
