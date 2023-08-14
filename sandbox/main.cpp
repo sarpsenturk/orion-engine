@@ -30,6 +30,7 @@ public:
                 renderer_.resize_images(new_size);
             }
         });
+        window_.on_close().subscribe([this](const auto&) { exit_application(); });
 
         // Initialize imgui
         renderer_.imgui_init(&window_);
@@ -72,11 +73,6 @@ private:
 
         // Present renderer image to swapchain
         renderer_.present(swapchain_);
-    }
-
-    [[nodiscard]] bool user_should_exit() const noexcept override
-    {
-        return window_.should_close();
     }
 
     void create_surface()

@@ -29,7 +29,7 @@ namespace orion
 
     bool Application::should_exit() const noexcept
     {
-        return user_should_exit();
+        return should_exit_;
     }
 
     void Application::run()
@@ -42,5 +42,10 @@ namespace orion
             on_update(dt);
             on_render();
         }
+    }
+
+    void Application::exit_application()
+    {
+        should_exit_ = true;
     }
 } // namespace orion

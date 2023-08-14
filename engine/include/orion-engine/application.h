@@ -26,11 +26,14 @@ namespace orion
         Application& operator=(const Application&) = default;
         Application& operator=(Application&&) noexcept = default;
 
+        void exit_application();
+
     private:
         virtual void on_user_update(frame_time dt) = 0;
         virtual void on_user_render() = 0;
-        [[nodiscard]] virtual bool user_should_exit() const noexcept = 0;
 
         std::shared_ptr<spdlog::logger> logger_;
+
+        bool should_exit_ = false;
     };
 } // namespace orion
