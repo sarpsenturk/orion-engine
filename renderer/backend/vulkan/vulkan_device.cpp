@@ -1011,6 +1011,7 @@ namespace orion::vulkan
         vk_result_check(vkBeginCommandBuffer(vk_command_buffer, &begin_info));
 
         // Compile commands
+        reset_draw_state();
         for (const auto& command : command_list.commands()) {
             compile_command(vk_command_buffer, command);
         }
@@ -1171,11 +1172,42 @@ namespace orion::vulkan
         return images[image_index];
     }
 
+    void VulkanDevice::reset_draw_state()
+    {
+        draw_state_ = {};
+    }
+
+    void VulkanDevice::update_draw_state(VkCommandBuffer command_buffer, const DrawState& new_state)
+    {
+        if (draw_state_.set_vertex_buffer(new_state.vertex_buffer)) {
+            VkBuffer vertex_buffer = buffers_.handle_at(new_state.vertex_buffer);
+            const auto offsets = VkDeviceSize{0};
+            vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offsets);
+        }
+        if (draw_state_.set_index_buffer(new_state.index_buffer, new_state.index_type)) {
+            VkBuffer index_buffer = buffers_.handle_at(new_state.index_buffer);
+            const auto index_type = to_vulkan_type(new_state.index_type);
+            vkCmdBindIndexBuffer(command_buffer, index_buffer, VkDeviceSize{0}, index_type);
+        }
+        if (draw_state_.set_pipeline(new_state.pipeline)) {
+            VkPipeline pipeline = pipelines_.handle_at(new_state.pipeline);
+            vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        }
+        if (draw_state_.set_viewport(new_state.viewport)) {
+            const auto viewport = to_vulkan_type(new_state.viewport);
+            vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+        }
+        if (draw_state_.set_scissor(new_state.scissor)) {
+            const auto scissor = to_vulkan_rect(new_state.scissor);
+            vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+        }
+    }
+
     void VulkanDevice::compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet)
     {
         switch (command_packet.type) {
-            case CommandType::BufferCopy:
-                cmd_buffer_copy(command_buffer, command_packet.data);
+            case CommandType::CopyBuffer:
+                cmd_copy_buffer(command_buffer, command_packet.data);
                 break;
             case CommandType::BeginRenderPass:
                 cmd_begin_render_pass(command_buffer, command_packet.data);
@@ -1209,9 +1241,9 @@ namespace orion::vulkan
         }
     }
 
-    void VulkanDevice::cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data)
+    void VulkanDevice::cmd_copy_buffer(VkCommandBuffer command_buffer, const void* data)
     {
-        const auto* cmd_data = static_cast<const CmdBufferCopy*>(data);
+        const auto* cmd_data = static_cast<const CmdCopyBuffer*>(data);
 
         // Find related buffers
         VkBuffer src_buffer = buffers_.handle_at(cmd_data->src);
@@ -1226,7 +1258,6 @@ namespace orion::vulkan
             },
         };
 
-        // Issue command
         vkCmdCopyBuffer(
             command_buffer,
             src_buffer, dst_buffer,
@@ -1247,7 +1278,6 @@ namespace orion::vulkan
             VkClearValue{.color = {cmd_data->clear_color[0], cmd_data->clear_color[1], cmd_data->clear_color[2], cmd_data->clear_color[3]}},
         };
 
-        // Issue command
         const auto info = VkRenderPassBeginInfo{
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
@@ -1270,25 +1300,10 @@ namespace orion::vulkan
     {
         const auto* cmd_data = static_cast<const CmdDraw*>(data);
 
-        // Find and bind the pipeline
-        VkPipeline pipeline = pipelines_.handle_at(cmd_data->graphics_pipeline);
-        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-        // Set viewport
-        const auto viewport = to_vulkan_viewport(cmd_data->viewport);
-        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-        // Set scissor
-        const auto scissor = VkRect2D{
-            .offset = {},
-            .extent = to_vulkan_extent(cmd_data->viewport.size),
-        };
-        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-        // Find and bind vertex buffer
-        VkBuffer vertex_buffer = buffers_.handle_at(cmd_data->vertex_buffer);
-        const auto offset = VkDeviceSize{};
-        vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offset);
+        // Set draw state (vertex buffer, index buffer, pipeline, etc.)
+        // See struct DrawState
+        update_draw_state(command_buffer, cmd_data->draw_state);
+        draw_state_.assert_valid_draw();
 
         // Issue command
         vkCmdDraw(
@@ -1303,28 +1318,11 @@ namespace orion::vulkan
     {
         const auto* cmd_data = static_cast<const CmdDrawIndexed*>(data);
 
-        // Find and bind the pipeline
-        VkPipeline pipeline = pipelines_.handle_at(cmd_data->graphics_pipeline);
-        vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        // Set draw state (vertex buffer, index buffer, pipeline, etc.)
+        // See struct DrawState
+        update_draw_state(command_buffer, cmd_data->draw_state);
+        draw_state_.assert_valid_draw_indexed();
 
-        // Set viewport
-        const auto viewport = to_vulkan_viewport(cmd_data->viewport);
-        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-        // Set scissor
-        const auto scissor = to_vulkan_rect(cmd_data->scissor);
-        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-        // Find and bind vertex buffer
-        VkBuffer vertex_buffer = buffers_.handle_at(cmd_data->vertex_buffer);
-        const auto offset = VkDeviceSize{};
-        vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offset);
-
-        // Find and bind index buffer
-        VkBuffer index_buffer = buffers_.handle_at(cmd_data->index_buffer);
-        vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, to_vulkan_type(cmd_data->index_type));
-
-        // Issue command
         vkCmdDrawIndexed(
             command_buffer,
             cmd_data->index_count,
@@ -1347,7 +1345,6 @@ namespace orion::vulkan
         // Find descriptor set
         VkDescriptorSet descriptor_set = descriptor_sets_.handle_at(cmd_data->descriptor_set);
 
-        // Issue command
         vkCmdBindDescriptorSets(
             command_buffer,
             bind_point,
@@ -1450,7 +1447,6 @@ namespace orion::vulkan
         // Find pipeline layout
         VkPipelineLayout pipeline_layout = pipeline_layouts_.handle_at(cmd_data->pipeline);
 
-        // Push the constants
         vkCmdPushConstants(
             command_buffer,
             pipeline_layout,

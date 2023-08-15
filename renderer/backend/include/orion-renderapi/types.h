@@ -156,11 +156,15 @@ namespace orion
         Vector2_f position;
         Vector2_f size;
         Vector2_f depth;
+
+        friend constexpr bool operator==(const Viewport& lhs, const Viewport& rhs) noexcept = default;
     };
 
     struct Scissor {
         Vector2_i offset;
         Vector2_u size;
+
+        friend constexpr bool operator==(const Scissor& lhs, const Scissor& rhs) noexcept = default;
     };
 
     enum class CommandQueueType {
@@ -171,7 +175,7 @@ namespace orion
     };
 
     enum class CommandType {
-        BufferCopy,
+        CopyBuffer,
         BeginRenderPass,
         EndRenderPass,
         Draw,
@@ -261,6 +265,7 @@ namespace orion
     };
 
     enum class IndexType {
+        None = 0,
         Uint16,
         Uint32,
     };
@@ -586,5 +591,26 @@ namespace orion
         CompareFunc compare_func;
         float min_lod;
         float max_lod;
+    };
+
+    struct DrawState {
+        // Direct access to members is available since it matches how commands are created
+        // better.
+
+        GPUBufferHandle vertex_buffer = GPUBufferHandle::invalid_handle();
+        GPUBufferHandle index_buffer = GPUBufferHandle::invalid_handle();
+        IndexType index_type = IndexType::None;
+        PipelineHandle pipeline = PipelineHandle::invalid_handle();
+        Viewport viewport = {};
+        Scissor scissor = {};
+
+        bool set_vertex_buffer(GPUBufferHandle new_vertex_buffer);
+        bool set_index_buffer(GPUBufferHandle new_index_buffer, IndexType new_index_type);
+        bool set_pipeline(PipelineHandle new_pipeline);
+        bool set_viewport(const Viewport& new_viewport);
+        bool set_scissor(const Scissor& new_scissor);
+
+        void assert_valid_draw();
+        void assert_valid_draw_indexed();
     };
 } // namespace orion

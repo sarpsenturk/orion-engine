@@ -788,12 +788,12 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
             }
 
             auto* cmd_draw_indexed = command_list.add_command<orion::CmdDrawIndexed>({});
-            cmd_draw_indexed->vertex_buffer = renderer_data->vertex_buffer.get();
-            cmd_draw_indexed->index_buffer = renderer_data->index_buffer.get();
-            cmd_draw_indexed->index_type = orion::IndexType::Uint16;
-            cmd_draw_indexed->graphics_pipeline = renderer_data->pipeline.get();
-            cmd_draw_indexed->viewport = viewport;
-            cmd_draw_indexed->scissor = scissor;
+            cmd_draw_indexed->draw_state.vertex_buffer = renderer_data->vertex_buffer.get();
+            cmd_draw_indexed->draw_state.index_buffer = renderer_data->index_buffer.get();
+            cmd_draw_indexed->draw_state.index_type = orion::IndexType::Uint16;
+            cmd_draw_indexed->draw_state.pipeline = renderer_data->pipeline.get();
+            cmd_draw_indexed->draw_state.viewport = viewport;
+            cmd_draw_indexed->draw_state.scissor = scissor;
             cmd_draw_indexed->vertex_offset = global_vtx_offset + draw_cmd.VtxOffset;
             cmd_draw_indexed->index_offset = global_idx_offset + draw_cmd.IdxOffset;
             cmd_draw_indexed->index_count = draw_cmd.ElemCount;

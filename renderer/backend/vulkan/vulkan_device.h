@@ -105,8 +105,12 @@ namespace orion::vulkan
         uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) override;
         ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) override;
 
+        DrawState draw_state_;
+        void reset_draw_state();
+        void update_draw_state(VkCommandBuffer command_buffer, const DrawState& new_state);
+
         void compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet);
-        void cmd_buffer_copy(VkCommandBuffer command_buffer, const void* data);
+        void cmd_copy_buffer(VkCommandBuffer command_buffer, const void* data);
         void cmd_begin_render_pass(VkCommandBuffer command_buffer, const void* data);
         void cmd_end_render_pass(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);

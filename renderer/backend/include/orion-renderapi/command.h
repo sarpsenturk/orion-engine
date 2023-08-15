@@ -10,6 +10,7 @@
 
 #include <spdlog/logger.h>
 
+#include <limits>
 #include <type_traits>
 #include <vector>
 
@@ -32,10 +33,16 @@ namespace orion
                       std::is_trivially_move_constructible<T>>>> {
     };
 
+    using command_packet_key = std::uint64_t;
+    inline constexpr auto command_key_begin = std::numeric_limits<command_packet_key>::min();
+    inline constexpr auto command_key_end = std::numeric_limits<command_packet_key>::max();
+
     struct CommandPacket {
-        std::uint64_t key;
+        command_packet_key key;
         CommandType type;
         const void* data;
+
+        friend constexpr bool operator<(const CommandPacket& lhs, const CommandPacket& rhs) noexcept { return lhs.key < rhs.key; }
     };
 
     // All available commands
@@ -65,7 +72,7 @@ namespace orion
 
         template<typename Command>
             requires(IsValidCmdType<Command>::value)
-        auto* add_command(std::uint64_t key)
+        auto* add_command(command_packet_key key)
         {
             return static_cast<Command*>(add_command(key, sizeof(Command), alignof(Command), Command::type));
         }
@@ -81,10 +88,11 @@ namespace orion
         void begin();
         void end();
         void reset();
+        void sort();
 
     private:
         void set_state(CommandBufferState state) noexcept;
-        void* add_command(std::uint64_t key, std::size_t size, std::size_t align, CommandType type);
+        void* add_command(command_packet_key key, std::size_t size, std::size_t align, CommandType type);
 
         LinearAllocator command_allocator_;
         std::vector<CommandPacket> command_packets_;
@@ -92,7 +100,7 @@ namespace orion
         CommandBufferState state_ = CommandBufferState::Initial;
     };
 
-    DEFINE_COMMAND(BufferCopy, Graphics)
+    DEFINE_COMMAND(CopyBuffer, Graphics)
     {
         GPUBufferHandle dst;
         std::size_t dst_offset;
@@ -100,7 +108,7 @@ namespace orion
         std::size_t src_offset;
         std::size_t size;
     };
-    static_assert(IsValidCmdType<CmdBufferCopy>::value);
+    static_assert(IsValidCmdType<CmdCopyBuffer>::value);
 
     DEFINE_COMMAND(BeginRenderPass, Graphics)
     {
@@ -116,9 +124,7 @@ namespace orion
 
     DEFINE_COMMAND(Draw, Graphics)
     {
-        GPUBufferHandle vertex_buffer;
-        PipelineHandle graphics_pipeline;
-        Viewport viewport;
+        DrawState draw_state;
         std::uint32_t vertex_count;
         std::uint32_t first_vertex;
     };
@@ -126,12 +132,7 @@ namespace orion
 
     DEFINE_COMMAND(DrawIndexed, Graphics)
     {
-        GPUBufferHandle vertex_buffer;
-        GPUBufferHandle index_buffer;
-        IndexType index_type;
-        PipelineHandle graphics_pipeline;
-        Viewport viewport;
-        Scissor scissor;
+        DrawState draw_state;
         std::uint32_t vertex_offset;
         std::uint32_t index_offset;
         std::uint32_t index_count;

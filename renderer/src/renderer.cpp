@@ -87,7 +87,7 @@ namespace orion
 
         // Begin render pass
         {
-            auto* cmd_begin_render_pass = render_command_.add_command<CmdBeginRenderPass>({});
+            auto* cmd_begin_render_pass = render_command_.add_command<CmdBeginRenderPass>(command_key_begin);
             cmd_begin_render_pass->render_pass = render_pass_;
             cmd_begin_render_pass->framebuffer = render_target_;
             cmd_begin_render_pass->render_area = render_size_;
@@ -98,7 +98,7 @@ namespace orion
     void Renderer::end()
     {
         // End render pass
-        render_command_.add_command<CmdEndRenderPass>({});
+        render_command_.add_command<CmdEndRenderPass>(command_key_end);
 
         // End command list recording
         render_command_.end();
@@ -271,16 +271,6 @@ namespace orion
     void Renderer::draw_mesh(const Mesh* mesh)
     {
         ORION_EXPECTS(mesh != nullptr);
-        auto* cmd_draw_indexed = render_command_.add_command<CmdDrawIndexed>({});
-        cmd_draw_indexed->vertex_buffer = mesh->vertex_buffer();
-        cmd_draw_indexed->index_buffer = mesh->index_buffer();
-        cmd_draw_indexed->index_type = IndexType::Uint32;
-        cmd_draw_indexed->graphics_pipeline = {}; // TODO: Create mesh pipeline
-        cmd_draw_indexed->viewport = viewport_;
-        cmd_draw_indexed->scissor = scissor_;
-        cmd_draw_indexed->vertex_offset = 0;
-        cmd_draw_indexed->index_offset = 0;
-        cmd_draw_indexed->index_count = mesh->index_count();
     }
 
     std::unique_ptr<RenderBackend> Renderer::create_backend(const Module& backend_module) const

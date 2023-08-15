@@ -69,11 +69,11 @@ namespace orion
 
         // Upload vertex and index data
         device_->submit_immediate([vertex_buffer, index_buffer, staging_buffer, vb_size, ib_size]() {
-            CommandList upload{sizeof(CmdBufferCopy) * 2};
+            CommandList upload{sizeof(CmdCopyBuffer) * 2};
             upload.begin();
             // Copy vertex data
             {
-                auto* cmd_buffer_copy = upload.add_command<CmdBufferCopy>({});
+                auto* cmd_buffer_copy = upload.add_command<CmdCopyBuffer>({});
                 cmd_buffer_copy->dst = vertex_buffer;
                 cmd_buffer_copy->dst_offset = 0;
                 cmd_buffer_copy->src = staging_buffer;
@@ -82,7 +82,7 @@ namespace orion
             }
             // Copy index data
             {
-                auto* cmd_buffer_copy = upload.add_command<CmdBufferCopy>({});
+                auto* cmd_buffer_copy = upload.add_command<CmdCopyBuffer>({});
                 cmd_buffer_copy->dst = index_buffer;
                 cmd_buffer_copy->dst_offset = 0;
                 cmd_buffer_copy->src = staging_buffer;
