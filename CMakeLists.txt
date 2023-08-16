@@ -16,46 +16,30 @@ project(orion-engine
         DESCRIPTION "A game engine written in C++ 20"
         )
 
-# Platform detection
-set(ORION_PLATFORM ${CMAKE_SYSTEM_NAME} CACHE INTERNAL "Current platform name" FORCE)
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    set(ORION_PLATFORM_WINDOWS ON CACHE INTERNAL "Current platform is Windows" FORCE)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(ORION_PLATFORM_LINUX ON CACHE INTERNAL "Current platform is Linux" FORCE)
-endif ()
-
-# Create a target for precompiled headers
-add_library(orion-pch INTERFACE "")
-target_precompile_headers(orion-pch INTERFACE
-        <utility>
-        <version>
-        <memory>
-        <cstdint>
-        <string>
-        <string_view>
-        <array>
-        <span>
-        <vector>
-        <algorithm>
-        <type_traits>
-        <ranges>
-        )
-
-# Create a base target for common properties and options
-add_library(orion-base INTERFACE "")
-target_compile_features(orion-base INTERFACE cxx_std_20)
-target_link_libraries(orion-base INTERFACE orion-pch)
-target_include_directories(orion-base INTERFACE ${CMAKE_BINARY_DIR}/include)
+# Project wide configuration
+set(CMAKE_CXX_STANDARD 20)
+include_directories(${CMAKE_BINARY_DIR}/include)
+add_compile_definitions(
+    ORION_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+    $<$<CONFIG:Debug>:ORION_BUILD_DEBUG>
+    $<$<CONFIG:RelWithDebInfo>:ORION_BUILD_RELEASE>
+    $<$<CONFIG:Release>:ORION_BUILD_DIST>
+)
 
 option(ORION_ENGINE_SANITIZE_ADDRESS "Enable address sanitizer" ${ORION_ENGINE_DEVELOPER_MODE})
 if (ORION_ENGINE_SANITIZE_ADDRESS)
-    target_compile_options(orion-base INTERFACE ${CXX_SANITIZE_ADDRESS})
+    add_compile_options(${CXX_SANITIZE_ADDRESS})
 endif ()
 
 option(ORION_ENGINE_SANITIZE_UNDEFINED "Enable undefined behaviour sanitizer" ${ORION_ENGINE_DEVELOPER_MODE})
 if (ORION_ENGINE_SANITIZE_UNDEFINED)
-    target_compile_options(orion-base INTERFACE ${CXX_SANITIZE_UNDEFINED})
+    add_compile_options(${CXX_SANITIZE_UNDEFINED})
 endif ()
+
+# Create a target for precompiled headers
+add_library(orion-pch pch.h pch.cpp)
+target_precompile_headers(orion-pch PUBLIC pch.h)
+add_library(orion::pch ALIAS orion-pch)
 
 # Enable/disable testing
 if (ORION_ENGINE_TEST)

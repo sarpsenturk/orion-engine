@@ -4,9 +4,15 @@ add_library(orion::renderapi ALIAS orion-renderapi)
 
 # Link with dependencies
 target_link_libraries(
-        orion-renderapi PUBLIC
-        orion::core orion::utils orion::math
+        orion-renderapi
+        PUBLIC
+        orion::core 
+        orion::utils 
+        orion::math
 )
+
+# Precompiled headers
+target_precompile_headers(orion-renderapi REUSE_FROM orion-pch)
 
 # Create the export headers
 include(GenerateExportHeader)

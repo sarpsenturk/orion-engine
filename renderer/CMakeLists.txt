@@ -39,9 +39,11 @@ target_link_libraries(
         orion::utils
         orion::renderapi
         imgui::imgui
-        PRIVATE
         Microsoft::DirectXShaderCompiler
 )
+
+# Precompiled headers
+target_precompile_headers(orion-renderer REUSE_FROM orion-pch)
 
 # Create file set for public headers
 target_sources(orion-renderer PUBLIC FILE_SET public_headers TYPE HEADERS)

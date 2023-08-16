@@ -25,7 +25,15 @@ target_compile_definitions(${ORION_VULKAN_MODULE} PRIVATE ORION_RENDER_BACKEND_E
 find_package(Vulkan REQUIRED)
 
 # Link with interface
-target_link_libraries(${ORION_VULKAN_MODULE} PRIVATE orion::renderapi Vulkan::Vulkan)
+target_link_libraries(
+    ${ORION_VULKAN_MODULE} 
+    PRIVATE 
+    orion::renderapi 
+    Vulkan::Vulkan
+)
+
+# Precompiled headers
+target_precompile_headers(orion-renderapi REUSE_FROM orion-pch)
 
 # Set private include directory
 target_include_directories(${ORION_VULKAN_MODULE} PRIVATE .)

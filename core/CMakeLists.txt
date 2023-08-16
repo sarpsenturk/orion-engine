@@ -15,11 +15,15 @@ target_include_directories(orion-core PUBLIC include/)
 
 # Link with dependencies
 target_link_libraries(
-        orion-core PUBLIC
+        orion-core 
+        PUBLIC
         spdlog::spdlog
-        orion-base
         orion::utils
-        orion::math)
+        orion::math
+)
+
+# Precompiled headers
+target_precompile_headers(orion-core REUSE_FROM orion-pch)
 
 # Set compile time flags for spdlog
 target_compile_definitions(
