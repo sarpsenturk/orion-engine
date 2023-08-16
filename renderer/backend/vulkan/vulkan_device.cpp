@@ -1105,8 +1105,17 @@ namespace orion::vulkan
 
     void VulkanDevice::update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates)
     {
+        // reserve() is neccessary for buffer_updates and image_updates so that
+        // pointers are not invalidated since they're stored in VkWriteDescriptorSet structs
+
         std::vector<VkDescriptorBufferInfo> buffer_updates;
+        buffer_updates.reserve(std::accumulate(updates.begin(), updates.end(), 0ull, [](auto acc, const auto& update) {
+            return acc + update.buffer_handle.is_valid();
+        }));
         std::vector<VkDescriptorImageInfo> image_updates;
+        image_updates.reserve(std::accumulate(updates.begin(), updates.end(), 0ull, [](auto acc, const auto& update) {
+            return acc + update.image_view.is_valid() + update.sampler.is_valid();
+        }));
         std::vector<VkWriteDescriptorSet> descriptor_writes(updates.size());
         std::ranges::transform(updates, descriptor_writes.begin(), [&buffer_updates, &image_updates, this](const auto& update) {
             VkDescriptorImageInfo* image_info = nullptr;
