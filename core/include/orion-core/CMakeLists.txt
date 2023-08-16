@@ -12,7 +12,7 @@ target_sources(
         input.h
         log.h
         platform.h
-        types.h
+        version.h
         window.h
 )
 

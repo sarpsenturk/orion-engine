@@ -1,7 +1,5 @@
 #include "orion-engine/application.h"
 
-#include "orion-core/config.h"
-
 #ifndef ORION_APPLICATION_LOG_LEVEL
     #define ORION_APPLICATION_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
 #endif
@@ -13,8 +11,8 @@ namespace orion
     Application::Application()
         : logger_(orion::create_logger("orion-application", ORION_APPLICATION_LOG_LEVEL))
     {
-        SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, debug_build: {}",
-                           current_version, current_platform, debug_build);
+        SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, build_type: {}",
+                           ORION_VERSION, ORION_PLATFORM, ORION_BUILD_TYPE);
     }
 
     void Application::on_update(frame_time dt)

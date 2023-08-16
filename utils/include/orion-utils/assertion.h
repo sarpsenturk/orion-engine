@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdio>       // std::puts
-#include <cstdlib>      // std::abort
-#include <fmt/format.h> // fmt::format
+#include <cstdio>
+#include <cstdlib>      
+#include <fmt/format.h> 
 
-#if !defined(NDEBUG) || defined(ORION_ENABLE_ASSERTIONS)
+#if defined(ORION_BUILD_DEBUG) || defined(ORION_ENABLE_ASSERTIONS)
     #define ORION_ASSERT(condition)                                                                                          \
         do {                                                                                                                 \
             if (!(condition)) {                                                                                              \
@@ -24,7 +24,7 @@
         }                                                                                                            \
     } while (0)
 
-#ifndef ORION_DISABLE_CONTRACTS
+#ifndef ORION_BUILD_DIST
     #define ORION_EXPECTS(condition) ORION_CONDITION_CHECK("Pre-condition", condition)
     #define ORION_ENSURES(condition) ORION_CONDITION_CHECK("Post-condition", condition)
 #else

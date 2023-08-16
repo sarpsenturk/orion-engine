@@ -1,7 +1,5 @@
 #pragma once
 
-#include "orion-core/config.h"
-
 #if ORION_PLATFORM_WINDOWS
     #include <combaseapi.h> // IID_PPV_ARGS
     #include <wrl/client.h> // ComPtr

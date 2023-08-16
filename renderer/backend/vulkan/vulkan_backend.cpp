@@ -5,7 +5,8 @@
 #include "vulkan_platform.h"
 #include "vulkan_types.h"
 
-#include "orion-core/config.h"
+#include "orion-core/version.h"
+
 #include "orion-renderer/config.h"
 
 #include "orion-utils/static_vector.h"
@@ -36,9 +37,9 @@ namespace orion::vulkan
         {
             constexpr auto max_layers = 2;
             static_vector<const char*, max_layers> layers;
-            if constexpr (debug_build) {
-                layers.push_back("VK_LAYER_KHRONOS_validation");
-            }
+#ifdef ORION_BUILD_DEBUG
+            layers.push_back("VK_LAYER_KHRONOS_validation");
+#endif // ORION_BUILD_DEBUG
             return layers;
         }
 
@@ -46,9 +47,9 @@ namespace orion::vulkan
         {
             constexpr auto max_extensions = 3;
             static_vector<const char*, max_extensions> extensions;
-            if constexpr (debug_build) {
-                extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            }
+#ifdef ORION_BUILD_DEBUG
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif // ORION_BUILD_DEBUG
             if constexpr (!ORION_RENDERER_HEADLESS) {
                 extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
                 extensions.push_back(platform_surface_ext());
@@ -139,7 +140,7 @@ namespace orion::vulkan
     VulkanBackend::VulkanBackend()
         : RenderBackend("orion-vulkan")
     {
-        const auto vulkan_version = to_vulkan_version(current_version);
+        const auto vulkan_version = to_vulkan_version(k_current_version);
         const auto application_info = VkApplicationInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
             .pNext = nullptr,
@@ -189,26 +190,26 @@ namespace orion::vulkan
         instance_ = unique(instance);
 
         // Create vulkan debug utils if debug mode is enabled
-        if constexpr (debug_build) {
-            // Get creation function pointer
-            static const auto pfn_vkCreateDebugUtilsMessengerEXT = [instance]() {
-                return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-                    vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-            }();
+#ifdef ORION_BUILD_DEBUG
+        // Get creation function pointer
+        static const auto pfn_vkCreateDebugUtilsMessengerEXT = [instance]() {
+            return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+                vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+        }();
 
-            const VkDebugUtilsMessengerCreateInfoEXT info{
-                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-                .pNext = nullptr,
-                .flags = 0,
-                .messageSeverity = debug_message_severity,
-                .messageType = debug_message_type,
-                .pfnUserCallback = &debug_message_callback,
-                .pUserData = logger(),
-            };
-            VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
-            vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance, &info, alloc_callbacks(), &debug_messenger));
-            debug_messenger_ = unique(debug_messenger, instance);
-        }
+        const VkDebugUtilsMessengerCreateInfoEXT info{
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+            .pNext = nullptr,
+            .flags = 0,
+            .messageSeverity = debug_message_severity,
+            .messageType = debug_message_type,
+            .pfnUserCallback = &debug_message_callback,
+            .pUserData = logger(),
+        };
+        VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
+        vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance, &info, alloc_callbacks(), &debug_messenger));
+        debug_messenger_ = unique(debug_messenger, instance);
+#endif // ORION_BUILD_DEBUG
     }
 
     std::vector<PhysicalDeviceDesc> VulkanBackend::enumerate_physical_devices_api()

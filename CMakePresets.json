@@ -23,8 +23,7 @@
       "name": "debug",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "ORION_DEBUG_BUILD": true
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -38,8 +37,7 @@
       "name": "dist",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "ORION_DISABLE_CONTRACTS": true
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -48,6 +46,11 @@
       "inherits": [
         "base"
       ],
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": "Windows"
+        }
+      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",

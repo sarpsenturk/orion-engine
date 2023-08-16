@@ -1,7 +1,5 @@
 #pragma once
 
-#include "orion-core/config.h"
-
 #include "orion-renderapi/types.h"
 
 #include "orion-utils/expected.h"
@@ -26,7 +24,6 @@ namespace orion
         const char* entry_point = "main";
         ShaderStageFlags shader_stage;
         ShaderObjectType object_type;
-        bool enable_debug = orion::debug_build;
     };
 
     enum class ShaderCompileError {

@@ -1,10 +1,8 @@
 #include "vulkan_types.h"
 
-#include "orion-core/config.h"
-
-#include <algorithm>               // std::ranges::find_if
-#include <orion-utils/assertion.h> // ORION_EXPECTS
-#include <vector>                  // std::vector
+#include <algorithm>
+#include <orion-utils/assertion.h>
+#include <vector>
 
 namespace orion::vulkan
 {

@@ -40,9 +40,6 @@ target_sources(orion-core PUBLIC FILE_SET public_headers TYPE HEADERS)
 add_subdirectory(include/orion-core)
 add_subdirectory(src)
 
-# Add configuration file
-configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-core/config.h)
-
 # Enable/disable tests
 if (ORION_CORE_TEST AND ORION_ENGINE_TEST)
     add_subdirectory(tests)

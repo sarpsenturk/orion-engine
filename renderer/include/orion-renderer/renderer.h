@@ -8,7 +8,6 @@
 #include "orion-renderapi/render_backend.h"
 #include "orion-renderapi/render_device.h"
 
-#include "orion-core/config.h"
 #include "orion-core/platform.h"
 #include "orion-core/window.h"
 
@@ -18,7 +17,7 @@
 
 namespace orion
 {
-    const char* default_backend_module(Platform platform = current_platform);
+    const char* default_backend_module(Platform platform = k_current_platform);
 
     struct RendererDesc {
         const char* backend_module = default_backend_module();

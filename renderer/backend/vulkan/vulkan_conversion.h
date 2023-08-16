@@ -4,8 +4,6 @@
 
 #include "orion-renderapi/types.h"
 
-#include "orion-core/config.h"
-
 #include "orion-math/vector/vector2.h"
 
 #include "orion-utils/assertion.h"
