@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion-core/dl_lib.h"
+#include "orion-core/dyn_lib.h"
 #include "win32_platform.h"
 
 namespace orion

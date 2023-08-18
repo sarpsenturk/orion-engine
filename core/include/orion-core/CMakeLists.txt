@@ -5,7 +5,7 @@ target_sources(
         FILES
         clock.h
         defs.h
-        dl_lib.h
+        "dyn_lib.h"
         event.h
         exception.h
         handle.h

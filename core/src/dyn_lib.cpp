@@ -1,4 +1,4 @@
-#include "orion-core/dl_lib.h"
+#include "orion-core/dyn_lib.h"
 
 namespace orion
 {

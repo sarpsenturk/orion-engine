@@ -2,7 +2,7 @@
 target_sources(
         orion-core PRIVATE
         clock.cpp
-        dl_lib.cpp
+        "dyn_lib.cpp"
         input.cpp
         log.cpp
         window.cpp
