@@ -1,3 +1,9 @@
+# Builtin backend targets
+option(ORION_RENDER_BACKEND_VULKAN "Enable the Vulkan backend for the orion renderer" ON)
+set(ORION_VULKAN_MODULE "orion-vulkan" CACHE STRING "Name of the Vulkan render backend shared library")
+
+configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-renderapi/config.h)
+
 # Create interface library to be consumed by dynamic library implementations
 add_library(orion-renderapi "")
 add_library(orion::renderapi ALIAS orion-renderapi)
@@ -26,6 +32,9 @@ target_sources(orion-renderapi PUBLIC FILE_SET public_headers TYPE HEADERS)
 # Add sources
 add_subdirectory(include/orion-renderapi)
 add_subdirectory(src)
+
+# Target for enabled builtin backends
+add_library(orion-renderapi-builtin INTERFACE)
 
 # Add enabled builtin implementations
 if (ORION_RENDER_BACKEND_VULKAN)

@@ -3,10 +3,6 @@ option(ORION_RENDERER_TEST "Enable tests for the orion renderer" ${ORION_ENGINE_
 option(ORION_RENDERER_HEADLESS "Build renderer in headless mode (disables support for surfaces etc.)" OFF)
 set(ORION_FRAMES_IN_FLIGHT 2 CACHE STRING "Number of frames in flight")
 
-# Builtin backend targets
-option(ORION_RENDER_BACKEND_VULKAN "Enable the Vulkan backend for the orion renderer" ON)
-set(ORION_VULKAN_MODULE "orion-vulkan" CACHE STRING "Name of the Vulkan render backend shared library")
-
 # Create the renderer library
 add_library(orion-renderer "")
 
@@ -16,13 +12,8 @@ add_library(orion::renderer ALIAS orion-renderer)
 # Set include directories
 target_include_directories(orion-renderer PUBLIC include/)
 
-# Backend interface library
-add_subdirectory(backend)
-
-# Shader compilation library
+# Find dependencies
 find_package(directx-dxc CONFIG REQUIRED)
-
-# Imgui static library
 find_package(imgui CONFIG REQUIRED)
 
 # Create user imgui config file
@@ -41,6 +32,9 @@ target_link_libraries(
         imgui::imgui
         Microsoft::DirectXShaderCompiler
 )
+
+# Add dependencies to enabled builtin render backends
+add_dependencies(orion-renderer orion-renderapi-builtin)
 
 # Precompiled headers
 target_precompile_headers(orion-renderer REUSE_FROM orion-pch)

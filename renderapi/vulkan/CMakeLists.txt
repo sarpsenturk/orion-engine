@@ -7,7 +7,7 @@ endif ()
 
 # Create the vulkan implementation of render-backend interface
 add_library(
-        ${ORION_VULKAN_MODULE} SHARED
+        ${ORION_VULKAN_MODULE} MODULE
         vma_impl.cpp
         vulkan_backend.h vulkan_backend.cpp
         vulkan_conversion.h
@@ -38,10 +38,10 @@ target_precompile_headers(orion-renderapi REUSE_FROM orion-pch)
 # Set private include directory
 target_include_directories(${ORION_VULKAN_MODULE} PRIVATE .)
 
-# Create alias for ease of use
+# Create alias
 add_library(orion::vulkan ALIAS ${ORION_VULKAN_MODULE})
 
-# Add dependency from renderer to the vulkan library
-add_dependencies(orion-renderer orion::vulkan)
-
+# Output module to bin directory
 set_target_properties(${ORION_VULKAN_MODULE} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+add_dependencies(orion-renderapi-builtin ${ORION_VULKAN_MODULE})
