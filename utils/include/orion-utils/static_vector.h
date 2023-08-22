@@ -180,7 +180,7 @@ namespace orion
                 ORION_ASSERT(position <= end());
                 auto where = const_cast<iterator>(position);
                 std::move_backward(where, end(), end() + 1);
-                std::construct_at(std::addressof(*position), std::forward<Args>(args)...);
+                std::construct_at(std::addressof(*where), std::forward<Args>(args)...);
                 ++size_;
                 return where;
             }
