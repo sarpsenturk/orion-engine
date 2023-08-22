@@ -26,10 +26,10 @@ find_package(Vulkan REQUIRED)
 
 # Link with interface
 target_link_libraries(
-    ${ORION_VULKAN_MODULE} 
-    PRIVATE 
-    orion::renderapi 
-    Vulkan::Vulkan
+        ${ORION_VULKAN_MODULE}
+        PRIVATE
+        orion::renderapi
+        Vulkan::Vulkan
 )
 
 # Precompiled headers
@@ -42,6 +42,9 @@ target_include_directories(${ORION_VULKAN_MODULE} PRIVATE .)
 add_library(orion::vulkan ALIAS ${ORION_VULKAN_MODULE})
 
 # Output module to bin directory
-set_target_properties(${ORION_VULKAN_MODULE} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set_target_properties(
+        ${ORION_VULKAN_MODULE} PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
 
 add_dependencies(orion-renderapi-builtin ${ORION_VULKAN_MODULE})
