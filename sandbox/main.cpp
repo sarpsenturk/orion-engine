@@ -3,6 +3,7 @@
 #include <orion-core/window.h>
 
 #include <imgui.h>
+#include <orion-renderer/colors.h>
 #include <orion-renderer/renderer.h>
 
 #include <orion-math/vector/vector3.h>
@@ -18,7 +19,7 @@ class SandboxApp final : public orion::Application
 public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
-        , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size, .clear_color = {1.f, 0.f, 1.f, 1.f}})
+        , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size, .clear_color = orion::colors::magenta})
         , cube_mesh_(renderer_.mesh_manager().find(orion::Renderer::cube_mesh_name))
     {
         create_surface();

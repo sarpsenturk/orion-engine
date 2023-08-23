@@ -4,6 +4,7 @@ target_sources(
         FILE_SET public_headers
         FILES
         camera.h
+        colors.h
         mesh.h
         renderer.h
         shader.h
