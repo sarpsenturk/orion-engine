@@ -2,7 +2,7 @@
 
 #include "orion-core/handle.h"
 
-#include <variant> // std::variant
+#include <cstdint>
 
 /*
  * All handles to be used in the render backend should be defined here.
@@ -10,20 +10,21 @@
 
 namespace orion
 {
-    ORION_DEFINE_HANDLE(SurfaceHandle);
-    ORION_DEFINE_HANDLE(SwapchainHandle);
-    ORION_DEFINE_HANDLE(RenderPassHandle);
-    ORION_DEFINE_HANDLE(ShaderModuleHandle);
-    ORION_DEFINE_HANDLE(PipelineHandle);
-    ORION_DEFINE_HANDLE(GPUBufferHandle);
-    ORION_DEFINE_HANDLE(CommandPoolHandle);
-    ORION_DEFINE_HANDLE(CommandBufferHandle);
-    ORION_DEFINE_HANDLE(DescriptorPoolHandle);
-    ORION_DEFINE_HANDLE(DescriptorSetHandle);
-    ORION_DEFINE_HANDLE(SemaphoreHandle);
-    ORION_DEFINE_HANDLE(FenceHandle);
-    ORION_DEFINE_HANDLE(ImageHandle);
-    ORION_DEFINE_HANDLE(ImageViewHandle);
-    ORION_DEFINE_HANDLE(FramebufferHandle);
-    ORION_DEFINE_HANDLE(SamplerHandle);
+    using render_device_key_t = std::uint64_t;
+    ORION_DEFINE_HANDLE(SurfaceHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(SwapchainHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(RenderPassHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(ShaderModuleHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(PipelineHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(GPUBufferHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(CommandPoolHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(CommandBufferHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(DescriptorPoolHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(DescriptorSetHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(SemaphoreHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(FenceHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(ImageHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(ImageViewHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(FramebufferHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(SamplerHandle, render_device_key_t);
 } // namespace orion

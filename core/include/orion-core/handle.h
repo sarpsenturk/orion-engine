@@ -8,15 +8,15 @@
 
 namespace orion
 {
-    template<typename Tag>
+    template<typename Tag, typename KeyType = std::uint64_t>
     class Handle
     {
     public:
-        using value_type = std::uint64_t;
+        using key_type = KeyType;
 
-        static constexpr value_type invalid = std::numeric_limits<value_type>::max();
-        static constexpr value_type min_handle = 0;
-        static constexpr value_type max_handle = std::numeric_limits<value_type>::max() - 1;
+        static constexpr key_type invalid = std::numeric_limits<key_type>::max();
+        static constexpr key_type min_handle = 0;
+        static constexpr key_type max_handle = std::numeric_limits<key_type>::max() - 1;
 
         static constexpr Handle invalid_handle() noexcept { return Handle{invalid}; };
 
@@ -25,7 +25,7 @@ namespace orion
             static thread_local std::random_device random_device;
             static thread_local std::mt19937_64 mt_19937_64(random_device());
 
-            std::uniform_int_distribution<value_type> distribution(min_handle, max_handle);
+            std::uniform_int_distribution<key_type> distribution(min_handle, max_handle);
             return Handle{distribution(mt_19937_64)};
         }
 
@@ -36,7 +36,7 @@ namespace orion
         {
         }
 
-        constexpr explicit Handle(value_type value) noexcept
+        constexpr explicit Handle(key_type value) noexcept
             : value_(value)
         {
         }
@@ -50,20 +50,20 @@ namespace orion
         [[nodiscard]] constexpr operator bool() const noexcept { return is_valid(); }
 
     private:
-        value_type value_ = invalid;
+        key_type value_ = invalid;
     };
 
-    template<typename Tag>
-    inline auto format_as(Handle<Tag> handle)
+    template<typename Tag, typename ValueType>
+    inline auto format_as(Handle<Tag, ValueType> handle)
     {
         return fmt::format("{}{{{}}}", Tag::string, handle.value());
     }
 } // namespace orion
 
-template<typename Tag>
-struct std::hash<orion::Handle<Tag>> {
-    using handle_type = orion::Handle<Tag>;
-    using value_type = typename handle_type::value_type;
+template<typename Tag, typename ValueType>
+struct std::hash<orion::Handle<Tag, ValueType>> {
+    using handle_type = orion::Handle<Tag, ValueType>;
+    using value_type = typename handle_type::key_type;
 
     auto operator()(handle_type handle) const noexcept
     {
@@ -72,8 +72,8 @@ struct std::hash<orion::Handle<Tag>> {
 };
 
 // Simple helper macro to define a Handle
-#define ORION_DEFINE_HANDLE(name)             \
+#define ORION_DEFINE_HANDLE(name, key_type)   \
     struct name##_tag {                       \
         static constexpr auto string = #name; \
     };                                        \
-    using name = ::orion::Handle<name##_tag>
+    using name = ::orion::Handle<name##_tag, key_type>

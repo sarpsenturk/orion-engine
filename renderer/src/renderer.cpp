@@ -69,10 +69,10 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
 
         // Add cube mesh
-        mesh_manager_.add(cube_mesh_name, default_meshes::cube_vertices, default_meshes::cube_indices);
+        mesh_manager_.add(default_meshes::cube_vertices, default_meshes::cube_indices);
 
         // Add basic shader
-        shader_manager_.add_from_file(basic_shader_name, ORION_SHADER_DIR "/basic.hlsl", ShaderStageFlags::Vertex | ShaderStageFlags::Fragment);
+        shader_manager_.add_from_file(ORION_SHADER_DIR "/basic.hlsl", ShaderStageFlags::Vertex | ShaderStageFlags::Fragment);
     }
 
     void Renderer::begin()

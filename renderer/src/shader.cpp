@@ -51,32 +51,27 @@ namespace orion
     {
     }
 
-    const Shader* ShaderManager::add_from_source(const std::string& name, const std::string& source, ShaderStageFlags shader_stages)
+    std::pair<ShaderHandle, const Shader*> ShaderManager::add_from_source(const std::string& source, ShaderStageFlags shader_stages)
     {
-        return add(name, source, shader_stages, &ShaderCompiler::compile_from_source);
+        return add(source, shader_stages, &ShaderCompiler::compile_from_source);
     }
 
-    const Shader* ShaderManager::add_from_file(const std::string& name, const std::string& filename, ShaderStageFlags shader_stages)
+    std::pair<ShaderHandle, const Shader*> ShaderManager::add_from_file(const std::string& filename, ShaderStageFlags shader_stages)
     {
-        return add(name, filename, shader_stages, &ShaderCompiler::compile_from_file);
+        return add(filename, shader_stages, &ShaderCompiler::compile_from_file);
     }
 
-    void ShaderManager::remove(const std::string& name)
+    void ShaderManager::remove(ShaderHandle shader_handle) noexcept
     {
-        if (const auto erased = shaders_.erase(name); erased == 0) {
-            SPDLOG_LOGGER_WARN(logger(), "Trying to remove shader '{}' which doesn't exist", name);
+        if (const auto erased = shaders_.erase(shader_handle); erased == 0) {
+            SPDLOG_LOGGER_WARN(logger(), "Trying to remove {} which doesn't exist", shader_handle);
             return;
         }
-        SPDLOG_LOGGER_DEBUG(logger(), "Removed shader '{}'", name);
+        SPDLOG_LOGGER_DEBUG(logger(), "Removed shader {}", shader_handle);
     }
 
-    const Shader* ShaderManager::add(const std::string& name, const std::string& source_str, ShaderStageFlags shader_stages, shader_compiler_compile_fn compile_fn)
+    std::pair<ShaderHandle, const Shader*> ShaderManager::add(const std::string& source_str, ShaderStageFlags shader_stages, shader_compiler_compile_fn compile_fn)
     {
-        if (auto iter = shaders_.find(name); iter != shaders_.end()) {
-            SPDLOG_LOGGER_WARN(logger(), "Shader with name '{}' already exists, returning existing shader.");
-            return &iter->second;
-        }
-
         auto create_shader_module = [&source_str, compile_fn, this](ShaderStageFlags stage, const char* entry_point) {
             const auto compile_desc = ShaderCompileDesc{
                 .entry_point = entry_point,
@@ -97,11 +92,12 @@ namespace orion
         UniqueShaderModule fragment_shader = !!(shader_stages & Fragment) ? create_shader_module(Fragment, fs_entry_point) : nullptr;
 
         // Insert new shader
-        auto [iter, inserted] = shaders_.emplace(name, Shader{std::move(vertex_shader), std::move(fragment_shader)});
+        const auto handle = next_handle();
+        auto [iter, inserted] = shaders_.emplace(handle, Shader{std::move(vertex_shader), std::move(fragment_shader)});
         ORION_ENSURES(inserted);
 
         const auto& shader = iter->second;
-        SPDLOG_LOGGER_DEBUG(logger(), "Created shader '{}' with stage(s) {}", name, shader_stages);
-        return &shader;
+        SPDLOG_LOGGER_DEBUG(logger(), "Created {} with stage(s) {}", handle, shader_stages);
+        return std::make_pair(handle, &shader);
     }
 } // namespace orion

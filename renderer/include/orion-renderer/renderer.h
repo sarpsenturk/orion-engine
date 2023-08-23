@@ -30,8 +30,6 @@ namespace orion
     {
     public:
         static constexpr auto frames_in_flight = ORION_FRAMES_IN_FLIGHT;
-        static constexpr auto cube_mesh_name = "default-cube";
-        static constexpr auto basic_shader_name = "basic-shader";
 
         explicit Renderer(const RendererDesc& desc);
 

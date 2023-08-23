@@ -31,13 +31,8 @@ namespace orion
     {
     }
 
-    const Mesh* MeshManager::add(const std::string& name, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices)
+    std::pair<MeshHandle, const Mesh*> MeshManager::add(std::span<const Vertex> vertices, std::span<const std::uint32_t> indices)
     {
-        if (auto iter = meshes_.find(name); iter != meshes_.end()) {
-            SPDLOG_LOGGER_WARN(logger(), "Mesh with name {} already exists, returning existing mesh.");
-            return &iter->second;
-        }
-
         const auto vb_size = vertices.size_bytes();
         const auto ib_size = indices.size_bytes();
 
@@ -98,32 +93,39 @@ namespace orion
         device_->destroy(staging_buffer);
 
         // Insert new mesh entry
-        auto [iter, inserted] = meshes_.emplace(name, Mesh{device_->to_unique(vertex_buffer),
-                                                           device_->to_unique(index_buffer),
-                                                           static_cast<uint32_t>(indices.size())});
+        const auto handle = next_handle();
+        auto [iter, inserted] = meshes_.emplace(handle, Mesh{device_->to_unique(vertex_buffer),
+                                                             device_->to_unique(index_buffer),
+                                                             static_cast<uint32_t>(indices.size())});
         ORION_ENSURES(inserted);
 
         auto& mesh = iter->second;
-        SPDLOG_LOGGER_DEBUG(logger(), "Mesh '{}' created: {{ vb: {}, ib: {}, ic: {} }}", iter->first,
+        SPDLOG_LOGGER_DEBUG(logger(), "Created {}: {{ vb: {}, ib: {}, ic: {} }}", iter->first,
                             mesh.vertex_buffer(), mesh.index_buffer(), mesh.index_count());
-        return &mesh;
+        return std::make_pair(handle, &mesh);
     }
 
-    void MeshManager::remove(const std::string& name)
+    void MeshManager::remove(MeshHandle mesh_handle)
     {
-        if (const auto erased = meshes_.erase(name); erased == 0) {
-            SPDLOG_LOGGER_WARN(logger(), "Tying to remove mesh '{}' which doesn't exist", name);
+        if (const auto erased = meshes_.erase(mesh_handle); erased == 0) {
+            SPDLOG_LOGGER_WARN(logger(), "Tying to remove {} which doesn't exist", mesh_handle);
             return;
         }
-        SPDLOG_LOGGER_DEBUG(logger(), "Removed mesh '{}'", name);
+        SPDLOG_LOGGER_DEBUG(logger(), "Removed {}", mesh_handle);
     }
 
-    const Mesh* MeshManager::find(const std::string& name) const
+    void MeshManager::reset()
     {
-        if (auto iter = meshes_.find(name); iter != meshes_.end()) {
+        meshes_.clear();
+        mesh_index_ = 0;
+    }
+
+    const Mesh* MeshManager::find(MeshHandle mesh_handle) const noexcept
+    {
+        if (auto iter = meshes_.find(mesh_handle); iter != meshes_.end()) {
             return &iter->second;
         }
-        SPDLOG_LOGGER_WARN(logger(), "Could not find mesh '{}'", name);
+        SPDLOG_LOGGER_WARN(logger(), "Could not find {}", mesh_handle);
         return nullptr;
     }
 } // namespace orion

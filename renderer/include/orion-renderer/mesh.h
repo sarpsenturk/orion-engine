@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion-core/handle.h"
+
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/render_device.h"
 #include "orion-renderapi/types.h"
@@ -8,9 +10,11 @@
 #include "orion-math/vector/vector4.h"
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <unordered_map>
+#include <utility>
 
 #include <spdlog/logger.h>
 
@@ -47,19 +51,26 @@ namespace orion
         std::uint32_t index_count_;
     };
 
+    using mesh_handle_key = std::uint16_t;
+    ORION_DEFINE_HANDLE(MeshHandle, mesh_handle_key);
+
     class MeshManager
     {
     public:
         explicit MeshManager(RenderDevice* device);
 
-        const Mesh* add(const std::string& name, std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
-        void remove(const std::string& name);
+        std::pair<MeshHandle, const Mesh*> add(std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
+        void remove(MeshHandle mesh_handle);
+        void reset();
 
-        [[nodiscard]] const Mesh* find(const std::string& name) const;
+        [[nodiscard]] const Mesh* find(MeshHandle mesh_handle) const noexcept;
 
     private:
+        MeshHandle next_handle() noexcept { return MeshHandle{mesh_index_++}; }
+
         RenderDevice* device_;
-        std::unordered_map<std::string, Mesh> meshes_;
+        std::unordered_map<MeshHandle, Mesh> meshes_;
+        mesh_handle_key mesh_index_ = 0;
 
         static spdlog::logger* logger();
     };

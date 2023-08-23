@@ -20,7 +20,6 @@ public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
         , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size, .clear_color = orion::colors::magenta})
-        , cube_mesh_(renderer_.mesh_manager().find(orion::Renderer::cube_mesh_name))
     {
         create_surface();
         create_swapchain(window_.size());
@@ -57,9 +56,6 @@ private:
 
         // Begin new frame
         renderer_.begin();
-
-        // Draw cube
-        renderer_.draw_mesh(cube_mesh_);
 
         // Begin imgui frame
         renderer_.imgui_new_frame();
@@ -106,7 +102,6 @@ private:
     orion::Renderer renderer_;
     orion::SurfaceHandle surface_;
     orion::SwapchainHandle swapchain_;
-    const orion::Mesh* cube_mesh_ = nullptr;
 };
 
 ORION_MAIN(args)
