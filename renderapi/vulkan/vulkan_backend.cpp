@@ -33,7 +33,7 @@ namespace orion::vulkan
 {
     namespace
     {
-        constexpr auto get_required_layers() noexcept
+        constexpr auto get_required_instance_layers() noexcept
         {
             constexpr auto max_layers = 2;
             static_vector<const char*, max_layers> layers;
@@ -43,7 +43,7 @@ namespace orion::vulkan
             return layers;
         }
 
-        constexpr auto get_required_extensions() noexcept
+        constexpr auto get_required_instance_extensions() noexcept
         {
             constexpr auto max_extensions = 3;
             static_vector<const char*, max_extensions> extensions;
@@ -67,7 +67,7 @@ namespace orion::vulkan
             return extensions;
         }
 
-        std::vector<VkLayerProperties> get_supported_layers()
+        std::vector<VkLayerProperties> get_supported_instance_layers()
         {
             std::vector<VkLayerProperties> layers;
             std::uint32_t count = 0;
@@ -77,7 +77,7 @@ namespace orion::vulkan
             return layers;
         }
 
-        std::vector<VkExtensionProperties> get_supported_extensions()
+        std::vector<VkExtensionProperties> get_supported_instance_extensions()
         {
             std::vector<VkExtensionProperties> extensions;
             std::uint32_t count = 0;
@@ -96,18 +96,18 @@ namespace orion::vulkan
             return extensions;
         }
 
-        bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions)
+        bool check_extension_supported(std::span<const VkExtensionProperties> supported_extensions, const char* extension)
         {
-            for (const char* extension : enabled_extensions) {
-                const auto pred = [extension](const VkExtensionProperties& extension_properties) {
-                    return std::strcmp(extension, extension_properties.extensionName) == 0;
-                };
-                const auto supported = std::ranges::find_if(supported_extensions, pred) != supported_extensions.end();
-                if (!supported) {
-                    return false;
-                }
-            }
-            return true;
+            return std::ranges::find_if(supported_extensions, [extension](const auto& ext) {
+                       return std::strcmp(ext.extensionName, extension);
+                   }) != supported_extensions.end();
+        }
+
+        bool check_layer_support(std::span<const VkLayerProperties> supported_layers, const char* layer)
+        {
+            return std::ranges::find_if(supported_layers, [layer](const auto& lay) {
+                       return std::strcmp(lay.layerName, layer);
+                   }) != supported_layers.end();
         }
 
         std::vector<VkQueueFamilyProperties> get_queue_family_properties(VkPhysicalDevice physical_device)
@@ -137,79 +137,98 @@ namespace orion::vulkan
         }
     } // namespace
 
-    VulkanBackend::VulkanBackend()
+    VulkanBackend::VulkanBackend() noexcept
         : RenderBackend("orion-vulkan")
     {
-        const auto vulkan_version = to_vulkan_version(k_current_version);
-        const auto application_info = VkApplicationInfo{
-            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pNext = nullptr,
-            .pApplicationName = "OrionEngineApp",
-            .applicationVersion = vulkan_version,
-            .pEngineName = "OrionEngine",
-            .engineVersion = vulkan_version,
-            .apiVersion = vulkan_api_version,
-        };
+        try {
+            const auto vulkan_version = to_vulkan_version(k_current_version);
+            const auto application_info = VkApplicationInfo{
+                .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                .pNext = nullptr,
+                .pApplicationName = "OrionEngineApp",
+                .applicationVersion = vulkan_version,
+                .pEngineName = "OrionEngine",
+                .engineVersion = vulkan_version,
+                .apiVersion = vulkan_api_version,
+            };
 
-        const auto enabled_layers = get_required_layers();
-        // Check if all requested layers are supported
-        {
-            const auto supported_layers = get_supported_layers();
-            for (const char* layer : enabled_layers) {
-                const auto pred = [layer](const VkLayerProperties& layer_properties) { return std::strcmp(layer, layer_properties.layerName) == 0; };
-                const auto supported = std::ranges::find_if(supported_layers, pred) != supported_layers.end();
-                if (!supported) {
-                    vk_result_check(VK_ERROR_LAYER_NOT_PRESENT);
+            std::vector<const char*> enabled_layers;
+            const auto supported_layers = get_supported_instance_layers();
+
+            const auto required_layers = get_required_instance_layers();
+            SPDLOG_LOGGER_TRACE(logger(), "Checking support for required Vulkan instance layers...");
+            for (const char* layer : required_layers) {
+                if (!check_layer_support(supported_layers, layer)) {
+                    SPDLOG_LOGGER_ERROR(logger(), "-- {} ... NOT FOUND. Aborting", layer);
+                    throw std::runtime_error("Failed to find Vulkan layer");
                 }
+                SPDLOG_LOGGER_TRACE(logger(), "-- {} ... found", layer);
+                enabled_layers.push_back(layer);
             }
-        }
+            SPDLOG_LOGGER_TRACE(logger(), "Done.");
 
-        const auto enabled_extensions = get_required_extensions();
-        // Check if all requested extensions are supported
-        {
-            const auto supported_extensions = get_supported_extensions();
-            if (!check_extensions_supported(enabled_extensions, supported_extensions)) {
-                vk_result_check(VK_ERROR_EXTENSION_NOT_PRESENT);
+            std::vector<const char*> enabled_extensions;
+            const auto supported_extensions = get_supported_instance_extensions();
+
+            const auto required_extensions = get_required_instance_extensions();
+            SPDLOG_LOGGER_TRACE(logger(), "Checking support for required Vulkan instance extensions...");
+            for (const char* extension : required_extensions) {
+                if (!check_extension_supported(supported_extensions, extension)) {
+                    SPDLOG_LOGGER_ERROR(logger(), "-- {} ... NOT FOUND. Aborting", extension);
+                    throw std::runtime_error("Failed to find Vulkan instance extension");
+                }
+                SPDLOG_LOGGER_TRACE(logger(), "-- {} ... found", extension);
+                enabled_extensions.push_back(extension);
             }
-        }
 
-        // Create vulkan instance
-        const auto instance_info = VkInstanceCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = {},
-            .pApplicationInfo = &application_info,
-            .enabledLayerCount = static_cast<std::uint32_t>(enabled_layers.size()),
-            .ppEnabledLayerNames = enabled_layers.data(),
-            .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
-            .ppEnabledExtensionNames = enabled_extensions.data(),
-        };
+            enabled_extensions.insert(enabled_extensions.end(), required_extensions.begin(), required_extensions.end());
 
-        VkInstance instance = VK_NULL_HANDLE;
-        vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
-        instance_ = unique(instance);
+            // Create vulkan instance
+            const auto instance_info = VkInstanceCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .pApplicationInfo = &application_info,
+                .enabledLayerCount = static_cast<std::uint32_t>(enabled_layers.size()),
+                .ppEnabledLayerNames = enabled_layers.data(),
+                .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
+                .ppEnabledExtensionNames = enabled_extensions.data(),
+            };
 
-        // Create vulkan debug utils if debug mode is enabled
+            VkInstance instance = VK_NULL_HANDLE;
+            vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
+            instance_ = unique(instance);
+
+            // Create vulkan debug utils if debug mode is enabled
 #ifdef ORION_BUILD_DEBUG
-        // Get creation function pointer
-        static const auto pfn_vkCreateDebugUtilsMessengerEXT = [instance]() {
-            return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-                vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-        }();
+            // Get creation function pointer
+            static const auto pfn_vkCreateDebugUtilsMessengerEXT = [instance]() {
+                return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+                    vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+            }();
 
-        const VkDebugUtilsMessengerCreateInfoEXT info{
-            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-            .pNext = nullptr,
-            .flags = 0,
-            .messageSeverity = debug_message_severity,
-            .messageType = debug_message_type,
-            .pfnUserCallback = &debug_message_callback,
-            .pUserData = logger(),
-        };
-        VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
-        vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance, &info, alloc_callbacks(), &debug_messenger));
-        debug_messenger_ = unique(debug_messenger, instance);
+            VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
+            {
+                const auto info = VkDebugUtilsMessengerCreateInfoEXT{
+                    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .messageSeverity = debug_message_severity,
+                    .messageType = debug_message_type,
+                    .pfnUserCallback = &debug_message_callback,
+                    .pUserData = logger(),
+                };
+                vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance, &info, alloc_callbacks(), &debug_messenger));
+            }
+            debug_messenger_ = unique(debug_messenger, instance);
 #endif // ORION_BUILD_DEBUG
+        } catch (const std::exception& exception) {
+            SPDLOG_LOGGER_ERROR(logger(), "exception thrown when creating vulkan backend: {}", exception.what());
+            std::abort();
+        } catch (...) {
+            SPDLOG_LOGGER_ERROR(logger(), "exception of unknown type thrown when creating vulkan backend");
+            std::abort();
+        }
     }
 
     std::vector<PhysicalDeviceDesc> VulkanBackend::enumerate_physical_devices_api()
@@ -289,14 +308,20 @@ namespace orion::vulkan
         queue_families.erase(std::unique(queue_families.begin(), queue_families.end()), queue_families.end());
         SPDLOG_LOGGER_TRACE(logger(), "Using {} unique queue families", queue_families.size());
 
-        const auto enabled_extensions = get_required_device_extensions();
-        // Check if all required extensions are supported
-        {
-            const auto supported_extensions = get_supported_device_extensions(physical_device);
-            if (!check_extensions_supported(enabled_extensions, supported_extensions)) {
-                vk_result_check(VK_ERROR_EXTENSION_NOT_PRESENT);
+        std::vector<const char*> enabled_extensions;
+        const auto supported_extensions = get_supported_device_extensions(physical_device);
+
+        const auto required_extensions = get_required_device_extensions();
+        SPDLOG_LOGGER_TRACE(logger(), "Checking support for required Vulkan device extensions...");
+        for (const char* extension : required_extensions) {
+            if (!check_extension_supported(supported_extensions, extension)) {
+                SPDLOG_LOGGER_ERROR(logger(), "-- {} ... NOT FOUND. Aborting", extension);
+                throw std::runtime_error("Failed to find Vulkan extension");
             }
+            SPDLOG_LOGGER_TRACE(logger(), "-- {} ... found", extension);
+            enabled_extensions.push_back(extension);
         }
+        SPDLOG_LOGGER_TRACE(logger(), "Done.");
 
         // Must declare here to avoid dangling pointers
         std::vector<float> queue_priorities(queue_families.size(), 1.f);
@@ -319,20 +344,22 @@ namespace orion::vulkan
         }();
 
         // Create the device
-        const VkDeviceCreateInfo device_info{
-            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .queueCreateInfoCount = static_cast<std::uint32_t>(queue_infos.size()),
-            .pQueueCreateInfos = queue_infos.data(),
-            .enabledLayerCount = 0,
-            .ppEnabledLayerNames = nullptr,
-            .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
-            .ppEnabledExtensionNames = enabled_extensions.data(),
-            .pEnabledFeatures = nullptr,
-        };
         VkDevice device = VK_NULL_HANDLE;
-        vk_result_check(vkCreateDevice(physical_device, &device_info, alloc_callbacks(), &device));
+        {
+            const auto device_info = VkDeviceCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .queueCreateInfoCount = static_cast<std::uint32_t>(queue_infos.size()),
+                .pQueueCreateInfos = queue_infos.data(),
+                .enabledLayerCount = 0,
+                .ppEnabledLayerNames = nullptr,
+                .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
+                .ppEnabledExtensionNames = enabled_extensions.data(),
+                .pEnabledFeatures = nullptr,
+            };
+            vk_result_check(vkCreateDevice(physical_device, &device_info, alloc_callbacks(), &device));
+        }
 
         // Get the created queues
         VkQueue graphics_queue = VK_NULL_HANDLE;
