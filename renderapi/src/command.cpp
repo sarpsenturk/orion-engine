@@ -43,7 +43,7 @@ namespace orion
         state_ = state;
     }
 
-    void* CommandList::add_command(command_packet_key key, std::size_t size, std::size_t align, CommandType type)
+    void* CommandList::add_command(command_packet_key_t key, std::size_t size, std::size_t align, CommandType type)
     {
         ORION_ASSERT(is_recording() && "Command buffer must be in recording state before adding commands");
         auto [cmd_ptr, cmd_size] = command_allocator_.allocate(size, align);

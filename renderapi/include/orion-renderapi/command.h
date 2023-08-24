@@ -33,12 +33,12 @@ namespace orion
                       std::is_trivially_move_constructible<T>>>> {
     };
 
-    using command_packet_key = std::uint64_t;
-    inline constexpr auto command_key_begin = std::numeric_limits<command_packet_key>::min();
-    inline constexpr auto command_key_end = std::numeric_limits<command_packet_key>::max();
+    using command_packet_key_t = std::uint64_t;
+    inline constexpr auto command_key_begin = std::numeric_limits<command_packet_key_t>::min();
+    inline constexpr auto command_key_end = std::numeric_limits<command_packet_key_t>::max();
 
     struct CommandPacket {
-        command_packet_key key;
+        command_packet_key_t key;
         CommandType type;
         const void* data;
 
@@ -72,7 +72,7 @@ namespace orion
 
         template<typename Command>
             requires(IsValidCmdType<Command>::value)
-        auto* add_command(command_packet_key key)
+        auto* add_command(command_packet_key_t key)
         {
             return static_cast<Command*>(add_command(key, sizeof(Command), alignof(Command), Command::type));
         }
@@ -92,7 +92,7 @@ namespace orion
 
     private:
         void set_state(CommandBufferState state) noexcept;
-        void* add_command(command_packet_key key, std::size_t size, std::size_t align, CommandType type);
+        void* add_command(command_packet_key_t key, std::size_t size, std::size_t align, CommandType type);
 
         LinearAllocator command_allocator_;
         std::vector<CommandPacket> command_packets_;

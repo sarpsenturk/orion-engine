@@ -74,6 +74,8 @@ namespace orion
                 return sizeof(float) * 3;
             case Format::R32G32B32A32_Float:
                 return sizeof(float) * 4;
+            case Format::R8_Unorm:
+                return sizeof(std::uint8_t);
         }
         return UINT32_MAX;
     }
@@ -91,6 +93,10 @@ namespace orion
                 return "R32G32B32_Float";
             case Format::R32G32B32A32_Float:
                 return "R32G32B32A32_Float";
+            case Format::R8_Unorm:
+                return "R8_Unorm";
+            case Format::R8G8B8A8_Unorm:
+                return "R8G8B8A8_Unorm";
         }
         return "Unknown format";
     }

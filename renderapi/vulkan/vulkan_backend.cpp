@@ -99,14 +99,14 @@ namespace orion::vulkan
         bool check_extension_supported(std::span<const VkExtensionProperties> supported_extensions, const char* extension)
         {
             return std::ranges::find_if(supported_extensions, [extension](const auto& ext) {
-                       return std::strcmp(ext.extensionName, extension);
+                       return std::strcmp(ext.extensionName, extension) == 0;
                    }) != supported_extensions.end();
         }
 
         bool check_layer_support(std::span<const VkLayerProperties> supported_layers, const char* layer)
         {
             return std::ranges::find_if(supported_layers, [layer](const auto& lay) {
-                       return std::strcmp(lay.layerName, layer);
+                       return std::strcmp(lay.layerName, layer) == 0;
                    }) != supported_layers.end();
         }
 
