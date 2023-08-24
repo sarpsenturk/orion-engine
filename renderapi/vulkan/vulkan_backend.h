@@ -36,6 +36,11 @@ namespace orion::vulkan
             const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
             void* user_data);
 
+        UniqueVkInstance create_instance() const noexcept;
+        UniqueVkDebugUtilsMessengerEXT create_debug_messenger() const noexcept;
+        std::vector<const char*> enabled_instance_extensions() const;
+        std::vector<const char*> enabled_instance_layers() const;
+
         UniqueVkInstance instance_ = VK_NULL_HANDLE;
         UniqueVkDebugUtilsMessengerEXT debug_messenger_ = VK_NULL_HANDLE;
 

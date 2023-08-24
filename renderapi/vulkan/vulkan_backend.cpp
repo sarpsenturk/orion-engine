@@ -139,96 +139,9 @@ namespace orion::vulkan
 
     VulkanBackend::VulkanBackend() noexcept
         : RenderBackend("orion-vulkan")
+        , instance_(create_instance())
+        , debug_messenger_(create_debug_messenger())
     {
-        try {
-            const auto vulkan_version = to_vulkan_version(k_current_version);
-            const auto application_info = VkApplicationInfo{
-                .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                .pNext = nullptr,
-                .pApplicationName = "OrionEngineApp",
-                .applicationVersion = vulkan_version,
-                .pEngineName = "OrionEngine",
-                .engineVersion = vulkan_version,
-                .apiVersion = vulkan_api_version,
-            };
-
-            std::vector<const char*> enabled_layers;
-            const auto supported_layers = get_supported_instance_layers();
-
-            const auto required_layers = get_required_instance_layers();
-            SPDLOG_LOGGER_TRACE(logger(), "Checking support for required Vulkan instance layers...");
-            for (const char* layer : required_layers) {
-                if (!check_layer_support(supported_layers, layer)) {
-                    SPDLOG_LOGGER_ERROR(logger(), "-- {} ... NOT FOUND. Aborting", layer);
-                    throw std::runtime_error("Failed to find Vulkan layer");
-                }
-                SPDLOG_LOGGER_TRACE(logger(), "-- {} ... found", layer);
-                enabled_layers.push_back(layer);
-            }
-            SPDLOG_LOGGER_TRACE(logger(), "Done.");
-
-            std::vector<const char*> enabled_extensions;
-            const auto supported_extensions = get_supported_instance_extensions();
-
-            const auto required_extensions = get_required_instance_extensions();
-            SPDLOG_LOGGER_TRACE(logger(), "Checking support for required Vulkan instance extensions...");
-            for (const char* extension : required_extensions) {
-                if (!check_extension_supported(supported_extensions, extension)) {
-                    SPDLOG_LOGGER_ERROR(logger(), "-- {} ... NOT FOUND. Aborting", extension);
-                    throw std::runtime_error("Failed to find Vulkan instance extension");
-                }
-                SPDLOG_LOGGER_TRACE(logger(), "-- {} ... found", extension);
-                enabled_extensions.push_back(extension);
-            }
-
-            enabled_extensions.insert(enabled_extensions.end(), required_extensions.begin(), required_extensions.end());
-
-            // Create vulkan instance
-            const auto instance_info = VkInstanceCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = {},
-                .pApplicationInfo = &application_info,
-                .enabledLayerCount = static_cast<std::uint32_t>(enabled_layers.size()),
-                .ppEnabledLayerNames = enabled_layers.data(),
-                .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
-                .ppEnabledExtensionNames = enabled_extensions.data(),
-            };
-
-            VkInstance instance = VK_NULL_HANDLE;
-            vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
-            instance_ = unique(instance);
-
-            // Create vulkan debug utils if debug mode is enabled
-#ifdef ORION_BUILD_DEBUG
-            // Get creation function pointer
-            static const auto pfn_vkCreateDebugUtilsMessengerEXT = [instance]() {
-                return reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-                    vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-            }();
-
-            VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
-            {
-                const auto info = VkDebugUtilsMessengerCreateInfoEXT{
-                    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-                    .pNext = nullptr,
-                    .flags = 0,
-                    .messageSeverity = debug_message_severity,
-                    .messageType = debug_message_type,
-                    .pfnUserCallback = &debug_message_callback,
-                    .pUserData = logger(),
-                };
-                vk_result_check(pfn_vkCreateDebugUtilsMessengerEXT(instance, &info, alloc_callbacks(), &debug_messenger));
-            }
-            debug_messenger_ = unique(debug_messenger, instance);
-#endif // ORION_BUILD_DEBUG
-        } catch (const std::exception& exception) {
-            SPDLOG_LOGGER_ERROR(logger(), "exception thrown when creating vulkan backend: {}", exception.what());
-            std::abort();
-        } catch (...) {
-            SPDLOG_LOGGER_ERROR(logger(), "exception of unknown type thrown when creating vulkan backend");
-            std::abort();
-        }
     }
 
     std::vector<PhysicalDeviceDesc> VulkanBackend::enumerate_physical_devices_api()
@@ -417,5 +330,117 @@ namespace orion::vulkan
                            callback_data->pMessageIdName,
                            callback_data->pMessage);
         return VK_FALSE;
+    }
+
+    UniqueVkInstance VulkanBackend::create_instance() const noexcept
+    {
+        try {
+            const auto vulkan_version = to_vulkan_version(k_current_version);
+            const auto application_info = VkApplicationInfo{
+                .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                .pNext = nullptr,
+                .pApplicationName = "OrionEngineApp",
+                .applicationVersion = vulkan_version,
+                .pEngineName = "OrionEngine",
+                .engineVersion = vulkan_version,
+                .apiVersion = vulkan_api_version,
+            };
+
+            const auto enabled_layers = enabled_instance_layers();
+            const auto enabled_extensions = enabled_instance_extensions();
+
+            // Create vulkan instance
+            VkInstance instance = VK_NULL_HANDLE;
+            {
+                const auto instance_info = VkInstanceCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = {},
+                    .pApplicationInfo = &application_info,
+                    .enabledLayerCount = static_cast<std::uint32_t>(enabled_layers.size()),
+                    .ppEnabledLayerNames = enabled_layers.data(),
+                    .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
+                    .ppEnabledExtensionNames = enabled_extensions.data(),
+                };
+                vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
+            }
+            return unique(instance);
+        } catch (const std::exception& exception) {
+            SPDLOG_LOGGER_ERROR(logger(), "exception thrown when creating vulkan backend: {}", exception.what());
+            std::abort();
+        } catch (...) {
+            SPDLOG_LOGGER_ERROR(logger(), "exception of unknown type thrown when creating vulkan backend");
+            std::abort();
+        }
+    }
+
+    UniqueVkDebugUtilsMessengerEXT VulkanBackend::create_debug_messenger() const noexcept
+    {
+#ifndef ORION_BUILD_DEBUG
+        return nullptr;
+#else
+        try {
+            // Get creation function pointer
+            auto pfn_vk_create_debug_utils_messenger_ext = get_instance_proc<PFN_vkCreateDebugUtilsMessengerEXT>(instance(), "vkCreateDebugUtilsMessengerEXT");
+
+            VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
+            {
+                const auto info = VkDebugUtilsMessengerCreateInfoEXT{
+                    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .messageSeverity = debug_message_severity,
+                    .messageType = debug_message_type,
+                    .pfnUserCallback = &debug_message_callback,
+                    .pUserData = logger(),
+                };
+                vk_result_check(pfn_vk_create_debug_utils_messenger_ext(instance(), &info, alloc_callbacks(), &debug_messenger));
+            }
+            return unique(debug_messenger, instance());
+        } catch (const std::exception& exception) {
+            SPDLOG_LOGGER_ERROR(logger(), "exception thrown when creating vulkan backend: {}", exception.what());
+            std::abort();
+        } catch (...) {
+            SPDLOG_LOGGER_ERROR(logger(), "exception of unknown type thrown when creating vulkan backend");
+            std::abort();
+        }
+#endif
+    }
+
+    std::vector<const char*> VulkanBackend::enabled_instance_extensions() const
+    {
+        const auto supported_extensions = get_supported_instance_extensions();
+
+        std::vector<const char*> enabled_extensions;
+        const auto required_extensions = get_required_instance_extensions();
+        SPDLOG_LOGGER_TRACE(logger(), "Checking support for required Vulkan instance extensions...");
+        for (const char* extension : required_extensions) {
+            if (!check_extension_supported(supported_extensions, extension)) {
+                SPDLOG_LOGGER_ERROR(logger(), "-- {} ... NOT FOUND. Aborting", extension);
+                throw std::runtime_error("Failed to find Vulkan instance extension");
+            }
+            SPDLOG_LOGGER_TRACE(logger(), "-- {} ... found", extension);
+            enabled_extensions.push_back(extension);
+        }
+        return enabled_extensions;
+    }
+
+    std::vector<const char*> VulkanBackend::enabled_instance_layers() const
+    {
+        const auto supported_layers = get_supported_instance_layers();
+
+        std::vector<const char*> enabled_layers;
+        const auto required_layers = get_required_instance_layers();
+        SPDLOG_LOGGER_TRACE(logger(), "Checking support for required Vulkan instance layers...");
+        for (const char* layer : required_layers) {
+            if (!check_layer_support(supported_layers, layer)) {
+                SPDLOG_LOGGER_ERROR(logger(), "-- {} ... NOT FOUND. Aborting", layer);
+                throw std::runtime_error("Failed to find Vulkan layer");
+            }
+            SPDLOG_LOGGER_TRACE(logger(), "-- {} ... found", layer);
+            enabled_layers.push_back(layer);
+        }
+        SPDLOG_LOGGER_TRACE(logger(), "Done.");
+        return enabled_layers;
     }
 } // namespace orion::vulkan

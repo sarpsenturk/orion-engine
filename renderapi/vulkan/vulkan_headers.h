@@ -148,5 +148,17 @@ namespace orion
             // Create and return a custom allocator here if needed in the future
             return nullptr;
         }
+
+        template<typename F>
+        F get_instance_proc(VkInstance instance, const char* name)
+        {
+            return reinterpret_cast<F>(vkGetInstanceProcAddr(instance, name));
+        }
+
+        template<typename F>
+        F get_device_proc(VkDevice device, const char* name)
+        {
+            return reinterpret_cast<F>(vkGetDeviceProcAddr(device, name));
+        }
     } // namespace vulkan
 } // namespace orion
