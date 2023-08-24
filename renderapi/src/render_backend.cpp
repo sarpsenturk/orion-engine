@@ -10,30 +10,33 @@
 
 namespace orion
 {
-    namespace
+    physical_device_index_t device_select_type(std::span<const PhysicalDeviceDesc> devices, PhysicalDeviceType type)
     {
-        auto device_select_type_fn(PhysicalDeviceType type)
-        {
-            return [type](const auto& device) { return device.type == type; };
-        }
-    } // namespace
-
-    std::uint32_t device_select_integrated(std::span<const PhysicalDeviceDesc> devices)
-    {
-        if (auto iter = std::ranges::find_if(devices, device_select_type_fn(PhysicalDeviceType::Integrated));
+        if (auto iter = std::ranges::find_if(devices, [type](const auto& device) { return device.type == type; });
             iter != devices.end()) {
             return iter->index;
         }
         return invalid_physical_device_index;
     }
 
-    std::uint32_t device_select_discrete(std::span<const PhysicalDeviceDesc> devices)
+    physical_device_index_t device_select_integrated(std::span<const PhysicalDeviceDesc> devices)
     {
-        if (auto iter = std::ranges::find_if(devices, device_select_type_fn(PhysicalDeviceType::Discrete));
-            iter != devices.end()) {
-            return iter->index;
-        }
-        return invalid_physical_device_index;
+        return device_select_type(devices, PhysicalDeviceType::Integrated);
+    }
+
+    physical_device_index_t device_select_discrete(std::span<const PhysicalDeviceDesc> devices)
+    {
+        return device_select_type(devices, PhysicalDeviceType::Discrete);
+    }
+
+    physical_device_index_t device_select_virtual(std::span<const PhysicalDeviceDesc> devices)
+    {
+        return device_select_type(devices, PhysicalDeviceType::Virtual);
+    }
+
+    physical_device_index_t device_select_cpu(std::span<const PhysicalDeviceDesc> devices)
+    {
+        return device_select_type(devices, PhysicalDeviceType::CPU);
     }
 
     RenderBackend::RenderBackend(const char* logger_name)

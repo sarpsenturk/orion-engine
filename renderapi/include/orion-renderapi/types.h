@@ -14,6 +14,42 @@
 
 namespace orion
 {
+    enum class PhysicalDeviceType {
+        Other,
+        Integrated,
+        Discrete,
+        Virtual,
+        CPU
+    };
+
+    constexpr auto format_as(PhysicalDeviceType type) noexcept
+    {
+        switch (type) {
+            case PhysicalDeviceType::Other:
+                break;
+            case PhysicalDeviceType::Integrated:
+                return "Integrated";
+            case PhysicalDeviceType::Discrete:
+                return "Discrete";
+            case PhysicalDeviceType::Virtual:
+                return "Virtual";
+            case PhysicalDeviceType::CPU:
+                return "CPU";
+        }
+        return "Other";
+    }
+
+    using physical_device_index_t = std::int32_t;
+    inline constexpr auto invalid_physical_device_index = -1;
+
+    struct PhysicalDeviceDesc {
+        physical_device_index_t index;
+        PhysicalDeviceType type;
+        std::string name;
+    };
+
+    using pfnSelectPhysicalDevice = physical_device_index_t (*)(std::span<const PhysicalDeviceDesc>);
+
     enum class Format : std::uint32_t {
         Undefined,
         R8_Unorm,
@@ -57,31 +93,6 @@ namespace orion
                 return "R32G32B32A32_Float";
         }
         return "Unknown format";
-    }
-
-    enum class PhysicalDeviceType {
-        Other,
-        Integrated,
-        Discrete,
-        Virtual,
-        CPU
-    };
-
-    constexpr auto format_as(PhysicalDeviceType type) noexcept
-    {
-        switch (type) {
-            case PhysicalDeviceType::Other:
-                break;
-            case PhysicalDeviceType::Integrated:
-                return "Integrated";
-            case PhysicalDeviceType::Discrete:
-                return "Discrete";
-            case PhysicalDeviceType::Virtual:
-                return "Virtual";
-            case PhysicalDeviceType::CPU:
-                return "CPU";
-        }
-        return "Other";
     }
 
     enum class AttachmentLoadOp {

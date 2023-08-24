@@ -146,7 +146,7 @@ namespace orion::vulkan
 
     std::vector<PhysicalDeviceDesc> VulkanBackend::enumerate_physical_devices_api()
     {
-        ORION_ASSERT(instance_ != VK_NULL_HANDLE);
+        ORION_ASSERT(instance() != VK_NULL_HANDLE);
 
         // Get the physical devices and descriptions first time
         if (physical_devices_.empty()) {
@@ -154,14 +154,14 @@ namespace orion::vulkan
             // Enumerate the physical devices
             {
                 std::uint32_t count = 0;
-                vk_result_check(vkEnumeratePhysicalDevices(instance_.get(), &count, nullptr));
+                vk_result_check(vkEnumeratePhysicalDevices(instance(), &count, nullptr));
                 physical_devices_.resize(count);
-                vk_result_check(vkEnumeratePhysicalDevices(instance_.get(), &count, physical_devices_.data()));
+                vk_result_check(vkEnumeratePhysicalDevices(instance(), &count, physical_devices_.data()));
             }
 
             // Enumerate the device properties
             physical_device_descriptions_.reserve(physical_devices_.size());
-            for (std::uint32_t index = 0; auto physical_device : physical_devices_) {
+            for (physical_device_index_t index = 0; const auto& physical_device : physical_devices_) {
                 VkPhysicalDeviceProperties properties;
                 vkGetPhysicalDeviceProperties(physical_device, &properties);
                 physical_device_descriptions_.push_back({

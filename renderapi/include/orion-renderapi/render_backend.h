@@ -16,22 +16,11 @@
 
 namespace orion
 {
-    struct PhysicalDeviceDesc {
-        std::uint32_t index;
-        PhysicalDeviceType type;
-        std::string name;
-    };
-
-    using pfnSelectPhysicalDevice = std::uint32_t (*)(std::span<const PhysicalDeviceDesc>);
-    inline constexpr auto invalid_physical_device_index = UINT32_MAX;
-
-    std::uint32_t device_select_integrated(std::span<const PhysicalDeviceDesc> devices);
-    std::uint32_t device_select_discrete(std::span<const PhysicalDeviceDesc> devices);
-
-    inline constexpr auto check_device_type(PhysicalDeviceType type)
-    {
-        return [type](const PhysicalDeviceDesc& desc) { return desc.type == type; };
-    }
+    physical_device_index_t device_select_type(std::span<const PhysicalDeviceDesc> devices, PhysicalDeviceType type);
+    physical_device_index_t device_select_integrated(std::span<const PhysicalDeviceDesc> devices);
+    physical_device_index_t device_select_discrete(std::span<const PhysicalDeviceDesc> devices);
+    physical_device_index_t device_select_virtual(std::span<const PhysicalDeviceDesc> devices);
+    physical_device_index_t device_select_cpu(std::span<const PhysicalDeviceDesc> devices);
 
     class RenderBackend
     {
