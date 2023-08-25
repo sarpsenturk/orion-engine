@@ -1,8 +1,10 @@
 # Orion Engine
+
 The Orion Engine is a modern, cross-platform game engine written in C++ 20.
 It is designed with to be fast and easy to use.
 
 ## Features
+
 * Windowing system
 * Graphics API abstraction layer
 * ImGui support with custom backend
@@ -12,7 +14,9 @@ It is designed with to be fast and easy to use.
 
 As Orion supports multiple operating systems, build requirements
 may vary depending on the system.
+
 ### Requirements
+
 * [CMake >= 3.21](https://cmake.org/download/)
 * [Ninja](https://ninja-build.org/)
 * [vcpkg](https://github.com/microsoft/vcpkg)
@@ -29,8 +33,10 @@ cmake --preset=<selected-preset> ..
 ```
 
 ## Platform Support
+
 The goal is for Orion to be fully cross-platform.
 Here's the list of platforms that are planned to be supported:
+
 - [x] Windows 10/11
 - [ ] Linux
 - [ ] macOS
@@ -38,9 +44,9 @@ Here's the list of platforms that are planned to be supported:
 Only x86 is supported at this time however ARM support is
 planned for flavors of Linux, Apple M1, M2 chips and mobile.
 
-
 ## Graphics API Support
-The plan to stick with Vulkan for the foreseeable future since it 
+
+The plan to stick with Vulkan for the foreseeable future since it
 allows for rendering on multiple platforms.
 
 However, native APIs will be supported in the future. That means
@@ -54,3 +60,7 @@ the wiki is also very likely to be out of date at any given time
 until orion reaches at least alpha.
 
 You can follow development more closely at https://trello.com/w/orionenginedev
+
+## Contributing
+
+See [contributing](CONTRIBUTING.md)
