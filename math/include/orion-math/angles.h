@@ -1,126 +1,161 @@
 #pragma once
 
-#include "abs.h"
 #include "concepts.h"
-#include "constants.h" // pi
+#include "constants.h"
 
-#include <ratio>       // std::ratio, std::ratio_divide
+#include <concepts>
+#include <type_traits>
 
 namespace orion
 {
-    template<typename Ratio = std::ratio<1>>
-    class Angle;
+    template<std::floating_point T>
+    inline constexpr T to_degrees(T radians) noexcept
+    {
+        return radians * T{180} / pi_v<T>;
+    }
 
-    template<typename To, typename Ratio>
-    [[nodiscard]] constexpr To angle_cast(const Angle<Ratio>& angle);
+    template<std::floating_point T>
+    inline constexpr T to_radians(T degrees) noexcept
+    {
+        return degrees * pi_v<T> / T{180};
+    }
 
-    template<typename Ratio>
+    struct RadianTag;
+    struct DegreeTag;
+
+    template<typename From, typename To>
+    struct AngleConverter;
+
+    template<typename Tag>
+    struct AngleConverter<Tag, Tag> {
+        template<std::floating_point T>
+        constexpr T operator()(T angle) const noexcept
+        {
+            return angle;
+        }
+    };
+
+    template<>
+    struct AngleConverter<RadianTag, DegreeTag> {
+        template<std::floating_point T>
+        constexpr T operator()(T angle) const noexcept
+        {
+            return to_degrees(angle);
+        }
+    };
+
+    template<>
+    struct AngleConverter<DegreeTag, RadianTag> {
+        template<std::floating_point T>
+        constexpr T operator()(T angle) const noexcept
+        {
+            return to_radians(angle);
+        }
+    };
+
+    template<typename FromTag, typename ToTag, std::floating_point T>
+    inline constexpr T convert_angle(T angle) noexcept
+    {
+        return AngleConverter<FromTag, ToTag>{}(angle);
+    }
+
+    template<std::floating_point T, typename Tag>
     class Angle
     {
     public:
-        using rep = double;
-        using ratio = Ratio;
+        using value_type = T;
 
-        constexpr Angle() = default;
-
-        constexpr explicit Angle(rep value)
+        constexpr explicit Angle(value_type value) noexcept
             : value_(value)
         {
         }
 
-        template<typename Rep1>
-        constexpr explicit Angle(Rep1 value)
-            : value_(static_cast<rep>(value))
+        template<std::convertible_to<T> T1, typename TagOther>
+        constexpr explicit Angle(const Angle<T1, TagOther>& other) noexcept
+            : value_(static_cast<T>(convert_angle<TagOther, Tag>(other.value())))
         {
         }
 
-        template<typename Ratio1>
-        constexpr Angle(const Angle<Ratio1>& other)
-            : value_(angle_cast<Angle>(other).value())
+        template<std::common_with<T> T1, typename TagOther>
+        constexpr friend Angle<std::common_type_t<T, T1>, Tag> operator+(Angle lhs, Angle<T1, TagOther> rhs) noexcept
         {
+            using common_type = std::common_type_t<T, T1>;
+            const auto converted = AngleConverter<TagOther, Tag>{}(rhs.value());
+            const auto result = static_cast<common_type>(lhs.value()) + static_cast<common_type>(converted);
+            return Angle<common_type, Tag>{result};
         }
 
-        [[nodiscard]] constexpr auto value() const noexcept { return value_; }
-
-        template<typename Ratio1>
-        constexpr friend bool operator==(const Angle& lhs, const Angle<Ratio1>& rhs) noexcept
+        template<std::common_with<T> T1, typename TagOther>
+        constexpr friend Angle<std::common_type_t<T, T1>, Tag> operator-(Angle lhs, Angle<T1, TagOther> rhs) noexcept
         {
-            return orion::abs(lhs.value_ - angle_cast<Angle>(rhs).value_) <= acceptable_error;
+            using common_type = std::common_type_t<T, T1>;
+            const auto converted = AngleConverter<TagOther, Tag>{}(rhs.value());
+            const auto result = static_cast<common_type>(lhs.value()) - static_cast<common_type>(converted);
+            return Angle<common_type, Tag>{result};
         }
 
-        template<typename Ratio1>
-        constexpr friend Angle operator+(const Angle& lhs, const Angle<Ratio1>& rhs) noexcept
+        template<arithmetic T1>
+        constexpr friend Angle operator*(Angle angle, T1 factor) noexcept
         {
-            return Angle{lhs.value_ + angle_cast<Angle>(rhs).value_};
-        }
-        template<typename Ratio1>
-        constexpr friend Angle operator-(const Angle& lhs, const Angle<Ratio1>& rhs) noexcept
-        {
-            return Angle{lhs.value_ - angle_cast<Angle>(rhs).value_};
+            return Angle{angle.value() * factor};
         }
 
-        template<arithmetic T>
-        constexpr friend Angle operator*(const Angle& angle, T value) noexcept(noexcept(angle.value() * value))
+        template<arithmetic T1>
+        constexpr friend Angle operator*(T1 factor, Angle angle) noexcept
         {
-            return Angle{angle.value_ * value};
-        }
-        template<arithmetic T>
-        constexpr friend Angle operator*(T value, const Angle& angle) noexcept(noexcept(angle.value() * value))
-        {
-            return Angle{angle.value() * value};
+            return Angle{factor * angle.value()};
         }
 
-        template<arithmetic T>
-        constexpr friend Angle operator/(const Angle& angle, T value) noexcept(noexcept(angle.value() / value))
+        template<arithmetic T1>
+        constexpr friend Angle operator/(Angle angle, T1 divider) noexcept
         {
-            return Angle{angle.value_ / value};
-        }
-        template<arithmetic T>
-        constexpr friend Angle operator/(T value, const Angle& angle) noexcept(noexcept(angle.value() / value))
-        {
-            return Angle{angle.value_ / value};
+            return Angle{angle.value() / divider};
         }
 
-        constexpr Angle operator-() const noexcept
+        constexpr friend Angle operator-(Angle angle) noexcept
         {
-            return Angle{-value_};
+            return Angle{-angle.value()};
         }
+
+        [[nodiscard]] constexpr value_type value() const noexcept { return value_; }
 
     private:
-        static constexpr auto acceptable_error = 1e-5;
-
-        rep value_;
+        value_type value_;
     };
 
-    template<typename To, typename Ratio>
-    [[nodiscard]] constexpr To angle_cast(const Angle<Ratio>& angle)
+    template<std::floating_point T>
+    using Radian_t = Angle<T, RadianTag>;
+    using Radian_d = Radian_t<double>;
+    using Radian_f = Radian_t<float>;
+
+    template<std::floating_point T>
+    using Degree_t = Angle<T, DegreeTag>;
+    using Degree_d = Degree_t<double>;
+    using Degree_f = Degree_t<float>;
+
+    template<std::floating_point T>
+    inline constexpr Radian_t<T> radians(T value) noexcept
     {
-        using common_ratio = std::ratio_divide<Ratio, typename To::ratio>;
-        return To{angle.value() * common_ratio::num / common_ratio::den};
+        return Radian_t<T>{value};
     }
 
-    using Radians = Angle<>;
-    using Degrees = Angle<std::ratio<17'453'293, 1'000'000'000>>;
-
-    inline constexpr Radians pi_rads{pi};
-
-    namespace angle_literals
+    template<std::floating_point T>
+    inline constexpr Degree_t<T> degrees(T value) noexcept
     {
-        [[nodiscard]] constexpr Radians operator"" _rad(long double value)
-        {
-            return Radians{value};
-        }
-        [[nodiscard]] constexpr Radians operator"" _rad(std::uint64_t value)
-        {
-            return Radians{value};
-        }
-        [[nodiscard]] constexpr Degrees operator"" _deg(long double value)
-        {
-            return Degrees{value};
-        }
-        [[nodiscard]] constexpr Degrees operator"" _deg(std::uint64_t value)
-        {
-            return Degrees{value};
-        }
-    } // namespace angle_literals
+        return Degree_t<T>{value};
+    }
+
+    template<std::floating_point T>
+    inline constexpr Radian_t<T> to_radians(Degree_t<T> degrees) noexcept
+    {
+        return Radian_t<T>{degrees};
+    }
+
+    template<std::floating_point T>
+    inline constexpr Degree_t<T> to_degrees(Radian_t<T> radians) noexcept
+    {
+        return Degree_t<T>{radians};
+    }
+
+    inline constexpr auto pi_radians = radians(pi);
 } // namespace orion

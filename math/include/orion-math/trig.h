@@ -4,13 +4,14 @@
 #include "constants.h"
 
 #include <cmath> // runtime implementations
+#include <concepts>
 
 namespace orion
 {
     namespace detail
     {
-        template<std::floating_point Return = double>
-        [[nodiscard]] constexpr Return sin_taylor_series(Radians radians) noexcept
+        template<std::floating_point T>
+        [[nodiscard]] constexpr T sin_taylor_series(Radian_t<T> radians) noexcept
         {
             auto mod = [](double x, double y) -> double { return x - static_cast<int>(x / y) * y; };
             auto x = mod(radians.value(), 2 * pi);
@@ -39,7 +40,7 @@ namespace orion
             constexpr auto fact_13 = 6'227'020'800;
             constexpr auto fact_15 = 1'307'674'368'000;
 
-            return static_cast<Return>(
+            return static_cast<T>(
                 sign *
                 (x -
                  (x_3 / fact_3) +
@@ -51,8 +52,8 @@ namespace orion
                  (x_15 / fact_15)));
         }
 
-        template<std::floating_point Return = double>
-        [[nodiscard]] constexpr Return cos_taylor_series(Radians radians) noexcept
+        template<std::floating_point T>
+        [[nodiscard]] constexpr T cos_taylor_series(Radian_t<T> radians) noexcept
         {
             auto mod = [](double x, double y) -> double { return x - static_cast<int>(x / y) * y; };
             auto x = mod(radians.value(), 2 * pi);
@@ -80,7 +81,7 @@ namespace orion
             constexpr auto fact_12 = 479'001'600;
             constexpr auto fact_14 = 87'178'291'200;
 
-            return static_cast<Return>(
+            return static_cast<T>(
                 sign *
                 (1 -
                  (x_2 / fact_2) +
@@ -93,30 +94,49 @@ namespace orion
         }
     } // namespace detail
 
-    template<std::floating_point Return = double>
-    [[nodiscard]] constexpr Return sin(Radians radians) noexcept
+    template<std::floating_point T>
+    [[nodiscard]] constexpr T sin(Radian_t<T> radians) noexcept
     {
         if (std::is_constant_evaluated()) {
-            return detail::sin_taylor_series<Return>(radians);
+            return detail::sin_taylor_series<T>(radians);
         }
-        return static_cast<Return>(std::sin(radians.value()));
+        return static_cast<T>(std::sin(radians.value()));
     }
 
-    template<std::floating_point Return = double>
-    [[nodiscard]] constexpr Return cos(Radians radians) noexcept
+    template<std::floating_point T>
+    [[nodiscard]] constexpr T sin(Degree_t<T> degrees) noexcept
     {
-        if (std::is_constant_evaluated()) {
-            return detail::cos_taylor_series<Return>(radians);
-        }
-        return static_cast<Return>(std::cos(radians.value()));
+        return orion::sin(to_radians(degrees));
     }
 
-    template<std::floating_point Return = double>
-    [[nodiscard]] constexpr Return tan(Radians radians) noexcept
+    template<std::floating_point T>
+    [[nodiscard]] constexpr T cos(Radian_t<T> radians) noexcept
     {
         if (std::is_constant_evaluated()) {
-            return sin<Return>(radians) / cos<Return>(radians);
+            return detail::cos_taylor_series<T>(radians);
         }
-        return static_cast<Return>(std::tan(radians.value()));
+        return static_cast<T>(std::cos(radians.value()));
     }
+
+    template<std::floating_point T>
+    [[nodiscard]] constexpr T cos(Degree_t<T> degrees) noexcept
+    {
+        return orion::cos(to_radians(degrees));
+    }
+
+    template<std::floating_point T>
+    [[nodiscard]] constexpr T tan(Radian_t<T> radians) noexcept
+    {
+        if (std::is_constant_evaluated()) {
+            return sin<T>(radians) / cos<T>(radians);
+        }
+        return static_cast<T>(std::tan(radians.value()));
+    }
+
+    template<std::floating_point T>
+    [[nodiscard]] constexpr T tan(Degree_t<T> degrees) noexcept
+    {
+        return orion::tan(to_radians(degrees));
+    }
+
 } // namespace orion

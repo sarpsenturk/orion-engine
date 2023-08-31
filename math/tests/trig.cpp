@@ -2,32 +2,30 @@
 
 #include <gtest/gtest.h>
 
-using namespace orion::angle_literals;
-
 namespace
 {
     constexpr auto acceptable_error = 1e-5;
-    constexpr auto three_halfs_pi = 3 * orion::pi_rads / 2;
+    constexpr auto three_halfs_pi = 3 * orion::pi_radians / 2;
 
     TEST(Trig, Sin)
     {
-        EXPECT_EQ(orion::sin(0_rad), 0.0);
-        EXPECT_NEAR(orion::sin(orion::pi_rads), 0.0, acceptable_error);
-        EXPECT_NEAR(orion::sin(orion::pi_rads), 0.0, acceptable_error);
-        EXPECT_NEAR(orion::sin(orion::Radians{3 * orion::pi / 2}), -1.0, acceptable_error);
-        EXPECT_NEAR(orion::sin(orion::Radians{3 * -orion::pi / 2}), 1.0, acceptable_error);
-        EXPECT_NEAR(orion::sin(4_rad), -0.7568024953, acceptable_error);
-        EXPECT_NEAR(orion::sin(-4_rad), 0.7568024953, acceptable_error);
+        EXPECT_EQ(orion::sin(orion::radians(0.0)), 0.0);
+        EXPECT_NEAR(orion::sin(orion::pi_radians), 0.0, acceptable_error);
+        EXPECT_NEAR(orion::sin(orion::pi_radians), 0.0, acceptable_error);
+        EXPECT_NEAR(orion::sin(orion::radians(3 * orion::pi / 2)), -1.0, acceptable_error);
+        EXPECT_NEAR(orion::sin(orion::radians(3 * -orion::pi / 2)), 1.0, acceptable_error);
+        EXPECT_NEAR(orion::sin(orion::radians(4.0)), -0.7568024953, acceptable_error);
+        EXPECT_NEAR(orion::sin(orion::radians(-4.0)), 0.7568024953, acceptable_error);
     }
 
     TEST(Trig, Cos)
     {
-        EXPECT_EQ(orion::cos(0_rad), 1.0);
-        EXPECT_NEAR(orion::cos(orion::pi_rads), -1.0, acceptable_error);
-        EXPECT_NEAR(orion::cos(-orion::pi_rads), -1.0, acceptable_error);
+        EXPECT_EQ(orion::cos(orion::radians(0.0)), 1.0);
+        EXPECT_NEAR(orion::cos(orion::pi_radians), -1.0, acceptable_error);
+        EXPECT_NEAR(orion::cos(-orion::pi_radians), -1.0, acceptable_error);
         EXPECT_NEAR(orion::cos(three_halfs_pi), 0.0, acceptable_error);
         EXPECT_NEAR(orion::cos(-three_halfs_pi), 0.0, acceptable_error);
-        EXPECT_NEAR(orion::cos(4_rad), -0.65364362086, acceptable_error);
-        EXPECT_NEAR(orion::cos(-4_rad), -0.65364362086, acceptable_error);
+        EXPECT_NEAR(orion::cos(orion::radians(4.0)), -0.65364362086, acceptable_error);
+        EXPECT_NEAR(orion::cos(orion::radians(-4.0)), -0.65364362086, acceptable_error);
     }
 } // namespace

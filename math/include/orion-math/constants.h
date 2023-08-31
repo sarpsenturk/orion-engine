@@ -1,6 +1,6 @@
 #pragma once
 
-#include <concepts> // std::floating_point
+#include <concepts>
 
 namespace orion
 {

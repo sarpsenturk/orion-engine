@@ -1,9 +1,10 @@
 #pragma once
 
 #include "matrix4.h"
-#include "orion-math/angles.h"
 #include "orion-math/trig.h"
 #include "orion-math/vector/vector3.h"
+
+#include <concepts>
 
 namespace orion
 {
@@ -47,8 +48,8 @@ namespace orion
         return translation(vector.x(), vector.y(), vector.z());
     }
 
-    template<typename T = float>
-    [[nodiscard]] constexpr Matrix4_t<T> rotation_x(Radians radians)
+    template<std::floating_point T>
+    [[nodiscard]] constexpr Matrix4_t<T> rotation_x(Radian_t<T> radians)
     {
         const auto cos_x = cos<T>(radians);
         const auto sin_x = sin<T>(radians);
@@ -59,8 +60,14 @@ namespace orion
             0, 0, 0, 1};
     }
 
-    template<typename T = float>
-    [[nodiscard]] constexpr Matrix4_t<T> rotation_y(Radians radians)
+    template<std::floating_point T>
+    [[nodiscard]] constexpr Matrix4_t<T> rotation_x(Degree_t<T> degrees)
+    {
+        return rotation_x(to_radians(degrees));
+    }
+
+    template<std::floating_point T = float>
+    [[nodiscard]] constexpr Matrix4_t<T> rotation_y(Radian_t<T> radians)
     {
         const auto cos_x = cos<T>(radians);
         const auto sin_x = sin<T>(radians);
@@ -71,8 +78,14 @@ namespace orion
             0, 0, 0, 1};
     }
 
-    template<typename T = float>
-    [[nodiscard]] constexpr Matrix4_t<T> rotation_z(Radians radians)
+    template<std::floating_point T>
+    [[nodiscard]] constexpr Matrix4_t<T> rotation_y(Degree_t<T> degrees)
+    {
+        return rotation_y(to_radians(degrees));
+    }
+
+    template<std::floating_point T>
+    [[nodiscard]] constexpr Matrix4_t<T> rotation_z(Radian_t<T> radians)
     {
         const auto cos_x = cos<T>(radians);
         const auto sin_x = sin<T>(radians);
@@ -81,6 +94,12 @@ namespace orion
             -sin_x, cos_x, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1};
+    }
+
+    template<std::floating_point T>
+    [[nodiscard]] constexpr Matrix4_t<T> rotation_z(Degree_t<T> degrees)
+    {
+        return rotation_z(to_radians(degrees));
     }
 
     template<typename T>
@@ -136,7 +155,7 @@ namespace orion
     }
 
     template<typename T>
-    [[nodiscard]] constexpr Matrix4_t<T> perspective_fov_rh(Radians fov, T aspect_ratio, T near, T far)
+    [[nodiscard]] constexpr Matrix4_t<T> perspective_fov_rh(Radian_t<T> fov, T aspect_ratio, T near, T far)
     {
         const auto yscale = static_cast<T>(1 / tan<T>(fov / 2));
         const auto xscale = yscale / aspect_ratio;
@@ -149,7 +168,7 @@ namespace orion
     }
 
     template<typename T>
-    [[nodiscard]] constexpr Matrix4_t<T> perspective_fov_lh(Radians fov, T aspect_ratio, T near, T far)
+    [[nodiscard]] constexpr Matrix4_t<T> perspective_fov_lh(Radian_t<T> fov, T aspect_ratio, T near, T far)
     {
         const auto yscale = static_cast<T>(1 / tan(fov / 2));
         const auto xscale = yscale / aspect_ratio;

@@ -1,14 +1,15 @@
 #pragma once
 
-#include <concepts> // std::floating_point, std::integral
+#include <concepts>
 
 namespace orion
 {
     template<std::floating_point Floating>
     [[nodiscard]] constexpr Floating abs(Floating value) noexcept
     {
-        if (value > 0)
+        if (value > 0) {
             return value;
+        }
         return -value;
     }
 
