@@ -2,11 +2,15 @@
 
 #include <orion-core/window.h>
 
-#include <imgui.h>
 #include <orion-renderer/colors.h>
 #include <orion-renderer/renderer.h>
 
 #include <orion-math/vector/vector3.h>
+
+#include <orion-scene/components.h>
+#include <orion-scene/scene.h>
+
+#include <imgui.h>
 
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
@@ -34,6 +38,9 @@ public:
 
         // Initialize imgui
         renderer_.imgui_init(&window_);
+
+        // Create entity
+        const auto entity = scene_.create_entity();
     }
 
     ~SandboxApp() override
@@ -102,6 +109,7 @@ private:
     orion::Renderer renderer_;
     orion::SurfaceHandle surface_;
     orion::SwapchainHandle swapchain_;
+    orion::Scene scene_;
 };
 
 ORION_MAIN(args)

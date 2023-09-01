@@ -10,10 +10,11 @@ target_include_directories(orion-engine PUBLIC include/)
 
 # Link with dependencies
 target_link_libraries(
-    orion-engine 
-    PUBLIC 
-    orion::core
-    orion::renderer
+        orion-engine
+        PUBLIC
+        orion::core
+        orion::renderer
+        orion::scene
 )
 
 # Precompiled headers

@@ -6,13 +6,14 @@
   "dependencies": [
     "spdlog",
     "directx-dxc",
+    "tl-expected",
+    "entt",
     {
       "name": "imgui",
       "features": [
         "docking-experimental"
       ]
-    },
-    "tl-expected"
+    }
   ],
   "features": {
     "tests": {
