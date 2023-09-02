@@ -6,8 +6,8 @@
 #include "orion-renderapi/types.h"
 
 #include <cstdint>
+#include <span>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -26,6 +26,7 @@ namespace orion
 
         [[nodiscard]] auto vertex() const noexcept { return vertex_shader_.get(); }
         [[nodiscard]] auto fragment() const noexcept { return fragment_shader_.get(); }
+        [[nodiscard]] auto pipeline_shader_desc() const noexcept { return std::span{pipeline_shader_desc_}; }
 
     private:
         [[nodiscard]] std::vector<ShaderStageDesc> make_pipeline_desc() const;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vertex.h"
+
 #include "orion-core/handle.h"
 
 #include "orion-renderapi/handles.h"
@@ -20,22 +22,6 @@
 
 namespace orion
 {
-    struct Vertex {
-        Vector3_f position;
-        Vector4_f color;
-
-        static constexpr auto vertex_bindings()
-        {
-            std::array attributes{
-                VertexAttributeDesc{.name = "POSITION", .format = Format::R32G32B32_Float},
-                VertexAttributeDesc{.name = "COLOR", .format = Format::R32G32B32A32_Float},
-            };
-            return std::array{
-                VertexBinding(attributes, InputRate::Vertex),
-            };
-        }
-    };
-
     class Mesh
     {
     public:
@@ -51,8 +37,8 @@ namespace orion
         std::uint32_t index_count_;
     };
 
-    using mesh_handle_key = std::uint16_t;
-    ORION_DEFINE_HANDLE(MeshHandle, mesh_handle_key);
+    using mesh_handle_key_t = std::uint16_t;
+    ORION_DEFINE_HANDLE(MeshHandle, mesh_handle_key_t);
 
     class MeshManager
     {
@@ -70,7 +56,7 @@ namespace orion
 
         RenderDevice* device_;
         std::unordered_map<MeshHandle, Mesh> meshes_;
-        mesh_handle_key mesh_index_ = 0;
+        mesh_handle_key_t mesh_index_ = 0;
 
         static spdlog::logger* logger();
     };

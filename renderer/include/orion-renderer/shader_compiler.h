@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace orion
@@ -48,8 +47,24 @@ namespace orion
         return "";
     }
 
+    struct ShaderVariable {
+        std::string name;
+        std::size_t size;
+    };
+
+    struct ShaderConstantBuffer {
+        std::string name;
+        std::size_t size;
+        std::vector<ShaderVariable> variables;
+    };
+
+    struct ShaderReflection {
+        std::vector<ShaderConstantBuffer> constant_buffers;
+    };
+
     struct ShaderCompileSuccess {
         std::vector<std::byte> binary;
+        ShaderReflection reflection;
     };
 
     using ShaderCompileResult = expected<ShaderCompileSuccess, ShaderCompileError>;
