@@ -47,6 +47,7 @@ namespace orion
     {
         ORION_ASSERT(is_recording() && "Command buffer must be in recording state before adding commands");
         auto [cmd_ptr, cmd_size] = command_allocator_.allocate(size, align);
+        ORION_ASSERT(cmd_ptr != nullptr && "Linear command allocator out of memory");
         command_packets_.push_back({key, type, cmd_ptr});
         return cmd_ptr;
     }

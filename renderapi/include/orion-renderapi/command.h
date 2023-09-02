@@ -8,8 +8,6 @@
 #include "orion-math/vector/vector2.h"
 #include "orion-math/vector/vector4.h"
 
-#include <spdlog/logger.h>
-
 #include <limits>
 #include <type_traits>
 #include <vector>
@@ -62,8 +60,6 @@ namespace orion
         Pending,
         Invalid
     };
-
-    class RenderDevice;
 
     class CommandList
     {
