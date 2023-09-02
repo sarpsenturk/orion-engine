@@ -1,14 +1,15 @@
 #pragma once
 
 #include <cstdint>
-#include <fmt/core.h>
 #include <functional>
 #include <random>
 #include <type_traits>
 
+#include <fmt/core.h>
+
 namespace orion
 {
-    template<typename Tag, typename KeyType = std::uint64_t>
+    template<typename, typename KeyType = std::uint64_t>
     class Handle
     {
     public:
@@ -41,9 +42,9 @@ namespace orion
         {
         }
 
-        [[nodiscard]] constexpr auto value() const noexcept { return value_; }
+        [[nodiscard]] constexpr key_type value() const noexcept { return value_; }
 
-        [[nodiscard]] constexpr auto is_valid() const noexcept { return value_ != invalid; }
+        [[nodiscard]] constexpr bool is_valid() const noexcept { return value_ != invalid; }
 
         [[nodiscard]] constexpr friend bool operator==(Handle, Handle) noexcept = default;
 

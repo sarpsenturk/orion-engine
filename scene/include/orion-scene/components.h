@@ -20,6 +20,6 @@ namespace orion
 
     class Mesh;
     struct MeshComponent {
-        Mesh* mesh;
+        const Mesh* mesh;
     };
 } // namespace orion

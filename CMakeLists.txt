@@ -37,7 +37,6 @@ add_compile_definitions(
 
 option(ORION_ENGINE_SANITIZE_ADDRESS "Enable address sanitizer" ${ORION_ENGINE_DEVELOPER_MODE})
 if (ORION_ENGINE_SANITIZE_ADDRESS)
-    message(STATUS ${CXX_SANITIZE_ADDRESS})
     if ("${CXX_SANITIZE_ADDRESS}" STREQUAL "")
         message(AUTHOR_WARNING "Current platform/compiler doesn't support address sanitizer even though it's enabled")
     endif ()

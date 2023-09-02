@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdio>
-#include <cstdlib>      
-#include <fmt/format.h> 
+#include <cstdlib>
+#include <fmt/format.h>
 
 #if defined(ORION_BUILD_DEBUG) || defined(ORION_ENABLE_ASSERTIONS)
     #define ORION_ASSERT(condition)                                                                                          \

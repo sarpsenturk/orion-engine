@@ -22,14 +22,14 @@ namespace orion
         decltype(auto) add_component(Args&&... args)
         {
             ORION_ASSERT(!has_component<Component>());
-            return registry_->emplace<Component>(std::forward<Args>(args)...);
+            return registry_->emplace<Component>(entity_id_, std::forward<Args>(args)...);
         }
 
         template<typename Component>
         void remove_component()
         {
             ORION_ASSERT(has_component<Component>());
-            registry_->erase<Component>();
+            registry_->erase<Component>(entity_id_);
         }
 
         template<typename Component>
