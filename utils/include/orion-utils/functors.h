@@ -2,133 +2,133 @@
 
 namespace orion
 {
-    struct plus {
+    struct Plus {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs + rhs;
         }
     };
 
-    struct minus {
+    struct Minus {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs - rhs;
         }
     };
 
-    struct multiplies {
+    struct Multiplies {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs * rhs;
         }
     };
 
-    struct divides {
+    struct Divides {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs / rhs;
         }
     };
 
-    struct modulus {
+    struct Modulus {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs % rhs;
         }
     };
 
-    struct negate {
+    struct Negate {
         constexpr auto operator()(auto&& arg) const
         {
             return -arg;
         }
     };
 
-    struct equal_to {
+    struct EqualTo {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs == rhs;
         }
     };
 
-    struct not_equal_to {
+    struct NotEqualTo {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs != rhs;
         }
     };
 
-    struct greater {
+    struct Greater {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs > rhs;
         }
     };
 
-    struct less {
+    struct Less {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs < rhs;
         }
     };
 
-    struct greater_equal {
+    struct GreaterEqual {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs >= rhs;
         }
     };
 
-    struct less_equal {
+    struct LessEqual {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs <= rhs;
         }
     };
 
-    struct logical_and {
+    struct LogicalAnd {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs && rhs;
         }
     };
 
-    struct logical_or {
+    struct LogicalOr {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs || rhs;
         }
     };
 
-    struct logical_not {
+    struct LogicalNot {
         constexpr auto operator()(auto&& arg) const
         {
             return !arg;
         }
     };
 
-    struct bit_and {
+    struct BitAnd {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs & rhs;
         }
     };
 
-    struct bit_or {
+    struct BitOr {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs | rhs;
         }
     };
 
-    struct bit_xor {
+    struct BitXor {
         constexpr auto operator()(auto&& lhs, auto&& rhs) const
         {
             return lhs ^ rhs;
         }
     };
 
-    struct bit_not {
+    struct BitNot {
         constexpr auto operator()(auto&& arg) const
         {
             return ~arg;

@@ -6,6 +6,7 @@ target_sources(
         allocators/linear_allocator.h
         assertion.h
         bitflag.h
+        compiler.h
         expected.h
         functors.h
         hash.h

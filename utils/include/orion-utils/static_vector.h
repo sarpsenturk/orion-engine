@@ -1,15 +1,15 @@
 #pragma once
 
-#include "orion-utils/assertion.h"     // ORION_ASSERT
-#include "orion-utils/uninitialized.h" // orion::UninitializedArray, orion::uninitialized_default_construct
+#include "orion-utils/assertion.h"
+#include "orion-utils/uninitialized.h"
 
-#include <algorithm>                   // std::move_backwards, std::move, std::equal
-#include <cstddef>                     // std::size_t, std::ptrdiff_t
-#include <initializer_list>            // std::initializer_list
-#include <iterator>                    // std::reverse_iterator
-#include <limits>                      // std::numeric_limits
-#include <memory>                      // std::destroy_n
-#include <type_traits>                 // std::make_signed, std::is_*
+#include <algorithm>
+#include <cstddef>
+#include <initializer_list>
+#include <iterator>
+#include <limits>
+#include <memory>
+#include <type_traits>
 
 namespace orion
 {
@@ -78,7 +78,7 @@ namespace orion
                 orion::uninitialized_copy(other.begin(), other.end(), begin());
             }
 
-            constexpr StaticVector(StaticVector&& other) noexcept(std::is_nothrow_move_constructible_v<value_type>)
+            constexpr StaticVector(StaticVector&& other) noexcept(noexcept(std::is_nothrow_move_constructible_v<value_type>))
                 : size_(other.size_)
             {
                 orion::uninitialized_move(other.begin(), other.end(), begin());
@@ -94,7 +94,7 @@ namespace orion
                 return *this;
             }
 
-            constexpr StaticVector& operator=(StaticVector&& other) noexcept(std::is_nothrow_move_assignable_v<value_type>)
+            constexpr StaticVector& operator=(StaticVector&& other) noexcept(noexcept(std::is_nothrow_move_assignable_v<value_type>))
             {
                 if (&other != this) {
                     clear();

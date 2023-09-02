@@ -55,20 +55,20 @@ namespace orion
         [[nodiscard]] constexpr friend Matrix operator-(const Matrix& matrix) noexcept
         {
             Matrix result;
-            std::ranges::transform(matrix, std::ranges::begin(result), negate{});
+            std::ranges::transform(matrix, std::ranges::begin(result), Negate{});
             return result;
         }
 
         [[nodiscard]] constexpr friend Matrix operator+(const Matrix& lhs, const Matrix& rhs) noexcept
         {
             Matrix result;
-            std::ranges::transform(lhs, rhs, std::ranges::begin(result), plus{});
+            std::ranges::transform(lhs, rhs, std::ranges::begin(result), Plus{});
             return result;
         }
         [[nodiscard]] constexpr friend Matrix operator-(const Matrix& lhs, const Matrix& rhs) noexcept
         {
             Matrix result;
-            std::ranges::transform(lhs, rhs, std::ranges::begin(result), minus{});
+            std::ranges::transform(lhs, rhs, std::ranges::begin(result), Minus{});
             return result;
         }
 

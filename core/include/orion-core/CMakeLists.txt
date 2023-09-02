@@ -4,7 +4,6 @@ target_sources(
         FILE_SET public_headers
         FILES
         clock.h
-        defs.h
         "dyn_lib.h"
         event.h
         exception.h

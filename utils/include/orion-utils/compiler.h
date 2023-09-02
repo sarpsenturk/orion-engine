@@ -19,3 +19,10 @@
     #include <cstdlib>
     #define ORION_DEBUG_BREAK() std::abort()
 #endif
+
+// MSVC doesn't support [[no_unique_address]]
+#if defined(ORION_COMPILER_MSVC)
+    #define ORION_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+    #define ORION_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif

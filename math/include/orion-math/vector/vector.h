@@ -145,21 +145,21 @@ namespace orion
         [[nodiscard]] friend constexpr Vector operator-(const Vector& vector) noexcept
         {
             Vector result;
-            std::ranges::transform(vector, result.begin(), negate{});
+            std::ranges::transform(vector, result.begin(), Negate{});
             return result;
         }
 
         [[nodiscard]] friend constexpr Vector operator+(const Vector& lhs, const Vector& rhs) noexcept
         {
             Vector result;
-            std::ranges::transform(lhs, rhs, result.begin(), plus{});
+            std::ranges::transform(lhs, rhs, result.begin(), Plus{});
             return result;
         }
 
         [[nodiscard]] friend constexpr Vector operator-(const Vector& lhs, const Vector& rhs) noexcept
         {
             Vector result;
-            std::ranges::transform(lhs, rhs, result.begin(), minus{});
+            std::ranges::transform(lhs, rhs, result.begin(), Minus{});
             return result;
         }
 

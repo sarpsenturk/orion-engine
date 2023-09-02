@@ -8,7 +8,6 @@
     #error "Can't include Windows.h on non-Windows platform"
 #endif
 
-#include "orion-core/defs.h"
 #include "orion-core/exception.h"
 
 #ifndef ORION_WIN32_LOG_LEVEL
