@@ -381,23 +381,23 @@ float4 fs_main(FsInput input) : SV_Target
             // Create shaders
             auto vs_module = [device, &shader_compiler]() {
                 const auto compile_desc = orion::ShaderCompileDesc{
+                    .source = imgui_shader_src,
                     .entry_point = "vs_main",
-                    .shader_stage = orion::ShaderStageFlags::Vertex,
+                    .stage = orion::ShaderStageFlags::Vertex,
                     .object_type = device->shader_object_type(),
                 };
-                const auto compile_result = shader_compiler.compile_from_source(imgui_shader_src, compile_desc);
-                const auto desc = orion::ShaderModuleDesc{.byte_code = compile_result.value().binary};
-                return device->make_unique(orion::ShaderModuleHandle_tag{}, desc);
+                const auto shader_obj = shader_compiler.compile(compile_desc).value();
+                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.get_binary()});
             }();
             auto fs_module = [device, &shader_compiler]() {
                 const auto compile_desc = orion::ShaderCompileDesc{
+                    .source = imgui_shader_src,
                     .entry_point = "fs_main",
-                    .shader_stage = orion::ShaderStageFlags::Fragment,
+                    .stage = orion::ShaderStageFlags::Fragment,
                     .object_type = device->shader_object_type(),
                 };
-                const auto compile_result = shader_compiler.compile_from_source(imgui_shader_src, compile_desc);
-                const auto desc = orion::ShaderModuleDesc{.byte_code = compile_result.value().binary};
-                return device->make_unique(orion::ShaderModuleHandle_tag{}, desc);
+                const auto shader_obj = shader_compiler.compile(compile_desc).value();
+                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.get_binary()});
             }();
             const auto shaders = std::array{
                 orion::ShaderStageDesc{

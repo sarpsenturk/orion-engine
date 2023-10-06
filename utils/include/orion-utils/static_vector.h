@@ -72,13 +72,20 @@ namespace orion
                 orion::uninitialized_copy(first, last, begin());
             }
 
+            constexpr StaticVector(std::initializer_list<value_type> initializer_list)
+                : size_(initializer_list.size())
+            {
+                static_assert(initializer_list.size() <= max_size());
+                orion::uninitialized_copy(initializer_list.begin(), initializer_list.end(), begin());
+            }
+
             constexpr StaticVector(const StaticVector& other) noexcept(std::is_nothrow_copy_constructible_v<value_type>)
                 : size_(other.size_)
             {
                 orion::uninitialized_copy(other.begin(), other.end(), begin());
             }
 
-            constexpr StaticVector(StaticVector&& other) noexcept(noexcept(std::is_nothrow_move_constructible_v<value_type>))
+            constexpr StaticVector(StaticVector&& other) noexcept(std::is_nothrow_move_constructible_v<value_type>)
                 : size_(other.size_)
             {
                 orion::uninitialized_move(other.begin(), other.end(), begin());
@@ -94,7 +101,7 @@ namespace orion
                 return *this;
             }
 
-            constexpr StaticVector& operator=(StaticVector&& other) noexcept(noexcept(std::is_nothrow_move_assignable_v<value_type>))
+            constexpr StaticVector& operator=(StaticVector&& other) noexcept(std::is_nothrow_move_assignable_v<value_type>)
             {
                 if (&other != this) {
                     clear();

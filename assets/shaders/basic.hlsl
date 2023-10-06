@@ -1,24 +1,39 @@
-// Vertex shader
+struct VsInput {
+   float3 position : POSITION;
+   float4 color : COLOR;
+   float2 uv : TEXCOORD;
+};
+
 struct VsOutput {
    float4 position : SV_Position;
    float4 color : COLOR;
+   float2 uv : TEXCOORD;
 };
 
 cbuffer Scene {
     float4x4 view_proj;
 };
 
-VsOutput vs_main(float3 position : POSITION, float4 color : COLOR)
+VsOutput vs_main(VsInput input)
 {
    VsOutput output;
-   output.position = mul(float4(position, 1.0), view_proj);
-   output.color = color;
+   output.position = mul(float4(input.position, 1.0), view_proj);
+   output.color = input.color;
+   output.uv = input.uv;
    return output;
 }
 
 // Fragment shader
-float4 fs_main(float4 color : COLOR) : SV_Target
-{
-   return color;
-}
 
+struct FsInput {
+   float4 color : COLOR;
+   float2 uv : TEXCOORD;
+};
+
+Texture2D texture;
+SamplerState sampler;
+
+float4 fs_main(FsInput input) : SV_Target
+{
+   return texture.Sample(sampler, input.uv) * input.color;
+}

@@ -1,24 +1,20 @@
 #include "orion-renderer/shader_compiler.h"
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEA
-
 #include "dxc_include.h"
-
-#include "orion-utils/assertion.h"
-#include "orion-utils/static_vector.h"
-
-#include <codecvt>
-#include <cstring>
-#include <locale>
-#include <span>
+#include <d3d12shader.h> // Shader reflection
 
 #ifndef ORION_SHADER_COMPILER_LOG_LEVEL
     #define ORION_SHADER_COMPILER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
 #endif
-
 #include "orion-core/log.h"
 #include <spdlog/spdlog.h>
+
+#include "orion-utils/static_vector.h"
+
+#include <codecvt>
+#include <locale>
+
+#include <cstring>
 
 namespace orion
 {
@@ -29,58 +25,7 @@ namespace orion
             static const auto dxc_logger = create_logger("orion-shader-compiler", ORION_SHADER_COMPILER_LOG_LEVEL);
             return dxc_logger.get();
         }
-    } // namespace
 
-    // Internal details about dxc implementation
-    namespace detail
-    {
-        // DirectXShaderCompiler instance
-        struct DxcInstance {
-            ComPtr<IDxcUtils> utils;
-            ComPtr<IDxcCompiler3> compiler;
-            ComPtr<IDxcIncludeHandler> include_handler;
-        };
-
-        // Create IDxcUtils, IDxcCompiler3 & IDxcIncludeHandler
-        DxcInstance* dxc_create_instance()
-        {
-            ComPtr<IDxcUtils> utils;
-            if (auto hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils)); FAILED(hr)) {
-                SPDLOG_LOGGER_ERROR(logger(), "Failed to create IDxcUtils. HRESULT: {}", hr);
-                return nullptr;
-            }
-            SPDLOG_LOGGER_TRACE(logger(), "Created IDxcUtils");
-            ComPtr<IDxcCompiler3> compiler;
-            if (auto hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)); FAILED(hr)) {
-                SPDLOG_LOGGER_ERROR(logger(), "Failed to create IDxcCompiler3. HRESULT: {}", hr);
-                return nullptr;
-            }
-            SPDLOG_LOGGER_TRACE(logger(), "Created IDxcCompiler3");
-            ComPtr<IDxcIncludeHandler> include_handler;
-            if (auto hr = utils->CreateDefaultIncludeHandler(&include_handler); FAILED(hr)) {
-                SPDLOG_LOGGER_ERROR(logger(), "Failed to create IDxcIncludeHandler. HRESULT: {}", hr);
-                return nullptr;
-            }
-            SPDLOG_LOGGER_TRACE(logger(), "Created IDxcIncludeHandler");
-            SPDLOG_LOGGER_DEBUG(logger(), "Created Dxc instance");
-            return new DxcInstance{std::move(utils), std::move(compiler), std::move(include_handler)};
-        }
-
-        void dxc_destroy_instance(DxcInstance* instance)
-        {
-            delete instance;
-        }
-    } // namespace detail
-
-    ShaderCompiler::ShaderCompiler()
-        : dxc_instance_(detail::dxc_create_instance(), &detail::dxc_destroy_instance)
-    {
-        ORION_ENSURES(dxc_instance_ != nullptr);
-    }
-
-    // Internal helpers for shader compilation
-    namespace
-    {
         // Returns the DXC shader profile appropriate for the shader type
         const wchar_t* to_shader_profile(ShaderStageFlags shader_type) noexcept
         {
@@ -107,118 +52,126 @@ namespace orion
 #endif
         }
 
-        ShaderCompileResult compile_blob(IDxcBlobEncoding* source, const ShaderCompileDesc& desc, detail::DxcInstance* dxc)
+        void dxc_assert(HRESULT hresult)
         {
-            // Create DxcBuffer to source string
-            const DxcBuffer dxc_buffer{
-                .Ptr = source->GetBufferPointer(),
-                .Size = source->GetBufferSize(),
-                .Encoding = DXC_CP_ACP,
-            };
-
-            // Entry point as wstring
-            const auto entry_point = to_wstring(desc.entry_point);
-
-            // Arguments passed to dxc. Must be WSTRING
-            static constexpr std::size_t max_arguments = 32;
-            static_vector<const wchar_t*, max_arguments> arguments;
-            arguments.push_back(L"-E");
-            arguments.push_back(entry_point.c_str());
-            arguments.push_back(L"-T");
-            arguments.push_back(to_shader_profile(desc.shader_stage));
-            if (desc.object_type == ShaderObjectType::SpirV) {
-                arguments.push_back(L"-spirv");
-                if (desc.shader_stage == ShaderStageFlags::Vertex) {
-                    arguments.push_back(L"-fvk-invert-y");
-                }
+#ifdef ORION_BUILD_DEBUG
+            if (FAILED(hresult)) {
+                SPDLOG_LOGGER_CRITICAL(logger(), "Dxc assertion failed");
+                ORION_ASSERT(false);
             }
-
-            // Local refs to dxc objects
-            auto compiler = dxc->compiler;
-            auto include_handler = dxc->include_handler;
-
-            // Compile and check for failed HRESULT. Additional error checking is performed after by checking the error buffer
-            ComPtr<IDxcResult> results;
-            const auto compile_hresult = compiler->Compile(&dxc_buffer,
-                                                           arguments.data(), static_cast<uint32_t>(arguments.size()),
-                                                           include_handler.Get(), IID_PPV_ARGS(&results));
-            if (FAILED(compile_hresult)) {
-                SPDLOG_LOGGER_ERROR(logger(), "Call to IDxcCompiler3::Compile() failed. HRESULT: {}", compile_hresult);
-                return make_unexpected(ShaderCompileError::InternalError);
-            }
-
-            // Check error buffer
-            ComPtr<IDxcBlobUtf8> errors = nullptr;
-            if (FAILED(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr))) {
-                SPDLOG_LOGGER_ERROR(logger(), "Call to GetOutput(DXC_OUT_ERRORS) failed");
-                return make_unexpected(ShaderCompileError::InternalError);
-            }
-            if (errors != nullptr && errors->GetStringLength() != 0) {
-                SPDLOG_LOGGER_ERROR(logger(), "Shader compilation errors:");
-                SPDLOG_LOGGER_ERROR(logger(), "{}", errors->GetStringPointer());
-            }
-
-            // Quit if compilation failed
-            HRESULT compilation_status = S_OK;
-            if (FAILED(results->GetStatus(&compilation_status))) {
-                SPDLOG_LOGGER_ERROR(logger(), "Call to GetStatus() failed");
-                return make_unexpected(ShaderCompileError::InternalError);
-            }
-            if (FAILED(compilation_status)) {
-                SPDLOG_LOGGER_ERROR(logger(), "Shader compilation failed!");
-                return make_unexpected(ShaderCompileError::CompilationFail);
-            }
-
-            // The returned compile result
-            ShaderCompileSuccess compile_result;
-
-            // Get the object code
-            ComPtr<IDxcBlob> shader_binary = nullptr;
-            if (FAILED(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader_binary), nullptr))) {
-                SPDLOG_LOGGER_ERROR(logger(), "Call to GetOutput(DXC_OUT_OBJECT) failed");
-                return make_unexpected(ShaderCompileError::InternalError);
-            }
-            if (shader_binary != nullptr) {
-                compile_result.binary.resize(shader_binary->GetBufferSize());
-                std::memcpy(compile_result.binary.data(), shader_binary->GetBufferPointer(), shader_binary->GetBufferSize());
-            }
-
-            return compile_result;
+#endif
         }
     } // namespace
 
-    ShaderCompileResult ShaderCompiler::compile_from_source(const std::string& source, const ShaderCompileDesc& desc) const
-    {
-        ORION_EXPECTS(!source.empty());
+    struct ShaderObject::ShaderObjectImpl {
+        ComPtr<IDxcResult> compile_result;
 
-        // Get pointer to utils
-        auto* utils = dxc_instance_->utils.Get();
-
-        // Create blob from source string
-        ComPtr<IDxcBlobEncoding> source_blob = nullptr;
-        if (FAILED(utils->CreateBlob(source.data(), static_cast<UINT32>(source.size()), 0, &source_blob))) {
-            SPDLOG_LOGGER_ERROR(logger(), "Failed to create source blob from source string");
-            return make_unexpected(ShaderCompileError::InvalidSource);
+        // Forwards call to IDxcResult::GetOutput
+        HRESULT GetOutput(DXC_OUT_KIND dxcOutKind, const _GUID& iid, void** ppvObject, IDxcBlobWide** ppOutputName)
+        {
+            return compile_result->GetOutput(dxcOutKind, iid, ppvObject, ppOutputName);
         }
+    };
 
-        return compile_blob(source_blob.Get(), desc, dxc_instance_.get());
+    ShaderObject::ShaderObject(std::unique_ptr<ShaderObjectImpl> data)
+        : impl_(std::move(data))
+    {
     }
 
-    ShaderCompileResult ShaderCompiler::compile_from_file(const std::string& source_file, const ShaderCompileDesc& desc) const
+    ShaderObject::ShaderObject(ShaderObject&&) noexcept = default;
+
+    ShaderObject& ShaderObject::operator=(ShaderObject&&) noexcept = default;
+
+    ShaderObject::~ShaderObject() = default;
+
+    std::vector<std::byte> ShaderObject::get_binary() const
     {
-        ORION_EXPECTS(!source_file.empty());
-        ComPtr<IDxcBlobEncoding> source_blob = nullptr;
+        ComPtr<IDxcBlob> binary_output;
+        dxc_assert(impl_->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&binary_output), nullptr));
+        const auto binary_size = binary_output->GetBufferSize();
+        SPDLOG_LOGGER_TRACE(logger(), "Shader binary {} bytes", binary_size);
+        std::vector<std::byte> binary(binary_size);
+        std::memcpy(binary.data(), binary_output->GetBufferPointer(), binary_size);
+        return binary;
+    }
 
-        // Get pointer to utils
-        auto* utils = dxc_instance_->utils.Get();
+    // DirectXShaderCompiler instance
+    struct ShaderCompiler::ShaderCompilerImpl {
+        ComPtr<IDxcCompiler3> compiler;
+        ComPtr<IDxcUtils> utils;
+        ComPtr<IDxcIncludeHandler> include_handler;
 
-        // Create blob from file
-        const auto w_filename = to_wstring(source_file.c_str());
-        if (FAILED(utils->LoadFile(w_filename.c_str(), nullptr, &source_blob))) {
-            SPDLOG_LOGGER_ERROR(logger(), "Failed to load shader source file '{}'", source_file);
-            return make_unexpected(ShaderCompileError::FailedLoadFile);
+        ShaderCompilerImpl()
+        {
+            dxc_assert(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)));
+            dxc_assert(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils)));
+            dxc_assert(utils->CreateDefaultIncludeHandler(&include_handler));
+            SPDLOG_LOGGER_TRACE(logger(), "DirectXShaderCompiler instance created");
+        }
+    };
+
+    ShaderCompiler::ShaderCompiler()
+        : impl_(std::make_unique<ShaderCompilerImpl>())
+    {
+    }
+
+    ShaderCompiler::ShaderCompiler(ShaderCompiler&&) noexcept = default;
+
+    ShaderCompiler& ShaderCompiler::operator=(ShaderCompiler&&) noexcept = default;
+
+    ShaderCompiler::~ShaderCompiler() = default;
+
+    expected<ShaderObject, ShaderCompileFail> ShaderCompiler::compile(const ShaderCompileDesc& desc)
+    {
+        SPDLOG_LOGGER_DEBUG(logger(), "Compiling {} shader...", desc.stage);
+        auto* compiler = impl_->compiler.Get();
+        auto* utils = impl_->utils.Get();
+        auto* include_handler = impl_->include_handler.Get();
+
+        ComPtr<IDxcBlobEncoding> source_blob;
+        dxc_assert(utils->CreateBlob(desc.source.data(), static_cast<UINT>(desc.source.size()), 0, &source_blob));
+
+        const auto source_buffer = DxcBuffer{
+            .Ptr = source_blob->GetBufferPointer(),
+            .Size = source_blob->GetBufferSize(),
+            .Encoding = DXC_CP_ACP,
+        };
+
+        constexpr auto max_arguments = 32;
+        static_vector<const wchar_t*, max_arguments> arguments;
+
+        const auto entry_point = to_wstring(desc.entry_point);
+        arguments.insert(arguments.end(), {L"-E", entry_point.data()});
+
+        const wchar_t* shader_target = to_shader_profile(desc.stage);
+        arguments.insert(arguments.end(), {L"-T", shader_target});
+
+        // This isn't maintainable.
+        // We need to figure out a better way to separate code specific to SPIR-V or DXIL codegen
+        if (desc.object_type == ShaderObjectType::SpirV) {
+            arguments.push_back(L"-spirv");
+            if (desc.stage == ShaderStageFlags::Vertex) {
+                arguments.push_back(L"-fvk-invert-y");
+            }
         }
 
-        return compile_blob(source_blob.Get(), desc, dxc_instance_.get());
+        ComPtr<IDxcResult> result;
+        dxc_assert(compiler->Compile(&source_buffer, arguments.data(), arguments.size(), include_handler, IID_PPV_ARGS(&result)));
+
+        HRESULT compile_status;
+        dxc_assert(result->GetStatus(&compile_status));
+
+        ComPtr<IDxcBlobUtf8> errors;
+        dxc_assert(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr));
+
+        if (errors != nullptr && errors->GetStringLength() != 0) {
+            if (FAILED(compile_status)) {
+                SPDLOG_LOGGER_ERROR(logger(), "Shader compilation failed:\n{}", errors->GetStringPointer());
+                return make_unexpected(ShaderCompileFail{.error = {}, .message = "Compilation failed"});
+            }
+            SPDLOG_LOGGER_WARN(logger(), "Shader compilation succeeded with warnings:\n{}", errors->GetStringPointer());
+        }
+
+        return ShaderObject{std::make_unique<ShaderObject::ShaderObjectImpl>(std::move(result))};
     }
 } // namespace orion

@@ -6,80 +6,59 @@
 
 #include <cstddef>
 #include <memory>
-#include <string>
+#include <string_view>
 #include <vector>
 
 namespace orion
 {
-    namespace detail
+    enum class ShaderCompileError {};
+
+    struct ShaderCompileFail {
+        ShaderCompileError error;
+        const char* message;
+    };
+
+    class ShaderObject
     {
-        struct DxcInstance;
-        DxcInstance* dxc_create_instance();
-        void dxc_destroy_instance(DxcInstance* instance);
-        using DxcInstancePtr = std::unique_ptr<DxcInstance, decltype(&dxc_destroy_instance)>;
-    } // namespace detail
+    public:
+        ShaderObject(const ShaderObject&) = delete;
+        ShaderObject(ShaderObject&&) noexcept;
+        ShaderObject& operator=(const ShaderObject&) = delete;
+        ShaderObject& operator=(ShaderObject&&) noexcept;
+        ~ShaderObject();
+
+        std::vector<std::byte> get_binary() const;
+
+    private:
+        struct ShaderObjectImpl;
+        std::unique_ptr<ShaderObjectImpl> impl_;
+
+        // Only ShaderCompiler can create shader objects
+        explicit ShaderObject(std::unique_ptr<ShaderObjectImpl> data);
+        friend class ShaderCompiler;
+    };
 
     struct ShaderCompileDesc {
-        const char* entry_point = "main";
-        ShaderStageFlags shader_stage;
+        std::string_view source;
+        const char* entry_point;
+        ShaderStageFlags stage;
         ShaderObjectType object_type;
     };
-
-    enum class ShaderCompileError {
-        InternalError,
-        CompilationFail,
-        InvalidSource,
-        FailedLoadFile
-    };
-
-    constexpr auto format_as(ShaderCompileError compile_error)
-    {
-        switch (compile_error) {
-            case ShaderCompileError::InternalError:
-                return "An internal compiler error has occurred in DXC";
-            case ShaderCompileError::CompilationFail:
-                return "Shader compilation failed";
-            case ShaderCompileError::InvalidSource:
-                return "Shader source could not be loaded into blob";
-            case ShaderCompileError::FailedLoadFile:
-                return "Shader file could not opened/loaded";
-        }
-        return "";
-    }
-
-    struct ShaderVariable {
-        std::string name;
-        std::size_t size;
-    };
-
-    struct ShaderConstantBuffer {
-        std::string name;
-        std::size_t size;
-        std::vector<ShaderVariable> variables;
-    };
-
-    struct ShaderReflection {
-        std::vector<ShaderConstantBuffer> constant_buffers;
-    };
-
-    struct ShaderCompileSuccess {
-        std::vector<std::byte> binary;
-        ShaderReflection reflection;
-    };
-
-    using ShaderCompileResult = expected<ShaderCompileSuccess, ShaderCompileError>;
 
     class ShaderCompiler
     {
     public:
         ShaderCompiler();
+        ShaderCompiler(const ShaderCompiler&) = delete;
+        ShaderCompiler(ShaderCompiler&&) noexcept;
+        ShaderCompiler& operator=(const ShaderCompiler&) = delete;
+        ShaderCompiler& operator=(ShaderCompiler&&) noexcept;
+        ~ShaderCompiler();
 
-        [[nodiscard]] ShaderCompileResult compile_from_source(const std::string& source, const ShaderCompileDesc& desc) const;
-        [[nodiscard]] ShaderCompileResult compile_from_file(const std::string& source_file, const ShaderCompileDesc& desc) const;
+        expected<ShaderObject, ShaderCompileFail> compile(const ShaderCompileDesc& desc);
 
     private:
-        detail::DxcInstancePtr dxc_instance_;
+        struct ShaderCompilerImpl;
+        std::unique_ptr<ShaderCompilerImpl> impl_;
     };
-
-    using shader_compiler_compile_fn = ShaderCompileResult (ShaderCompiler::*)(const std::string&, const ShaderCompileDesc&) const;
 } // namespace orion
