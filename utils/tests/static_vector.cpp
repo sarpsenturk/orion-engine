@@ -1,6 +1,7 @@
 #include "orion-utils/static_vector.h"
 
-#include <algorithm> // std::all_of
+#include <algorithm>
+
 #include <gtest/gtest.h>
 
 namespace

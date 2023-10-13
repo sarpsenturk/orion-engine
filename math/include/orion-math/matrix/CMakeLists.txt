@@ -6,5 +6,6 @@ target_sources(
     matrix2.h
     matrix3.h
     matrix4.h
+        projection.h
     transformation.h
 )
