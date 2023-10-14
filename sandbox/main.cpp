@@ -28,7 +28,7 @@ public:
         create_surface();
         create_swapchain(window_.size());
 
-        window_.on_resize_end() += ([this](const auto& resize) {
+        window_.on_resize_end().subscribe([this](const auto& resize) {
             if (const auto& new_size = resize.size; new_size.sqr_magnitude() != 0) {
                 create_swapchain(new_size);
                 renderer_.resize_images(new_size);

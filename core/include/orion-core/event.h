@@ -61,4 +61,4 @@ namespace orion
     };
 } // namespace orion
 
-#define ORION_LOG_EVENT_FN [this](const auto& event) { SPDLOG_LOGGER_TRACE(logger(), "{}", event); }
+#define ORION_LOG_EVENT_FN [&](const auto& event) { SPDLOG_LOGGER_TRACE(logger(), "{}", event); }

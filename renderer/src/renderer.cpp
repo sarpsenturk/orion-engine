@@ -62,8 +62,6 @@ namespace orion
         , swapchain_copy_semaphore_(device()->create_semaphore())
         , swapchain_copy_fence_(device()->create_fence(false))
         , descriptor_pool_(create_descriptor_pool())
-        , mesh_manager_(render_device_.get())
-        , shader_manager_(render_device_.get())
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Render backend {} initialized.", backend()->name());
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer initialized.");
@@ -116,98 +114,7 @@ namespace orion
 
     void Renderer::present(SwapchainHandle swapchain)
     {
-        // Acquire swapchain image
-        const auto image_index = device()->acquire_next_image(swapchain, swapchain_image_semaphore_, {});
-        auto swapchain_image = device()->get_swapchain_image(swapchain, image_index);
-
-        // Begin presentation commands
-        present_command_.reset();
-        present_command_.begin();
-
-        // Transition render result to transfer source
-        {
-            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStageFlags::ColorAttachmentOutput;
-            cmd_pipeline_barrier->dst_stages = PipelineStageFlags::Transfer;
-            cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
-                .src_access = ResourceAccessFlags::ColorAttachmentWrite,
-                .dst_access = ResourceAccessFlags::TransferRead,
-                .old_layout = ImageLayout::TransferSrc,
-                .new_layout = ImageLayout::TransferSrc,
-                .image = render_image_,
-            };
-        }
-
-        // Transition swapchain image to transfer dst
-        {
-            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStageFlags::TopOfPipe;
-            cmd_pipeline_barrier->dst_stages = PipelineStageFlags::Transfer;
-            cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
-                .src_access = {},
-                .dst_access = ResourceAccessFlags::TransferWrite,
-                .old_layout = ImageLayout::Undefined,
-                .new_layout = ImageLayout::TransferDst,
-                .image = swapchain_image,
-            };
-        }
-
-        // Blit the image
-        {
-            auto* cmd_blit_image = present_command_.add_command<CmdBlitImage>({});
-            cmd_blit_image->src_image = render_image_;
-            cmd_blit_image->src_layout = ImageLayout::TransferSrc;
-            cmd_blit_image->src_size = render_size_;
-            cmd_blit_image->dst_image = swapchain_image;
-            cmd_blit_image->dst_layout = ImageLayout::TransferDst;
-            cmd_blit_image->dst_size = render_size_;
-        }
-
-        // Transition swapchain image to present source
-        {
-            auto* cmd_pipeline_barrier = present_command_.add_command<CmdPipelineBarrier>({});
-            cmd_pipeline_barrier->src_stages = PipelineStageFlags::Transfer;
-            cmd_pipeline_barrier->dst_stages = PipelineStageFlags::BottomOfPipe;
-            cmd_pipeline_barrier->image_barrier = ImageBarrierDesc{
-                .src_access = ResourceAccessFlags::TransferWrite,
-                .dst_access = ResourceAccessFlags::MemoryRead,
-                .old_layout = ImageLayout::TransferDst,
-                .new_layout = ImageLayout::PresentSrc,
-                .image = swapchain_image,
-            };
-        }
-
-        // End presentation commands
-        present_command_.end();
-        device()->compile_commands(present_command_buffer_, present_command_);
-
-        // Submit commands
-        const auto wait_semaphores = std::array{
-            swapchain_image_semaphore_,
-            render_semaphore_,
-        };
-        const auto wait_stages = std::array{
-            PipelineStageFlags::Transfer,
-            PipelineStageFlags::Transfer,
-        };
-        device()->submit({
-            .queue_type = CommandQueueType::Any,
-            .command_buffers = {&present_command_buffer_, 1},
-            .wait_semaphores = wait_semaphores,
-            .wait_stages = wait_stages,
-            .signal_semaphores = {&swapchain_copy_semaphore_, 1},
-            .fence = swapchain_copy_fence_,
-        });
-
-        // Wait until copy is done
-        device()->wait_for_fence(swapchain_copy_fence_);
-
-        // Present swapchain image
-        device()->present({
-            .swapchain = swapchain,
-            .wait_semaphore = swapchain_copy_semaphore_,
-            .image_index = image_index,
-        });
+        (void)swapchain;
     }
 
     void Renderer::resize_images(const Vector2_u& new_size)
@@ -262,11 +169,6 @@ namespace orion
     {
         ImGui::Render();
         ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), render_command_);
-    }
-
-    void Renderer::draw_mesh(const Mesh* mesh)
-    {
-        ORION_EXPECTS(mesh != nullptr);
     }
 
     std::unique_ptr<RenderBackend> Renderer::create_backend(const Module& backend_module) const

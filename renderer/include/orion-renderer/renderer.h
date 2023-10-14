@@ -1,8 +1,6 @@
 #pragma once
 
-#include "mesh.h"
 #include "orion-renderer/config.h"
-#include "shader.h"
 #include "shader_compiler.h"
 
 #include "orion-renderapi/render_backend.h"
@@ -35,7 +33,6 @@ namespace orion
 
         [[nodiscard]] auto backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto device() const noexcept { return render_device_.get(); }
-        [[nodiscard]] auto& mesh_manager() noexcept { return mesh_manager_; }
 
         void begin();
         void end();
@@ -48,8 +45,6 @@ namespace orion
 
         void imgui_new_frame();
         void imgui_render();
-
-        void draw_mesh(const Mesh* mesh);
 
         static spdlog::logger* logger();
 
@@ -100,8 +95,5 @@ namespace orion
         FenceHandle swapchain_copy_fence_;
 
         DescriptorPoolHandle descriptor_pool_;
-
-        MeshManager mesh_manager_;
-        ShaderManager shader_manager_;
     };
 } // namespace orion
