@@ -631,8 +631,4 @@ namespace orion
         void assert_valid_draw();
         void assert_valid_draw_indexed();
     };
-
-    // See orion-renderer/colors.h for functions to make Color's from hex, rgb, rgba values
-    // and predefined colors
-    using Color = Vector4_f;
 } // namespace orion

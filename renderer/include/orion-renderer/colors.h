@@ -1,11 +1,13 @@
 #pragma once
 
-#include "orion-renderapi/types.h"
+#include "orion-math/vector/vector4.h"
 
 #include <cstdint>
 
 namespace orion
 {
+    using Color = Vector4_f;
+
     constexpr auto rgba_normalize(std::uint8_t value) -> float
     {
         return static_cast<float>(value) / 255;
