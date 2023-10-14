@@ -44,7 +44,7 @@ namespace orion
             }
             const auto last_error = GetLastError();
             SPDLOG_LOGGER_ERROR(win32::logger(), "GetProcAddress({}, {}) failed! LastError: {}", fmt::ptr(hmodule), symbol, last_error);
-            throw Win32Error(last_error);
+            return nullptr;
         }
     } // namespace platform
 } // namespace orion

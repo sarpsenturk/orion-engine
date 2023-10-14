@@ -23,29 +23,9 @@ class SandboxApp final : public orion::Application
 public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
-        , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size, .clear_color = orion::colors::magenta})
+        , renderer_({.device_select_fn = orion::device_select_discrete})
     {
-        create_surface();
-        create_swapchain(window_.size());
-
-        window_.on_resize_end().subscribe([this](const auto& resize) {
-            if (const auto& new_size = resize.size; new_size.sqr_magnitude() != 0) {
-                create_swapchain(new_size);
-                renderer_.resize_images(new_size);
-            }
-        });
         window_.on_close().subscribe([this](const auto&) { exit_application(); });
-
-        // Initialize imgui
-        renderer_.imgui_init(&window_);
-
-        // Create entity
-        const auto entity = scene_.create_entity();
-    }
-
-    ~SandboxApp() override
-    {
-        renderer_.imgui_shutdown();
     }
 
 private:
@@ -56,60 +36,13 @@ private:
 
     void on_user_render() override
     {
-        // Don't render if minimized
-        if (window_.is_minimized()) {
-            return;
-        }
-
-        // Begin new frame
-        renderer_.begin();
-
-        // Begin imgui frame
-        renderer_.imgui_new_frame();
-
-        ImGui::ShowDemoWindow();
-
-        // End imgui frame
-        renderer_.imgui_render();
-
-        // End frame
-        renderer_.end();
-
-        // Present renderer image to swapchain
-        renderer_.present(swapchain_);
-    }
-
-    void create_surface()
-    {
-        surface_ = renderer_.device()->create_surface(window_);
-    }
-
-    void create_swapchain(const orion::Vector2_u& size)
-    {
-        if (swapchain_.is_valid()) {
-            renderer_.device()->destroy(swapchain_);
-        }
-        const auto desc = orion::SwapchainDesc{
-            .surface = surface_,
-            .image_count = swapchain_image_count,
-            .image_format = swapchain_image_format,
-            .image_size = size,
-            .image_usage = swapchain_image_usage,
-        };
-        swapchain_ = renderer_.device()->create_swapchain(desc);
     }
 
     static constexpr auto window_position = orion::WindowPosition{400, 200};
     static constexpr auto window_size = orion::WindowSize{1280, 720};
-    static constexpr auto swapchain_image_count = 2;
-    static constexpr auto swapchain_image_format = orion::Format::B8G8R8A8_Srgb;
-    static constexpr auto swapchain_image_usage = orion::ImageUsageFlags::ColorAttachment | orion::ImageUsageFlags::TransferDst;
 
     orion::Window window_;
     orion::Renderer renderer_;
-    orion::SurfaceHandle surface_;
-    orion::SwapchainHandle swapchain_;
-    orion::Scene scene_;
 };
 
 ORION_MAIN(args)

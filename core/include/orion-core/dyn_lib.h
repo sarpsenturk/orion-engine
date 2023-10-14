@@ -36,6 +36,8 @@ namespace orion
         [[nodiscard]] auto& filename() const noexcept { return filename_; }
         [[nodiscard]] auto* platform_module() const noexcept { return platform_module_.get(); }
 
+        [[nodiscard]] bool is_loaded() const noexcept { return platform_module_ != nullptr; }
+
         template<typename T>
         [[nodiscard]] T* load_symbol(const char* symbol_name) const noexcept
         {
