@@ -55,7 +55,7 @@ namespace orion
         ShaderCompiler& operator=(ShaderCompiler&&) noexcept;
         ~ShaderCompiler();
 
-        expected<ShaderObject, ShaderCompileFail> compile(const ShaderCompileDesc& desc);
+        expected<ShaderObject, ShaderCompileFail> compile(const ShaderCompileDesc& desc) const;
 
     private:
         struct ShaderCompilerImpl;

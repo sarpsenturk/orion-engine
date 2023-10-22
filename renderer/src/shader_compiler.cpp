@@ -121,7 +121,7 @@ namespace orion
 
     ShaderCompiler::~ShaderCompiler() = default;
 
-    expected<ShaderObject, ShaderCompileFail> ShaderCompiler::compile(const ShaderCompileDesc& desc)
+    expected<ShaderObject, ShaderCompileFail> ShaderCompiler::compile(const ShaderCompileDesc& desc) const
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Compiling {} shader...", desc.stage);
         auto* compiler = impl_->compiler.Get();
