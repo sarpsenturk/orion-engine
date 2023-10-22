@@ -23,7 +23,7 @@ class SandboxApp final : public orion::Application
 public:
     SandboxApp()
         : window_({.name = "Orion Sandbox", .position = window_position, .size = window_size})
-        , renderer_({.device_select_fn = orion::device_select_discrete})
+        , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size})
     {
         window_.on_close().subscribe([this](const auto&) { exit_application(); });
     }
