@@ -1,4 +1,7 @@
 #include "orion-math/vector/vector.h"
+#include "orion-math/vector/vector2.h"
+#include "orion-math/vector/vector3.h"
+#include "orion-math/vector/vector4.h"
 
 #include <gtest/gtest.h>
 #include <iterator>
@@ -226,5 +229,32 @@ namespace
         EXPECT_EQ(fmt::format("{}", orion::Vector{1, 2, 3}), "Vector3(1, 2, 3)");
         EXPECT_EQ(fmt::format("{}", orion::Vector{1, 2, 3, 4}), "Vector4(1, 2, 3, 4)");
         EXPECT_EQ(fmt::format("{}", orion::Vector{1.5f, 2, 3, 4.1f}), "Vector4(1.5, 2, 3, 4.1)");
+    }
+
+    TEST(Vector3, Factory)
+    {
+        // Vector3 from Vector2
+        {
+            const auto vec2 = orion::Vector{1.f, 2.f};
+            const auto vec3 = orion::vec3(vec2, 3.f);
+            const auto expected = orion::Vector{1.f, 2.f, 3.f};
+            EXPECT_EQ(vec3, expected);
+        }
+
+        // Vector4 from Vector2
+        {
+            const auto vec2 = orion::Vector{1.f, 2.f};
+            const auto vec4 = orion::vec4(vec2, 3.f, 4.f);
+            const auto expected = orion::Vector{1.f, 2.f, 3.f, 4.f};
+            EXPECT_EQ(vec4, expected);
+        }
+
+        // Vector4 from Vector3
+        {
+            const auto vec3 = orion::Vector{1.f, 2.f, 3.f};
+            const auto vec4 = orion::vec4(vec3, 4.f);
+            const auto expected = orion::Vector{1.f, 2.f, 3.f, 4.f};
+            EXPECT_EQ(vec4, expected);
+        }
     }
 } // namespace

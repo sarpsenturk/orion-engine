@@ -11,7 +11,6 @@ namespace orion
 
     using Vector2_i = Vector2_t<std::int32_t>;
     using Vector2_u = Vector2_t<std::uint32_t>;
-    using Vector2_f = Vector2_t<float>;
-    using Vector2_d = Vector2_t<double>;
-    using Vector2 = Vector2_f;
+    using Vector2_f = Vector2_t<std::float_t>;
+    using Vector2_d = Vector2_t<std::double_t>;
 } // namespace orion
