@@ -261,9 +261,9 @@ namespace orion
         reset_command_buffer_api(command_buffer);
     }
 
-    void RenderDevice::compile_commands(CommandBufferHandle command_buffer, const CommandList& command_list)
+    void RenderDevice::compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
     {
-        compile_commands_api(command_buffer, command_list);
+        compile_commands_api(command_buffer, commands);
     }
 
     void RenderDevice::submit(const SubmitDesc& desc)

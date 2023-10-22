@@ -136,7 +136,7 @@ namespace orion
 
         void reset_command_pool(CommandPoolHandle command_pool);
         void reset_command_buffer(CommandBufferHandle command_buffer);
-        void compile_commands(CommandBufferHandle command_buffer, const CommandList& command_list);
+        void compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands);
 
         void submit(const SubmitDesc& desc);
 
@@ -145,7 +145,7 @@ namespace orion
         {
             const auto command_buffer = default_command_buffer();
             const auto command_list = create_command_list_fn();
-            compile_commands(command_buffer, command_list);
+            compile_commands(command_buffer, command_list.commands());
             const auto fence = default_fence();
             const auto submit_desc = SubmitDesc{
                 .queue_type = CommandQueueType::Any,
@@ -215,7 +215,7 @@ namespace orion
 
         virtual void reset_command_pool_api(CommandPoolHandle command_pool) = 0;
         virtual void reset_command_buffer_api(CommandBufferHandle command_buffer) = 0;
-        virtual void compile_commands_api(CommandBufferHandle command_buffer, const CommandList& command_list) = 0;
+        virtual void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) = 0;
 
         virtual void submit_api(const SubmitDesc& desc) = 0;
         virtual void present_api(const SwapchainPresentDesc& desc) = 0;

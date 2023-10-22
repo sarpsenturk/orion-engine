@@ -6,31 +6,6 @@
 
 namespace orion::vulkan
 {
-    // Internal helpers
-    namespace
-    {
-        bool check_extensions_supported(std::span<const char* const> enabled_extensions, std::span<const VkExtensionProperties> supported_extensions)
-        {
-            for (const char* extension : enabled_extensions) {
-                const auto pred = [extension](const VkExtensionProperties& extension_properties) { return std::strcmp(extension, extension_properties.extensionName) == 0; };
-                const auto supported = std::ranges::find_if(supported_extensions, pred) != supported_extensions.end();
-                if (!supported) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        std::vector<VkExtensionProperties> get_supported_device_extensions(VkPhysicalDevice physical_device)
-        {
-            std::uint32_t count = 0;
-            vk_result_check(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, nullptr));
-            std::vector<VkExtensionProperties> extensions(count);
-            vk_result_check(vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &count, extensions.data()));
-            return extensions;
-        }
-    } // namespace
-
     void InstanceDeleter::operator()(VkInstance instance) const
     {
         vkDestroyInstance(instance, alloc_callbacks());

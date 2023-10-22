@@ -62,13 +62,13 @@ namespace orion::vulkan
     {
         switch (queue_type) {
             case CommandQueueType::Transfer:
-                return queues_.transfer.index;
+                return queues_.transfer.family;
             case CommandQueueType::Compute:
-                return queues_.compute.index;
+                return queues_.compute.family;
             case CommandQueueType::Graphics:
                 [[fallthrough]];
             case CommandQueueType::Any:
-                return queues_.graphics.index;
+                return queues_.graphics.family;
         }
         ORION_ASSERT(!"Invalid queue type");
         return UINT32_MAX;
@@ -150,9 +150,11 @@ namespace orion::vulkan
         std::vector<VkAttachmentDescription> attachments(attachment_count);
         auto iter = attachments.begin();
         iter = std::ranges::transform(attachment_list.color_attachments, iter, to_attachment).out;
+        std::ranges::transform(attachment_list.input_attachments, iter, to_attachment);
 
         // Get attachment index offsets
-        const auto color_attachment_offset = 0;
+        const auto color_attachment_offset = 0u;
+        const auto input_attachment_offset = static_cast<std::uint32_t>(attachment_list.color_attachments.size());
 
         // Convert attachment
         auto to_attachment_ref = [](std::uint32_t attachment_offset) {
@@ -168,14 +170,17 @@ namespace orion::vulkan
         std::vector<VkAttachmentReference> color_attachments(attachment_list.color_attachments.size());
         std::ranges::transform(attachment_list.color_attachments, color_attachments.begin(), to_attachment_ref(color_attachment_offset));
 
+        std::vector<VkAttachmentReference> input_attachments(attachment_list.input_attachments.size());
+        std::ranges::transform(attachment_list.input_attachments, input_attachments.begin(), to_attachment_ref(input_attachment_offset));
+
         // Create render pass
         VkRenderPass render_pass = VK_NULL_HANDLE;
         {
             const auto subpass = VkSubpassDescription{
                 .flags = 0,
                 .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                .inputAttachmentCount = 0,
-                .pInputAttachments = nullptr,
+                .inputAttachmentCount = static_cast<std::uint32_t>(input_attachments.size()),
+                .pInputAttachments = input_attachments.data(),
                 .colorAttachmentCount = static_cast<std::uint32_t>(color_attachments.size()),
                 .pColorAttachments = color_attachments.data(),
                 .pResolveAttachments = nullptr,
@@ -996,7 +1001,7 @@ namespace orion::vulkan
         vkResetCommandBuffer(command_buffers_.handle_at(command_buffer), 0);
     }
 
-    void VulkanDevice::compile_commands_api(CommandBufferHandle command_buffer, const CommandList& command_list)
+    void VulkanDevice::compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
     {
         // Find command buffer
         VkCommandBuffer vk_command_buffer = command_buffers_.handle_at(command_buffer);
@@ -1012,7 +1017,7 @@ namespace orion::vulkan
 
         // Compile commands
         reset_draw_state();
-        for (const auto& command : command_list.commands()) {
+        for (const auto& command : commands) {
             compile_command(vk_command_buffer, command);
         }
 

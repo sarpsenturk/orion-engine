@@ -37,9 +37,9 @@ namespace orion::vulkan
         [[nodiscard]] VkQueue graphics_queue() const noexcept { return queues_.graphics.queue; }
         [[nodiscard]] VkQueue transfer_queue() const noexcept { return queues_.transfer.queue; }
         [[nodiscard]] VkQueue compute_queue() const noexcept { return queues_.compute.queue; }
-        [[nodiscard]] std::uint32_t graphics_queue_family() const noexcept { return queues_.graphics.index; }
-        [[nodiscard]] std::uint32_t transfer_queue_family() const noexcept { return queues_.transfer.index; }
-        [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.index; }
+        [[nodiscard]] std::uint32_t graphics_queue_family() const noexcept { return queues_.graphics.family; }
+        [[nodiscard]] std::uint32_t transfer_queue_family() const noexcept { return queues_.transfer.family; }
+        [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.family; }
 
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
@@ -91,7 +91,7 @@ namespace orion::vulkan
 
         void reset_command_pool_api(CommandPoolHandle command_pool) override;
         void reset_command_buffer_api(CommandBufferHandle command_buffer) override;
-        void compile_commands_api(CommandBufferHandle command_buffer, const CommandList& command_list) override;
+        void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) override;
 
         void submit_api(const SubmitDesc& desc) override;
         void present_api(const SwapchainPresentDesc& desc) override;

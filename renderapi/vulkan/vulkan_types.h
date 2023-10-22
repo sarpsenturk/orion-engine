@@ -2,17 +2,14 @@
 
 #include "vulkan_headers.h"
 
-#include <orion-math/vector/vector2.h>
-
 #include <memory>
 #include <span>
-#include <vector>
 
 namespace orion::vulkan
 {
     struct VulkanQueues {
         struct Queue {
-            std::uint32_t index;
+            std::uint32_t family;
             VkQueue queue;
         };
 

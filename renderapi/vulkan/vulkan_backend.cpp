@@ -285,15 +285,15 @@ namespace orion::vulkan
         // Return the vulkan device
         const auto vulkan_queues = VulkanQueues{
             .graphics = {
-                .index = graphics_queue_index,
+                .family = graphics_queue_index,
                 .queue = graphics_queue,
             },
             .compute = {
-                .index = compute_queue_index,
+                .family = compute_queue_index,
                 .queue = compute_queue,
             },
             .transfer = {
-                .index = transfer_queue_index,
+                .family = transfer_queue_index,
                 .queue = transfer_queue,
             },
         };

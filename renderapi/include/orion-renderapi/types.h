@@ -322,10 +322,11 @@ namespace orion
 
     struct AttachmentList {
         std::span<const AttachmentDesc> color_attachments;
+        std::span<const AttachmentDesc> input_attachments;
 
         [[nodiscard]] auto attachment_count() const noexcept
         {
-            return color_attachments.size();
+            return color_attachments.size() + input_attachments.size();
         }
     };
 
