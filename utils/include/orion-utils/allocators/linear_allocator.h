@@ -11,6 +11,11 @@ namespace orion
     class LinearAllocator
     {
     public:
+        LinearAllocator()
+            : buffer_(0)
+        {
+        }
+
         explicit LinearAllocator(std::size_t max_size)
             : buffer_(max_size)
         {
@@ -29,6 +34,7 @@ namespace orion
             , end_(buffer_.data() + buffer_.capacity())
         {
         }
+
         LinearAllocator& operator=(const LinearAllocator& other)
         {
             if (&other != this) {

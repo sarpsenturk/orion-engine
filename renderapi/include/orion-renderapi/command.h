@@ -64,6 +64,7 @@ namespace orion
     class CommandList
     {
     public:
+        CommandList() = default;
         explicit CommandList(std::size_t max_size);
 
         template<typename Command>
