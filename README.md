@@ -1,7 +1,7 @@
 # Orion Engine
 
 The Orion Engine is a modern, cross-platform game engine written in C++ 20.
-It is designed with to be fast and easy to use.
+It is designed to be fast and easy to use.
 
 ## Features
 
@@ -41,8 +41,8 @@ Here's the list of platforms that are planned to be supported:
 - [ ] Linux
 - [ ] macOS
 
-Only x86 is supported at this time however ARM support is
-planned for flavors of Linux, Apple M1, M2 chips and mobile.
+Only x86-64 is supported at this time however ARM support is
+planned for flavors of Linux, Apple Silicon chips and mobile.
 
 ## Graphics API Support
 
