@@ -52,8 +52,7 @@ namespace orion::vulkan
         [[nodiscard]] VkRenderPass create_vkrender_pass(const AttachmentList& attachment_list) const;
 
         // Interface Overrides
-        SurfaceHandle create_surface_api(const Window& window) override;
-        SwapchainHandle create_swapchain_api(const SwapchainDesc& desc) override;
+        std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
@@ -69,8 +68,6 @@ namespace orion::vulkan
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
 
-        void destroy_api(SurfaceHandle surface_handle) override;
-        void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(RenderPassHandle render_pass_handle) override;
         void destroy_api(FramebufferHandle framebuffer_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
@@ -94,7 +91,6 @@ namespace orion::vulkan
         void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) override;
 
         void submit_api(const SubmitDesc& desc) override;
-        void present_api(const SwapchainPresentDesc& desc) override;
 
         void wait_for_fence_api(FenceHandle fence) override;
         void wait_queue_idle_api(CommandQueueType queue_type) override;
@@ -102,12 +98,11 @@ namespace orion::vulkan
 
         void update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates) override;
 
-        uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) override;
-        ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) override;
-
         DrawState draw_state_;
         void reset_draw_state();
         void update_draw_state(VkCommandBuffer command_buffer, const DrawState& new_state);
+
+        VkSwapchainKHR create_swapchain_for_surface(VkSurfaceKHR surface, const SwapchainDesc& desc);
 
         void compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet);
         void cmd_copy_buffer(VkCommandBuffer command_buffer, const void* data);
@@ -129,8 +124,6 @@ namespace orion::vulkan
 
         std::unordered_map<std::size_t, VmaAllocation> allocations_;
 
-        VulkanStore<SurfaceHandle, UniqueVkSurfaceKHR> surfaces_;
-        VulkanStore<SwapchainHandle, UniqueVkSwapchainKHR, SwapchainData> swapchains_;
         VulkanStore<ImageHandle, UniqueVkImage> images_;
         VulkanStore<ImageViewHandle, UniqueVkImageView> image_views_;
         VulkanStore<RenderPassHandle, UniqueVkRenderPass> render_passes_;

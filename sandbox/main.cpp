@@ -2,15 +2,9 @@
 
 #include <orion-core/window.h>
 
-#include <orion-renderer/colors.h>
 #include <orion-renderer/renderer.h>
 
 #include <orion-math/vector/vector3.h>
-
-#include <orion-scene/components.h>
-#include <orion-scene/scene.h>
-
-#include <imgui.h>
 
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
@@ -26,10 +20,16 @@ public:
         , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = window_size})
     {
         window_.on_close().subscribe([this](const auto&) { exit_application(); });
+
+        // Create swapchain
+        swapchain_ = renderer_.device()->create_swapchain({
+            .window = &window_,
+            .image_size = window_size,
+        });
     }
 
 private:
-    void on_user_update([[maybe_unused]] orion::frame_time dt) override
+    void on_user_update([[maybe_unused]] orion::frame_time delta_time) override
     {
         window_.poll_events();
     }
@@ -43,6 +43,7 @@ private:
 
     orion::Window window_;
     orion::Renderer renderer_;
+    std::unique_ptr<orion::Swapchain> swapchain_;
 };
 
 ORION_MAIN(args)

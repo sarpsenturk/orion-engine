@@ -33,18 +33,12 @@ namespace orion
         return default_fence_;
     }
 
-    SurfaceHandle RenderDevice::create_surface(const Window& window)
+    std::unique_ptr<Swapchain> RenderDevice::create_swapchain(const SwapchainDesc& desc)
     {
-        auto handle = create_surface_api(window);
-        SPDLOG_LOGGER_DEBUG(logger(), "Create surface {}", handle);
-        return handle;
-    }
-
-    SwapchainHandle RenderDevice::create_swapchain(const SwapchainDesc& desc)
-    {
-        auto handle = create_swapchain_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain with handle {}", handle);
-        return handle;
+        ORION_EXPECTS(desc.window != nullptr);
+        auto swapchain = create_swapchain_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain interface at {}", fmt::ptr(swapchain));
+        return swapchain;
     }
 
     RenderPassHandle RenderDevice::create_render_pass(const RenderPassDesc& desc)
@@ -143,18 +137,6 @@ namespace orion
         auto handle = create_sampler_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created sampler {}", handle);
         return handle;
-    }
-
-    void RenderDevice::destroy(SurfaceHandle surface_handle)
-    {
-        destroy_api(surface_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed surface {}", surface_handle);
-    }
-
-    void RenderDevice::destroy(SwapchainHandle swapchain_handle)
-    {
-        destroy_api(swapchain_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed swapchain {}", swapchain_handle);
     }
 
     void RenderDevice::destroy(RenderPassHandle render_pass_handle)
@@ -271,11 +253,6 @@ namespace orion
         submit_api(desc);
     }
 
-    void RenderDevice::present(const SwapchainPresentDesc& desc)
-    {
-        present_api(desc);
-    }
-
     void RenderDevice::wait_for_fence(FenceHandle fence)
     {
         wait_for_fence_api(fence);
@@ -294,15 +271,5 @@ namespace orion
     void RenderDevice::update_descriptor_sets(std::span<const DescriptorSetUpdate> updates)
     {
         update_descriptor_sets_api(updates);
-    }
-
-    std::uint32_t RenderDevice::acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)
-    {
-        return acquire_next_image_api(swapchain, semaphore, fence);
-    }
-
-    ImageHandle RenderDevice::get_swapchain_image(SwapchainHandle swapchain, std::uint32_t image_index)
-    {
-        return get_swapchain_image_api(swapchain, image_index);
     }
 } // namespace orion

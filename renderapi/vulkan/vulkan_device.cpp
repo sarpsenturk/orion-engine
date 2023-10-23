@@ -2,6 +2,7 @@
 
 #include "vulkan_conversion.h"
 #include "vulkan_platform.h"
+#include "vulkan_swapchain.h"
 
 #include "orion-utils/assertion.h"
 #include "orion-utils/static_vector.h"
@@ -218,87 +219,15 @@ namespace orion::vulkan
         return render_pass;
     }
 
-    SurfaceHandle VulkanDevice::create_surface_api(const Window& window)
+    std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(const SwapchainDesc& desc)
     {
-        VkSurfaceKHR surface = create_platform_surface(instance_, window);
-        const auto handle = SurfaceHandle::generate();
-        surfaces_.add(handle, unique(surface, instance_));
-        return handle;
-    }
+        // Create surface
+        VkSurfaceKHR surface = create_platform_surface(instance_, *desc.window);
 
-    SwapchainHandle VulkanDevice::create_swapchain_api(const SwapchainDesc& desc)
-    {
-        // Generate handle for swapchain and surface
-        auto handle = SwapchainHandle::generate();
+        // Create swapchain
+        VkSwapchainKHR swapchain = create_swapchain_for_surface(surface, desc);
 
-        // Find surface
-        VkSurfaceKHR surface = surfaces_.handle_at(desc.surface);
-
-        // Chose present mode TODO: Allow user to select this
-        const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
-
-        // Select format
-        const auto format = to_vulkan_type(desc.image_format);
-
-        // Create the swapchain
-        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-        {
-            // Get the surface capabilities
-            const auto surface_capabilities = [physical_device = physical_device_, &surface]() {
-                VkSurfaceCapabilitiesKHR surface_capabilities;
-                vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities));
-                return surface_capabilities;
-            }();
-
-            // Find set of queue families to be used
-            auto queue_types = std::vector{CommandQueueType::Graphics};
-            const auto has_transfer = !!(desc.image_usage & ImageUsageFlags::Transfer);
-            if (has_transfer) {
-                queue_types.push_back(CommandQueueType::Transfer);
-            }
-            const auto queue_families = get_unique_queue_families(queue_types);
-            const auto sharing_mode = queue_families.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
-
-            const auto info = VkSwapchainCreateInfoKHR{
-                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                .pNext = nullptr,
-                .flags = 0,
-                .surface = surface,
-                .minImageCount = desc.image_count,
-                .imageFormat = format,
-                .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
-                .imageExtent = to_vulkan_extent(desc.image_size),
-                .imageArrayLayers = 1,
-                .imageUsage = to_vulkan_type(desc.image_usage),
-                .imageSharingMode = sharing_mode,
-                .queueFamilyIndexCount = static_cast<std::uint32_t>(queue_families.size()),
-                .pQueueFamilyIndices = queue_families.data(),
-                .preTransform = surface_capabilities.currentTransform,
-                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                .presentMode = present_mode,
-                .clipped = VK_TRUE,
-                .oldSwapchain = VK_NULL_HANDLE,
-            };
-            vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &swapchain));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchain {}", fmt::ptr(swapchain));
-        }
-
-        std::vector<ImageHandle> image_handles;
-        // Get swapchain images
-        {
-            std::uint32_t image_count = 0;
-            vk_result_check(vkGetSwapchainImagesKHR(device(), swapchain, &image_count, nullptr));
-            std::vector<VkImage> images(image_count);
-            vk_result_check(vkGetSwapchainImagesKHR(device(), swapchain, &image_count, images.data()));
-            for (VkImage image : images) {
-                const auto image_handle = ImageHandle::generate();
-                images_.add(image_handle, unique(image, VK_NULL_HANDLE, VK_NULL_HANDLE, false));
-                image_handles.push_back(image_handle);
-            }
-        }
-
-        swapchains_.add(handle, unique(swapchain, device()), {image_handles});
-        return handle;
+        return std::make_unique<VulkanSwapchain>(this, unique(surface, instance_), unique(swapchain, device()));
     }
 
     RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
@@ -896,16 +825,6 @@ namespace orion::vulkan
         return handle;
     }
 
-    void VulkanDevice::destroy_api(SurfaceHandle surface_handle)
-    {
-        surfaces_.remove(surface_handle);
-    }
-
-    void VulkanDevice::destroy_api(SwapchainHandle swapchain_handle)
-    {
-        swapchains_.remove(swapchain_handle);
-    }
-
     void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
     {
         render_passes_.remove(render_pass_handle);
@@ -1064,31 +983,6 @@ namespace orion::vulkan
         vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1, &submit_info, signal_fence));
     }
 
-    void VulkanDevice::present_api(const SwapchainPresentDesc& desc)
-    {
-        // Find presentation queue
-        VkQueue present_queue = get_queue(CommandQueueType::Graphics);
-
-        // Find swapchain and resources
-        VkSwapchainKHR swapchain = swapchains_.handle_at(desc.swapchain);
-
-        // Wait semaphore
-        VkSemaphore semaphore = semaphores_.handle_at(desc.wait_semaphore);
-
-        // Present image
-        const VkPresentInfoKHR present_info{
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .pNext = nullptr,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &semaphore,
-            .swapchainCount = 1,
-            .pSwapchains = &swapchain,
-            .pImageIndices = &desc.image_index,
-            .pResults = nullptr,
-        };
-        vk_result_check(vkQueuePresentKHR(present_queue, &present_info), {VK_SUCCESS, VK_SUBOPTIMAL_KHR});
-    }
-
     void VulkanDevice::wait_for_fence_api(FenceHandle fence)
     {
         VkFence vk_fence = fences_.handle_at(fence);
@@ -1160,32 +1054,6 @@ namespace orion::vulkan
             0u, nullptr);
     }
 
-    uint32_t VulkanDevice::acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence)
-    {
-        // Find swapchain
-        VkSwapchainKHR vk_swapchain = swapchains_.handle_at(swapchain);
-
-        // Find semaphore and fence if valid
-        VkSemaphore vk_semaphore = semaphore.is_valid() ? semaphores_.handle_at(semaphore) : VK_NULL_HANDLE;
-        VkFence vk_fence = fence.is_valid() ? fences_.handle_at(fence) : VK_NULL_HANDLE;
-
-        // Get image index
-        std::uint32_t image_index = 0;
-        vk_result_check(
-            vkAcquireNextImageKHR(device(), vk_swapchain, UINT64_MAX, vk_semaphore, vk_fence, &image_index),
-            {VK_SUCCESS, VK_SUBOPTIMAL_KHR});
-        return image_index;
-    }
-
-    ImageHandle VulkanDevice::get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index)
-    {
-        // Find swapchain images
-        const auto& images = swapchains_.data_at(swapchain).images;
-
-        // Return image at index
-        return images[image_index];
-    }
-
     void VulkanDevice::reset_draw_state()
     {
         draw_state_ = {};
@@ -1215,6 +1083,42 @@ namespace orion::vulkan
             const auto scissor = to_vulkan_rect(new_state.scissor);
             vkCmdSetScissor(command_buffer, 0, 1, &scissor);
         }
+    }
+
+    VkSwapchainKHR VulkanDevice::create_swapchain_for_surface(VkSurfaceKHR surface, const SwapchainDesc& desc)
+    {
+        // Get surface capabilities
+        VkSurfaceCapabilitiesKHR surface_capabilities;
+        vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface, &surface_capabilities));
+
+        // TODO: Allow present mode to be customized
+        const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
+
+        // Create swapchain
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+        {
+            const auto info = VkSwapchainCreateInfoKHR{
+                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                .pNext = nullptr,
+                .flags = 0,
+                .surface = surface,
+                .minImageCount = desc.image_count,
+                .imageFormat = to_vulkan_type(desc.image_format),
+                .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+                .imageExtent = to_vulkan_extent(desc.image_size),
+                .imageArrayLayers = 1,
+                .imageUsage = to_vulkan_type(desc.image_usage),
+                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                .preTransform = surface_capabilities.currentTransform,
+                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+                .presentMode = present_mode,
+                .clipped = VK_TRUE,
+                .oldSwapchain = VK_NULL_HANDLE,
+            };
+            vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &swapchain));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchain {}", fmt::ptr(swapchain));
+        }
+        return swapchain;
     }
 
     void VulkanDevice::compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet)

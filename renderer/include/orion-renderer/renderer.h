@@ -38,7 +38,6 @@ namespace orion
 
         void begin();
         void end();
-        void present(SwapchainHandle swapchain);
 
     private:
         struct FrameData {
@@ -56,7 +55,6 @@ namespace orion
         static constexpr auto render_command_size = 2048ull;
 
         static spdlog::logger* logger();
-        static AttachmentList present_attachment_list();
 
         [[nodiscard]] FrameData& current_frame() noexcept { return frames_[current_frame_index_]; }
         [[nodiscard]] const FrameData& current_frame() const noexcept { return frames_[current_frame_index_]; }
@@ -67,8 +65,6 @@ namespace orion
 
         std::unique_ptr<RenderBackend> create_render_backend() const;
         std::unique_ptr<RenderDevice> create_render_device(pfnSelectPhysicalDevice device_select_fn) const;
-        PipelineHandle create_present_pipeline() const;
-        RenderPassHandle create_present_render_pass() const;
         FrameDataArr create_frame_data() const;
 
         Module backend_module_;

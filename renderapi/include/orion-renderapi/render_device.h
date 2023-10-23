@@ -2,6 +2,7 @@
 
 #include "command.h"
 #include "handles.h"
+#include "swapchain.h"
 #include "types.h"
 
 #include <memory>
@@ -39,8 +40,6 @@ namespace orion
     template<typename Tag>
     using unique_device_resource = std::unique_ptr<Handle<Tag>, ResourceDeleter<Tag>>;
 
-    using UniqueSurface = unique_device_resource<SurfaceHandle_tag>;
-    using UniqueSwapchain = unique_device_resource<SwapchainHandle_tag>;
     using UniqueRenderPass = unique_device_resource<RenderPassHandle_tag>;
     using UniqueFramebuffer = unique_device_resource<FramebufferHandle_tag>;
     using UniqueShaderModule = unique_device_resource<ShaderModuleHandle_tag>;
@@ -68,8 +67,7 @@ namespace orion
         [[nodiscard]] CommandBufferHandle default_command_buffer();
         [[nodiscard]] FenceHandle default_fence();
 
-        [[nodiscard]] SurfaceHandle create_surface(const Window& window);
-        [[nodiscard]] SwapchainHandle create_swapchain(const SwapchainDesc& desc);
+        [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
         [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
@@ -85,8 +83,6 @@ namespace orion
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
         [[nodiscard]] SamplerHandle create_sampler(const SamplerDesc& desc);
 
-        [[nodiscard]] SurfaceHandle create(SurfaceHandle_tag, const Window& window) { return create_surface(window); }
-        [[nodiscard]] SwapchainHandle create(SwapchainHandle_tag, const SwapchainDesc& desc) { return create_swapchain(desc); }
         [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
         [[nodiscard]] ShaderModuleHandle create(ShaderModuleHandle_tag, const ShaderModuleDesc& desc) { return create_shader_module(desc); }
@@ -114,8 +110,6 @@ namespace orion
             return unique_device_resource<Tag>{handle, {this}};
         }
 
-        void destroy(SurfaceHandle surface_handle);
-        void destroy(SwapchainHandle swapchain_handle);
         void destroy(RenderPassHandle render_pass_handle);
         void destroy(FramebufferHandle framebuffer_handle);
         void destroy(ShaderModuleHandle shader_module_handle);
@@ -156,16 +150,11 @@ namespace orion
             wait_for_fence(fence);
         }
 
-        void present(const SwapchainPresentDesc& desc);
-
         void wait_for_fence(FenceHandle fence);
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
         void update_descriptor_sets(std::span<const DescriptorSetUpdate> updates);
-
-        std::uint32_t acquire_next_image(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence);
-        ImageHandle get_swapchain_image(SwapchainHandle swapchain, std::uint32_t image_index);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
@@ -176,8 +165,7 @@ namespace orion
         RenderDevice& operator=(RenderDevice&&) noexcept = default;
 
     private:
-        [[nodiscard]] virtual SurfaceHandle create_surface_api(const Window& window) = 0;
-        [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const SwapchainDesc& desc) = 0;
+        [[nodiscard]] virtual std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) = 0;
         [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
         [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;
@@ -193,8 +181,6 @@ namespace orion
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
         [[nodiscard]] virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
 
-        virtual void destroy_api(SurfaceHandle surface_handle) = 0;
-        virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
@@ -218,16 +204,12 @@ namespace orion
         virtual void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) = 0;
 
         virtual void submit_api(const SubmitDesc& desc) = 0;
-        virtual void present_api(const SwapchainPresentDesc& desc) = 0;
 
         virtual void wait_for_fence_api(FenceHandle fence) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 
         virtual void update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates) = 0;
-
-        virtual std::uint32_t acquire_next_image_api(SwapchainHandle swapchain, SemaphoreHandle semaphore, FenceHandle fence) = 0;
-        virtual ImageHandle get_swapchain_image_api(SwapchainHandle swapchain, std::uint32_t image_index) = 0;
 
         spdlog::logger* logger_;
 

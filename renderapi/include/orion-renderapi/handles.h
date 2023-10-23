@@ -11,8 +11,6 @@
 namespace orion
 {
     using render_device_key_t = std::uint64_t;
-    ORION_DEFINE_HANDLE(SurfaceHandle, render_device_key_t);
-    ORION_DEFINE_HANDLE(SwapchainHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(RenderPassHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(ShaderModuleHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(PipelineHandle, render_device_key_t);
