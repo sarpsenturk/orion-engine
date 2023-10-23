@@ -9,7 +9,7 @@ namespace orion
     template<typename T>
     [[nodiscard]] constexpr Matrix4_t<T> orthographic_rh(T left, T right, T bottom, T top, T near, T far)
     {
-        Matrix4_f projection = Matrix4_f::identity();
+        auto projection = Matrix4_t<T>::identity();
         projection[0][0] = T{2} / (right - left);
         projection[1][1] = T{2} / (top - bottom);
         projection[2][2] = -T{2} / (far - near);
@@ -22,7 +22,7 @@ namespace orion
     template<typename T>
     [[nodiscard]] constexpr Matrix4_t<T> orthographic_lh(T left, T right, T bottom, T top, T near, T far)
     {
-        Matrix4_f projection = Matrix4_f::identity();
+        auto projection = Matrix4_t<T>::identity();
         projection[0][0] = T{2} / (right - left);
         projection[1][1] = T{2} / (top - bottom);
         projection[2][2] = T{2} / (far - near);

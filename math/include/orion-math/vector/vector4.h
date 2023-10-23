@@ -2,7 +2,7 @@
 
 #include "vector.h"
 
-#include <cstdint> // std::int32_t, std::uint32_t
+#include <cstdint>
 
 namespace orion
 {
@@ -13,6 +13,12 @@ namespace orion
     using Vector4_u = Vector4_t<std::uint32_t>;
     using Vector4_f = Vector4_t<std::float_t>;
     using Vector4_d = Vector4_t<std::double_t>;
+
+    template<typename T>
+    [[nodiscard]] constexpr Vector4_t<T> vec4(T x, T y, T z, T w)
+    {
+        return {x, y, z, w};
+    }
 
     template<typename T>
     [[nodiscard]] constexpr Vector4_t<T> vec4(const Vector<T, 2>& vector2, T z_value, T w_value)

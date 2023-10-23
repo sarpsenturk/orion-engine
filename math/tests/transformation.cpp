@@ -19,7 +19,7 @@ namespace
         const auto vector = orion::Vector3_f{1.f, 2.f, 3.f};
         const auto scaling = orion::scaling(2.f, 2.f, 2.f);
         const auto transformed = orion::transform(vector, scaling);
-        const orion::Vector3 expected{2.f, 4.f, 6.f};
+        const auto expected = orion::vec3(2.f, 4.f, 6.f);
         EXPECT_EQ(transformed, expected);
     }
 
@@ -28,7 +28,7 @@ namespace
         const auto vector = orion::Vector3_f{1.f, 2.f, 3.f};
         const auto translation = orion::translation(3.f, 3.f, 3.f);
         const auto transformed = orion::transform(vector, translation);
-        const orion::Vector3 expected{4.f, 5.f, 6.f};
+        const auto expected = orion::vec3(4.f, 5.f, 6.f);
         EXPECT_EQ(transformed, expected);
     }
 
@@ -77,10 +77,10 @@ namespace
 
     TEST(Transformation, LookAtLH)
     {
-        const orion::Vector3 position{0, 0, 0};
-        const orion::Vector3 eye{1, 0, -1};
-        const orion::Vector3 target{eye + orion::Vector3{0, 0, 1}};
-        const orion::Vector3 up{0, 1, 0};
+        const auto position = orion::vec3(0.f, 0.f, 0.f);
+        const auto eye = orion::vec3(1.f, 0.f, -1.f);
+        const auto target{eye + orion::vec3(0.f, 0.f, 1.f)};
+        const auto up = orion::vec3(0.f, 1.f, 0.f);
         const auto view = orion::lookat_lh(eye, target, up);
         const auto position_view_space = orion::transform(position, view);
         EXPECT_NEAR(position_view_space.x(), -1, acceptable_error);

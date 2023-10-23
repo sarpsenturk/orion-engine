@@ -1,18 +1,19 @@
 #pragma once
 
-#include "orion-math/concepts.h" // arithmetic
-#include "orion-math/sqrt.h"     // orion::sqrt
+#include "orion-math/concepts.h"
+#include "orion-math/sqrt.h"
+
 #include "orion-utils/functors.h"
 
-#include <algorithm>   // std::ranges::transform, std::ranges::for_each, std::accumulate
-#include <array>       // std::array
-#include <concepts>    // std::floating_point
-#include <cstddef>     // std::size_t, std::ptrdiff_t
-#include <iterator>    // std::prev
-#include <numeric>     // std::transform_reduce, std::inner_product
-#include <ranges>      // std::ranges::input_range, std::ranges::begin, std::ranges::end
-#include <stdexcept>   // std::out_of_range
-#include <type_traits> // std::common_type, std::is_same_v
+#include <algorithm>
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <iterator>
+#include <numeric>
+#include <ranges>
+#include <stdexcept>
+#include <type_traits>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -169,8 +170,7 @@ namespace orion
     template<typename T, std::size_t N>
     [[nodiscard]] constexpr auto dot(const Vector<T, N>& lhs, const Vector<T, N>& rhs) noexcept
     {
-        using value_type = typename Vector<T, N>::value_type;
-        return std::inner_product(lhs.begin(), lhs.end(), rhs.begin(), value_type{});
+        return std::inner_product(lhs.begin(), lhs.end(), rhs.begin(), T{});
     }
 
     template<typename T>
