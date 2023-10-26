@@ -3,5 +3,6 @@ target_sources(
         command.cpp
         render_backend.cpp
         render_device.cpp
+        swapchain.cpp
         types.cpp
 )

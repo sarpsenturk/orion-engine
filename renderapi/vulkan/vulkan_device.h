@@ -33,7 +33,6 @@ namespace orion::vulkan
 
         [[nodiscard]] ShaderObjectType shader_object_type() const noexcept override { return ShaderObjectType::SpirV; }
 
-    private:
         [[nodiscard]] VkQueue graphics_queue() const noexcept { return queues_.graphics.queue; }
         [[nodiscard]] VkQueue transfer_queue() const noexcept { return queues_.transfer.queue; }
         [[nodiscard]] VkQueue compute_queue() const noexcept { return queues_.compute.queue; }
@@ -41,6 +40,9 @@ namespace orion::vulkan
         [[nodiscard]] std::uint32_t transfer_queue_family() const noexcept { return queues_.transfer.family; }
         [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.family; }
 
+        [[nodiscard]] VkSemaphore create_vk_semaphore();
+
+    private:
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
 

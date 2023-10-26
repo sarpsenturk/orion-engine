@@ -36,6 +36,7 @@ private:
 
     void on_user_render() override
     {
+        swapchain_->present();
     }
 
     static constexpr auto window_position = orion::WindowPosition{400, 200};

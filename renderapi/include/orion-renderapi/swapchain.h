@@ -2,6 +2,8 @@
 
 #include "handles.h"
 
+#include <cstdint>
+
 namespace orion
 {
     class Swapchain
@@ -10,6 +12,9 @@ namespace orion
         Swapchain() = default;
         virtual ~Swapchain() = default;
 
+        std::uint32_t current_image_index();
+        void present();
+
     protected:
         Swapchain(const Swapchain&) = default;
         Swapchain(Swapchain&&) noexcept = default;
@@ -17,5 +22,7 @@ namespace orion
         Swapchain& operator=(Swapchain&&) noexcept = default;
 
     private:
+        virtual std::uint32_t current_image_index_api() = 0;
+        virtual void present_api() = 0;
     };
 } // namespace orion

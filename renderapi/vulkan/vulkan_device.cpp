@@ -22,7 +22,7 @@ namespace orion::vulkan
         , device_(std::move(device))
         , queues_(queues)
     {
-        const VmaAllocatorCreateInfo allocator_info{
+        const auto allocator_info = VmaAllocatorCreateInfo{
             .flags = 0,
             .physicalDevice = physical_device,
             .device = this->device(),
@@ -114,7 +114,7 @@ namespace orion::vulkan
         // Create descriptor set layout
         VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
         {
-            const VkDescriptorSetLayoutCreateInfo info{
+            const auto info = VkDescriptorSetLayoutCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
@@ -285,7 +285,7 @@ namespace orion::vulkan
         // Create shader module
         VkShaderModule shader_module = VK_NULL_HANDLE;
         {
-            const VkShaderModuleCreateInfo info{
+            const auto info = VkShaderModuleCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
@@ -509,7 +509,7 @@ namespace orion::vulkan
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
         {
-            const VkGraphicsPipelineCreateInfo info{
+            const auto info = VkGraphicsPipelineCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
@@ -684,17 +684,7 @@ namespace orion::vulkan
 
     SemaphoreHandle VulkanDevice::create_semaphore_api()
     {
-        VkSemaphore semaphore = VK_NULL_HANDLE;
-        {
-            const auto info = VkSemaphoreCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-            };
-            vk_result_check(vkCreateSemaphore(device(), &info, alloc_callbacks(), &semaphore));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkSemaphore {}", fmt::ptr(semaphore));
-        }
-
+        VkSemaphore semaphore = create_vk_semaphore();
         auto handle = SemaphoreHandle::generate();
         semaphores_.add(handle, unique(semaphore, device()));
         return handle;
@@ -1405,5 +1395,20 @@ namespace orion::vulkan
             to_vulkan_type(cmd_data->dst_image_layout),
             1u,
             &copy);
+    }
+
+    VkSemaphore VulkanDevice::create_vk_semaphore()
+    {
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        {
+            const auto info = VkSemaphoreCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+            };
+            vk_result_check(vkCreateSemaphore(device(), &info, alloc_callbacks(), &semaphore));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkSemaphore {}", fmt::ptr(semaphore));
+        }
+        return semaphore;
     }
 } // namespace orion::vulkan
