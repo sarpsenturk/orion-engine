@@ -1,5 +1,7 @@
 #include "vulkan_swapchain.h"
 
+#include "vulkan_conversion.h"
+
 namespace orion::vulkan
 {
     VulkanSwapchain::VulkanSwapchain(VulkanDevice* device, UniqueVkSurfaceKHR surface, UniqueVkSwapchainKHR swapchain)
@@ -7,7 +9,7 @@ namespace orion::vulkan
         , surface_(std::move(surface))
         , swapchain_(std::move(swapchain))
         , images_(acquire_swapchain_images())
-        , image_semaphore_(device->create_vk_semaphore())
+        , image_semaphore_(device->create_vk_semaphore(), SemaphoreDeleter{device->device()})
     {
     }
 
@@ -17,6 +19,25 @@ namespace orion::vulkan
             vk_result_check(vkAcquireNextImageKHR(device_->device(), swapchain_.get(), UINT64_MAX, image_semaphore_.get(), VK_NULL_HANDLE, &image_index_));
         }
         return image_index_;
+    }
+
+    ImageHandle VulkanSwapchain::get_image_api(std::uint32_t image_index)
+    {
+        return orion::ImageHandle();
+    }
+
+    void VulkanSwapchain::resize_images_api(std::uint32_t image_count, Format image_format, const Vector2_u& image_size, ImageUsageFlags image_usage)
+    {
+        VkSwapchainKHR new_swapchain = device_->create_vk_swapchain({
+            .surface = surface_.get(),
+            .image_count = image_count,
+            .format = to_vulkan_type(image_format),
+            .extent = to_vulkan_extent(image_size),
+            .usage = to_vulkan_type(image_usage),
+            .present_mode = VK_PRESENT_MODE_FIFO_KHR, // TODO: Allow present mode to be changed
+            .old_swapchain = swapchain_.get(),
+        });
+        swapchain_.reset(new_swapchain);
     }
 
     void VulkanSwapchain::present_api()

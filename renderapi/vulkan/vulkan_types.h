@@ -223,4 +223,14 @@ namespace orion::vulkan
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
     UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation, bool application_owned);
     UniqueVkSampler unique(VkSampler sampler, VkDevice device);
+
+    struct VulkanSwapchainDesc {
+        VkSurfaceKHR surface;
+        std::uint32_t image_count;
+        VkFormat format;
+        VkExtent2D extent;
+        VkImageUsageFlags usage;
+        VkPresentModeKHR present_mode;
+        VkSwapchainKHR old_swapchain = VK_NULL_HANDLE;
+    };
 } // namespace orion::vulkan

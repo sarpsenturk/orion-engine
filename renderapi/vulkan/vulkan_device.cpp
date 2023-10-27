@@ -225,7 +225,14 @@ namespace orion::vulkan
         VkSurfaceKHR surface = create_platform_surface(instance_, *desc.window);
 
         // Create swapchain
-        VkSwapchainKHR swapchain = create_swapchain_for_surface(surface, desc);
+        VkSwapchainKHR swapchain = create_vk_swapchain({
+            .surface = surface,
+            .image_count = desc.image_count,
+            .format = to_vulkan_type(desc.image_format),
+            .extent = to_vulkan_extent(desc.image_size),
+            .usage = to_vulkan_type(desc.image_usage),
+            .present_mode = VK_PRESENT_MODE_FIFO_KHR, // TODO: Allow present mode to be changed
+        });
 
         return std::make_unique<VulkanSwapchain>(this, unique(surface, instance_), unique(swapchain, device()));
     }
@@ -1051,42 +1058,6 @@ namespace orion::vulkan
         }
     }
 
-    VkSwapchainKHR VulkanDevice::create_swapchain_for_surface(VkSurfaceKHR surface, const SwapchainDesc& desc)
-    {
-        // Get surface capabilities
-        VkSurfaceCapabilitiesKHR surface_capabilities;
-        vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface, &surface_capabilities));
-
-        // TODO: Allow present mode to be customized
-        const auto present_mode = VK_PRESENT_MODE_FIFO_KHR;
-
-        // Create swapchain
-        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-        {
-            const auto info = VkSwapchainCreateInfoKHR{
-                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                .pNext = nullptr,
-                .flags = 0,
-                .surface = surface,
-                .minImageCount = desc.image_count,
-                .imageFormat = to_vulkan_type(desc.image_format),
-                .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
-                .imageExtent = to_vulkan_extent(desc.image_size),
-                .imageArrayLayers = 1,
-                .imageUsage = to_vulkan_type(desc.image_usage),
-                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-                .preTransform = surface_capabilities.currentTransform,
-                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                .presentMode = present_mode,
-                .clipped = VK_TRUE,
-                .oldSwapchain = VK_NULL_HANDLE,
-            };
-            vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &swapchain));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchain {}", fmt::ptr(swapchain));
-        }
-        return swapchain;
-    }
-
     void VulkanDevice::compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet)
     {
         switch (command_packet.type) {
@@ -1419,5 +1390,37 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Allocated VkCommandBuffer {}", fmt::ptr(command_buffer));
         }
         return command_buffer;
+    }
+
+    VkSwapchainKHR VulkanDevice::create_vk_swapchain(const VulkanSwapchainDesc& desc)
+    {
+        // Get surface capabilities
+        VkSurfaceCapabilitiesKHR surface_capabilities;
+        vk_result_check(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, desc.surface, &surface_capabilities));
+        // Create swapchain
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+        {
+            const auto info = VkSwapchainCreateInfoKHR{
+                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                .pNext = nullptr,
+                .flags = 0,
+                .surface = desc.surface,
+                .minImageCount = desc.image_count,
+                .imageFormat = desc.format,
+                .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+                .imageExtent = desc.extent,
+                .imageArrayLayers = 1,
+                .imageUsage = desc.usage,
+                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                .preTransform = surface_capabilities.currentTransform,
+                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+                .presentMode = desc.present_mode,
+                .clipped = VK_TRUE,
+                .oldSwapchain = desc.old_swapchain,
+            };
+            vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &swapchain));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchain {}", fmt::ptr(swapchain));
+        }
+        return swapchain;
     }
 } // namespace orion::vulkan

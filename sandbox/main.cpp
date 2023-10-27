@@ -26,6 +26,9 @@ public:
             .window = &window_,
             .image_size = window_size,
         });
+        window_.on_resize_end().subscribe([this](const auto& resize) {
+            swapchain_->resize_images(2, orion::Format::B8G8R8A8_Srgb, resize.size, orion::ImageUsageFlags::ColorAttachment);
+        });
     }
 
 private:

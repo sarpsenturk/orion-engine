@@ -16,6 +16,8 @@ namespace orion::vulkan
         static constexpr auto request_next_image = UINT32_MAX;
 
         uint32_t current_image_index_api() override;
+        ImageHandle get_image_api(std::uint32_t image_index) override;
+        void resize_images_api(std::uint32_t image_count, Format image_format, const Vector2_u& image_size, ImageUsageFlags image_usage) override;
         void present_api() override;
 
         std::vector<VkImage> acquire_swapchain_images();

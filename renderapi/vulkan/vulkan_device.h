@@ -39,6 +39,7 @@ namespace orion::vulkan
         [[nodiscard]] VkSemaphore create_vk_semaphore();
         [[nodiscard]] VkCommandPool create_vk_command_pool(std::uint32_t queue_family, VkCommandPoolCreateFlags flags = 0);
         [[nodiscard]] VkCommandBuffer create_vk_command_buffer(VkCommandPool command_pool, VkCommandBufferLevel level);
+        [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
 
     private:
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
@@ -101,8 +102,6 @@ namespace orion::vulkan
         DrawState draw_state_;
         void reset_draw_state();
         void update_draw_state(VkCommandBuffer command_buffer, const DrawState& new_state);
-
-        VkSwapchainKHR create_swapchain_for_surface(VkSurfaceKHR surface, const SwapchainDesc& desc);
 
         void compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet);
         void cmd_copy_buffer(VkCommandBuffer command_buffer, const void* data);
