@@ -665,31 +665,6 @@ namespace orion::vulkan
         return handle;
     }
 
-    SemaphoreHandle VulkanDevice::create_semaphore_api()
-    {
-        VkSemaphore semaphore = create_vk_semaphore();
-        auto handle = SemaphoreHandle::generate();
-        semaphores_.add(handle, unique(semaphore, device()));
-        return handle;
-    }
-
-    FenceHandle VulkanDevice::create_fence_api(bool create_signaled)
-    {
-        VkFence fence = VK_NULL_HANDLE;
-        {
-            const auto info = VkFenceCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = create_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{}};
-            vk_result_check(vkCreateFence(device(), &info, alloc_callbacks(), &fence));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkFence {}", fmt::ptr(fence));
-        }
-
-        auto handle = FenceHandle::generate();
-        fences_.add(handle, unique(fence, device()));
-        return handle;
-    }
-
     ImageHandle VulkanDevice::create_image_api(const ImageDesc& desc)
     {
         VkImage image = VK_NULL_HANDLE;
@@ -798,6 +773,15 @@ namespace orion::vulkan
         return handle;
     }
 
+    GPUJobHandle VulkanDevice::create_job_api(const GPUJobDesc& desc)
+    {
+        VkFence fence = create_vk_fence(desc.start_finished);
+        VkSemaphore semaphore = create_vk_semaphore();
+        const auto handle = GPUJobHandle::generate();
+        jobs_.insert(std::make_pair(handle, VulkanJob{unique(fence, device()), unique(semaphore, device())}));
+        return handle;
+    }
+
     void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
     {
         render_passes_.remove(render_pass_handle);
@@ -844,16 +828,6 @@ namespace orion::vulkan
         descriptor_sets_.remove(descriptor_set_handle);
     }
 
-    void VulkanDevice::destroy_api(SemaphoreHandle semaphore_handle)
-    {
-        semaphores_.remove(semaphore_handle);
-    }
-
-    void VulkanDevice::destroy_api(FenceHandle fence_handle)
-    {
-        fences_.remove(fence_handle);
-    }
-
     void VulkanDevice::destroy_api(ImageHandle image_handle)
     {
         images_.remove(image_handle);
@@ -867,6 +841,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(SamplerHandle sampler_handle)
     {
         samplers_.remove(sampler_handle);
+    }
+
+    void VulkanDevice::destroy_api(GPUJobHandle job_handle)
+    {
+        jobs_.erase(job_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
@@ -916,53 +895,10 @@ namespace orion::vulkan
         vk_result_check(vkEndCommandBuffer(command_buffers_.handle_at(command_buffer)));
     }
 
-    void VulkanDevice::submit_api(const SubmitDesc& desc)
+    void VulkanDevice::wait_for_job_api(GPUJobHandle job_handle)
     {
-        // Find command buffers
-        std::vector<VkCommandBuffer> command_buffers(desc.command_buffers.size());
-        std::ranges::transform(desc.command_buffers, command_buffers.begin(), [this](auto handle) {
-            return command_buffers_.handle_at(handle);
-        });
-
-        auto find_semaphore_fn = [this](auto handle) { return semaphores_.handle_at(handle); };
-        // Find wait semaphores
-        std::vector<VkSemaphore> wait_semaphores(desc.wait_semaphores.size());
-        std::ranges::transform(desc.wait_semaphores, wait_semaphores.begin(), find_semaphore_fn);
-        // Find signal semaphores
-        std::vector<VkSemaphore> signal_semaphores(desc.signal_semaphores.size());
-        std::ranges::transform(desc.signal_semaphores, signal_semaphores.begin(), find_semaphore_fn);
-
-        // Find signal fence
-        VkFence signal_fence = fences_.handle_or_null(desc.fence);
-
-        // Set wait stages
-        std::vector<VkPipelineStageFlags> wait_stages(desc.wait_stages.size());
-        std::ranges::transform(desc.wait_stages, wait_stages.begin(), [](auto stage) {
-            return to_vulkan_type(stage);
-        });
-
-        // Submit command buffer
-        const auto submit_info = VkSubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .pNext = nullptr,
-            .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores.size()),
-            .pWaitSemaphores = wait_semaphores.data(),
-            .pWaitDstStageMask = wait_stages.data(),
-            .commandBufferCount = static_cast<std::uint32_t>(command_buffers.size()),
-            .pCommandBuffers = command_buffers.data(),
-            .signalSemaphoreCount = static_cast<std::uint32_t>(signal_semaphores.size()),
-            .pSignalSemaphores = signal_semaphores.data(),
-        };
-        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1, &submit_info, signal_fence));
-    }
-
-    void VulkanDevice::wait_for_fence_api(FenceHandle fence)
-    {
-        VkFence vk_fence = fences_.handle_at(fence);
-        vk_result_check(
-            vkWaitForFences(device(), 1, &vk_fence, VK_TRUE, UINT64_MAX),
-            {VK_SUCCESS, VK_TIMEOUT});
-        vk_result_check(vkResetFences(device(), 1, &vk_fence));
+        VkFence fence = jobs_.at(job_handle).vk_fence();
+        vk_result_check(vkWaitForFences(device(), 1, &fence, VK_TRUE, UINT64_MAX));
     }
 
     void VulkanDevice::wait_queue_idle_api(CommandQueueType queue_type)
@@ -1357,6 +1293,21 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSemaphore {}", fmt::ptr(semaphore));
         }
         return semaphore;
+    }
+
+    VkFence VulkanDevice::create_vk_fence(bool signaled)
+    {
+        VkFence fence = VK_NULL_HANDLE;
+        {
+            const auto info = VkFenceCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
+            };
+            vk_result_check(vkCreateFence(device(), &info, alloc_callbacks(), &fence));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkFence {}", fmt::ptr(fence));
+        }
+        return fence;
     }
 
     VkCommandPool VulkanDevice::create_vk_command_pool(std::uint32_t queue_family, VkCommandPoolCreateFlags flags)

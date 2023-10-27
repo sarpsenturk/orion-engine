@@ -529,50 +529,7 @@ float4 fs_main(FsInput input) : SV_Target
             device->unmap(upload_buffer);
         }
 
-        // Copy buffer to image
-        {
-            device->submit_immediate([upload_buffer, width, height]() {
-                auto cmd_list = orion::CommandList{256ull};
-                auto* renderer_data = imgui_get_renderer_data();
-                auto dst_image = renderer_data->font_image.get();
-                cmd_list.begin();
-                // Transition image to transfer dst
-                {
-                    auto* cmd_pipeline_barrier = cmd_list.add_command<orion::CmdPipelineBarrier>({});
-                    cmd_pipeline_barrier->src_stages = orion::PipelineStageFlags::TopOfPipe;
-                    cmd_pipeline_barrier->dst_stages = orion::PipelineStageFlags::Transfer;
-                    cmd_pipeline_barrier->image_barrier = {
-                        .dst_access = orion::ResourceAccessFlags::TransferWrite,
-                        .old_layout = orion::ImageLayout::Undefined,
-                        .new_layout = orion::ImageLayout::TransferDst,
-                        .image = dst_image,
-                    };
-                }
-                // Copy buffer to image
-                {
-                    auto* cmd_copy_buffer_to_image = cmd_list.add_command<orion::CmdCopyBufferToImage>({});
-                    cmd_copy_buffer_to_image->src_buffer = upload_buffer;
-                    cmd_copy_buffer_to_image->dst_image = dst_image;
-                    cmd_copy_buffer_to_image->dst_image_layout = orion::ImageLayout::TransferDst;
-                    cmd_copy_buffer_to_image->dst_image_size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1u};
-                }
-                // Transition image to shader read only
-                {
-                    auto* cmd_pipeline_barrier = cmd_list.add_command<orion::CmdPipelineBarrier>({});
-                    cmd_pipeline_barrier->src_stages = orion::PipelineStageFlags::Transfer;
-                    cmd_pipeline_barrier->dst_stages = orion::PipelineStageFlags::FragmentShader;
-                    cmd_pipeline_barrier->image_barrier = {
-                        .src_access = orion::ResourceAccessFlags::TransferWrite,
-                        .dst_access = orion::ResourceAccessFlags::ShaderRead,
-                        .old_layout = orion::ImageLayout::TransferDst,
-                        .new_layout = orion::ImageLayout::ShaderReadOnly,
-                        .image = dst_image,
-                    };
-                }
-                cmd_list.end();
-                return cmd_list;
-            });
-        }
+        // TODO: Copy buffer to image
 
         // Destroy upload buffer
         device->destroy(upload_buffer);

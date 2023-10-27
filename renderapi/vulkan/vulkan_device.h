@@ -7,6 +7,7 @@
 
 #include "vulkan_headers.h"
 #include "vulkan_store.h"
+#include "vulkan_synchronization.h"
 #include "vulkan_types.h"
 
 #include <orion-core/window.h>
@@ -37,6 +38,7 @@ namespace orion::vulkan
         [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.family; }
 
         [[nodiscard]] VkSemaphore create_vk_semaphore();
+        [[nodiscard]] VkFence create_vk_fence(bool signaled);
         [[nodiscard]] VkCommandPool create_vk_command_pool(std::uint32_t queue_family, VkCommandPoolCreateFlags flags = 0);
         [[nodiscard]] VkCommandBuffer create_vk_command_buffer(VkCommandPool command_pool, VkCommandBufferLevel level);
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
@@ -63,11 +65,10 @@ namespace orion::vulkan
         CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
         DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
         DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
-        SemaphoreHandle create_semaphore_api() override;
-        FenceHandle create_fence_api(bool create_signaled) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
+        GPUJobHandle create_job_api(const GPUJobDesc& desc) override;
 
         void destroy_api(RenderPassHandle render_pass_handle) override;
         void destroy_api(FramebufferHandle framebuffer_handle) override;
@@ -78,11 +79,10 @@ namespace orion::vulkan
         void destroy_api(CommandBufferHandle command_buffer_handle) override;
         void destroy_api(DescriptorPoolHandle descriptor_pool_handle) override;
         void destroy_api(DescriptorSetHandle descriptor_set_handle) override;
-        void destroy_api(SemaphoreHandle semaphore_handle) override;
-        void destroy_api(FenceHandle fence_handle) override;
         void destroy_api(ImageHandle image_handle) override;
         void destroy_api(ImageViewHandle image_view_handle) override;
         void destroy_api(SamplerHandle sampler_handle) override;
+        void destroy_api(GPUJobHandle job_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
@@ -91,9 +91,7 @@ namespace orion::vulkan
         void reset_command_buffer_api(CommandBufferHandle command_buffer) override;
         void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) override;
 
-        void submit_api(const SubmitDesc& desc) override;
-
-        void wait_for_fence_api(FenceHandle fence) override;
+        void wait_for_job_api(GPUJobHandle job_handle) override;
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
@@ -122,6 +120,7 @@ namespace orion::vulkan
         VulkanQueues queues_;
 
         std::unordered_map<std::size_t, VmaAllocation> allocations_;
+        std::unordered_map<GPUJobHandle, VulkanJob> jobs_;
 
         VulkanStore<ImageHandle, UniqueVkImage> images_;
         VulkanStore<ImageViewHandle, UniqueVkImageView> image_views_;
@@ -135,8 +134,6 @@ namespace orion::vulkan
         VulkanStore<CommandBufferHandle, UniqueVkCommandBuffer> command_buffers_;
         VulkanStore<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;
         VulkanStore<DescriptorSetHandle, UniqueVkDescriptorSet> descriptor_sets_;
-        VulkanStore<SemaphoreHandle, UniqueVkSemaphore> semaphores_;
-        VulkanStore<FenceHandle, UniqueVkFence> fences_;
         VulkanStore<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
         VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
     };

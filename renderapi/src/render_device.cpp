@@ -9,30 +9,6 @@ namespace orion
     {
     }
 
-    CommandPoolHandle RenderDevice::default_command_pool()
-    {
-        if (!default_command_pool_.is_valid()) {
-            default_command_pool_ = create_command_pool({.queue_type = CommandQueueType::Any});
-        }
-        return default_command_pool_;
-    }
-
-    CommandBufferHandle RenderDevice::default_command_buffer()
-    {
-        if (!default_command_buffer_.is_valid()) {
-            default_command_buffer_ = create_command_buffer({.command_pool = default_command_pool()});
-        }
-        return default_command_buffer_;
-    }
-
-    FenceHandle RenderDevice::default_fence()
-    {
-        if (!default_fence_.is_valid()) {
-            default_fence_ = create_fence(false);
-        }
-        return default_fence_;
-    }
-
     std::unique_ptr<Swapchain> RenderDevice::create_swapchain(const SwapchainDesc& desc)
     {
         ORION_EXPECTS(desc.window != nullptr);
@@ -104,20 +80,6 @@ namespace orion
         return handle;
     }
 
-    SemaphoreHandle RenderDevice::create_semaphore()
-    {
-        auto handle = create_semaphore_api();
-        SPDLOG_LOGGER_DEBUG(logger(), "Created semaphore with handle {}", handle);
-        return handle;
-    }
-
-    FenceHandle RenderDevice::create_fence(bool create_signaled)
-    {
-        auto handle = create_fence_api(create_signaled);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created fence with handle {}", handle);
-        return handle;
-    }
-
     ImageHandle RenderDevice::create_image(const ImageDesc& desc)
     {
         auto handle = create_image_api(desc);
@@ -136,6 +98,13 @@ namespace orion
     {
         auto handle = create_sampler_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created sampler {}", handle);
+        return handle;
+    }
+
+    GPUJobHandle RenderDevice::create_job(const GPUJobDesc& desc)
+    {
+        auto handle = create_job_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created GPU job {}", handle);
         return handle;
     }
 
@@ -193,18 +162,6 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor set {}", descriptor_set_handle);
     }
 
-    void RenderDevice::destroy(SemaphoreHandle semaphore_handle)
-    {
-        destroy_api(semaphore_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed semaphore {}", semaphore_handle);
-    }
-
-    void RenderDevice::destroy(FenceHandle fence_handle)
-    {
-        destroy_api(fence_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed fence {}", fence_handle);
-    }
-
     void RenderDevice::destroy(ImageHandle image_handle)
     {
         destroy_api(image_handle);
@@ -221,6 +178,12 @@ namespace orion
     {
         destroy_api(sampler_handle);
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed sampler {}", sampler_handle);
+    }
+
+    void RenderDevice::destroy(GPUJobHandle job_handle)
+    {
+        destroy_api(job_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed GPU job {}", job_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)
@@ -248,14 +211,9 @@ namespace orion
         compile_commands_api(command_buffer, commands);
     }
 
-    void RenderDevice::submit(const SubmitDesc& desc)
+    void RenderDevice::wait_for_job(GPUJobHandle job_handle)
     {
-        submit_api(desc);
-    }
-
-    void RenderDevice::wait_for_fence(FenceHandle fence)
-    {
-        wait_for_fence_api(fence);
+        wait_for_job_api(job_handle);
     }
 
     void RenderDevice::wait_queue_idle(CommandQueueType queue_type)

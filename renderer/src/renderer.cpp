@@ -147,8 +147,7 @@ namespace orion
                 .render_image_view = image_view,
                 .render_target = render_target,
                 .command_pool = device()->create_command_pool({.queue_type = CommandQueueType::Graphics}),
-                .render_fence = device()->create_fence(true),
-                .render_semaphore = device()->create_semaphore(),
+                .frame_job = device()->create_job({.start_finished = true}),
             };
         };
         std::generate(frame_data.begin(), frame_data.end(), generate_frame_data);

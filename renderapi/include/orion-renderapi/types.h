@@ -621,4 +621,8 @@ namespace orion
         void assert_valid_draw();
         void assert_valid_draw_indexed();
     };
+
+    struct GPUJobDesc {
+        bool start_finished;
+    };
 } // namespace orion

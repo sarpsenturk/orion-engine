@@ -62,31 +62,7 @@ namespace orion
             .host_visible = false,
         });
 
-        // Upload vertex and index data
-        device_->submit_immediate([vertex_buffer, index_buffer, staging_buffer, vb_size, ib_size]() {
-            CommandList upload{sizeof(CmdCopyBuffer) * 2};
-            upload.begin();
-            // Copy vertex data
-            {
-                auto* cmd_buffer_copy = upload.add_command<CmdCopyBuffer>({});
-                cmd_buffer_copy->dst = vertex_buffer;
-                cmd_buffer_copy->dst_offset = 0;
-                cmd_buffer_copy->src = staging_buffer;
-                cmd_buffer_copy->src_offset = 0;
-                cmd_buffer_copy->size = vb_size;
-            }
-            // Copy index data
-            {
-                auto* cmd_buffer_copy = upload.add_command<CmdCopyBuffer>({});
-                cmd_buffer_copy->dst = index_buffer;
-                cmd_buffer_copy->dst_offset = 0;
-                cmd_buffer_copy->src = staging_buffer;
-                cmd_buffer_copy->src_offset = vb_size;
-                cmd_buffer_copy->size = ib_size;
-            }
-            upload.end();
-            return upload;
-        });
+        // TODO: Upload vertex and index data
 
         // Unmap and destroy staging buffer
         device_->unmap(staging_buffer);

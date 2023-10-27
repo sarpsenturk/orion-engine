@@ -16,15 +16,6 @@ namespace orion
     class Window;
     class RenderDevice;
 
-    struct SubmitDesc {
-        CommandQueueType queue_type = CommandQueueType::Any;
-        std::span<const CommandBufferHandle> command_buffers = {};
-        std::span<const SemaphoreHandle> wait_semaphores = {};
-        std::span<const PipelineStageFlags> wait_stages = {};
-        std::span<const SemaphoreHandle> signal_semaphores = {};
-        FenceHandle fence = FenceHandle::invalid_handle();
-    };
-
     template<typename Tag>
     struct ResourceDeleter {
         using pointer = Handle<Tag>;
@@ -49,11 +40,10 @@ namespace orion
     using UniqueCommandBuffer = unique_device_resource<CommandBufferHandle_tag>;
     using UniqueDescriptorPool = unique_device_resource<DescriptorPoolHandle_tag>;
     using UniqueDescriptorSet = unique_device_resource<DescriptorSetHandle_tag>;
-    using UniqueSemaphore = unique_device_resource<SemaphoreHandle_tag>;
-    using UniqueFence = unique_device_resource<FenceHandle_tag>;
     using UniqueImage = unique_device_resource<ImageHandle_tag>;
     using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
     using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
+    using UniqueGPUJob = unique_device_resource<GPUJobHandle_tag>;
 
     class RenderDevice
     {
@@ -62,10 +52,6 @@ namespace orion
         virtual ~RenderDevice() = default;
 
         [[nodiscard]] virtual ShaderObjectType shader_object_type() const noexcept = 0;
-
-        [[nodiscard]] CommandPoolHandle default_command_pool();
-        [[nodiscard]] CommandBufferHandle default_command_buffer();
-        [[nodiscard]] FenceHandle default_fence();
 
         [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
@@ -77,11 +63,10 @@ namespace orion
         [[nodiscard]] CommandBufferHandle create_command_buffer(const CommandBufferDesc& desc);
         [[nodiscard]] DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
         [[nodiscard]] DescriptorSetHandle create_descriptor_set(const DescriptorSetDesc& desc);
-        [[nodiscard]] SemaphoreHandle create_semaphore();
-        [[nodiscard]] FenceHandle create_fence(bool create_signaled);
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
         [[nodiscard]] SamplerHandle create_sampler(const SamplerDesc& desc);
+        [[nodiscard]] GPUJobHandle create_job(const GPUJobDesc& desc);
 
         [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
@@ -92,11 +77,10 @@ namespace orion
         [[nodiscard]] CommandBufferHandle create(CommandBufferHandle_tag, const CommandBufferDesc& desc) { return create_command_buffer(desc); }
         [[nodiscard]] DescriptorPoolHandle create(DescriptorPoolHandle_tag, const DescriptorPoolDesc& desc) { return create_descriptor_pool(desc); }
         [[nodiscard]] DescriptorSetHandle create(DescriptorSetHandle_tag, const DescriptorSetDesc& desc) { return create_descriptor_set(desc); }
-        [[nodiscard]] SemaphoreHandle create(SemaphoreHandle_tag) { return create_semaphore(); }
-        [[nodiscard]] FenceHandle create(FenceHandle_tag, bool create_signaled) { return create_fence(create_signaled); }
         [[nodiscard]] ImageHandle create(ImageHandle_tag, const ImageDesc& desc) { return create_image(desc); }
         [[nodiscard]] ImageViewHandle create(ImageViewHandle_tag, const ImageViewDesc& desc) { return create_image_view(desc); }
         [[nodiscard]] SamplerHandle create(SamplerHandle_tag, const SamplerDesc& desc) { return create_sampler(desc); }
+        [[nodiscard]] GPUJobHandle create(GPUJobHandle_tag, const GPUJobDesc& desc) { return create_job(desc); }
 
         template<typename Tag, typename... Args>
         auto make_unique(Tag tag, Args&&... args)
@@ -119,11 +103,10 @@ namespace orion
         void destroy(CommandBufferHandle command_buffer_handle);
         void destroy(DescriptorPoolHandle descriptor_pool_handle);
         void destroy(DescriptorSetHandle descriptor_set_handle);
-        void destroy(SemaphoreHandle semaphore_handle);
-        void destroy(FenceHandle fence_handle);
         void destroy(ImageHandle image_handle);
         void destroy(ImageViewHandle image_view_handle);
         void destroy(SamplerHandle sampler_handle);
+        void destroy(GPUJobHandle job_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
@@ -132,25 +115,7 @@ namespace orion
         void reset_command_buffer(CommandBufferHandle command_buffer);
         void compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands);
 
-        void submit(const SubmitDesc& desc);
-
-        // Record into and immediately submit command buffer
-        void submit_immediate(auto&& create_command_list_fn)
-        {
-            const auto command_buffer = default_command_buffer();
-            const auto command_list = create_command_list_fn();
-            compile_commands(command_buffer, command_list.commands());
-            const auto fence = default_fence();
-            const auto submit_desc = SubmitDesc{
-                .queue_type = CommandQueueType::Any,
-                .command_buffers = {&command_buffer, 1},
-                .fence = fence,
-            };
-            submit(submit_desc);
-            wait_for_fence(fence);
-        }
-
-        void wait_for_fence(FenceHandle fence);
+        void wait_for_job(GPUJobHandle job_handle);
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
@@ -175,11 +140,10 @@ namespace orion
         [[nodiscard]] virtual CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) = 0;
         [[nodiscard]] virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
         [[nodiscard]] virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) = 0;
-        [[nodiscard]] virtual SemaphoreHandle create_semaphore_api() = 0;
-        [[nodiscard]] virtual FenceHandle create_fence_api(bool create_signaled) = 0;
         [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
         [[nodiscard]] virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
+        [[nodiscard]] virtual GPUJobHandle create_job_api(const GPUJobDesc& desc) = 0;
 
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
@@ -190,11 +154,10 @@ namespace orion
         virtual void destroy_api(CommandPoolHandle command_pool_handle) = 0;
         virtual void destroy_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
         virtual void destroy_api(DescriptorSetHandle descriptor_set_handle) = 0;
-        virtual void destroy_api(SemaphoreHandle semaphore_handle) = 0;
-        virtual void destroy_api(FenceHandle fence_handle) = 0;
         virtual void destroy_api(ImageHandle image_handle) = 0;
         virtual void destroy_api(ImageViewHandle image_view_handle) = 0;
         virtual void destroy_api(SamplerHandle sampler_handle) = 0;
+        virtual void destroy_api(GPUJobHandle job_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
@@ -203,18 +166,12 @@ namespace orion
         virtual void reset_command_buffer_api(CommandBufferHandle command_buffer) = 0;
         virtual void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) = 0;
 
-        virtual void submit_api(const SubmitDesc& desc) = 0;
-
-        virtual void wait_for_fence_api(FenceHandle fence) = 0;
+        virtual void wait_for_job_api(GPUJobHandle job_handle) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 
         virtual void update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates) = 0;
 
         spdlog::logger* logger_;
-
-        CommandPoolHandle default_command_pool_;
-        CommandBufferHandle default_command_buffer_;
-        FenceHandle default_fence_;
     };
 } // namespace orion

@@ -45,8 +45,7 @@ namespace orion
             ImageViewHandle render_image_view;
             FramebufferHandle render_target;
             CommandPoolHandle command_pool;
-            FenceHandle render_fence;
-            SemaphoreHandle render_semaphore;
+            GPUJobHandle frame_job;
         };
         using FrameDataArr = std::array<FrameData, frames_in_flight>;
 

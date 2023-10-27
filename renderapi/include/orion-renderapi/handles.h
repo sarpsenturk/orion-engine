@@ -19,10 +19,9 @@ namespace orion
     ORION_DEFINE_HANDLE(CommandBufferHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(DescriptorPoolHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(DescriptorSetHandle, render_device_key_t);
-    ORION_DEFINE_HANDLE(SemaphoreHandle, render_device_key_t);
-    ORION_DEFINE_HANDLE(FenceHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(ImageHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(ImageViewHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(FramebufferHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(SamplerHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(GPUJobHandle, render_device_key_t);
 } // namespace orion
