@@ -14,10 +14,6 @@
 
 namespace orion::vulkan
 {
-    struct SwapchainData {
-        std::vector<ImageHandle> images;
-    };
-
     class VulkanDevice final : public RenderDevice
     {
     public:
@@ -41,6 +37,8 @@ namespace orion::vulkan
         [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.family; }
 
         [[nodiscard]] VkSemaphore create_vk_semaphore();
+        [[nodiscard]] VkCommandPool create_vk_command_pool(std::uint32_t queue_family, VkCommandPoolCreateFlags flags = 0);
+        [[nodiscard]] VkCommandBuffer create_vk_command_buffer(VkCommandPool command_pool, VkCommandBufferLevel level);
 
     private:
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;

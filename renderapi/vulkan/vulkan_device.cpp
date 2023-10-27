@@ -588,18 +588,7 @@ namespace orion::vulkan
 
     CommandPoolHandle VulkanDevice::create_command_pool_api(const CommandPoolDesc& desc)
     {
-        VkCommandPool command_pool = VK_NULL_HANDLE;
-        {
-            const auto info = VkCommandPoolCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                .queueFamilyIndex = get_queue_family(desc.queue_type),
-            };
-            vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkCommandPool {}", fmt::ptr(command_pool));
-        }
-
+        VkCommandPool command_pool = create_vk_command_pool(get_queue_family(desc.queue_type));
         auto handle = CommandPoolHandle::generate();
         command_pools_.add(handle, unique(command_pool, device()));
         return handle;
@@ -608,20 +597,7 @@ namespace orion::vulkan
     CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
     {
         VkCommandPool command_pool = command_pools_.handle_at(desc.command_pool);
-
-        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-        {
-            const auto info = VkCommandBufferAllocateInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                .pNext = nullptr,
-                .commandPool = command_pool,
-                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                .commandBufferCount = 1,
-            };
-            vk_result_check(vkAllocateCommandBuffers(device(), &info, &command_buffer));
-            SPDLOG_LOGGER_TRACE(logger(), "Allocated VkCommandBuffer {}", fmt::ptr(command_buffer));
-        }
-
+        VkCommandBuffer command_buffer = create_vk_command_buffer(command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         const auto handle = CommandBufferHandle::generate();
         command_buffers_.add(handle, unique(command_buffer, device(), command_pool));
         return handle;
@@ -959,7 +935,7 @@ namespace orion::vulkan
         });
 
         // Submit command buffer
-        const VkSubmitInfo submit_info{
+        const auto submit_info = VkSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .pNext = nullptr,
             .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores.size()),
@@ -1410,5 +1386,38 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSemaphore {}", fmt::ptr(semaphore));
         }
         return semaphore;
+    }
+
+    VkCommandPool VulkanDevice::create_vk_command_pool(std::uint32_t queue_family, VkCommandPoolCreateFlags flags)
+    {
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        {
+            const auto info = VkCommandPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = flags,
+                .queueFamilyIndex = queue_family,
+            };
+            vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkCommandPool {}", fmt::ptr(command_pool));
+        }
+        return command_pool;
+    }
+
+    VkCommandBuffer VulkanDevice::create_vk_command_buffer(VkCommandPool command_pool, VkCommandBufferLevel level)
+    {
+        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+        {
+            const auto info = VkCommandBufferAllocateInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                .pNext = nullptr,
+                .commandPool = command_pool,
+                .level = level,
+                .commandBufferCount = 1,
+            };
+            vk_result_check(vkAllocateCommandBuffers(device(), &info, &command_buffer));
+            SPDLOG_LOGGER_TRACE(logger(), "Allocated VkCommandBuffer {}", fmt::ptr(command_buffer));
+        }
+        return command_buffer;
     }
 } // namespace orion::vulkan

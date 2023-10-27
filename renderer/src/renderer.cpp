@@ -44,43 +44,10 @@ namespace orion
 
     void Renderer::begin()
     {
-        // Get current frame
-        auto& frame = current_frame();
-
-        // Reset command pool
-        device()->reset_command_pool(frame.command_pool);
-
-        // Get and reset command list
-        auto& render_command = frame.render_command;
-        render_command.reset();
-
-        // Begin new frame
-        render_command.begin();
     }
 
     void Renderer::end()
     {
-        // Get current frame
-        auto& frame = current_frame();
-
-        // Get and end render command
-        auto& render_command = frame.render_command;
-        render_command.end();
-
-        // Get command buffer and compile command list into it
-        auto command_buffer = frame.command_buffer;
-        device()->compile_commands(frame.command_buffer, render_command.commands());
-
-        // Submit command buffer
-        device()->submit({
-            .queue_type = CommandQueueType::Graphics,
-            .command_buffers = {&command_buffer, 1},
-            .signal_semaphores = {&frame.render_semaphore, 1},
-            .fence = frame.render_fence,
-        });
-
-        // Advance current frame index
-        advance_frame();
     }
 
     spdlog::logger* Renderer::logger()
@@ -175,14 +142,11 @@ namespace orion
                 .image_views = {&image_view, 1},
                 .size = render_size_,
             });
-            auto command_pool = device()->create_command_pool({.queue_type = CommandQueueType::Graphics});
             return {
                 .render_image = image,
                 .render_image_view = image_view,
                 .render_target = render_target,
-                .render_command = CommandList{render_command_size},
-                .command_pool = command_pool,
-                .command_buffer = device()->create_command_buffer({.command_pool = command_pool}),
+                .command_pool = device()->create_command_pool({.queue_type = CommandQueueType::Graphics}),
                 .render_fence = device()->create_fence(true),
                 .render_semaphore = device()->create_semaphore(),
             };

@@ -44,9 +44,7 @@ namespace orion
             ImageHandle render_image;
             ImageViewHandle render_image_view;
             FramebufferHandle render_target;
-            CommandList render_command;
             CommandPoolHandle command_pool;
-            CommandBufferHandle command_buffer;
             FenceHandle render_fence;
             SemaphoreHandle render_semaphore;
         };
