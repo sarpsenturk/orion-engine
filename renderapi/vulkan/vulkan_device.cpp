@@ -775,10 +775,17 @@ namespace orion::vulkan
 
     GPUJobHandle VulkanDevice::create_job_api(const GPUJobDesc& desc)
     {
+        // Create fence and semaphore associated with this job
         VkFence fence = create_vk_fence(desc.start_finished);
         VkSemaphore semaphore = create_vk_semaphore();
+
+        // Find semaphore dependencies
+        auto find_dep_semaphore = [this](GPUJobHandle job_handle) { return jobs_.at(job_handle).vk_semaphore(); };
+        std::vector<VkSemaphore> wait_semaphores(desc.dependencies.size());
+        std::ranges::transform(desc.dependencies, wait_semaphores.begin(), find_dep_semaphore);
+
         const auto handle = GPUJobHandle::generate();
-        jobs_.insert(std::make_pair(handle, VulkanJob{unique(fence, device()), unique(semaphore, device())}));
+        jobs_.insert(std::make_pair(handle, VulkanJob{unique(fence, device()), unique(semaphore, device()), std::move(wait_semaphores)}));
         return handle;
     }
 

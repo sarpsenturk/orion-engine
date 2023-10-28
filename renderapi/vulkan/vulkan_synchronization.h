@@ -10,10 +10,7 @@ namespace orion::vulkan
     class VulkanJob
     {
     public:
-        VulkanJob(UniqueVkFence fence, UniqueVkSemaphore semaphore);
-
-        void wait_on(const VulkanJob& job, VkPipelineStageFlags wait_stages);
-        void reset();
+        VulkanJob(UniqueVkFence fence, UniqueVkSemaphore semaphore, std::vector<VkSemaphore> dependencies);
 
         [[nodiscard]] VkFence vk_fence() const noexcept { return fence_.get(); }
         [[nodiscard]] VkSemaphore vk_semaphore() const noexcept { return semaphore_.get(); }

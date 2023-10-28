@@ -2,21 +2,13 @@
 
 namespace orion::vulkan
 {
-    VulkanJob::VulkanJob(UniqueVkFence fence, UniqueVkSemaphore semaphore)
+    VulkanJob::VulkanJob(UniqueVkFence fence, UniqueVkSemaphore semaphore, std::vector<VkSemaphore> dependencies)
         : fence_(std::move(fence))
         , semaphore_(std::move(semaphore))
+        , wait_semaphores_(std::move(dependencies))
+        // TODO: We should find a way to not use VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+        //  and is still simple
+        , wait_stages_(wait_semaphores_.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
     {
-    }
-
-    void VulkanJob::wait_on(const VulkanJob& job, VkPipelineStageFlags wait_stages)
-    {
-        wait_semaphores_.push_back(job.vk_semaphore());
-        wait_stages_.push_back(wait_stages);
-    }
-
-    void VulkanJob::reset()
-    {
-        wait_semaphores_.clear();
-        wait_stages_.clear();
     }
 } // namespace orion::vulkan

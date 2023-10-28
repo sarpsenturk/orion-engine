@@ -623,6 +623,7 @@ namespace orion
     };
 
     struct GPUJobDesc {
+        std::span<const GPUJobHandle> dependencies;
         bool start_finished;
     };
 } // namespace orion
