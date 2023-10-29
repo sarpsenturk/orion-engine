@@ -35,7 +35,7 @@ namespace orion
     Renderer::Renderer(const RendererDesc& desc)
         : backend_module_(desc.backend_module)
         , render_backend_(create_render_backend())
-        , render_device_(create_render_device(nullptr))
+        , render_device_(create_render_device(desc.device_select_fn))
         , render_size_(desc.render_size)
         , shader_manager_(device())
         , frames_(create_frame_data())
