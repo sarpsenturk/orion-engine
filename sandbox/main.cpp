@@ -4,6 +4,8 @@
 
 #include <orion-renderer/renderer.h>
 
+#include <orion-scene/scene.h>
+
 #include <orion-math/vector/vector3.h>
 
 #include <fmt/chrono.h>
@@ -29,6 +31,13 @@ public:
         window_.on_resize_end().subscribe([this](const auto& resize) {
             swapchain_->resize_images(2, orion::Format::B8G8R8A8_Srgb, resize.size, orion::ImageUsageFlags::ColorAttachment);
         });
+
+        // Create entity
+        auto entity = scene_.create_entity();
+        // Add sprite component with yellow color
+        entity.add_component<orion::SpriteComponent>(orion::colors::yellow);
+        // Translate entity
+        entity.transform().translate({5.f, 0.f, 0.f});
     }
 
 private:
@@ -39,6 +48,9 @@ private:
 
     void on_user_render() override
     {
+        renderer_.begin();
+        renderer_.draw(scene_);
+        renderer_.end();
     }
 
     static constexpr auto window_position = orion::WindowPosition{400, 200};
@@ -46,6 +58,7 @@ private:
 
     orion::Window window_;
     orion::Renderer renderer_;
+    orion::Scene scene_;
     std::unique_ptr<orion::Swapchain> swapchain_;
 };
 

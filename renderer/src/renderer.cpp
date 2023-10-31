@@ -8,6 +8,9 @@
 
 #include "orion-utils/assertion.h"
 
+#include "orion-scene/components.h"
+#include "orion-scene/scene.h"
+
 #include <algorithm>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
@@ -44,10 +47,26 @@ namespace orion
 
     void Renderer::begin()
     {
+        auto& frame = current_frame();
+
+        frame.sprite_renderer.reset();
     }
 
     void Renderer::end()
     {
+    }
+
+    void Renderer::draw(const Scene& scene)
+    {
+        auto& frame = current_frame();
+        // Render sprites
+        {
+            auto sprites = scene.view<TransformComponent, SpriteComponent>();
+            sprites.each([&](auto entity, const auto& transform, const auto& sprite) {
+                (void)entity;
+                frame.sprite_renderer.draw({.sprite = &sprite, .position = transform.position()});
+            });
+        }
     }
 
     spdlog::logger* Renderer::logger()
@@ -142,15 +161,18 @@ namespace orion
                 .image_views = {&image_view, 1},
                 .size = render_size_,
             });
+            auto command_pool = device()->create_command_pool({.queue_type = CommandQueueType::Graphics});
             return {
                 .render_image = image,
                 .render_image_view = image_view,
                 .render_target = render_target,
-                .command_pool = device()->create_command_pool({.queue_type = CommandQueueType::Graphics}),
-                .frame_job = device()->create_job({.start_finished = true}),
+                .command_pool = command_pool,
+                .sprite_renderer = SpriteRenderer{{.device = device(), .command_pool = command_pool}},
             };
         };
-        std::generate(frame_data.begin(), frame_data.end(), generate_frame_data);
+        for (int i = 0; i < frames_in_flight; ++i) {
+            frame_data.push_back(generate_frame_data());
+        }
         return frame_data;
     }
 } // namespace orion

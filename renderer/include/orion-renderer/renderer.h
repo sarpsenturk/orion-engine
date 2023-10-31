@@ -3,6 +3,7 @@
 #include "orion-renderer/config.h"
 
 #include "shader.h"
+#include "sprite_renderer.h"
 
 #include "orion-renderapi/render_backend.h"
 #include "orion-renderapi/render_device.h"
@@ -10,7 +11,8 @@
 #include "orion-core/dyn_lib.h"
 #include "orion-core/platform.h"
 
-#include <array>
+#include "orion-utils/static_vector.h"
+
 #include <memory>
 
 #include <spdlog/logger.h>
@@ -25,6 +27,9 @@ namespace orion
         Vector2_u render_size;
     };
 
+    // Forward declare
+    class Scene;
+
     class Renderer
     {
     public:
@@ -35,6 +40,7 @@ namespace orion
 
         void begin();
         void end();
+        void draw(const Scene& scene);
 
     private:
         struct FrameData {
@@ -42,9 +48,9 @@ namespace orion
             ImageViewHandle render_image_view;
             FramebufferHandle render_target;
             CommandPoolHandle command_pool;
-            GPUJobHandle frame_job;
+            SpriteRenderer sprite_renderer;
         };
-        using FrameDataArr = std::array<FrameData, frames_in_flight>;
+        using FrameDataArr = static_vector<FrameData, frames_in_flight>;
 
         static spdlog::logger* logger();
 
@@ -71,7 +77,7 @@ namespace orion
         RenderPassHandle present_render_pass_;
 
         FrameDataArr frames_;
-        std::int32_t current_frame_index_ = 0;
-        std::int32_t previous_frame_index_ = -1;
+        std::int8_t current_frame_index_ = 0;
+        std::int8_t previous_frame_index_ = -1;
     };
 } // namespace orion

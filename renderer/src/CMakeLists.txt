@@ -8,4 +8,5 @@ target_sources(
         renderer.cpp
         shader.cpp
         shader_compiler.cpp
+        sprite_renderer.cpp
 )

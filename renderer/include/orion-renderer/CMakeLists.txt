@@ -9,5 +9,6 @@ target_sources(
         renderer.h
         shader.h
         shader_compiler.h
+        sprite_renderer.h
         vertex.h
 )
