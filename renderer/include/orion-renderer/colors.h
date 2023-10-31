@@ -15,9 +15,9 @@ namespace orion
 
     constexpr auto color_hex(std::uint32_t value) -> Color
     {
-        const auto r = rgba_normalize((value & 0x00ff0000) >> 16u);
-        const auto g = rgba_normalize((value & 0x0000ff00) >> 8u);
-        const auto b = rgba_normalize(value & 0x000000ff);
+        const auto r = rgba_normalize(static_cast<std::uint8_t>((value & 0x00ff0000u) >> 16u));
+        const auto g = rgba_normalize(static_cast<std::uint8_t>((value & 0x0000ff00u) >> 8u));
+        const auto b = rgba_normalize(static_cast<std::uint8_t>(value & 0x000000ffu));
         return {r, g, b, 1.f};
     }
 
