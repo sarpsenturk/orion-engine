@@ -1,5 +1,7 @@
 #pragma once
 
+#include "components.h"
+
 #include "orion-utils/assertion.h"
 
 #include <entt/entity/entity.hpp>
@@ -45,6 +47,9 @@ namespace orion
             ORION_ASSERT(has_component<Component>());
             return registry_->get<Component>(entity_id_);
         }
+
+        [[nodiscard]] auto& transform() noexcept { return get_component<TransformComponent>(); }
+        [[nodiscard]] auto& transform() const noexcept { return get_component<TransformComponent>(); }
 
     private:
         entt::entity entity_id_;
