@@ -92,6 +92,7 @@ namespace orion::vulkan
         void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) override;
 
         void wait_for_job_api(GPUJobHandle job_handle) override;
+        void wait_for_jobs_api(std::span<const GPUJobHandle> job_handles) override;
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 

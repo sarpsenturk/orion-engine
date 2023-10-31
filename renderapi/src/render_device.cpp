@@ -216,6 +216,11 @@ namespace orion
         wait_for_job_api(job_handle);
     }
 
+    void RenderDevice::wait_for_jobs(std::span<const GPUJobHandle> job_handles)
+    {
+        wait_for_jobs_api(job_handles);
+    }
+
     void RenderDevice::wait_queue_idle(CommandQueueType queue_type)
     {
         wait_queue_idle_api(queue_type);

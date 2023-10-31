@@ -116,6 +116,7 @@ namespace orion
         void compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands);
 
         void wait_for_job(GPUJobHandle job_handle);
+        void wait_for_jobs(std::span<const GPUJobHandle> job_handles);
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
@@ -167,6 +168,7 @@ namespace orion
         virtual void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) = 0;
 
         virtual void wait_for_job_api(GPUJobHandle job_handle) = 0;
+        virtual void wait_for_jobs_api(std::span<const GPUJobHandle> job_handles) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 

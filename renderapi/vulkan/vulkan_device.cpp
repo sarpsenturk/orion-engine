@@ -908,6 +908,13 @@ namespace orion::vulkan
         vk_result_check(vkWaitForFences(device(), 1, &fence, VK_TRUE, UINT64_MAX));
     }
 
+    void VulkanDevice::wait_for_jobs_api(std::span<const GPUJobHandle> job_handles)
+    {
+        std::vector<VkFence> fences{job_handles.size()};
+        std::ranges::transform(job_handles, fences.begin(), [this](const auto handle) { return jobs_.at(handle).vk_fence(); });
+        vk_result_check(vkWaitForFences(device(), static_cast<std::uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX));
+    }
+
     void VulkanDevice::wait_queue_idle_api(CommandQueueType queue_type)
     {
         vk_result_check(vkQueueWaitIdle(get_queue(queue_type)));
