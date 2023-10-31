@@ -17,7 +17,7 @@ namespace orion
         Entity create_entity(std::string tag = "entity");
 
         template<typename... Components>
-        [[nodiscard]] auto view()
+        [[nodiscard]] auto view() const
         {
             return registry_.view<Components...>();
         }
