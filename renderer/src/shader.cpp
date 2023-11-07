@@ -26,7 +26,7 @@ namespace orion
         });
 
         return device_->create_shader_module({
-            .byte_code = compile_result.value().get_binary(),
+            .byte_code = compile_result.value().binary,
         });
     }
 

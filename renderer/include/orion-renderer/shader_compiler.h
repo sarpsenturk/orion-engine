@@ -11,31 +11,15 @@
 
 namespace orion
 {
+    struct ShaderCompileSuccess {
+        std::vector<std::byte> binary;
+    };
+
     enum class ShaderCompileError {};
 
     struct ShaderCompileFail {
         ShaderCompileError error;
         const char* message;
-    };
-
-    class ShaderObject
-    {
-    public:
-        ShaderObject(const ShaderObject&) = delete;
-        ShaderObject(ShaderObject&&) noexcept;
-        ShaderObject& operator=(const ShaderObject&) = delete;
-        ShaderObject& operator=(ShaderObject&&) noexcept;
-        ~ShaderObject();
-
-        std::vector<std::byte> get_binary() const;
-
-    private:
-        struct ShaderObjectImpl;
-        std::unique_ptr<ShaderObjectImpl> impl_;
-
-        // Only ShaderCompiler can create shader objects
-        explicit ShaderObject(std::unique_ptr<ShaderObjectImpl> data);
-        friend class ShaderCompiler;
     };
 
     struct ShaderCompileDesc {
@@ -55,7 +39,7 @@ namespace orion
         ShaderCompiler& operator=(ShaderCompiler&&) noexcept;
         ~ShaderCompiler();
 
-        expected<ShaderObject, ShaderCompileFail> compile(const ShaderCompileDesc& desc) const;
+        expected<ShaderCompileSuccess, ShaderCompileFail> compile(const ShaderCompileDesc& desc) const;
 
     private:
         struct ShaderCompilerImpl;

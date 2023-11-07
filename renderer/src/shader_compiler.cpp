@@ -63,38 +63,6 @@ namespace orion
         }
     } // namespace
 
-    struct ShaderObject::ShaderObjectImpl {
-        ComPtr<IDxcResult> compile_result;
-
-        // Forwards call to IDxcResult::GetOutput
-        HRESULT GetOutput(DXC_OUT_KIND dxcOutKind, const _GUID& iid, void** ppvObject, IDxcBlobWide** ppOutputName)
-        {
-            return compile_result->GetOutput(dxcOutKind, iid, ppvObject, ppOutputName);
-        }
-    };
-
-    ShaderObject::ShaderObject(std::unique_ptr<ShaderObjectImpl> data)
-        : impl_(std::move(data))
-    {
-    }
-
-    ShaderObject::ShaderObject(ShaderObject&&) noexcept = default;
-
-    ShaderObject& ShaderObject::operator=(ShaderObject&&) noexcept = default;
-
-    ShaderObject::~ShaderObject() = default;
-
-    std::vector<std::byte> ShaderObject::get_binary() const
-    {
-        ComPtr<IDxcBlob> binary_output;
-        dxc_assert(impl_->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&binary_output), nullptr));
-        const auto binary_size = binary_output->GetBufferSize();
-        SPDLOG_LOGGER_TRACE(logger(), "Shader binary {} bytes", binary_size);
-        std::vector<std::byte> binary(binary_size);
-        std::memcpy(binary.data(), binary_output->GetBufferPointer(), binary_size);
-        return binary;
-    }
-
     // DirectXShaderCompiler instance
     struct ShaderCompiler::ShaderCompilerImpl {
         ComPtr<IDxcCompiler3> compiler;
@@ -121,7 +89,7 @@ namespace orion
 
     ShaderCompiler::~ShaderCompiler() = default;
 
-    expected<ShaderObject, ShaderCompileFail> ShaderCompiler::compile(const ShaderCompileDesc& desc) const
+    expected<ShaderCompileSuccess, ShaderCompileFail> ShaderCompiler::compile(const ShaderCompileDesc& desc) const
     {
         SPDLOG_LOGGER_DEBUG(logger(), "Compiling {} shader...", desc.stage);
         auto* compiler = impl_->compiler.Get();
@@ -172,6 +140,15 @@ namespace orion
             SPDLOG_LOGGER_WARN(logger(), "Shader compilation succeeded with warnings:\n{}", errors->GetStringPointer());
         }
 
-        return ShaderObject{std::make_unique<ShaderObject::ShaderObjectImpl>(std::move(result))};
+        ComPtr<IDxcBlob> binary_output;
+        dxc_assert(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&binary_output), nullptr));
+        const auto binary_size = binary_output->GetBufferSize();
+        SPDLOG_LOGGER_TRACE(logger(), "Shader binary {} bytes", binary_size);
+        std::vector<std::byte> binary(binary_size);
+        std::memcpy(binary.data(), binary_output->GetBufferPointer(), binary_size);
+
+        return ShaderCompileSuccess{
+            .binary = binary,
+        };
     }
 } // namespace orion

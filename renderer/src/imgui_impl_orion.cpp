@@ -387,7 +387,7 @@ float4 fs_main(FsInput input) : SV_Target
                     .object_type = device->shader_object_type(),
                 };
                 const auto shader_obj = shader_compiler.compile(compile_desc).value();
-                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.get_binary()});
+                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.binary});
             }();
             auto fs_module = [device, &shader_compiler]() {
                 const auto compile_desc = orion::ShaderCompileDesc{
@@ -397,7 +397,7 @@ float4 fs_main(FsInput input) : SV_Target
                     .object_type = device->shader_object_type(),
                 };
                 const auto shader_obj = shader_compiler.compile(compile_desc).value();
-                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.get_binary()});
+                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.binary});
             }();
             const auto shaders = std::array{
                 orion::ShaderStageDesc{
