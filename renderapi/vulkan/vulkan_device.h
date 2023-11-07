@@ -19,11 +19,6 @@ namespace orion::vulkan
     {
     public:
         VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues);
-        ~VulkanDevice() override;
-        VulkanDevice(const VulkanDevice&) = delete;
-        VulkanDevice(VulkanDevice&&) noexcept = default;
-        VulkanDevice& operator=(const VulkanDevice&) = delete;
-        VulkanDevice& operator=(VulkanDevice&&) noexcept = default;
 
         [[nodiscard]] auto device() const noexcept { return device_.get(); }
         [[nodiscard]] auto vma_allocator() const noexcept { return vma_allocator_.get(); }

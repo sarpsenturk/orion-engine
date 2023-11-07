@@ -38,11 +38,6 @@ namespace orion::vulkan
         vma_allocator_ = unique(allocator);
     }
 
-    VulkanDevice::~VulkanDevice()
-    {
-        vkDeviceWaitIdle(device_.get());
-    }
-
     VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
     {
         switch (queue_type) {
