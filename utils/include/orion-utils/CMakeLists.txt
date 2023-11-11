@@ -12,6 +12,7 @@ target_sources(
         hash.h
         overload.h
         static_vector.h
+        string.h
         type.h
         uninitialized.h
 )
