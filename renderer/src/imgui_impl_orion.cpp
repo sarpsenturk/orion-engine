@@ -6,8 +6,6 @@
 #include "orion-core/log.h"
 #include <spdlog/spdlog.h>
 
-#include "orion-renderer/shader_compiler.h"
-
 #include <array>
 
 #include "orion-math/matrix/matrix4.h"
@@ -17,51 +15,6 @@
 
 namespace
 {
-    constexpr auto imgui_shader_src = R"hlsl(
-struct VsInput {
-    float2 position : POSITION;
-    float2 uv : TEXCOORD;
-    float4 color : COLOR;
-};
-
-struct VsOutput {
-    float4 position : SV_Position;
-    float2 uv : TEXCOORD;
-    float4 color : COLOR;
-};
-
-struct SceneConstants {
-    row_major float4x4 projection;
-};
-
-[[vk::push_constant]]
-SceneConstants scene_data;
-
-VsOutput vs_main(VsInput input)
-{
-    VsOutput output;
-    output.position = mul(float4(input.position, -.5f, 1.f), scene_data.projection);
-    output.uv = input.uv;
-    output.color = input.color;
-    return output;
-}
-
-struct FsInput {
-    float2 uv : TEXCOORD;
-    float4 color : COLOR;
-};
-
-[[vk::binding(0)]]
-Texture2D font_texture : register(t0);
-[[vk::binding(1)]]
-SamplerState font_sampler : register(s0);
-
-float4 fs_main(FsInput input) : SV_Target
-{
-    return font_texture.Sample(font_sampler, input.uv) * input.color;
-}
-)hlsl";
-
     struct ImGuiCSceneBuffer {
         orion::Matrix4_f projection;
     };
@@ -376,41 +329,7 @@ float4 fs_main(FsInput input) : SV_Target
 
         // Create pipeline
         {
-            auto shader_compiler = orion::ShaderCompiler{};
-
-            // Create shaders
-            auto vs_module = [device, &shader_compiler]() {
-                const auto compile_desc = orion::ShaderCompileDesc{
-                    .source = imgui_shader_src,
-                    .entry_point = "vs_main",
-                    .stage = orion::ShaderStageFlags::Vertex,
-                    .object_type = device->shader_object_type(),
-                };
-                const auto shader_obj = shader_compiler.compile(compile_desc).value();
-                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.binary});
-            }();
-            auto fs_module = [device, &shader_compiler]() {
-                const auto compile_desc = orion::ShaderCompileDesc{
-                    .source = imgui_shader_src,
-                    .entry_point = "fs_main",
-                    .stage = orion::ShaderStageFlags::Fragment,
-                    .object_type = device->shader_object_type(),
-                };
-                const auto shader_obj = shader_compiler.compile(compile_desc).value();
-                return device->make_unique(orion::ShaderModuleHandle_tag{}, orion::ShaderModuleDesc{.byte_code = shader_obj.binary});
-            }();
-            const auto shaders = std::array{
-                orion::ShaderStageDesc{
-                    .module = vs_module.get(),
-                    .stage = orion::ShaderStageFlags::Vertex,
-                    .entry_point = "vs_main",
-                },
-                orion::ShaderStageDesc{
-                    .module = fs_module.get(),
-                    .stage = orion::ShaderStageFlags::Fragment,
-                    .entry_point = "fs_main",
-                },
-            };
+            // TODO: Create shaders
 
             // Create vertex attributes and bindings
             const auto vertex_attributes = std::array{
@@ -468,7 +387,7 @@ float4 fs_main(FsInput input) : SV_Target
 
             // Set pipeline description
             const auto desc = orion::GraphicsPipelineDesc{
-                shaders,
+                {},
                 vertex_bindings,
                 {&descriptor_set_layout, 1},
                 push_constants,

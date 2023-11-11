@@ -1,30 +1,70 @@
 #pragma once
 
-#include "shader_compiler.h"
+#include "orion-assets/config.h"
 
-#include "orion-renderapi/handles.h"
+#include "orion-core/filesystem.h"
+#include "orion-core/handle.h"
 
-#include <string_view>
+#include "orion-renderapi/types.h"
+
+#include <spdlog/logger.h>
+
+#include <span>
+#include <string>
+#include <unordered_map>
 
 namespace orion
 {
+    class Shader
+    {
+    public:
+        Shader(std::string name, ShaderModuleHandle shader_module);
+
+        [[nodiscard]] auto& name() const { return name_; }
+        [[nodiscard]] auto shader_module() const { return shader_module_; }
+
+    private:
+        std::string name_;
+        ShaderModuleHandle shader_module_;
+    };
+
+    // Shader handles for ShaderManager
+    using shader_handle_key_t = std::uint16_t;
+    ORION_DEFINE_HANDLE(ShaderHandle, shader_handle_key_t);
+
+    // Shader paths for object types
+    constexpr fs::path shader_object_base_path(ShaderObjectType object_type)
+    {
+        switch (object_type) {
+            case ShaderObjectType::SpirV:
+                return ORION_SPIRV_DIR;
+            case ShaderObjectType::DXIL:
+                return ORION_DXIL_DIR;
+        }
+    }
+
+    // Forward declare
     class RenderDevice;
 
     class ShaderManager
     {
     public:
-        static constexpr auto vs_entry_point = "vs_main";
-        static constexpr auto fs_entry_point = "fs_main";
-
         explicit ShaderManager(RenderDevice* device);
+        explicit ShaderManager(RenderDevice* device, fs::path base_path);
 
-        ShaderModuleHandle create_shader_module(std::string_view source, const char* entry_point, ShaderStageFlags stage) const;
-        ShaderModuleHandle create_vs(std::string_view source) const;
-        ShaderModuleHandle create_fs(std::string_view source) const;
+        std::pair<ShaderHandle, const Shader*> load(const fs::path& filepath, std::string name = "");
+
+        [[nodiscard]] const Shader* find(const std::string& name) const;
+        [[nodiscard]] const Shader* get(ShaderHandle shader_handle) const;
+        void remove(ShaderHandle shader_handle);
+
+        [[nodiscard]] bool exists(ShaderHandle shader_handle) const;
 
     private:
+        static spdlog::logger* logger();
+
         RenderDevice* device_;
-        ShaderObjectType object_type_;
-        ShaderCompiler shader_compiler_;
+        fs::path base_path_;
+        std::unordered_map<ShaderHandle, Shader> shaders_;
     };
 } // namespace orion

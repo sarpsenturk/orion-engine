@@ -31,7 +31,6 @@ namespace orion
     void SpriteRenderer::draw(const SpriteDrawDesc& draw_desc)
     {
         ++stats_.sprite_count;
-        SPDLOG_LOGGER_TRACE(logger(), "Drawing {}th sprite at {}", stats_.sprite_count, draw_desc.position);
     }
 
     void SpriteRenderer::reset()

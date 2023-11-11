@@ -13,7 +13,6 @@ add_library(orion::renderer ALIAS orion-renderer)
 target_include_directories(orion-renderer PUBLIC include/)
 
 # Find dependencies
-find_package(directx-dxc CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 
 # Create user imgui config file
@@ -31,11 +30,13 @@ target_link_libraries(
         orion::renderapi
         orion::scene
         imgui::imgui
-        Microsoft::DirectXShaderCompiler
 )
 
-# Add dependencies to enabled builtin render backends
-add_dependencies(orion-renderer orion-renderapi-builtin)
+# Add dependencies to custom targets
+add_dependencies(orion-renderer
+        orion-renderapi-builtin # Builtin renderapi targets
+        orion-assets # Assets used by Orion
+)
 
 # Precompiled headers
 target_precompile_headers(orion-renderer REUSE_FROM orion-pch)
@@ -44,8 +45,6 @@ target_precompile_headers(orion-renderer REUSE_FROM orion-pch)
 target_sources(orion-renderer PUBLIC FILE_SET public_headers TYPE HEADERS)
 
 # Add configuration file
-set(ORION_ASSET_DIR ${CMAKE_SOURCE_DIR}/assets)
-set(ORION_SHADER_DIR ${ORION_ASSET_DIR}/shaders)
 configure_file(config.h.in ${CMAKE_BINARY_DIR}/include/orion-renderer/config.h)
 
 # Add sources

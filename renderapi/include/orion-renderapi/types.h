@@ -575,7 +575,7 @@ namespace orion
     };
 
     struct ShaderModuleDesc {
-        std::span<const std::byte> byte_code;
+        std::span<const char> byte_code;
     };
 
     inline constexpr auto default_swapchain_image_count = 2;

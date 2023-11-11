@@ -8,7 +8,6 @@ target_sources(
         mesh.h
         renderer.h
         shader.h
-        shader_compiler.h
         sprite_renderer.h
         vertex.h
 )

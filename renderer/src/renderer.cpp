@@ -1,7 +1,5 @@
 #include "orion-renderer/renderer.h"
 
-#include "orion-renderer/shader_compiler.h"
-
 #include "orion-renderapi/config.h"
 
 #include "orion-core/window.h"

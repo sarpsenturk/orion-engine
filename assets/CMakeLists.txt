@@ -2,6 +2,8 @@
 # Set asset and sub-asset directories
 set(ORION_ASSET_DIR assets)
 set(ORION_SHADER_DIR ${ORION_ASSET_DIR}/shaders)
+set(ORION_SPIRV_DIR ${ORION_SHADER_DIR}/spriv)
+set(ORION_DXIL_DIR ${ORION_SHADER_DIR}/dxil)
 
 # Set asset source directories
 set(ORION_ASSET_SOURCE_DIR ${CMAKE_SOURCE_DIR}/${ORION_ASSET_DIR})
