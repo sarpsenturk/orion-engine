@@ -22,18 +22,3 @@ VsOutput vs_main(VsInput input)
    output.uv = input.uv;
    return output;
 }
-
-// Fragment shader
-
-struct FsInput {
-   float4 color : COLOR;
-   float2 uv : TEXCOORD;
-};
-
-Texture2D texture;
-SamplerState sampler;
-
-float4 fs_main(FsInput input) : SV_Target
-{
-   return texture.Sample(sampler, input.uv) * input.color;
-}

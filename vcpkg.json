@@ -13,7 +13,8 @@
       "features": [
         "docking-experimental"
       ]
-    }
+    },
+    "cli11"
   ],
   "features": {
     "tests": {
