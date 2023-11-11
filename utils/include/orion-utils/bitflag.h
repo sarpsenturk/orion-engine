@@ -45,8 +45,6 @@
 #include <limits>
 #include <type_traits>
 
-#define ORION_ENABLE_BITWISE OrionEnableBitwiseOps
-
 namespace orion
 {
     template<typename E>
