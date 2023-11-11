@@ -317,12 +317,12 @@ namespace
         const auto descriptor_set_layout = orion::DescriptorSetLayout({
             orion::DescriptorBinding{
                 .type = orion::DescriptorType::SampledImage,
-                .shader_stages = orion::ShaderStageFlags::Fragment,
+                .shader_stages = orion::ShaderStageFlags::Pixel,
                 .count = 1,
             },
             orion::DescriptorBinding{
                 .type = orion::DescriptorType::ImageSampler,
-                .shader_stages = orion::ShaderStageFlags::Fragment,
+                .shader_stages = orion::ShaderStageFlags::Pixel,
                 .count = 1,
             },
         });

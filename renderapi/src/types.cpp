@@ -34,8 +34,8 @@ namespace orion
                 case ShaderStageFlags::Vertex:
                     result += "Vertex | ";
                     break;
-                case ShaderStageFlags::Fragment:
-                    result += "Fragment | ";
+                case ShaderStageFlags::Pixel:
+                    result += "Pixel | ";
                     break;
             }
         }

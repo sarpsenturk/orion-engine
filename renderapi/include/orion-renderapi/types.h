@@ -123,7 +123,7 @@ namespace orion
 
     enum class ShaderStageFlags : std::uint8_t {
         Vertex = 0x1,
-        Fragment = 0x2
+        Pixel = 0x2
     };
 
     template<>
@@ -276,7 +276,7 @@ namespace orion
         ColorAttachmentOutput = 0x2,
         Transfer = 0x4,
         BottomOfPipe = 0x8,
-        FragmentShader = 0x10
+        PixelShader = 0x10
     };
     template<>
     struct enum_bitwise_enabled<PipelineStageFlags> : std::true_type {

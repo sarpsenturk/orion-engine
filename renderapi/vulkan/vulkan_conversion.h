@@ -109,7 +109,7 @@ namespace orion::vulkan
             switch (shader_stage) {
                 case ShaderStageFlags::Vertex:
                     return acc | VK_SHADER_STAGE_VERTEX_BIT;
-                case ShaderStageFlags::Fragment:
+                case ShaderStageFlags::Pixel:
                     return acc | VK_SHADER_STAGE_FRAGMENT_BIT;
             }
             ORION_ASSERT(!"Shader stage not handled in to_vulkan_type()");
@@ -339,7 +339,7 @@ namespace orion::vulkan
                     return acc | VK_PIPELINE_STAGE_TRANSFER_BIT;
                 case PipelineStageFlags::BottomOfPipe:
                     return acc | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-                case PipelineStageFlags::FragmentShader:
+                case PipelineStageFlags::PixelShader:
                     return acc | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             }
             ORION_ASSERT("Pipeline stage not handled in to_vulkan_type()");
