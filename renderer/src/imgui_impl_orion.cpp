@@ -290,7 +290,6 @@ namespace
         orion::UniqueImage font_image;
         orion::UniqueImageView font_image_view;
         orion::UniqueSampler font_sampler;
-        orion::UniqueDescriptorSet font_descriptor;
     };
 
     ImGuiRendererData* imgui_get_renderer_data()
@@ -312,20 +311,6 @@ namespace
         // Get render device
         auto* device = init_desc.device;
         renderer_data->device = device;
-
-        // Set descriptor layout
-        const auto descriptor_set_layout = orion::DescriptorSetLayout({
-            orion::DescriptorBinding{
-                .type = orion::DescriptorType::SampledImage,
-                .shader_stages = orion::ShaderStageFlags::Pixel,
-                .count = 1,
-            },
-            orion::DescriptorBinding{
-                .type = orion::DescriptorType::ImageSampler,
-                .shader_stages = orion::ShaderStageFlags::Pixel,
-                .count = 1,
-            },
-        });
 
         // Create pipeline
         {
@@ -389,7 +374,6 @@ namespace
             const auto desc = orion::GraphicsPipelineDesc{
                 {},
                 vertex_bindings,
-                {&descriptor_set_layout, 1},
                 push_constants,
                 input_assembly,
                 rasterization,
@@ -468,37 +452,7 @@ namespace
             renderer_data->font_sampler = device->make_unique(orion::SamplerHandle_tag{}, desc);
         }
 
-        // Create descriptor set
-        {
-            const auto desc = orion::DescriptorSetDesc{
-                .descriptor_pool = init_desc.descriptor_pool,
-                .layout = &descriptor_set_layout,
-            };
-            renderer_data->font_descriptor = device->make_unique(orion::DescriptorSetHandle_tag{}, desc);
-        }
-
-        // Update descriptor set
-        {
-            const auto descriptor_updates = std::array{
-                orion::DescriptorSetUpdate{
-                    .descriptor_set = renderer_data->font_descriptor.get(),
-                    .binding = 0,
-                    .descriptor_type = orion::DescriptorType::SampledImage,
-                    .image_view = renderer_data->font_image_view.get(),
-                    .image_layout = orion::ImageLayout::ShaderReadOnly,
-                },
-                orion::DescriptorSetUpdate{
-                    .descriptor_set = renderer_data->font_descriptor.get(),
-                    .binding = 1,
-                    .descriptor_type = orion::DescriptorType::ImageSampler,
-                    .sampler = renderer_data->font_sampler.get(),
-                },
-            };
-            device->update_descriptor_sets(descriptor_updates);
-        }
-
-        // Set font texture as descriptor set handle
-        io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(renderer_data->font_descriptor.get().value()));
+        // TODO: Set font texture as descriptor set handle
 
         SPDLOG_LOGGER_TRACE(logger(), "ImGui_ImplOrion_Renderer initialized");
     }
@@ -653,15 +607,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
                 .size = {static_cast<uint32_t>(clip_max.x - clip_min.x), static_cast<uint32_t>(clip_max.y - clip_min.y)},
             };
 
-            // Bind descriptor set
-            // TODO: It probably makes more sense to use ImageViewHandle's as ImTextureID's
-            {
-                const auto descriptor_set_uint = reinterpret_cast<std::uint64_t>(draw_cmd.TextureId);
-                auto* cmd_bind_descriptor_set = command_list.add_command<orion::CmdBindDescriptorSet>({});
-                cmd_bind_descriptor_set->pipeline = renderer_data->pipeline.get();
-                cmd_bind_descriptor_set->binding = 0;
-                cmd_bind_descriptor_set->descriptor_set = orion::DescriptorSetHandle{descriptor_set_uint};
-            }
+            // TODO: Bind descriptor set
 
             auto* cmd_draw_indexed = command_list.add_command<orion::CmdDrawIndexed>({});
             cmd_draw_indexed->draw_state.vertex_buffer = renderer_data->vertex_buffer.get();

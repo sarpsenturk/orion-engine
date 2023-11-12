@@ -198,7 +198,6 @@ namespace orion
         EndRenderPass,
         Draw,
         DrawIndexed,
-        BindDescriptorSet,
         PipelineBarrier,
         BlitImage,
         PushConstants,
@@ -356,57 +355,6 @@ namespace orion
         CommandBufferUsageFlags usage;
     };
 
-    struct DescriptorPoolSize {
-        DescriptorType type;
-        std::uint32_t count;
-    };
-
-    struct DescriptorBinding {
-        DescriptorType type;
-        ShaderStageFlags shader_stages;
-        std::uint32_t count;
-    };
-
-    class DescriptorSetLayout
-    {
-    public:
-        DescriptorSetLayout(std::initializer_list<DescriptorBinding> bindings);
-
-        [[nodiscard]] auto& bindings() const noexcept { return bindings_; }
-        [[nodiscard]] auto hash() const noexcept { return hash_; }
-
-    private:
-        static std::size_t hash_bindings(std::span<const DescriptorBinding> bindings);
-
-        std::vector<DescriptorBinding> bindings_;
-        std::size_t hash_;
-    };
-
-    struct DescriptorPoolDesc {
-        std::uint32_t max_sets;
-        std::span<const DescriptorPoolSize> pool_sizes;
-    };
-
-    struct DescriptorSetDesc {
-        DescriptorPoolHandle descriptor_pool;
-        const DescriptorSetLayout* layout;
-    };
-
-    struct DescriptorSetUpdate {
-        DescriptorSetHandle descriptor_set;
-        std::uint32_t binding;
-        DescriptorType descriptor_type;
-
-        GPUBufferHandle buffer_handle;
-        std::size_t buffer_offset;
-        std::size_t buffer_size;
-
-        ImageViewHandle image_view;
-        ImageLayout image_layout = ImageLayout::Undefined;
-
-        SamplerHandle sampler;
-    };
-
     struct PushConstantDesc {
         std::size_t size;
         ShaderStageFlags shader_stages;
@@ -562,7 +510,6 @@ namespace orion
     struct GraphicsPipelineDesc {
         std::span<const ShaderStageDesc> shaders = {};
         std::span<const VertexBinding> vertex_bindings = {};
-        std::span<const DescriptorSetLayout> descriptor_layouts = {};
         std::span<const PushConstantDesc> push_constants = {};
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};

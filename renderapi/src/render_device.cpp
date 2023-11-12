@@ -66,20 +66,6 @@ namespace orion
         return handle;
     }
 
-    DescriptorPoolHandle RenderDevice::create_descriptor_pool(const DescriptorPoolDesc& desc)
-    {
-        auto handle = create_descriptor_pool_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created descriptor pool with handle {}", handle);
-        return handle;
-    }
-
-    DescriptorSetHandle RenderDevice::create_descriptor_set(const DescriptorSetDesc& desc)
-    {
-        auto handle = create_descriptor_set_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Allocated descriptor set with handle {}", handle);
-        return handle;
-    }
-
     ImageHandle RenderDevice::create_image(const ImageDesc& desc)
     {
         auto handle = create_image_api(desc);
@@ -150,18 +136,6 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed command buffer {}", command_buffer_handle);
     }
 
-    void RenderDevice::destroy(DescriptorPoolHandle descriptor_pool_handle)
-    {
-        destroy_api(descriptor_pool_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor pool {}", descriptor_pool_handle);
-    }
-
-    void RenderDevice::destroy(DescriptorSetHandle descriptor_set_handle)
-    {
-        destroy_api(descriptor_set_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor set {}", descriptor_set_handle);
-    }
-
     void RenderDevice::destroy(ImageHandle image_handle)
     {
         destroy_api(image_handle);
@@ -229,10 +203,5 @@ namespace orion
     void RenderDevice::wait_idle()
     {
         wait_idle_api();
-    }
-
-    void RenderDevice::update_descriptor_sets(std::span<const DescriptorSetUpdate> updates)
-    {
-        update_descriptor_sets_api(updates);
     }
 } // namespace orion

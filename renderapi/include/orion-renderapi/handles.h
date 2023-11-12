@@ -17,8 +17,6 @@ namespace orion
     ORION_DEFINE_HANDLE(GPUBufferHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(CommandPoolHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(CommandBufferHandle, render_device_key_t);
-    ORION_DEFINE_HANDLE(DescriptorPoolHandle, render_device_key_t);
-    ORION_DEFINE_HANDLE(DescriptorSetHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(ImageHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(ImageViewHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(FramebufferHandle, render_device_key_t);

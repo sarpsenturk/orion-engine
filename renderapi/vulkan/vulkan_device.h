@@ -44,9 +44,6 @@ namespace orion::vulkan
 
         [[nodiscard]] std::vector<std::uint32_t> get_unique_queue_families(const std::vector<CommandQueueType>& queue_types) const;
 
-        VkDescriptorSetLayout make_descriptor_set_layout(const DescriptorSetLayout& layout);
-        [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(std::span<const DescriptorBinding> bindings) const;
-
         [[nodiscard]] VkRenderPass create_vkrender_pass(const AttachmentList& attachment_list) const;
 
         // Interface Overrides
@@ -58,8 +55,6 @@ namespace orion::vulkan
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
         CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) override;
         CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
-        DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
-        DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
@@ -72,8 +67,6 @@ namespace orion::vulkan
         void destroy_api(GPUBufferHandle buffer_handle) override;
         void destroy_api(CommandPoolHandle command_pool_handle) override;
         void destroy_api(CommandBufferHandle command_buffer_handle) override;
-        void destroy_api(DescriptorPoolHandle descriptor_pool_handle) override;
-        void destroy_api(DescriptorSetHandle descriptor_set_handle) override;
         void destroy_api(ImageHandle image_handle) override;
         void destroy_api(ImageViewHandle image_view_handle) override;
         void destroy_api(SamplerHandle sampler_handle) override;
@@ -91,8 +84,6 @@ namespace orion::vulkan
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
-        void update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates) override;
-
         DrawState draw_state_;
         void reset_draw_state();
         void update_draw_state(VkCommandBuffer command_buffer, const DrawState& new_state);
@@ -103,7 +94,6 @@ namespace orion::vulkan
         void cmd_end_render_pass(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw(VkCommandBuffer command_buffer, const void* data);
         void cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data);
-        void cmd_bind_descriptor_set(VkCommandBuffer command_buffer, const void* data);
         void cmd_pipeline_barrier(VkCommandBuffer command_buffer, const void* data);
         void cmd_blit_image(VkCommandBuffer command_buffer, const void* data);
         void cmd_push_constants(VkCommandBuffer command_buffer, const void* data);
@@ -128,9 +118,6 @@ namespace orion::vulkan
         VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;
         VulkanStore<CommandPoolHandle, UniqueVkCommandPool> command_pools_;
         VulkanStore<CommandBufferHandle, UniqueVkCommandBuffer> command_buffers_;
-        VulkanStore<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;
-        VulkanStore<DescriptorSetHandle, UniqueVkDescriptorSet> descriptor_sets_;
-        VulkanStore<std::size_t, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
         VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
     };
 } // namespace orion::vulkan

@@ -136,14 +136,6 @@ namespace orion
     };
     static_assert(IsValidCmdType<CmdDrawIndexed>::value);
 
-    DEFINE_COMMAND(BindDescriptorSet, Any)
-    {
-        PipelineHandle pipeline;
-        std::uint32_t binding;
-        DescriptorSetHandle descriptor_set;
-    };
-    static_assert(IsValidCmdType<CmdBindDescriptorSet>::value);
-
     DEFINE_COMMAND(PipelineBarrier, Any)
     {
         PipelineStageFlags src_stages;

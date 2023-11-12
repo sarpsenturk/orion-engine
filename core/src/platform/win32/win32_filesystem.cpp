@@ -155,7 +155,7 @@ namespace orion
             auto total_bytes_left = out_bytes.size();
             auto* pointer = out_bytes.data();
             while (total_bytes_left > 0) {
-                const DWORD bytes_left = total_bytes_left > max_bytes_at_time ? max_bytes_at_time : total_bytes_left;
+                const DWORD bytes_left = total_bytes_left > max_bytes_at_time ? max_bytes_at_time : static_cast<DWORD>(total_bytes_left);
                 DWORD bytes_read = 0;
                 if (!ReadFile(handle, pointer, bytes_left, &bytes_read, nullptr)) {
                     throw Win32Error();
@@ -174,7 +174,7 @@ namespace orion
             auto total_bytes_left = in_bytes.size();
             auto* pointer = in_bytes.data();
             while (total_bytes_left > 0) {
-                const DWORD bytes_left = total_bytes_left > max_bytes_at_time ? max_bytes_at_time : total_bytes_left;
+                const DWORD bytes_left = total_bytes_left > max_bytes_at_time ? max_bytes_at_time : static_cast<DWORD>(total_bytes_left);
                 DWORD bytes_written = 0;
                 if (!WriteFile(handle, in_bytes.data(), bytes_left, &bytes_written, nullptr)) {
                     throw Win32Error();

@@ -218,20 +218,6 @@ namespace orion::vulkan
         };
     }
 
-    constexpr auto to_vulkan_type(DescriptorType descriptor_type) noexcept -> VkDescriptorType
-    {
-        switch (descriptor_type) {
-            case DescriptorType::ConstantBuffer:
-                return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            case DescriptorType::ImageSampler:
-                return VK_DESCRIPTOR_TYPE_SAMPLER;
-            case DescriptorType::SampledImage:
-                return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        }
-        ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type() or is invalid");
-        return {};
-    }
-
     constexpr auto to_vulkan_type(CommandBufferUsageFlags command_buffer_usage) noexcept -> VkCommandBufferUsageFlags
     {
         auto conversion_fn = [](auto acc, CommandBufferUsageFlags usage_flags) -> VkCommandBufferUsageFlags {

@@ -38,8 +38,6 @@ namespace orion
     using UniqueGPUBuffer = unique_device_resource<GPUBufferHandle_tag>;
     using UniqueCommandPool = unique_device_resource<CommandPoolHandle_tag>;
     using UniqueCommandBuffer = unique_device_resource<CommandBufferHandle_tag>;
-    using UniqueDescriptorPool = unique_device_resource<DescriptorPoolHandle_tag>;
-    using UniqueDescriptorSet = unique_device_resource<DescriptorSetHandle_tag>;
     using UniqueImage = unique_device_resource<ImageHandle_tag>;
     using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
     using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
@@ -61,8 +59,6 @@ namespace orion
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
         [[nodiscard]] CommandPoolHandle create_command_pool(const CommandPoolDesc& desc);
         [[nodiscard]] CommandBufferHandle create_command_buffer(const CommandBufferDesc& desc);
-        [[nodiscard]] DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
-        [[nodiscard]] DescriptorSetHandle create_descriptor_set(const DescriptorSetDesc& desc);
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
         [[nodiscard]] SamplerHandle create_sampler(const SamplerDesc& desc);
@@ -75,8 +71,6 @@ namespace orion
         [[nodiscard]] GPUBufferHandle create(GPUBufferHandle_tag, const GPUBufferDesc& desc) { return create_buffer(desc); }
         [[nodiscard]] CommandPoolHandle create(CommandPoolHandle_tag, const CommandPoolDesc& desc) { return create_command_pool(desc); }
         [[nodiscard]] CommandBufferHandle create(CommandBufferHandle_tag, const CommandBufferDesc& desc) { return create_command_buffer(desc); }
-        [[nodiscard]] DescriptorPoolHandle create(DescriptorPoolHandle_tag, const DescriptorPoolDesc& desc) { return create_descriptor_pool(desc); }
-        [[nodiscard]] DescriptorSetHandle create(DescriptorSetHandle_tag, const DescriptorSetDesc& desc) { return create_descriptor_set(desc); }
         [[nodiscard]] ImageHandle create(ImageHandle_tag, const ImageDesc& desc) { return create_image(desc); }
         [[nodiscard]] ImageViewHandle create(ImageViewHandle_tag, const ImageViewDesc& desc) { return create_image_view(desc); }
         [[nodiscard]] SamplerHandle create(SamplerHandle_tag, const SamplerDesc& desc) { return create_sampler(desc); }
@@ -101,8 +95,6 @@ namespace orion
         void destroy(GPUBufferHandle buffer_handle);
         void destroy(CommandPoolHandle command_pool_handle);
         void destroy(CommandBufferHandle command_buffer_handle);
-        void destroy(DescriptorPoolHandle descriptor_pool_handle);
-        void destroy(DescriptorSetHandle descriptor_set_handle);
         void destroy(ImageHandle image_handle);
         void destroy(ImageViewHandle image_view_handle);
         void destroy(SamplerHandle sampler_handle);
@@ -119,8 +111,6 @@ namespace orion
         void wait_for_jobs(std::span<const GPUJobHandle> job_handles);
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
-
-        void update_descriptor_sets(std::span<const DescriptorSetUpdate> updates);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
@@ -139,8 +129,6 @@ namespace orion
         [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) = 0;
         [[nodiscard]] virtual CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) = 0;
         [[nodiscard]] virtual CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) = 0;
-        [[nodiscard]] virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
-        [[nodiscard]] virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) = 0;
         [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
         [[nodiscard]] virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
@@ -153,8 +141,6 @@ namespace orion
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
         virtual void destroy_api(CommandBufferHandle command_buffer_handle) = 0;
         virtual void destroy_api(CommandPoolHandle command_pool_handle) = 0;
-        virtual void destroy_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
-        virtual void destroy_api(DescriptorSetHandle descriptor_set_handle) = 0;
         virtual void destroy_api(ImageHandle image_handle) = 0;
         virtual void destroy_api(ImageViewHandle image_view_handle) = 0;
         virtual void destroy_api(SamplerHandle sampler_handle) = 0;
@@ -171,8 +157,6 @@ namespace orion
         virtual void wait_for_jobs_api(std::span<const GPUJobHandle> job_handles) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
-
-        virtual void update_descriptor_sets_api(std::span<const DescriptorSetUpdate> updates) = 0;
 
         spdlog::logger* logger_;
     };
