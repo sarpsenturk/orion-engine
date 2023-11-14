@@ -64,6 +64,7 @@ namespace orion::vulkan
             if constexpr (!ORION_RENDERER_HEADLESS) {
                 extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
             }
+            extensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
             return extensions;
         }
 
@@ -259,9 +260,25 @@ namespace orion::vulkan
         // Create the device
         VkDevice device = VK_NULL_HANDLE;
         {
+            auto descriptor_indexing_features = VkPhysicalDeviceDescriptorIndexingFeatures{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+                .pNext = nullptr,
+            };
+            auto device_features = VkPhysicalDeviceFeatures2{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+                .pNext = &descriptor_indexing_features,
+            };
+            vkGetPhysicalDeviceFeatures2(physical_device, &device_features);
+            ORION_ASSERT(descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing);
+            ORION_ASSERT(descriptor_indexing_features.descriptorBindingSampledImageUpdateAfterBind);
+            ORION_ASSERT(descriptor_indexing_features.shaderUniformBufferArrayNonUniformIndexing);
+            ORION_ASSERT(descriptor_indexing_features.descriptorBindingUniformBufferUpdateAfterBind);
+            ORION_ASSERT(descriptor_indexing_features.shaderStorageBufferArrayNonUniformIndexing);
+            ORION_ASSERT(descriptor_indexing_features.descriptorBindingStorageBufferUpdateAfterBind);
+
             const auto device_info = VkDeviceCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                .pNext = nullptr,
+                .pNext = &device_features,
                 .flags = 0,
                 .queueCreateInfoCount = static_cast<std::uint32_t>(queue_infos.size()),
                 .pQueueCreateInfos = queue_infos.data(),
