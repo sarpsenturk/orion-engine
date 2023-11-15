@@ -25,6 +25,26 @@ namespace orion
     {
     }
 
+    ShaderPipeline::ShaderPipeline(std::array<const Shader*, pipeline_size> shaders)
+        : shaders_(shaders)
+        , shader_stages_(create_shader_stages())
+    {
+    }
+
+    std::vector<ShaderStageDesc> ShaderPipeline::create_shader_stages() const
+    {
+        std::vector<ShaderStageDesc> shader_stages;
+        auto add_stage = [&](const Shader* shader, ShaderStageFlags stage, const char* entry_point) {
+            if (shader != nullptr) {
+                shader_stages.push_back({.module = shader->shader_module(), .stage = stage, .entry_point = entry_point});
+            }
+        };
+
+        add_stage(vertex_shader(), ShaderStageFlags::Vertex, ORION_VS_ENTRY);
+        add_stage(pixel_shader(), ShaderStageFlags::Pixel, ORION_PS_ENTRY);
+        return shader_stages;
+    }
+
     ShaderManager::ShaderManager(RenderDevice* device)
         : device_(device)
         , base_path_(shader_object_base_path(device->shader_object_type()))

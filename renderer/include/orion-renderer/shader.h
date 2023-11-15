@@ -12,6 +12,7 @@
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace orion
 {
@@ -28,6 +29,25 @@ namespace orion
         ShaderModuleHandle shader_module_;
     };
 
+    class ShaderPipeline
+    {
+    public:
+        static constexpr auto pipeline_size = 2ull;
+
+        explicit ShaderPipeline(std::array<const Shader*, pipeline_size> shaders);
+
+        [[nodiscard]] auto* vertex_shader() const { return shaders_[0]; }
+        [[nodiscard]] auto* pixel_shader() const { return shaders_[1]; }
+
+        [[nodiscard]] std::span<const ShaderStageDesc> shader_stages() const { return std::span{shader_stages_}; }
+
+    private:
+        [[nodiscard]] std::vector<ShaderStageDesc> create_shader_stages() const;
+
+        std::array<const Shader*, pipeline_size> shaders_;
+        std::vector<ShaderStageDesc> shader_stages_;
+    };
+
     // Shader handles for ShaderManager
     using shader_handle_key_t = std::uint16_t;
     ORION_DEFINE_HANDLE(ShaderHandle, shader_handle_key_t);
@@ -41,6 +61,7 @@ namespace orion
             case ShaderObjectType::DXIL:
                 return ORION_DXIL_DIR;
         }
+        throw std::exception("invalid shader object type");
     }
 
     // Forward declare
