@@ -22,6 +22,16 @@ namespace orion
         draw_indexed_api(cmd_draw_indexed);
     }
 
+    void CommandList::bind_index_buffer(const CmdBindIndexBuffer& cmd_bind_index_buffer)
+    {
+        bind_index_buffer_api(cmd_bind_index_buffer);
+    }
+
+    void CommandList::bind_vertex_buffer(const CmdBindVertexBuffer& cmd_bind_vertex_buffer)
+    {
+        bind_vertex_buffer_api(cmd_bind_vertex_buffer);
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();

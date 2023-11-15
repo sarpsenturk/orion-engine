@@ -767,39 +767,6 @@ namespace orion::vulkan
         return fence;
     }
 
-    VkCommandPool VulkanDevice::create_vk_command_pool(std::uint32_t queue_family, VkCommandPoolCreateFlags flags)
-    {
-        VkCommandPool command_pool = VK_NULL_HANDLE;
-        {
-            const auto info = VkCommandPoolCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = flags,
-                .queueFamilyIndex = queue_family,
-            };
-            vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkCommandPool {}", fmt::ptr(command_pool));
-        }
-        return command_pool;
-    }
-
-    VkCommandBuffer VulkanDevice::create_vk_command_buffer(VkCommandPool command_pool, VkCommandBufferLevel level)
-    {
-        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-        {
-            const auto info = VkCommandBufferAllocateInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                .pNext = nullptr,
-                .commandPool = command_pool,
-                .level = level,
-                .commandBufferCount = 1,
-            };
-            vk_result_check(vkAllocateCommandBuffers(device(), &info, &command_buffer));
-            SPDLOG_LOGGER_TRACE(logger(), "Allocated VkCommandBuffer {}", fmt::ptr(command_buffer));
-        }
-        return command_buffer;
-    }
-
     VkSwapchainKHR VulkanDevice::create_vk_swapchain(const VulkanSwapchainDesc& desc)
     {
         // Get surface capabilities

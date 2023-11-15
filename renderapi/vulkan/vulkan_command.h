@@ -19,6 +19,8 @@ namespace orion::vulkan
         void end_api() override;
         void draw_api(const CmdDraw& cmd_draw) override;
         void draw_indexed_api(const CmdDrawIndexed& cmd_draw_indexed) override;
+        void bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer) override;
+        void bind_vertex_buffer_api(const CmdBindVertexBuffer& cmd_bind_vertex_buffer) override;
 
         VulkanDevice* device_;
         UniqueVkCommandBuffer command_buffer_;

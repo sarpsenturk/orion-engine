@@ -34,9 +34,9 @@ namespace orion::vulkan
 
         [[nodiscard]] VkSemaphore create_vk_semaphore();
         [[nodiscard]] VkFence create_vk_fence(bool signaled);
-        [[nodiscard]] VkCommandPool create_vk_command_pool(std::uint32_t queue_family, VkCommandPoolCreateFlags flags = 0);
-        [[nodiscard]] VkCommandBuffer create_vk_command_buffer(VkCommandPool command_pool, VkCommandBufferLevel level);
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
+
+        [[nodiscard]] auto& buffers() const { return buffers_; }
 
     private:
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;

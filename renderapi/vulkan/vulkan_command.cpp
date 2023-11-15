@@ -1,5 +1,6 @@
 #include "vulkan_command.h"
 
+#include "vulkan_conversion.h"
 #include "vulkan_device.h"
 
 namespace orion::vulkan
@@ -45,6 +46,28 @@ namespace orion::vulkan
             cmd_draw_indexed.first_index,
             cmd_draw_indexed.vertex_offset,
             cmd_draw_indexed.first_instance);
+    }
+
+    void VulkanCommandList::bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer)
+    {
+        VkBuffer vk_buffer = device_->buffers().handle_at(cmd_bind_index_buffer.index_buffer);
+        vkCmdBindIndexBuffer(
+            command_buffer_.get(),
+            vk_buffer,
+            VkDeviceSize{cmd_bind_index_buffer.offset},
+            to_vulkan_type(cmd_bind_index_buffer.index_type));
+    }
+
+    void VulkanCommandList::bind_vertex_buffer_api(const CmdBindVertexBuffer& cmd_bind_vertex_buffer)
+    {
+        VkBuffer vk_buffer = device_->buffers().handle_at(cmd_bind_vertex_buffer.vertex_buffer);
+        const auto offset = VkDeviceSize{cmd_bind_vertex_buffer.offset};
+        vkCmdBindVertexBuffers(
+            command_buffer_.get(),
+            0,
+            1,
+            &vk_buffer,
+            &offset);
     }
 
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)

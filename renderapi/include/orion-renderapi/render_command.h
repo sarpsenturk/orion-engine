@@ -1,6 +1,7 @@
 #pragma once
 
 #include "handles.h"
+#include "types.h"
 
 #include <cstdint>
 #include <memory>
@@ -22,6 +23,17 @@ namespace orion
         std::uint32_t first_instance;
     };
 
+    struct CmdBindIndexBuffer {
+        GPUBufferHandle index_buffer;
+        std::size_t offset;
+        IndexType index_type;
+    };
+
+    struct CmdBindVertexBuffer {
+        GPUBufferHandle vertex_buffer;
+        std::size_t offset;
+    };
+
     class CommandList
     {
     public:
@@ -32,6 +44,8 @@ namespace orion
         void end();
         void draw(const CmdDraw& cmd_draw);
         void draw_indexed(const CmdDrawIndexed& cmd_draw_indexed);
+        void bind_index_buffer(const CmdBindIndexBuffer& cmd_bind_index_buffer);
+        void bind_vertex_buffer(const CmdBindVertexBuffer& cmd_bind_vertex_buffer);
 
     protected:
         CommandList(const CommandList&) = default;
@@ -44,6 +58,8 @@ namespace orion
         virtual void end_api() = 0;
         virtual void draw_api(const CmdDraw& cmd_draw) = 0;
         virtual void draw_indexed_api(const CmdDrawIndexed& cmd_draw_indexed) = 0;
+        virtual void bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer) = 0;
+        virtual void bind_vertex_buffer_api(const CmdBindVertexBuffer& cmd_bind_vertex_buffer) = 0;
     };
 
     class CommandAllocator
