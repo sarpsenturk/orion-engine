@@ -1,5 +1,6 @@
 #include "vulkan_device.h"
 
+#include "vulkan_command.h"
 #include "vulkan_conversion.h"
 #include "vulkan_platform.h"
 #include "vulkan_swapchain.h"
@@ -170,6 +171,21 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
         }
         return render_pass;
+    }
+
+    std::unique_ptr<CommandAllocator> VulkanDevice::create_command_allocator_api(CommandQueueType queue_type)
+    {
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        {
+            const auto info = VkCommandPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .queueFamilyIndex = get_queue_family(queue_type),
+            };
+            vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
+        }
+        return std::make_unique<VulkanCommandAllocator>(this, unique(command_pool, device()));
     }
 
     std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(const SwapchainDesc& desc)
@@ -514,23 +530,6 @@ namespace orion::vulkan
         return handle;
     }
 
-    CommandPoolHandle VulkanDevice::create_command_pool_api(const CommandPoolDesc& desc)
-    {
-        VkCommandPool command_pool = create_vk_command_pool(get_queue_family(desc.queue_type));
-        auto handle = CommandPoolHandle::generate();
-        command_pools_.add(handle, unique(command_pool, device()));
-        return handle;
-    }
-
-    CommandBufferHandle VulkanDevice::create_command_buffer_api(const CommandBufferDesc& desc)
-    {
-        VkCommandPool command_pool = command_pools_.handle_at(desc.command_pool);
-        VkCommandBuffer command_buffer = create_vk_command_buffer(command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        const auto handle = CommandBufferHandle::generate();
-        command_buffers_.add(handle, unique(command_buffer, device(), command_pool));
-        return handle;
-    }
-
     ImageHandle VulkanDevice::create_image_api(const ImageDesc& desc)
     {
         VkImage image = VK_NULL_HANDLE;
@@ -681,16 +680,6 @@ namespace orion::vulkan
         allocations_.erase(buffer_handle.value());
     }
 
-    void VulkanDevice::destroy_api(CommandPoolHandle command_pool_handle)
-    {
-        command_pools_.remove(command_pool_handle);
-    }
-
-    void VulkanDevice::destroy_api(CommandBufferHandle command_buffer_handle)
-    {
-        command_buffers_.remove(command_buffer_handle);
-    }
-
     void VulkanDevice::destroy_api(ImageHandle image_handle)
     {
         images_.remove(image_handle);
@@ -725,39 +714,6 @@ namespace orion::vulkan
         vmaUnmapMemory(vma_allocator_.get(), allocations_.at(buffer_handle.value()));
     }
 
-    void VulkanDevice::reset_command_pool_api(CommandPoolHandle command_pool)
-    {
-        vk_result_check(vkResetCommandPool(device(), command_pools_.handle_at(command_pool), 0));
-    }
-
-    void VulkanDevice::reset_command_buffer_api(CommandBufferHandle command_buffer)
-    {
-        vkResetCommandBuffer(command_buffers_.handle_at(command_buffer), 0);
-    }
-
-    void VulkanDevice::compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
-    {
-        // Find command buffer
-        VkCommandBuffer vk_command_buffer = command_buffers_.handle_at(command_buffer);
-
-        // Begin command buffer recording
-        const auto begin_info = VkCommandBufferBeginInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .pInheritanceInfo = nullptr,
-        };
-        vk_result_check(vkBeginCommandBuffer(vk_command_buffer, &begin_info));
-
-        // Compile commands
-        reset_draw_state();
-        for (const auto& command : commands) {
-            compile_command(vk_command_buffer, command);
-        }
-
-        vk_result_check(vkEndCommandBuffer(command_buffers_.handle_at(command_buffer)));
-    }
-
     void VulkanDevice::wait_for_job_api(GPUJobHandle job_handle)
     {
         VkFence fence = jobs_.at(job_handle).vk_fence();
@@ -779,296 +735,6 @@ namespace orion::vulkan
     void VulkanDevice::wait_idle_api()
     {
         vk_result_check(vkDeviceWaitIdle(device()));
-    }
-
-    void VulkanDevice::reset_draw_state()
-    {
-        draw_state_ = {};
-    }
-
-    void VulkanDevice::update_draw_state(VkCommandBuffer command_buffer, const DrawState& new_state)
-    {
-        if (draw_state_.set_vertex_buffer(new_state.vertex_buffer)) {
-            VkBuffer vertex_buffer = buffers_.handle_at(new_state.vertex_buffer);
-            const auto offsets = VkDeviceSize{0};
-            vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offsets);
-        }
-        if (draw_state_.set_index_buffer(new_state.index_buffer, new_state.index_type)) {
-            VkBuffer index_buffer = buffers_.handle_at(new_state.index_buffer);
-            const auto index_type = to_vulkan_type(new_state.index_type);
-            vkCmdBindIndexBuffer(command_buffer, index_buffer, VkDeviceSize{0}, index_type);
-        }
-        if (draw_state_.set_pipeline(new_state.pipeline)) {
-            VkPipeline pipeline = pipelines_.handle_at(new_state.pipeline);
-            vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        }
-        if (draw_state_.set_viewport(new_state.viewport)) {
-            const auto viewport = to_vulkan_type(new_state.viewport);
-            vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-        }
-        if (draw_state_.set_scissor(new_state.scissor)) {
-            const auto scissor = to_vulkan_rect(new_state.scissor);
-            vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-        }
-    }
-
-    void VulkanDevice::compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet)
-    {
-        switch (command_packet.type) {
-            case CommandType::CopyBuffer:
-                cmd_copy_buffer(command_buffer, command_packet.data);
-                break;
-            case CommandType::BeginRenderPass:
-                cmd_begin_render_pass(command_buffer, command_packet.data);
-                break;
-            case CommandType::EndRenderPass:
-                cmd_end_render_pass(command_buffer, command_packet.data);
-                break;
-            case CommandType::Draw:
-                cmd_draw(command_buffer, command_packet.data);
-                break;
-            case CommandType::DrawIndexed:
-                cmd_draw_indexed(command_buffer, command_packet.data);
-                break;
-            case CommandType::PipelineBarrier:
-                cmd_pipeline_barrier(command_buffer, command_packet.data);
-                break;
-            case CommandType::BlitImage:
-                cmd_blit_image(command_buffer, command_packet.data);
-                break;
-            case CommandType::PushConstants:
-                cmd_push_constants(command_buffer, command_packet.data);
-                break;
-            case CommandType::CopyBufferToImage:
-                cmd_copy_buffer_to_image(command_buffer, command_packet.data);
-                break;
-            default:
-                ORION_ASSERT(!"Command type not handled!");
-        }
-    }
-
-    void VulkanDevice::cmd_copy_buffer(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdCopyBuffer*>(data);
-
-        // Find related buffers
-        VkBuffer src_buffer = buffers_.handle_at(cmd_data->src);
-        VkBuffer dst_buffer = buffers_.handle_at(cmd_data->dst);
-
-        // Set copy regions
-        const auto regions = std::array{
-            VkBufferCopy{
-                .srcOffset = cmd_data->src_offset,
-                .dstOffset = cmd_data->dst_offset,
-                .size = cmd_data->size,
-            },
-        };
-
-        vkCmdCopyBuffer(
-            command_buffer,
-            src_buffer, dst_buffer,
-            static_cast<std::uint32_t>(regions.size()), regions.data());
-    }
-
-    void VulkanDevice::cmd_begin_render_pass(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdBeginRenderPass*>(data);
-
-        // Find render pass
-        VkRenderPass render_pass = render_passes_.handle_at(cmd_data->render_pass);
-        // Find frame buffer
-        VkFramebuffer framebuffer = framebuffers_.handle_at(cmd_data->framebuffer);
-
-        // Set clear values
-        const auto clear_values = std::array{
-            VkClearValue{.color = {cmd_data->clear_color[0], cmd_data->clear_color[1], cmd_data->clear_color[2], cmd_data->clear_color[3]}},
-        };
-
-        const auto info = VkRenderPassBeginInfo{
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .pNext = nullptr,
-            .renderPass = render_pass,
-            .framebuffer = framebuffer,
-            .renderArea = {.offset = {}, .extent = to_vulkan_extent(cmd_data->render_area)},
-            .clearValueCount = static_cast<std::uint32_t>(clear_values.size()),
-            .pClearValues = clear_values.data(),
-        };
-        vkCmdBeginRenderPass(command_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-    }
-
-    void VulkanDevice::cmd_end_render_pass(VkCommandBuffer command_buffer, const void* data)
-    {
-        (void)data;
-        vkCmdEndRenderPass(command_buffer);
-    }
-
-    void VulkanDevice::cmd_draw(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdDraw*>(data);
-
-        // Set draw state (vertex buffer, index buffer, pipeline, etc.)
-        // See struct DrawState
-        update_draw_state(command_buffer, cmd_data->draw_state);
-        draw_state_.assert_valid_draw();
-
-        // Issue command
-        vkCmdDraw(
-            command_buffer,
-            cmd_data->vertex_count,
-            1u,
-            cmd_data->first_vertex,
-            0u);
-    }
-
-    void VulkanDevice::cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdDrawIndexed*>(data);
-
-        // Set draw state (vertex buffer, index buffer, pipeline, etc.)
-        // See struct DrawState
-        update_draw_state(command_buffer, cmd_data->draw_state);
-        draw_state_.assert_valid_draw_indexed();
-
-        vkCmdDrawIndexed(
-            command_buffer,
-            cmd_data->index_count,
-            1u,
-            cmd_data->index_offset,
-            cmd_data->vertex_offset,
-            0u);
-    }
-
-    void VulkanDevice::cmd_pipeline_barrier(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdPipelineBarrier*>(data);
-
-        const auto image_memory_barrier = VkImageMemoryBarrier{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .pNext = nullptr,
-            .srcAccessMask = to_vulkan_type(cmd_data->image_barrier.src_access),
-            .dstAccessMask = to_vulkan_type(cmd_data->image_barrier.dst_access),
-            .oldLayout = to_vulkan_type(cmd_data->image_barrier.old_layout),
-            .newLayout = to_vulkan_type(cmd_data->image_barrier.new_layout),
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image = images_.handle_at(cmd_data->image_barrier.image),
-            // TODO: Allow this to be customized
-            .subresourceRange = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        };
-
-        vkCmdPipelineBarrier(
-            command_buffer,
-            to_vulkan_type(cmd_data->src_stages),
-            to_vulkan_type(cmd_data->dst_stages),
-            0,
-            0u, nullptr,
-            0u, nullptr,
-            1u, &image_memory_barrier);
-    }
-
-    void VulkanDevice::cmd_blit_image(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdBlitImage*>(data);
-
-        // Find source image
-        VkImage src_image = images_.handle_at(cmd_data->src_image);
-
-        // Find destination image
-        VkImage dst_image = images_.handle_at(cmd_data->dst_image);
-
-        // Get sizes
-        const auto src_size = vector_cast<int>(cmd_data->src_size);
-        const auto dst_size = vector_cast<int>(cmd_data->dst_size);
-
-        // Blit info
-        // TODO: Allow for customization of sub resources and offsets
-        const auto blit = VkImageBlit{
-            .srcSubresource = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .mipLevel = 0,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-            .srcOffsets = {
-                VkOffset3D{0, 0, 0},
-                VkOffset3D{src_size.x(), src_size.y(), 1},
-            },
-            .dstSubresource = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .mipLevel = 0,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-            .dstOffsets = {
-                VkOffset3D{0, 0, 0},
-                VkOffset3D{dst_size.x(), dst_size.y(), 1},
-            },
-        };
-
-        vkCmdBlitImage(
-            command_buffer,
-            src_image,
-            to_vulkan_type(cmd_data->src_layout),
-            dst_image,
-            to_vulkan_type(cmd_data->dst_layout),
-            1,
-            &blit,
-            VK_FILTER_NEAREST);
-    }
-
-    void VulkanDevice::cmd_push_constants(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdPushConstants*>(data);
-
-        // Find pipeline layout
-        VkPipelineLayout pipeline_layout = pipeline_layouts_.handle_at(cmd_data->pipeline);
-
-        vkCmdPushConstants(
-            command_buffer,
-            pipeline_layout,
-            to_vulkan_type(cmd_data->shader_stages),
-            static_cast<std::uint32_t>(cmd_data->offset),
-            static_cast<std::uint32_t>(cmd_data->size),
-            cmd_data->data);
-    }
-
-    void VulkanDevice::cmd_copy_buffer_to_image(VkCommandBuffer command_buffer, const void* data)
-    {
-        const auto* cmd_data = static_cast<const CmdCopyBufferToImage*>(data);
-
-        // Find source buffer
-        VkBuffer src_buffer = buffers_.handle_at(cmd_data->src_buffer);
-
-        // Find destination image
-        VkImage dst_image = images_.handle_at(cmd_data->dst_image);
-
-        const auto copy = VkBufferImageCopy{
-            .bufferOffset = 0,
-            .bufferRowLength = 0,
-            .bufferImageHeight = 0,
-            .imageSubresource = {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .mipLevel = 0,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-            .imageOffset = {},
-            .imageExtent = to_vulkan_extent(cmd_data->dst_image_size),
-        };
-
-        vkCmdCopyBufferToImage(
-            command_buffer,
-            src_buffer,
-            dst_image,
-            to_vulkan_type(cmd_data->dst_image_layout),
-            1u,
-            &copy);
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()

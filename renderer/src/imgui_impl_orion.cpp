@@ -508,7 +508,7 @@ void ImGui_ImplOrion_NewFrame()
     io.DeltaTime = delta_time.count();
 }
 
-void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& command_list)
+void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
 {
     // Don't render if minimized
     if (draw_data->DisplaySize.x <= 0.f || draw_data->DisplaySize.y <= 0.f) {
@@ -573,15 +573,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
     const float bottom = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
     renderer_data->scene_buffer.projection = orion::orthographic_rh(left, right, bottom, top, 0.f, 1.f);
 
-    // Push the projection matrix
-    {
-        auto* cmd_push_constants = command_list.add_command<orion::CmdPushConstants>({});
-        cmd_push_constants->pipeline = renderer_data->pipeline.get();
-        cmd_push_constants->shader_stages = orion::ShaderStageFlags::Vertex;
-        cmd_push_constants->offset = 0;
-        cmd_push_constants->size = sizeof(ImGuiCSceneBuffer);
-        cmd_push_constants->data = &renderer_data->scene_buffer;
-    }
+    // TODO: Push the projection matrix
 
     // Render command lists
     std::uint32_t global_idx_offset = 0u;
@@ -609,16 +601,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& c
 
             // TODO: Bind descriptor set
 
-            auto* cmd_draw_indexed = command_list.add_command<orion::CmdDrawIndexed>({});
-            cmd_draw_indexed->draw_state.vertex_buffer = renderer_data->vertex_buffer.get();
-            cmd_draw_indexed->draw_state.index_buffer = renderer_data->index_buffer.get();
-            cmd_draw_indexed->draw_state.index_type = orion::IndexType::Uint16;
-            cmd_draw_indexed->draw_state.pipeline = renderer_data->pipeline.get();
-            cmd_draw_indexed->draw_state.viewport = viewport;
-            cmd_draw_indexed->draw_state.scissor = scissor;
-            cmd_draw_indexed->vertex_offset = global_vtx_offset + draw_cmd.VtxOffset;
-            cmd_draw_indexed->index_offset = global_idx_offset + draw_cmd.IdxOffset;
-            cmd_draw_indexed->index_count = draw_cmd.ElemCount;
+            // TODO: Draw indexed
         }
         global_vtx_offset += cmd_list->VtxBuffer.Size;
         global_idx_offset += cmd_list->IdxBuffer.Size;

@@ -19,7 +19,6 @@ namespace orion
 
     struct SpriteRendererDesc {
         RenderDevice* device;
-        CommandPoolHandle command_pool;
     };
 
     struct SpriteDrawDesc {
@@ -41,7 +40,6 @@ namespace orion
         static spdlog::logger* logger();
 
         RenderDevice* device_;
-        CommandPoolHandle command_pool_;
         GPUJobHandle render_job_;
 
         struct Stats {

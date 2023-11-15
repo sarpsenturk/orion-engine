@@ -10,6 +10,7 @@ add_library(
         ${ORION_VULKAN_MODULE} MODULE
         vma_impl.cpp
         vulkan_backend.h vulkan_backend.cpp
+        vulkan_command.h vulkan_command.cpp
         vulkan_conversion.h
         vulkan_device.h vulkan_device.cpp
         vulkan_headers.h

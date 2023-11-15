@@ -23,7 +23,6 @@ namespace orion
 
     SpriteRenderer::SpriteRenderer(const SpriteRendererDesc& desc)
         : device_(desc.device)
-        , command_pool_(desc.command_pool)
         , render_job_(device_->create_job({.start_finished = true}))
     {
     }

@@ -47,7 +47,7 @@ namespace orion
             ImageHandle render_image;
             ImageViewHandle render_image_view;
             FramebufferHandle render_target;
-            CommandPoolHandle command_pool;
+            std::unique_ptr<CommandAllocator> command_allocator;
             SpriteRenderer sprite_renderer;
         };
         using FrameDataArr = static_vector<FrameData, frames_in_flight>;

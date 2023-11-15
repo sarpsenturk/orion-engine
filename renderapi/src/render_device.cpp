@@ -9,6 +9,13 @@ namespace orion
     {
     }
 
+    std::unique_ptr<CommandAllocator> RenderDevice::create_command_allocator(orion::CommandQueueType queue_type)
+    {
+        auto allocator = create_command_allocator_api(queue_type);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created command allocator interface at {}", fmt::ptr(allocator));
+        return allocator;
+    }
+
     std::unique_ptr<Swapchain> RenderDevice::create_swapchain(const SwapchainDesc& desc)
     {
         ORION_EXPECTS(desc.window != nullptr);
@@ -49,20 +56,6 @@ namespace orion
     {
         auto handle = create_buffer_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created gpu buffer with handle {}", handle);
-        return handle;
-    }
-
-    CommandPoolHandle RenderDevice::create_command_pool(const CommandPoolDesc& desc)
-    {
-        auto handle = create_command_pool_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created command pool with handle {}", handle);
-        return handle;
-    }
-
-    CommandBufferHandle RenderDevice::create_command_buffer(const CommandBufferDesc& desc)
-    {
-        auto handle = create_command_buffer_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created command buffer with handle {}", handle);
         return handle;
     }
 
@@ -124,18 +117,6 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed GPUBuffer {}", buffer_handle);
     }
 
-    void RenderDevice::destroy(CommandPoolHandle command_pool_handle)
-    {
-        destroy_api(command_pool_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed command pool {}", command_pool_handle);
-    }
-
-    void RenderDevice::destroy(CommandBufferHandle command_buffer_handle)
-    {
-        destroy_api(command_buffer_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed command buffer {}", command_buffer_handle);
-    }
-
     void RenderDevice::destroy(ImageHandle image_handle)
     {
         destroy_api(image_handle);
@@ -168,21 +149,6 @@ namespace orion
     void RenderDevice::unmap(GPUBufferHandle buffer_handle)
     {
         return unmap_api(buffer_handle);
-    }
-
-    void RenderDevice::reset_command_pool(CommandPoolHandle command_pool)
-    {
-        reset_command_pool_api(command_pool);
-    }
-
-    void RenderDevice::reset_command_buffer(CommandBufferHandle command_buffer)
-    {
-        reset_command_buffer_api(command_buffer);
-    }
-
-    void RenderDevice::compile_commands(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands)
-    {
-        compile_commands_api(command_buffer, commands);
     }
 
     void RenderDevice::wait_for_job(GPUJobHandle job_handle)

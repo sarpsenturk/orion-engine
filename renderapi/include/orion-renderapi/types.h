@@ -192,18 +192,6 @@ namespace orion
         Any
     };
 
-    enum class CommandType {
-        CopyBuffer,
-        BeginRenderPass,
-        EndRenderPass,
-        Draw,
-        DrawIndexed,
-        PipelineBarrier,
-        BlitImage,
-        PushConstants,
-        CopyBufferToImage
-    };
-
     enum class DescriptorType : std::uint8_t {
         Unknown,
         ConstantBuffer,
@@ -214,13 +202,6 @@ namespace orion
     enum class ShaderObjectType {
         SpirV,
         DXIL
-    };
-
-    enum class CommandBufferUsageFlags : std::uint8_t {
-        OneTimeSubmit = 0x1
-    };
-    template<>
-    struct enum_bitwise_enabled<CommandBufferUsageFlags> : std::true_type {
     };
 
     enum class ImageType {
@@ -341,18 +322,6 @@ namespace orion
         std::size_t size = 0;
         GPUBufferUsageFlags usage = {};
         bool host_visible = false;
-    };
-
-    struct CommandPoolDesc {
-        CommandQueueType queue_type;
-    };
-
-    struct CommandBufferDesc {
-        CommandPoolHandle command_pool;
-    };
-
-    struct CommandBufferBeginDesc {
-        CommandBufferUsageFlags usage;
     };
 
     struct PushConstantDesc {
@@ -546,27 +515,6 @@ namespace orion
         CompareFunc compare_func;
         float min_lod;
         float max_lod;
-    };
-
-    struct DrawState {
-        // Direct access to members is available since it matches how commands are created
-        // better.
-
-        GPUBufferHandle vertex_buffer = GPUBufferHandle::invalid_handle();
-        GPUBufferHandle index_buffer = GPUBufferHandle::invalid_handle();
-        IndexType index_type = IndexType::None;
-        PipelineHandle pipeline = PipelineHandle::invalid_handle();
-        Viewport viewport = {};
-        Scissor scissor = {};
-
-        bool set_vertex_buffer(GPUBufferHandle new_vertex_buffer);
-        bool set_index_buffer(GPUBufferHandle new_index_buffer, IndexType new_index_type);
-        bool set_pipeline(PipelineHandle new_pipeline);
-        bool set_viewport(const Viewport& new_viewport);
-        bool set_scissor(const Scissor& new_scissor);
-
-        void assert_valid_draw();
-        void assert_valid_draw_indexed();
     };
 
     struct GPUJobDesc {

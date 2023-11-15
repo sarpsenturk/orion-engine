@@ -218,23 +218,6 @@ namespace orion::vulkan
         };
     }
 
-    constexpr auto to_vulkan_type(CommandBufferUsageFlags command_buffer_usage) noexcept -> VkCommandBufferUsageFlags
-    {
-        auto conversion_fn = [](auto acc, CommandBufferUsageFlags usage_flags) -> VkCommandBufferUsageFlags {
-            if (!usage_flags) {
-                return acc;
-            }
-            switch (usage_flags) {
-                case CommandBufferUsageFlags::OneTimeSubmit:
-                    return acc | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            }
-            ORION_ASSERT("Command buffer usage flag not handled in to_vulkan_type()");
-            return {};
-        };
-        const auto bitwise_range = BitwiseRange{command_buffer_usage};
-        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkCommandBufferUsageFlags{}, conversion_fn);
-    }
-
     constexpr auto to_vulkan_type(ImageType image_type) noexcept -> VkImageType
     {
         switch (image_type) {

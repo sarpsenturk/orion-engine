@@ -22,4 +22,4 @@ struct ImGui_ImplOrion_InitDesc {
 void ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitDesc& desc);
 void ImGui_ImplOrion_Shutdow();
 void ImGui_ImplOrion_NewFrame();
-void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList& command_list);
+void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data);

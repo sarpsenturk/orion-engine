@@ -159,13 +159,12 @@ namespace orion
                 .image_views = {&image_view, 1},
                 .size = render_size_,
             });
-            auto command_pool = device()->create_command_pool({.queue_type = CommandQueueType::Graphics});
             return {
                 .render_image = image,
                 .render_image_view = image_view,
                 .render_target = render_target,
-                .command_pool = command_pool,
-                .sprite_renderer = SpriteRenderer{{.device = device(), .command_pool = command_pool}},
+                .command_allocator = device()->create_command_allocator(CommandQueueType::Graphics),
+                .sprite_renderer = SpriteRenderer{{.device = device()}},
             };
         };
         for (int i = 0; i < frames_in_flight; ++i) {

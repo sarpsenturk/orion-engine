@@ -47,14 +47,13 @@ namespace orion::vulkan
         [[nodiscard]] VkRenderPass create_vkrender_pass(const AttachmentList& attachment_list) const;
 
         // Interface Overrides
+        std::unique_ptr<CommandAllocator> create_command_allocator_api(CommandQueueType queue_type) override;
         std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
-        CommandPoolHandle create_command_pool_api(const CommandPoolDesc& desc) override;
-        CommandBufferHandle create_command_buffer_api(const CommandBufferDesc& desc) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
@@ -65,8 +64,6 @@ namespace orion::vulkan
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
         void destroy_api(GPUBufferHandle buffer_handle) override;
-        void destroy_api(CommandPoolHandle command_pool_handle) override;
-        void destroy_api(CommandBufferHandle command_buffer_handle) override;
         void destroy_api(ImageHandle image_handle) override;
         void destroy_api(ImageViewHandle image_view_handle) override;
         void destroy_api(SamplerHandle sampler_handle) override;
@@ -75,29 +72,10 @@ namespace orion::vulkan
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
 
-        void reset_command_pool_api(CommandPoolHandle command_pool) override;
-        void reset_command_buffer_api(CommandBufferHandle command_buffer) override;
-        void compile_commands_api(CommandBufferHandle command_buffer, std::span<const CommandPacket> commands) override;
-
         void wait_for_job_api(GPUJobHandle job_handle) override;
         void wait_for_jobs_api(std::span<const GPUJobHandle> job_handles) override;
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
-
-        DrawState draw_state_;
-        void reset_draw_state();
-        void update_draw_state(VkCommandBuffer command_buffer, const DrawState& new_state);
-
-        void compile_command(VkCommandBuffer command_buffer, const CommandPacket& command_packet);
-        void cmd_copy_buffer(VkCommandBuffer command_buffer, const void* data);
-        void cmd_begin_render_pass(VkCommandBuffer command_buffer, const void* data);
-        void cmd_end_render_pass(VkCommandBuffer command_buffer, const void* data);
-        void cmd_draw(VkCommandBuffer command_buffer, const void* data);
-        void cmd_draw_indexed(VkCommandBuffer command_buffer, const void* data);
-        void cmd_pipeline_barrier(VkCommandBuffer command_buffer, const void* data);
-        void cmd_blit_image(VkCommandBuffer command_buffer, const void* data);
-        void cmd_push_constants(VkCommandBuffer command_buffer, const void* data);
-        void cmd_copy_buffer_to_image(VkCommandBuffer command_buffer, const void* data);
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
@@ -116,8 +94,6 @@ namespace orion::vulkan
         VulkanStore<PipelineHandle, UniqueVkPipelineLayout> pipeline_layouts_;
         VulkanStore<PipelineHandle, UniqueVkPipeline> pipelines_;
         VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;
-        VulkanStore<CommandPoolHandle, UniqueVkCommandPool> command_pools_;
-        VulkanStore<CommandBufferHandle, UniqueVkCommandBuffer> command_buffers_;
         VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
     };
 } // namespace orion::vulkan
