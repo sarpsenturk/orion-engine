@@ -350,7 +350,7 @@ namespace orion
     };
 
     struct ShaderStageDesc {
-        ShaderModuleHandle module = ShaderModuleHandle::invalid_handle();
+        ShaderModuleHandle module = ShaderModuleHandle::invalid();
         ShaderStageFlags stage = {};
         const char* entry_point = "main";
     };
