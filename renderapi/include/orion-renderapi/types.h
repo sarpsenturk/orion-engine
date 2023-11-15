@@ -521,4 +521,9 @@ namespace orion
         std::span<const GPUJobHandle> dependencies;
         bool start_finished;
     };
+
+    enum class PipelineBindPoint {
+        Graphics,
+        Compute
+    };
 } // namespace orion

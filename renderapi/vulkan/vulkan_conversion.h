@@ -51,7 +51,7 @@ namespace orion::vulkan
                 break;
         }
         ORION_ASSERT(!"Format not handled in to_vulkan_type() or is invalid");
-        return {};
+        return VK_FORMAT_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(AttachmentLoadOp load_op) noexcept -> VkAttachmentLoadOp
@@ -113,7 +113,7 @@ namespace orion::vulkan
                     return acc | VK_SHADER_STAGE_FRAGMENT_BIT;
             }
             ORION_ASSERT(!"Shader stage not handled in to_vulkan_type()");
-            return {};
+            return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
         };
         const auto bitwise_range = BitwiseRange{shader_stages};
         return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkShaderStageFlags{}, conversion_fn);
@@ -128,7 +128,7 @@ namespace orion::vulkan
                 return VK_VERTEX_INPUT_RATE_INSTANCE;
         }
         ORION_ASSERT(!"Input rate not handled in to_vulkan_type() or is invalid");
-        return {};
+        return VK_VERTEX_INPUT_RATE_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(PrimitiveTopology topology) noexcept -> VkPrimitiveTopology
@@ -138,7 +138,7 @@ namespace orion::vulkan
                 return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         }
         ORION_ASSERT(!"Primitive topology not handled in to_vulkan_type() or is invalid");
-        return {};
+        return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(FillMode fill_mode) noexcept -> VkPolygonMode
@@ -150,7 +150,7 @@ namespace orion::vulkan
                 return VK_POLYGON_MODE_LINE;
         }
         ORION_ASSERT(!"Fill mode not handled in to_vulkan_type() or is invalid");
-        return {};
+        return VK_POLYGON_MODE_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(CullMode cull_mode) noexcept -> VkCullModeFlags
@@ -166,7 +166,7 @@ namespace orion::vulkan
                 return VK_CULL_MODE_FRONT_AND_BACK;
         }
         ORION_ASSERT(!"Cull mode not handled in to_vulkan_type() or is invalid");
-        return {};
+        return VK_CULL_MODE_FLAG_BITS_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(FrontFace front_face) noexcept -> VkFrontFace
@@ -178,7 +178,7 @@ namespace orion::vulkan
                 return VK_FRONT_FACE_CLOCKWISE;
         }
         ORION_ASSERT(!"Front face not handled in to_vulkan_type() or is invalid");
-        return {};
+        return VK_FRONT_FACE_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(GPUBufferUsageFlags buffer_usage) noexcept -> VkBufferUsageFlags
@@ -200,7 +200,7 @@ namespace orion::vulkan
                     return acc | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             }
             ORION_ASSERT("Buffer usage flag not handled in to_vulkan_type()");
-            return {};
+            return VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM;
         };
         const auto bitwise_range = BitwiseRange{buffer_usage};
         return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkBufferUsageFlags{}, conversion_fn);
@@ -229,7 +229,7 @@ namespace orion::vulkan
                 return VK_IMAGE_TYPE_3D;
         }
         ORION_ASSERT(!"ImageType not handled in to_vulkan_type()");
-        return {};
+        return VK_IMAGE_TYPE_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(ImageTiling image_tiling) noexcept -> VkImageTiling
@@ -241,7 +241,7 @@ namespace orion::vulkan
                 return VK_IMAGE_TILING_LINEAR;
         }
         ORION_ASSERT(!"ImageTiling not handled in to_vulkan_type()");
-        return {};
+        return VK_IMAGE_TILING_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(ImageUsageFlags image_usage_flags) noexcept -> VkImageUsageFlags
@@ -265,7 +265,7 @@ namespace orion::vulkan
                     return acc | VK_IMAGE_USAGE_SAMPLED_BIT;
             }
             ORION_ASSERT("Image usage not handled in to_vulkan_type()");
-            return {};
+            return VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
         };
         const auto bitwise_range = BitwiseRange{image_usage_flags};
         return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkImageUsageFlags{}, conversion_fn);
@@ -290,7 +290,7 @@ namespace orion::vulkan
                 return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
         }
         ORION_ASSERT(!"ImageViewType not handled in to_vulkan_type()");
-        return {};
+        return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(PipelineStageFlags pipeline_stage_flags) -> VkPipelineStageFlags
@@ -312,7 +312,7 @@ namespace orion::vulkan
                     return acc | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             }
             ORION_ASSERT("Pipeline stage not handled in to_vulkan_type()");
-            return {};
+            return VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
         };
         const auto bitwise_range = BitwiseRange{pipeline_stage_flags};
         return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkPipelineStageFlags{}, conversion_fn);
@@ -341,7 +341,7 @@ namespace orion::vulkan
                     return acc | VK_ACCESS_SHADER_WRITE_BIT;
             }
             ORION_ASSERT("Resource access not handled in to_vulkan_type()");
-            return {};
+            return VK_ACCESS_FLAG_BITS_MAX_ENUM;
         };
         const auto bitwise_range = BitwiseRange{resource_access_flags};
         return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkAccessFlags{}, conversion_fn);
@@ -356,7 +356,7 @@ namespace orion::vulkan
                 return VK_INDEX_TYPE_UINT32;
         }
         ORION_ASSERT(!"Index type not handled in to_vulkan_type()");
-        return {};
+        return VK_INDEX_TYPE_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(Filter filter) -> VkFilter
@@ -368,7 +368,7 @@ namespace orion::vulkan
                 return VK_FILTER_LINEAR;
         }
         ORION_ASSERT(!"Filter type not handled in to_vulkan_type()");
-        return {};
+        return VK_FILTER_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(AddressMode address_mode) -> VkSamplerAddressMode
@@ -384,7 +384,7 @@ namespace orion::vulkan
                 return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
         }
         ORION_ASSERT(!"Address mode not handled in to_vulkan_type()");
-        return {};
+        return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(CompareFunc compare_func) -> VkCompareOp
@@ -406,7 +406,7 @@ namespace orion::vulkan
                 return VK_COMPARE_OP_ALWAYS;
         }
         ORION_ASSERT(!"Compare function not handled in to_vulkan_type()");
-        return {};
+        return VK_COMPARE_OP_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(BlendFactor blend_factor) -> VkBlendFactor
@@ -434,7 +434,7 @@ namespace orion::vulkan
                 return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
         }
         ORION_ASSERT(!"Blend factor not handled in to_vulkan_type()");
-        return {};
+        return VK_BLEND_FACTOR_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(BlendOp blend_op) -> VkBlendOp
@@ -452,7 +452,7 @@ namespace orion::vulkan
                 return VK_BLEND_OP_MAX;
         }
         ORION_ASSERT(!"Blend factor not handled in to_vulkan_type()");
-        return {};
+        return VK_BLEND_OP_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_type(ColorComponentFlags color_component_flags) -> VkColorComponentFlags
@@ -472,7 +472,7 @@ namespace orion::vulkan
                     return acc | VK_COLOR_COMPONENT_A_BIT;
             }
             ORION_ASSERT("Color component not handled in to_vulkan_type()");
-            return {};
+            return VK_COLOR_COMPONENT_FLAG_BITS_MAX_ENUM;
         };
         const auto bitwise_range = BitwiseRange{color_component_flags};
         return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkColorComponentFlags{}, conversion_fn);
@@ -513,7 +513,19 @@ namespace orion::vulkan
                 return VK_LOGIC_OP_SET;
         }
         ORION_ASSERT(!"Logic op not handled in to_vulkan_type()");
-        return {};
+        return VK_LOGIC_OP_MAX_ENUM;
+    }
+
+    constexpr auto to_vulkan_type(PipelineBindPoint bind_point) -> VkPipelineBindPoint
+    {
+        switch (bind_point) {
+            case PipelineBindPoint::Graphics:
+                return VK_PIPELINE_BIND_POINT_GRAPHICS;
+            case PipelineBindPoint::Compute:
+                return VK_PIPELINE_BIND_POINT_COMPUTE;
+        }
+        ORION_ASSERT(!"Pipeline bind point not handled in to_vulkan_type()");
+        return VK_PIPELINE_BIND_POINT_MAX_ENUM;
     }
 
     constexpr auto to_vulkan_viewport(const Viewport& viewport) -> VkViewport

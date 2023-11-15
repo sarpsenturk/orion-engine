@@ -70,6 +70,15 @@ namespace orion::vulkan
             &offset);
     }
 
+    void VulkanCommandList::bind_pipeline_api(const CmdBindPipeline& cmd_bind_pipeline)
+    {
+        VkPipeline vk_pipeline = device_->pipelines().handle_at(cmd_bind_pipeline.pipeline);
+        vkCmdBindPipeline(
+            command_buffer_.get(),
+            to_vulkan_type(cmd_bind_pipeline.bind_point),
+            vk_pipeline);
+    }
+
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)
         : device_(device)
         , command_pool_(std::move(command_pool))

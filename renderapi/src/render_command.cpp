@@ -32,6 +32,11 @@ namespace orion
         bind_vertex_buffer_api(cmd_bind_vertex_buffer);
     }
 
+    void CommandList::bind_pipeline(const CmdBindPipeline& cmd_bind_pipeline)
+    {
+        bind_pipeline_api(cmd_bind_pipeline);
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();
