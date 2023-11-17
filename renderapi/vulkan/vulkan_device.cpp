@@ -26,7 +26,7 @@ namespace orion::vulkan
         const auto allocator_info = VmaAllocatorCreateInfo{
             .flags = 0,
             .physicalDevice = physical_device,
-            .device = this->device(),
+            .device = this->vk_device(),
             .preferredLargeHeapBlockSize = 0,
             .pHeapSizeLimit = nullptr,
             .pVulkanFunctions = nullptr,
@@ -167,7 +167,7 @@ namespace orion::vulkan
                 .dependencyCount = static_cast<std::uint32_t>(subpass_dependencies.size()),
                 .pDependencies = subpass_dependencies.data(),
             };
-            vk_result_check(vkCreateRenderPass(device(), &info, alloc_callbacks(), &render_pass));
+            vk_result_check(vkCreateRenderPass(vk_device(), &info, alloc_callbacks(), &render_pass));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
         }
         return render_pass;
@@ -183,9 +183,9 @@ namespace orion::vulkan
                 .flags = 0,
                 .queueFamilyIndex = get_queue_family(queue_type),
             };
-            vk_result_check(vkCreateCommandPool(device(), &info, alloc_callbacks(), &command_pool));
+            vk_result_check(vkCreateCommandPool(vk_device(), &info, alloc_callbacks(), &command_pool));
         }
-        return std::make_unique<VulkanCommandAllocator>(this, unique(command_pool, device()));
+        return std::make_unique<VulkanCommandAllocator>(this, unique(command_pool, vk_device()));
     }
 
     std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(const SwapchainDesc& desc)
@@ -203,7 +203,7 @@ namespace orion::vulkan
             .present_mode = VK_PRESENT_MODE_FIFO_KHR, // TODO: Allow present mode to be changed
         });
 
-        return std::make_unique<VulkanSwapchain>(this, unique(surface, instance_), unique(swapchain, device()));
+        return std::make_unique<VulkanSwapchain>(this, unique(surface, instance_), unique(swapchain, vk_device()));
     }
 
     RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
@@ -211,7 +211,7 @@ namespace orion::vulkan
         VkRenderPass render_pass = create_vkrender_pass(desc.attachments);
 
         auto handle = RenderPassHandle::generate();
-        render_passes_.add(handle, unique(render_pass, device()));
+        render_passes_.add(handle, unique(render_pass, vk_device()));
         return handle;
     }
 
@@ -240,15 +240,15 @@ namespace orion::vulkan
                 .height = desc.size.y(),
                 .layers = 1,
             };
-            vk_result_check(vkCreateFramebuffer(device(), &info, alloc_callbacks(), &framebuffer));
+            vk_result_check(vkCreateFramebuffer(vk_device(), &info, alloc_callbacks(), &framebuffer));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkFramebuffer {}", fmt::ptr(framebuffer));
         }
 
         // Destroy temporary render pass
-        vkDestroyRenderPass(device(), render_pass, alloc_callbacks());
+        vkDestroyRenderPass(vk_device(), render_pass, alloc_callbacks());
 
         const auto handle = FramebufferHandle::generate();
-        framebuffers_.add(handle, unique(framebuffer, device()));
+        framebuffers_.add(handle, unique(framebuffer, vk_device()));
         return handle;
     }
 
@@ -268,12 +268,12 @@ namespace orion::vulkan
                 .codeSize = desc.byte_code.size_bytes(),
                 .pCode = spirv.data(),
             };
-            vk_result_check(vkCreateShaderModule(device(), &info, alloc_callbacks(), &shader_module));
+            vk_result_check(vkCreateShaderModule(vk_device(), &info, alloc_callbacks(), &shader_module));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkShaderModule {}", fmt::ptr(shader_module));
         }
 
         auto handle = ShaderModuleHandle::generate();
-        shader_modules_.add(handle, unique(shader_module, device()));
+        shader_modules_.add(handle, unique(shader_module, vk_device()));
         return handle;
     }
 
@@ -474,14 +474,14 @@ namespace orion::vulkan
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
             };
-            vk_result_check(vkCreateGraphicsPipelines(device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
+            vk_result_check(vkCreateGraphicsPipelines(vk_device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkPipeline {}", fmt::ptr(pipeline));
         }
 
         // Destroy temporary render pass
-        vkDestroyRenderPass(device(), render_pass, alloc_callbacks());
+        vkDestroyRenderPass(vk_device(), render_pass, alloc_callbacks());
 
-        pipelines_.add(handle, unique(pipeline, device()));
+        pipelines_.add(handle, unique(pipeline, vk_device()));
         return handle;
     }
 
@@ -597,11 +597,11 @@ namespace orion::vulkan
                     .layerCount = 1,
                 },
             };
-            vk_result_check(vkCreateImageView(device(), &info, alloc_callbacks(), &image_view));
+            vk_result_check(vkCreateImageView(vk_device(), &info, alloc_callbacks(), &image_view));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkImageView {}", fmt::ptr(image_view));
         }
         const auto handle = ImageViewHandle::generate();
-        image_views_.add(handle, unique(image_view, device()));
+        image_views_.add(handle, unique(image_view, vk_device()));
         return handle;
     }
 
@@ -630,11 +630,11 @@ namespace orion::vulkan
                 .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, // TODO: Make this customizable
                 .unnormalizedCoordinates = VK_FALSE,
             };
-            vk_result_check(vkCreateSampler(device(), &info, alloc_callbacks(), &sampler));
+            vk_result_check(vkCreateSampler(vk_device(), &info, alloc_callbacks(), &sampler));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSampler {}", fmt::ptr(sampler));
         }
         const auto handle = SamplerHandle::generate();
-        samplers_.add(handle, unique(sampler, device()));
+        samplers_.add(handle, unique(sampler, vk_device()));
         return handle;
     }
 
@@ -650,7 +650,7 @@ namespace orion::vulkan
         std::ranges::transform(desc.dependencies, wait_semaphores.begin(), find_dep_semaphore);
 
         const auto handle = GPUJobHandle::generate();
-        jobs_.insert(std::make_pair(handle, VulkanJob{unique(fence, device()), unique(semaphore, device()), std::move(wait_semaphores)}));
+        jobs_.insert(std::make_pair(handle, VulkanJob{unique(fence, vk_device()), unique(semaphore, vk_device()), std::move(wait_semaphores)}));
         return handle;
     }
 
@@ -717,14 +717,14 @@ namespace orion::vulkan
     void VulkanDevice::wait_for_job_api(GPUJobHandle job_handle)
     {
         VkFence fence = jobs_.at(job_handle).vk_fence();
-        vk_result_check(vkWaitForFences(device(), 1, &fence, VK_TRUE, UINT64_MAX));
+        vk_result_check(vkWaitForFences(vk_device(), 1, &fence, VK_TRUE, UINT64_MAX));
     }
 
     void VulkanDevice::wait_for_jobs_api(std::span<const GPUJobHandle> job_handles)
     {
         std::vector<VkFence> fences{job_handles.size()};
         std::ranges::transform(job_handles, fences.begin(), [this](const auto handle) { return jobs_.at(handle).vk_fence(); });
-        vk_result_check(vkWaitForFences(device(), static_cast<std::uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX));
+        vk_result_check(vkWaitForFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX));
     }
 
     void VulkanDevice::wait_queue_idle_api(CommandQueueType queue_type)
@@ -734,7 +734,7 @@ namespace orion::vulkan
 
     void VulkanDevice::wait_idle_api()
     {
-        vk_result_check(vkDeviceWaitIdle(device()));
+        vk_result_check(vkDeviceWaitIdle(vk_device()));
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()
@@ -746,7 +746,7 @@ namespace orion::vulkan
                 .pNext = nullptr,
                 .flags = 0,
             };
-            vk_result_check(vkCreateSemaphore(device(), &info, alloc_callbacks(), &semaphore));
+            vk_result_check(vkCreateSemaphore(vk_device(), &info, alloc_callbacks(), &semaphore));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSemaphore {}", fmt::ptr(semaphore));
         }
         return semaphore;
@@ -761,7 +761,7 @@ namespace orion::vulkan
                 .pNext = nullptr,
                 .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
             };
-            vk_result_check(vkCreateFence(device(), &info, alloc_callbacks(), &fence));
+            vk_result_check(vkCreateFence(vk_device(), &info, alloc_callbacks(), &fence));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkFence {}", fmt::ptr(fence));
         }
         return fence;
@@ -793,7 +793,7 @@ namespace orion::vulkan
                 .clipped = VK_TRUE,
                 .oldSwapchain = desc.old_swapchain,
             };
-            vk_result_check(vkCreateSwapchainKHR(device(), &info, alloc_callbacks(), &swapchain));
+            vk_result_check(vkCreateSwapchainKHR(vk_device(), &info, alloc_callbacks(), &swapchain));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSwapchain {}", fmt::ptr(swapchain));
         }
         return swapchain;

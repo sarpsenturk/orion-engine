@@ -9,14 +9,14 @@ namespace orion::vulkan
         , surface_(std::move(surface))
         , swapchain_(std::move(swapchain))
         , images_(acquire_swapchain_images())
-        , image_semaphore_(device->create_vk_semaphore(), SemaphoreDeleter{device->device()})
+        , image_semaphore_(device->create_vk_semaphore(), SemaphoreDeleter{device->vk_device()})
     {
     }
 
     uint32_t VulkanSwapchain::current_image_index_api()
     {
         if (image_index_ == request_next_image) {
-            vk_result_check(vkAcquireNextImageKHR(device_->device(), swapchain_.get(), UINT64_MAX, image_semaphore_.get(), VK_NULL_HANDLE, &image_index_));
+            vk_result_check(vkAcquireNextImageKHR(device_->vk_device(), swapchain_.get(), UINT64_MAX, image_semaphore_.get(), VK_NULL_HANDLE, &image_index_));
         }
         return image_index_;
     }
@@ -71,9 +71,9 @@ namespace orion::vulkan
     std::vector<VkImage> VulkanSwapchain::acquire_swapchain_images()
     {
         std::uint32_t image_count = 0;
-        vk_result_check(vkGetSwapchainImagesKHR(device_->device(), swapchain_.get(), &image_count, nullptr));
+        vk_result_check(vkGetSwapchainImagesKHR(device_->vk_device(), swapchain_.get(), &image_count, nullptr));
         std::vector<VkImage> images(image_count);
-        vk_result_check(vkGetSwapchainImagesKHR(device_->device(), swapchain_.get(), &image_count, images.data()));
+        vk_result_check(vkGetSwapchainImagesKHR(device_->vk_device(), swapchain_.get(), &image_count, images.data()));
         return images;
     }
 } // namespace orion::vulkan

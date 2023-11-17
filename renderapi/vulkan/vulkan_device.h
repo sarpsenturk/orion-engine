@@ -20,7 +20,7 @@ namespace orion::vulkan
     public:
         VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues);
 
-        [[nodiscard]] auto device() const noexcept { return device_.get(); }
+        [[nodiscard]] auto vk_device() const noexcept { return device_.get(); }
         [[nodiscard]] auto vma_allocator() const noexcept { return vma_allocator_.get(); }
 
         [[nodiscard]] ShaderObjectType shader_object_type() const noexcept override { return ShaderObjectType::SpirV; }

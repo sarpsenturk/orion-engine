@@ -87,7 +87,7 @@ namespace orion::vulkan
 
     void VulkanCommandAllocator::reset_api()
     {
-        vk_result_check(vkResetCommandPool(device_->device(), command_pool_.get(), 0));
+        vk_result_check(vkResetCommandPool(device_->vk_device(), command_pool_.get(), 0));
     }
 
     std::unique_ptr<CommandList> VulkanCommandAllocator::create_command_list_api()
@@ -101,8 +101,8 @@ namespace orion::vulkan
                 .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 .commandBufferCount = 1,
             };
-            vk_result_check(vkAllocateCommandBuffers(device_->device(), &info, &command_buffer));
+            vk_result_check(vkAllocateCommandBuffers(device_->vk_device(), &info, &command_buffer));
         }
-        return std::make_unique<VulkanCommandList>(device_, unique(command_buffer, device_->device(), command_pool_.get()));
+        return std::make_unique<VulkanCommandList>(device_, unique(command_buffer, device_->vk_device(), command_pool_.get()));
     }
 } // namespace orion::vulkan
