@@ -75,7 +75,7 @@ namespace orion
 
         std::pair<ShaderHandle, const Shader*> load(const fs::path& filepath, std::string name = "");
 
-        [[nodiscard]] const Shader* find(const std::string& name) const;
+        [[nodiscard]] std::pair<ShaderHandle, const Shader*> find(const std::string& name) const;
         [[nodiscard]] const Shader* get(ShaderHandle shader_handle) const;
         void remove(ShaderHandle shader_handle);
 

@@ -74,14 +74,15 @@ namespace orion
         return std::make_pair(iterator->first, &(iterator->second));
     }
 
-    const Shader* ShaderManager::find(const std::string& name) const
+    std::pair<ShaderHandle, const Shader*> ShaderManager::find(const std::string& name) const
     {
         auto find_by_name = [&](const auto& shader) { return shader.second.name() == name; };
-        if (auto iter = std::find_if(shaders_.begin(), shaders_.end(), find_by_name); iter != shaders_.end()) {
-            return &(iter->second);
+        if (auto iter = std::find_if(shaders_.begin(), shaders_.end(), find_by_name);
+            iter != shaders_.end()) {
+            return std::make_pair(iter->first, &(iter->second));
         }
         SPDLOG_LOGGER_WARN(logger(), "No shader with name '{}' found!", name);
-        return nullptr;
+        return std::make_pair(ShaderHandle::invalid(), nullptr);
     }
 
     const Shader* ShaderManager::get(ShaderHandle shader_handle) const
