@@ -8,8 +8,8 @@ namespace
     {
         static constexpr auto max_size = 2048;
         const auto allocator = orion::LinearAllocator(max_size);
-        EXPECT_EQ(allocator.max_size(), max_size);
-        EXPECT_EQ(allocator.space(), max_size);
+        EXPECT_EQ(allocator.max_available(), max_size);
+        EXPECT_EQ(allocator.available(), max_size);
         EXPECT_FALSE(allocator.is_full());
     }
 
@@ -27,6 +27,12 @@ namespace
             EXPECT_EQ(allocation.size, size);
             EXPECT_EQ((reinterpret_cast<std::uintptr_t>(allocation.ptr) % alignment), 0);
             EXPECT_FALSE(allocator.is_empty());
+        }
+
+        // Allocate too much
+        {
+            auto allocator = orion::LinearAllocator(0);
+            EXPECT_THROW(allocator.allocate(sizeof(int), alignof(int)), std::bad_alloc);
         }
     }
 

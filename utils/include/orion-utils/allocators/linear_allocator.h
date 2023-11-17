@@ -8,85 +8,62 @@
 
 namespace orion
 {
-    class LinearAllocator
+    class LinearAllocator : public Allocator
     {
     public:
-        LinearAllocator()
-            : buffer_(0)
+        constexpr explicit LinearAllocator(std::size_t max_size)
+            : memory_(max_size)
+            , current_(memory_.data())
         {
         }
 
-        explicit LinearAllocator(std::size_t max_size)
-            : buffer_(max_size)
+        [[nodiscard]] constexpr std::size_t max_available() const override
         {
+            return memory_.size();
+        }
+        [[nodiscard]] constexpr std::size_t available() const override
+        {
+            return (memory_.data() + memory_.size()) - current_;
+        }
+        [[nodiscard]] constexpr std::size_t used() const override
+        {
+            return memory_.data() - current_;
         }
 
-        LinearAllocator(const LinearAllocator& other)
-            : buffer_(other.buffer_)
-            , current_(buffer_.data())
-            , end_(buffer_.data() + buffer_.capacity())
+        [[nodiscard]] constexpr bool is_full() const noexcept { return available() == 0; }
+        [[nodiscard]] constexpr bool is_empty() const noexcept { return available() == max_available(); }
+
+        constexpr void reset() noexcept
         {
-        }
-
-        LinearAllocator(LinearAllocator&& other) noexcept
-            : buffer_(std::move(other.buffer_))
-            , current_(buffer_.data())
-            , end_(buffer_.data() + buffer_.capacity())
-        {
-        }
-
-        LinearAllocator& operator=(const LinearAllocator& other)
-        {
-            if (&other != this) {
-                buffer_ = other.buffer_;
-                current_ = buffer_.data();
-                end_ = buffer_.data() + buffer_.capacity();
-            }
-            return *this;
-        }
-
-        LinearAllocator& operator=(LinearAllocator&& other) noexcept
-        {
-            if (&other != this) {
-                buffer_ = std::move(other.buffer_);
-                current_ = buffer_.data();
-                end_ = buffer_.data() + buffer_.capacity();
-            }
-            return *this;
-        }
-
-        ~LinearAllocator() = default;
-
-        [[nodiscard]] auto max_size() const noexcept { return buffer_.capacity(); }
-        [[nodiscard]] auto space() const noexcept { return end_ - current_; }
-        [[nodiscard]] auto is_full() const noexcept { return current_ == end_; }
-        [[nodiscard]] auto is_empty() const noexcept { return current_ == buffer_.data(); }
-
-        Allocation allocate(std::size_t size, std::size_t alignment) noexcept
-        {
-            std::size_t remaining_space = space();
-            void* ptr = current_;
-            if (std::align(alignment, size, ptr, remaining_space)) {
-                current_ = static_cast<char*>(ptr) + size;
-                return {.ptr = ptr, .size = size};
-            }
-            return {.ptr = nullptr, .size = 0};
-        }
-
-        void deallocate(Allocation allocation)
-        {
-            (void)allocation;
-            throw std::logic_error("Cannot deallocate individual allocations in linear allocator");
-        }
-
-        void reset()
-        {
-            current_ = buffer_.data();
+            current_ = memory_.data();
         }
 
     private:
-        std::vector<char> buffer_;
-        char* current_ = buffer_.data();
-        char* end_ = buffer_.data() + buffer_.capacity();
+        constexpr Allocation do_allocate(std::size_t size, std::size_t alignment) final
+        {
+            // Calculate required bytes to reach alignment
+            const auto alignment_offset = align_forward_required(current_, alignment);
+
+            // Out of memory if size + offset is more than available space
+            if (size + alignment_offset > available()) {
+                throw std::bad_alloc();
+            }
+
+            // Advance pointer by alignment offset
+            void* ptr = (current_ += alignment_offset);
+
+            // Advance pointer by size
+            current_ += size;
+
+            return {ptr, size};
+        }
+
+        void do_deallocate(const Allocation& /*allocation*/) final
+        {
+            throw std::logic_error("cannot deallocate individual allocations in a LinearAllocator");
+        }
+
+        std::vector<std::byte> memory_;
+        std::byte* current_;
     };
 } // namespace orion
