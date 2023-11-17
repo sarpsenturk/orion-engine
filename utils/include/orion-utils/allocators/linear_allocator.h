@@ -8,7 +8,7 @@
 
 namespace orion
 {
-    class LinearAllocator : public Allocator
+    class LinearAllocator : public AllocatorBase
     {
     public:
         constexpr explicit LinearAllocator(std::size_t max_size)
@@ -66,4 +66,7 @@ namespace orion
         std::vector<std::byte> memory_;
         std::byte* current_;
     };
+
+    template<typename T>
+    using STLLinearAllocator = STLAllocatorAdapter<T, LinearAllocator>;
 } // namespace orion
