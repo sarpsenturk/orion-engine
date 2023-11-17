@@ -73,9 +73,9 @@ namespace orion
             }
 
             constexpr StaticVector(std::initializer_list<value_type> initializer_list)
-                : size_(initializer_list.size())
+                : size_(static_cast<size_type>(initializer_list.size()))
             {
-                static_assert(initializer_list.size() <= max_size());
+                ORION_ASSERT(initializer_list.size() <= max_size());
                 orion::uninitialized_copy(initializer_list.begin(), initializer_list.end(), begin());
             }
 

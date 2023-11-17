@@ -7,6 +7,7 @@
 #include "orion-math/vector/vector4.h"
 
 #include "orion-utils/bitflag.h"
+#include "orion-utils/static_vector.h"
 
 #include <cstdint>
 #include <span>
@@ -356,14 +357,16 @@ namespace orion
     };
 
     struct VertexAttributeDesc {
-        const char* name = nullptr;
-        Format format = {};
-        std::uint32_t offset = UINT32_MAX;
+        const char* name;
+        Format format;
+        std::uint32_t offset;
     };
 
     class VertexBinding
     {
     public:
+        static constexpr auto max_attribute_count = 6;
+
         constexpr VertexBinding(std::span<const VertexAttributeDesc> attributes, InputRate input_rate)
             : attributes_(attributes.begin(), attributes.end())
             , input_rate_(input_rate)
@@ -393,7 +396,7 @@ namespace orion
             return offset;
         }
 
-        std::vector<VertexAttributeDesc> attributes_;
+        static_vector<VertexAttributeDesc, max_attribute_count> attributes_;
         InputRate input_rate_;
         std::uint32_t stride_;
     };
