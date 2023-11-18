@@ -81,7 +81,7 @@ namespace orion::vulkan
         return queue_families;
     }
 
-    VkRenderPass VulkanDevice::create_vkrender_pass(const AttachmentList& attachment_list) const
+    VkRenderPass VulkanDevice::create_vk_render_pass(const AttachmentList& attachment_list) const
     {
         // Add all attachment counts
         const auto attachment_count = static_cast<std::uint32_t>(attachment_list.attachment_count());
@@ -173,6 +173,46 @@ namespace orion::vulkan
         return render_pass;
     }
 
+    VkDescriptorSetLayout VulkanDevice::create_vk_descriptor_set_layout(const DescriptorSetDesc& desc) const
+    {
+        std::vector<VkDescriptorSetLayoutBinding> bindings(desc.bindings.size());
+        std::ranges::transform(desc.bindings, bindings.begin(), [index = 0u](const DescriptorBindingDesc& binding) mutable {
+            return VkDescriptorSetLayoutBinding{
+                .binding = index++,
+                .descriptorType = to_vulkan_type(binding.type),
+                .descriptorCount = binding.count,
+                .stageFlags = to_vulkan_type(binding.shader_stages),
+                .pImmutableSamplers = nullptr,
+            };
+        });
+
+        VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
+        {
+            const auto info = VkDescriptorSetLayoutCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .bindingCount = static_cast<uint32_t>(bindings.size()),
+                .pBindings = bindings.data(),
+            };
+            vk_result_check(vkCreateDescriptorSetLayout(vk_device(), &info, alloc_callbacks(), &descriptor_set_layout));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorSetLayout {}", fmt::ptr(descriptor_set_layout));
+        }
+        return descriptor_set_layout;
+    }
+
+    VkDescriptorSetLayout VulkanDevice::get_descriptor_set_layout(const DescriptorSetDesc& desc)
+    {
+        const auto hash = desc.hash();
+        if (auto iter = descriptor_set_layouts_.find(hash); iter != descriptor_set_layouts_.end()) {
+            return iter->second.get();
+        }
+
+        VkDescriptorSetLayout descriptor_set_layout = create_vk_descriptor_set_layout(desc);
+        descriptor_set_layouts_.insert(std::make_pair(hash, unique(descriptor_set_layout, vk_device())));
+        return descriptor_set_layout;
+    }
+
     std::unique_ptr<CommandAllocator> VulkanDevice::create_command_allocator_api(CommandQueueType queue_type)
     {
         VkCommandPool command_pool = VK_NULL_HANDLE;
@@ -208,7 +248,7 @@ namespace orion::vulkan
 
     RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
     {
-        VkRenderPass render_pass = create_vkrender_pass(desc.attachments);
+        VkRenderPass render_pass = create_vk_render_pass(desc.attachments);
 
         auto handle = RenderPassHandle::generate();
         render_passes_.add(handle, unique(render_pass, vk_device()));
@@ -224,7 +264,7 @@ namespace orion::vulkan
         });
 
         // Create temporary compatible render pass
-        VkRenderPass render_pass = create_vkrender_pass(desc.attachment_list);
+        VkRenderPass render_pass = create_vk_render_pass(desc.attachment_list);
 
         // Create framebuffer
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
@@ -277,14 +317,46 @@ namespace orion::vulkan
         return handle;
     }
 
+    PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api(const PipelineLayoutDesc& desc)
+    {
+        std::vector<VkDescriptorSetLayout> descriptor_sets(desc.descriptor_sets.size());
+        std::ranges::transform(desc.descriptor_sets, descriptor_sets.begin(), [this](const DescriptorSetDesc& set) {
+            return get_descriptor_set_layout(set);
+        });
+
+        std::vector<VkPushConstantRange> push_constants(desc.push_constants.size());
+        std::ranges::transform(desc.push_constants, push_constants.begin(), [offset = 0u](const PushConstantDesc& push_constant) mutable {
+            return VkPushConstantRange{
+                .stageFlags = to_vulkan_type(push_constant.shader_stages),
+                .offset = (offset += push_constant.size),
+                .size = push_constant.size,
+            };
+        });
+
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        {
+            const auto info = VkPipelineLayoutCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .setLayoutCount = static_cast<std::uint32_t>(descriptor_sets.size()),
+                .pSetLayouts = descriptor_sets.data(),
+                .pushConstantRangeCount = static_cast<uint32_t>(push_constants.size()),
+                .pPushConstantRanges = push_constants.data(),
+            };
+            vk_result_check(vkCreatePipelineLayout(vk_device(), &info, alloc_callbacks(), &pipeline_layout));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
+        }
+
+        const auto handle = PipelineLayoutHandle::generate();
+        pipeline_layouts_.add(handle, unique(pipeline_layout, vk_device()));
+        return handle;
+    }
+
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
-        // Generate handle for pipeline layout and pipeline
-        // TODO: Instead cache pipeline layouts
-        const auto handle = PipelineHandle::generate();
-
         // Create pipeline layout
-        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        VkPipelineLayout pipeline_layout = pipeline_layouts_.handle_at(desc.pipeline_layout);
 
         // Convert to VkPipelineShaderStageCreateInfo
         ORION_EXPECTS(desc.shaders.size() <= UINT32_MAX);
@@ -448,7 +520,7 @@ namespace orion::vulkan
         }();
 
         // Create temporary compatible render pass
-        VkRenderPass render_pass = create_vkrender_pass(desc.attachment_list);
+        VkRenderPass render_pass = create_vk_render_pass(desc.attachment_list);
 
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
@@ -481,6 +553,7 @@ namespace orion::vulkan
         // Destroy temporary render pass
         vkDestroyRenderPass(vk_device(), render_pass, alloc_callbacks());
 
+        const auto handle = PipelineHandle::generate();
         pipelines_.add(handle, unique(pipeline, vk_device()));
         return handle;
     }
@@ -667,6 +740,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)
     {
         shader_modules_.remove(shader_module_handle);
+    }
+
+    void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout_handle)
+    {
+        pipeline_layouts_.remove(pipeline_layout_handle);
     }
 
     void VulkanDevice::destroy_api(PipelineHandle graphics_pipeline_handle)

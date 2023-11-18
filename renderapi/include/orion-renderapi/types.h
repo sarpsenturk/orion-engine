@@ -194,10 +194,34 @@ namespace orion
     };
 
     enum class DescriptorType : std::uint8_t {
-        Unknown,
         ConstantBuffer,
         ImageSampler,
         SampledImage
+    };
+
+    struct DescriptorBindingDesc {
+        DescriptorType type;
+        ShaderStageFlags shader_stages;
+        std::uint32_t count;
+
+        [[nodiscard]] std::size_t hash() const;
+    };
+    static_assert(sizeof(DescriptorBindingDesc) == sizeof(std::size_t));
+
+    struct DescriptorSetDesc {
+        std::span<const DescriptorBindingDesc> bindings;
+
+        [[nodiscard]] std::size_t hash() const;
+    };
+
+    struct PushConstantDesc {
+        std::uint32_t size;
+        ShaderStageFlags shader_stages;
+    };
+
+    struct PipelineLayoutDesc {
+        std::span<const DescriptorSetDesc> descriptor_sets;
+        std::span<const PushConstantDesc> push_constants;
     };
 
     enum class ShaderObjectType {
@@ -325,11 +349,6 @@ namespace orion
         bool host_visible = false;
     };
 
-    struct PushConstantDesc {
-        std::size_t size;
-        ShaderStageFlags shader_stages;
-    };
-
     struct FramebufferDesc {
         AttachmentList attachment_list;
         std::span<const ImageViewHandle> image_views = {};
@@ -433,10 +452,10 @@ namespace orion
     };
 
     enum class ColorComponentFlags : std::uint8_t {
-        R = 0x1,
-        G = 0x2,
-        B = 0x4,
-        A = 0x8,
+        R = 0x1u,
+        G = 0x2u,
+        B = 0x4u,
+        A = 0x8u,
         All = R | G | B | A
     };
     template<>
@@ -482,7 +501,7 @@ namespace orion
     struct GraphicsPipelineDesc {
         std::span<const ShaderStageDesc> shaders = {};
         std::span<const VertexBinding> vertex_bindings = {};
-        std::span<const PushConstantDesc> push_constants = {};
+        PipelineLayoutHandle pipeline_layout = PipelineLayoutHandle::invalid();
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
         ColorBlendDesc color_blend = {};

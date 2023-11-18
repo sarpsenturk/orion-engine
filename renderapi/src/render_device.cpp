@@ -45,6 +45,13 @@ namespace orion
         return handle;
     }
 
+    PipelineLayoutHandle RenderDevice::create_pipeline_layout(const PipelineLayoutDesc& desc)
+    {
+        auto handle = create_pipeline_layout_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created pipeline layout with handle {}", handle);
+        return handle;
+    }
+
     PipelineHandle RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
     {
         auto handle = create_graphics_pipeline_api(desc);
@@ -103,6 +110,12 @@ namespace orion
     {
         destroy_api(shader_module_handle);
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed shader module {}", shader_module_handle);
+    }
+
+    void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout_handle)
+    {
+        destroy_api(pipeline_layout_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed pipeline layout {}", pipeline_layout_handle);
     }
 
     void RenderDevice::destroy(PipelineHandle pipeline_handle)

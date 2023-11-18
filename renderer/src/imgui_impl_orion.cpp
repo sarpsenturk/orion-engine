@@ -325,6 +325,8 @@ namespace
             const auto vertex_bindings = std::array{
                 orion::VertexBinding{vertex_attributes, orion::InputRate::Vertex},
             };
+
+            // TODO: Create pipeline layout
             const auto push_constants = std::array{
                 orion::PushConstantDesc{
                     .size = sizeof(ImGuiCSceneBuffer),
@@ -374,7 +376,7 @@ namespace
             const auto desc = orion::GraphicsPipelineDesc{
                 {},
                 vertex_bindings,
-                push_constants,
+                {},
                 input_assembly,
                 rasterization,
                 color_blend,

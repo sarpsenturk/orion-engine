@@ -34,6 +34,7 @@ namespace orion
     using UniqueRenderPass = unique_device_resource<RenderPassHandle_tag>;
     using UniqueFramebuffer = unique_device_resource<FramebufferHandle_tag>;
     using UniqueShaderModule = unique_device_resource<ShaderModuleHandle_tag>;
+    using UniquePipelineLayout = unique_device_resource<PipelineLayoutHandle_tag>;
     using UniquePipeline = unique_device_resource<PipelineHandle_tag>;
     using UniqueGPUBuffer = unique_device_resource<GPUBufferHandle_tag>;
     using UniqueImage = unique_device_resource<ImageHandle_tag>;
@@ -54,6 +55,7 @@ namespace orion
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
         [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
+        [[nodiscard]] PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
         [[nodiscard]] PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
@@ -64,6 +66,7 @@ namespace orion
         [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
         [[nodiscard]] ShaderModuleHandle create(ShaderModuleHandle_tag, const ShaderModuleDesc& desc) { return create_shader_module(desc); }
+        [[nodiscard]] PipelineLayoutHandle create(PipelineLayoutHandle_tag, const PipelineLayoutDesc& desc) { return create_pipeline_layout(desc); }
         [[nodiscard]] PipelineHandle create(PipelineHandle_tag, const GraphicsPipelineDesc& desc) { return create_graphics_pipeline(desc); }
         [[nodiscard]] GPUBufferHandle create(GPUBufferHandle_tag, const GPUBufferDesc& desc) { return create_buffer(desc); }
         [[nodiscard]] ImageHandle create(ImageHandle_tag, const ImageDesc& desc) { return create_image(desc); }
@@ -86,6 +89,7 @@ namespace orion
         void destroy(RenderPassHandle render_pass_handle);
         void destroy(FramebufferHandle framebuffer_handle);
         void destroy(ShaderModuleHandle shader_module_handle);
+        void destroy(PipelineLayoutHandle pipeline_layout_handle);
         void destroy(PipelineHandle pipeline_handle);
         void destroy(GPUBufferHandle buffer_handle);
         void destroy(ImageHandle image_handle);
@@ -115,6 +119,7 @@ namespace orion
         [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
         [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;
+        [[nodiscard]] virtual PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) = 0;
         [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
         [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) = 0;
         [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
@@ -125,6 +130,7 @@ namespace orion
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
+        virtual void destroy_api(PipelineLayoutHandle pipeline_layout_handle) = 0;
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
         virtual void destroy_api(GPUBufferHandle buffer_handle) = 0;
         virtual void destroy_api(ImageHandle image_handle) = 0;

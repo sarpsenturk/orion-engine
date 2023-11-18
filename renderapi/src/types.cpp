@@ -1,8 +1,9 @@
 #include "orion-renderapi/types.h"
 
 #include "orion-utils/assertion.h"
-#include "orion-utils/type.h"
+#include "orion-utils/hash.h"
 
+#include <bit>
 #include <numeric>
 
 namespace orion
@@ -28,5 +29,17 @@ namespace orion
             }
         }
         return result.substr(0, result.size() - 3);
+    }
+
+    std::size_t DescriptorBindingDesc::hash() const
+    {
+        return std::bit_cast<std::size_t>(*this);
+    }
+
+    std::size_t DescriptorSetDesc::hash() const
+    {
+        return std::accumulate(bindings.begin(), bindings.end(), 0ull, [](auto acc, const auto& binding) {
+            return hash_combine(acc, binding.hash());
+        });
     }
 } // namespace orion
