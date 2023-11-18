@@ -3,14 +3,11 @@
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/render_device.h"
 
-#include "orion-utils/static_vector.h"
-
 #include "vulkan_headers.h"
 #include "vulkan_store.h"
 #include "vulkan_synchronization.h"
 #include "vulkan_types.h"
 
-#include <orion-core/window.h>
 #include <vector>
 
 namespace orion::vulkan
@@ -40,6 +37,9 @@ namespace orion::vulkan
         [[nodiscard]] auto& buffers() const { return buffers_; }
 
     private:
+        void init_vma(VkInstance instance, VkPhysicalDevice physical_device);
+        void init_descriptor_pool();
+
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
 
@@ -47,8 +47,7 @@ namespace orion::vulkan
 
         [[nodiscard]] VkRenderPass create_vk_render_pass(const AttachmentList& attachment_list) const;
         [[nodiscard]] VkDescriptorSetLayout create_vk_descriptor_set_layout(const DescriptorLayoutDesc& desc) const;
-
-        [[nodiscard]] VkDescriptorSetLayout get_descriptor_set_layout(const DescriptorLayoutDesc& desc);
+        [[nodiscard]] VkDescriptorSet create_vk_descriptor_set(VkDescriptorSetLayout descriptor_set_layout) const;
 
         // Interface Overrides
         std::unique_ptr<CommandAllocator> create_command_allocator_api(CommandQueueType queue_type) override;
@@ -57,6 +56,7 @@ namespace orion::vulkan
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         DescriptorLayoutHandle create_descriptor_layout_api(const DescriptorLayoutDesc& desc) override;
+        DescriptorHandle create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle) override;
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& push_constant) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
@@ -69,6 +69,7 @@ namespace orion::vulkan
         void destroy_api(FramebufferHandle framebuffer_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(DescriptorLayoutHandle descriptor_layout_handle) override;
+        void destroy_api(DescriptorHandle descriptor_handle) override;
         void destroy_api(PipelineLayoutHandle pipeline_layout_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
         void destroy_api(GPUBufferHandle buffer_handle) override;
@@ -100,6 +101,8 @@ namespace orion::vulkan
         VulkanStore<FramebufferHandle, UniqueVkFramebuffer> framebuffers_;
         VulkanStore<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
         VulkanStore<DescriptorLayoutHandle, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
+        UniqueVkDescriptorPool descriptor_pool_;
+        VulkanStore<DescriptorHandle, UniqueVkDescriptorSet> descriptor_sets_;
         VulkanStore<PipelineLayoutHandle, UniqueVkPipelineLayout> pipeline_layouts_;
         VulkanStore<PipelineHandle, UniqueVkPipeline> pipelines_;
         VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;

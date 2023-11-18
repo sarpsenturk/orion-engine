@@ -52,6 +52,13 @@ namespace orion
         return handle;
     }
 
+    DescriptorHandle RenderDevice::create_descriptor(DescriptorLayoutHandle descriptor_layout_handle)
+    {
+        auto handle = create_descriptor_api(descriptor_layout_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created descriptor with handle {}", handle);
+        return handle;
+    }
+
     PipelineLayoutHandle RenderDevice::create_pipeline_layout(const PipelineLayoutDesc& desc)
     {
         auto handle = create_pipeline_layout_api(desc);
@@ -123,6 +130,12 @@ namespace orion
     {
         destroy_api(descriptor_layout_handle);
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor layout {}", descriptor_layout_handle);
+    }
+
+    void RenderDevice::destroy(DescriptorHandle descriptor_handle)
+    {
+        destroy_api(descriptor_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor {}", descriptor_handle);
     }
 
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout_handle)

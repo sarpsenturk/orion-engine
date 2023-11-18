@@ -14,6 +14,7 @@ namespace orion
     ORION_DEFINE_HANDLE(RenderPassHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(ShaderModuleHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(DescriptorLayoutHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(DescriptorHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(PipelineLayoutHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(PipelineHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(GPUBufferHandle, render_device_key_t);
