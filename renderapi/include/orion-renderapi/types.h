@@ -208,7 +208,7 @@ namespace orion
     };
     static_assert(sizeof(DescriptorBindingDesc) == sizeof(std::size_t));
 
-    struct DescriptorSetDesc {
+    struct DescriptorLayoutDesc {
         std::span<const DescriptorBindingDesc> bindings;
 
         [[nodiscard]] std::size_t hash() const;
@@ -220,7 +220,7 @@ namespace orion
     };
 
     struct PipelineLayoutDesc {
-        std::span<const DescriptorSetDesc> descriptor_sets;
+        std::span<const DescriptorLayoutHandle> descriptors;
         std::span<const PushConstantDesc> push_constants;
     };
 

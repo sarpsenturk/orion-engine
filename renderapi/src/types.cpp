@@ -36,7 +36,7 @@ namespace orion
         return std::bit_cast<std::size_t>(*this);
     }
 
-    std::size_t DescriptorSetDesc::hash() const
+    std::size_t DescriptorLayoutDesc::hash() const
     {
         return std::accumulate(bindings.begin(), bindings.end(), 0ull, [](auto acc, const auto& binding) {
             return hash_combine(acc, binding.hash());

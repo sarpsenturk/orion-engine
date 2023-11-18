@@ -24,13 +24,13 @@ namespace orion::vulkan
         using vulkan_handle_type = typename resource_type::pointer;
 
         struct ResourceData {
-            store_data_type data;
             resource_type resource;
+            store_data_type data;
         };
 
         void add(handle_type handle, resource_type resource, store_data_type data = {})
         {
-            auto [_, success] = resources_.insert(std::make_pair(handle, ResourceData{std::move(data), std::move(resource)}));
+            auto [_, success] = resources_.insert(std::make_pair(handle, ResourceData{std::move(resource), std::move(data)}));
             ORION_ENSURES(success);
         }
 

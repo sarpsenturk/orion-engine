@@ -173,7 +173,7 @@ namespace orion::vulkan
         return render_pass;
     }
 
-    VkDescriptorSetLayout VulkanDevice::create_vk_descriptor_set_layout(const DescriptorSetDesc& desc) const
+    VkDescriptorSetLayout VulkanDevice::create_vk_descriptor_set_layout(const DescriptorLayoutDesc& desc) const
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings(desc.bindings.size());
         std::ranges::transform(desc.bindings, bindings.begin(), [index = 0u](const DescriptorBindingDesc& binding) mutable {
@@ -198,18 +198,6 @@ namespace orion::vulkan
             vk_result_check(vkCreateDescriptorSetLayout(vk_device(), &info, alloc_callbacks(), &descriptor_set_layout));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorSetLayout {}", fmt::ptr(descriptor_set_layout));
         }
-        return descriptor_set_layout;
-    }
-
-    VkDescriptorSetLayout VulkanDevice::get_descriptor_set_layout(const DescriptorSetDesc& desc)
-    {
-        const auto hash = desc.hash();
-        if (auto iter = descriptor_set_layouts_.find(hash); iter != descriptor_set_layouts_.end()) {
-            return iter->second.get();
-        }
-
-        VkDescriptorSetLayout descriptor_set_layout = create_vk_descriptor_set_layout(desc);
-        descriptor_set_layouts_.insert(std::make_pair(hash, unique(descriptor_set_layout, vk_device())));
         return descriptor_set_layout;
     }
 
@@ -317,11 +305,23 @@ namespace orion::vulkan
         return handle;
     }
 
+    DescriptorLayoutHandle VulkanDevice::create_descriptor_layout_api(const DescriptorLayoutDesc& desc)
+    {
+        const auto handle = DescriptorLayoutHandle{desc.hash()};
+        if (auto iter = descriptor_set_layouts_.find(handle); iter != descriptor_set_layouts_.end()) {
+            return iter->first;
+        }
+
+        VkDescriptorSetLayout descriptor_set_layout = create_vk_descriptor_set_layout(desc);
+        descriptor_set_layouts_.add(handle, unique(descriptor_set_layout, vk_device()));
+        return handle;
+    }
+
     PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api(const PipelineLayoutDesc& desc)
     {
-        std::vector<VkDescriptorSetLayout> descriptor_sets(desc.descriptor_sets.size());
-        std::ranges::transform(desc.descriptor_sets, descriptor_sets.begin(), [this](const DescriptorSetDesc& set) {
-            return get_descriptor_set_layout(set);
+        std::vector<VkDescriptorSetLayout> descriptor_sets(desc.descriptors.size());
+        std::ranges::transform(desc.descriptors, descriptor_sets.begin(), [this](DescriptorLayoutHandle descriptor_layout) {
+            return descriptor_set_layouts_.handle_at(descriptor_layout);
         });
 
         std::vector<VkPushConstantRange> push_constants(desc.push_constants.size());
@@ -740,6 +740,11 @@ namespace orion::vulkan
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)
     {
         shader_modules_.remove(shader_module_handle);
+    }
+
+    void VulkanDevice::destroy_api(DescriptorLayoutHandle descriptor_layout_handle)
+    {
+        descriptor_set_layouts_.remove(descriptor_layout_handle);
     }
 
     void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout_handle)
