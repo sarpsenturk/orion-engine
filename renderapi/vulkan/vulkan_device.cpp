@@ -900,6 +900,31 @@ namespace orion::vulkan
         vk_result_check(vkDeviceWaitIdle(vk_device()));
     }
 
+    void VulkanDevice::bind_buffers_api(const DescriptorBufferBind& buffer_bind)
+    {
+        std::vector<VkDescriptorBufferInfo> buffer_infos(buffer_bind.buffers.size());
+        std::ranges::transform(buffer_bind.buffers, buffer_infos.begin(), [this](const BufferDescriptorDesc& buffer) {
+            return VkDescriptorBufferInfo{
+                .buffer = buffers_.handle_at(buffer.buffer_handle),
+                .offset = buffer.offset,
+                .range = buffer.size,
+            };
+        });
+
+        const auto write = VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = descriptor_sets_.handle_at(buffer_bind.descriptor_handle),
+            .dstBinding = buffer_bind.binding,
+            .dstArrayElement = buffer_bind.array_element,
+            .descriptorCount = static_cast<uint32_t>(buffer_infos.size()),
+            .pImageInfo = nullptr,
+            .pBufferInfo = buffer_infos.data(),
+            .pTexelBufferView = nullptr,
+        };
+        vkUpdateDescriptorSets(vk_device(), 1u, &write, 0u, nullptr);
+    }
+
     VkSemaphore VulkanDevice::create_vk_semaphore()
     {
         VkSemaphore semaphore = VK_NULL_HANDLE;

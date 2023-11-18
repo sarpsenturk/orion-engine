@@ -112,6 +112,9 @@ namespace orion
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
+        void bind_buffers(const DescriptorBufferBind& buffer_bind);
+        void bind_buffer(DescriptorHandle descriptor_handle, std::uint32_t binding, DescriptorType type, const BufferDescriptorDesc& desc);
+
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
     protected:
@@ -156,6 +159,8 @@ namespace orion
         virtual void wait_for_jobs_api(std::span<const GPUJobHandle> job_handles) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
+
+        virtual void bind_buffers_api(const DescriptorBufferBind& buffer_bind) = 0;
 
         spdlog::logger* logger_;
     };

@@ -214,6 +214,20 @@ namespace orion
         [[nodiscard]] std::size_t hash() const;
     };
 
+    struct BufferDescriptorDesc {
+        GPUBufferHandle buffer_handle;
+        std::size_t size;
+        std::size_t offset;
+    };
+
+    struct DescriptorBufferBind {
+        DescriptorHandle descriptor_handle;
+        std::uint32_t binding;
+        std::uint32_t array_element;
+        DescriptorType descriptor_type;
+        std::span<const BufferDescriptorDesc> buffers;
+    };
+
     struct PushConstantDesc {
         std::uint32_t size;
         ShaderStageFlags shader_stages;

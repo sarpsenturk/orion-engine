@@ -86,6 +86,8 @@ namespace orion::vulkan
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
+        void bind_buffers_api(const DescriptorBufferBind& buffer_bind) override;
+
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         UniqueVkDevice device_;
