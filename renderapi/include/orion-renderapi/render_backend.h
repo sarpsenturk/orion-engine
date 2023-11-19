@@ -1,7 +1,7 @@
 #pragma once
 
 #include "orion-core/dyn_lib.h"
-#include "orion-renderapi/types.h"
+#include "orion-renderapi/defs.h"
 #include "render_device.h"
 
 #include <memory>

@@ -4,9 +4,9 @@
 
 #include "orion-core/handle.h"
 
+#include "orion-renderapi/defs.h"
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/render_device.h"
-#include "orion-renderapi/types.h"
 
 #include "orion-math/vector/vector3.h"
 #include "orion-math/vector/vector4.h"

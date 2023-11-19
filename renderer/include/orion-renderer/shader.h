@@ -5,7 +5,7 @@
 #include "orion-core/filesystem.h"
 #include "orion-core/handle.h"
 
-#include "orion-renderapi/types.h"
+#include "orion-renderapi/defs.h"
 
 #include <spdlog/logger.h>
 

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "defs.h"
 #include "handles.h"
 #include "render_command.h"
 #include "swapchain.h"
-#include "types.h"
 
 #include <memory>
 #include <span>

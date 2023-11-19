@@ -1,7 +1,7 @@
 #pragma once
 
+#include "defs.h"
 #include "handles.h"
-#include "types.h"
 
 #include <cstdint>
 #include <memory>

@@ -23,23 +23,6 @@ namespace orion
         CPU
     };
 
-    constexpr auto format_as(PhysicalDeviceType type) noexcept
-    {
-        switch (type) {
-            case PhysicalDeviceType::Other:
-                break;
-            case PhysicalDeviceType::Integrated:
-                return "Integrated";
-            case PhysicalDeviceType::Discrete:
-                return "Discrete";
-            case PhysicalDeviceType::Virtual:
-                return "Virtual";
-            case PhysicalDeviceType::CPU:
-                return "CPU";
-        }
-        return "Other";
-    }
-
     using physical_device_index_t = std::int32_t;
     inline constexpr auto invalid_physical_device_index = -1;
 
@@ -61,7 +44,7 @@ namespace orion
         R32G32B32A32_Float,
     };
 
-    constexpr auto size_of(Format format) -> std::uint32_t
+    constexpr auto format_size(Format format) -> std::uint32_t
     {
         switch (format) {
             case Format::Undefined:
@@ -79,27 +62,6 @@ namespace orion
                 return sizeof(std::uint8_t);
         }
         return UINT32_MAX;
-    }
-
-    constexpr auto format_as(Format format) noexcept -> const char*
-    {
-        switch (format) {
-            case Format::Undefined:
-                return "Undefined";
-            case Format::B8G8R8A8_Srgb:
-                return "B8G8R8A8_Srgb";
-            case Format::R32G32_Float:
-                return "R32G32_Float";
-            case Format::R32G32B32_Float:
-                return "R32G32B32_Float";
-            case Format::R32G32B32A32_Float:
-                return "R32G32B32A32_Float";
-            case Format::R8_Unorm:
-                return "R8_Unorm";
-            case Format::R8G8B8A8_Unorm:
-                return "R8G8B8A8_Unorm";
-        }
-        return "Unknown format";
     }
 
     enum class AttachmentLoadOp {
@@ -130,8 +92,6 @@ namespace orion
     template<>
     struct enum_bitwise_enabled<ShaderStageFlags> : std::true_type {
     };
-
-    std::string format_as(ShaderStageFlags shader_stages);
 
     enum class PrimitiveTopology {
         TriangleList
@@ -226,7 +186,10 @@ namespace orion
         [[nodiscard]] bool is_buffer() const noexcept { return buffer.buffer_handle.is_valid(); }
     };
 
-    [[nodiscard]] bool is_buffer_binding(const DescriptorBinding& binding);
+    [[nodiscard]] inline bool is_buffer_binding(const DescriptorBinding& binding)
+    {
+        return binding.is_buffer();
+    }
 
     struct PushConstantDesc {
         std::uint32_t size;
@@ -424,7 +387,7 @@ namespace orion
             std::uint32_t offset = 0;
             for (auto& attribute : attributes_) {
                 attribute.offset = offset;
-                offset += size_of(attribute.format);
+                offset += format_size(attribute.format);
             }
             return offset;
         }
@@ -562,4 +525,8 @@ namespace orion
         Graphics,
         Compute
     };
+
+    const char* format_as(PhysicalDeviceType type) noexcept;
+    const char* format_as(Format format) noexcept;
+    std::string format_as(ShaderStageFlags shader_stages);
 } // namespace orion

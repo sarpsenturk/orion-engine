@@ -2,7 +2,7 @@
 
 #include "vulkan_headers.h"
 
-#include "orion-renderapi/types.h"
+#include "orion-renderapi/defs.h"
 
 #include "orion-math/vector/vector2.h"
 

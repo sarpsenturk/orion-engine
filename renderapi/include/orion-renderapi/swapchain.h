@@ -1,7 +1,7 @@
 #pragma once
 
 #include "handles.h"
-#include "orion-renderapi/types.h"
+#include "orion-renderapi/defs.h"
 
 #include <cstdint>
 

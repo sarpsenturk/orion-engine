@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion-renderapi/types.h"
+#include "orion-renderapi/defs.h"
 
 #include "orion-math/vector/vector3.h"
 #include "orion-math/vector/vector4.h"
