@@ -33,6 +33,8 @@ namespace orion::vulkan
         [[nodiscard]] VkFence create_vk_fence(bool signaled);
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
 
+        [[nodiscard]] auto& descriptor_sets() const { return descriptor_sets_; }
+        [[nodiscard]] auto& pipeline_layouts() const { return pipeline_layouts_; }
         [[nodiscard]] auto& pipelines() const { return pipelines_; }
         [[nodiscard]] auto& buffers() const { return buffers_; }
 

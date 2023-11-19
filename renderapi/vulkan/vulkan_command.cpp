@@ -79,6 +79,21 @@ namespace orion::vulkan
             vk_pipeline);
     }
 
+    void VulkanCommandList::bind_descriptor_api(const CmdBindDescriptor& cmd_bind_descriptor)
+    {
+        VkPipelineLayout layout = device_->pipeline_layouts().handle_at(cmd_bind_descriptor.pipeline_layout);
+        VkDescriptorSet descriptor_set = device_->descriptor_sets().handle_at(cmd_bind_descriptor.descriptor);
+        vkCmdBindDescriptorSets(
+            command_buffer_.get(),
+            to_vulkan_type(cmd_bind_descriptor.bind_point),
+            layout,
+            0,
+            1,
+            &descriptor_set,
+            0,
+            nullptr);
+    }
+
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)
         : device_(device)
         , command_pool_(std::move(command_pool))

@@ -37,6 +37,11 @@ namespace orion
         bind_pipeline_api(cmd_bind_pipeline);
     }
 
+    void CommandList::bind_descriptor(const CmdBindDescriptor& cmd_bind_descriptor)
+    {
+        bind_descriptor_api(cmd_bind_descriptor);
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();

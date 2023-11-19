@@ -22,6 +22,7 @@ namespace orion::vulkan
         void bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer) override;
         void bind_vertex_buffer_api(const CmdBindVertexBuffer& cmd_bind_vertex_buffer) override;
         void bind_pipeline_api(const CmdBindPipeline& cmd_bind_pipeline) override;
+        void bind_descriptor_api(const CmdBindDescriptor& cmd_bind_descriptor) override;
 
         VulkanDevice* device_;
         UniqueVkCommandBuffer command_buffer_;

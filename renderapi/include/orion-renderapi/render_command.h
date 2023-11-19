@@ -39,6 +39,13 @@ namespace orion
         PipelineBindPoint bind_point;
     };
 
+    struct CmdBindDescriptor {
+        PipelineBindPoint bind_point;
+        PipelineLayoutHandle pipeline_layout;
+        std::uint32_t index;
+        DescriptorHandle descriptor;
+    };
+
     class CommandList
     {
     public:
@@ -52,6 +59,7 @@ namespace orion
         void bind_index_buffer(const CmdBindIndexBuffer& cmd_bind_index_buffer);
         void bind_vertex_buffer(const CmdBindVertexBuffer& cmd_bind_vertex_buffer);
         void bind_pipeline(const CmdBindPipeline& cmd_bind_pipeline);
+        void bind_descriptor(const CmdBindDescriptor& cmd_bind_descriptor);
 
     protected:
         CommandList(const CommandList&) = default;
@@ -67,6 +75,7 @@ namespace orion
         virtual void bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer) = 0;
         virtual void bind_vertex_buffer_api(const CmdBindVertexBuffer& cmd_bind_vertex_buffer) = 0;
         virtual void bind_pipeline_api(const CmdBindPipeline& cmd_bind_pipeline) = 0;
+        virtual void bind_descriptor_api(const CmdBindDescriptor& cmd_bind_descriptor) = 0;
     };
 
     class CommandAllocator
