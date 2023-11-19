@@ -3,6 +3,8 @@
 #include "orion-core/event.h"
 #include "orion-core/input.h"
 
+#include "orion-utils/bits.h"
+
 #include <memory>
 #include <string>
 
@@ -92,12 +94,12 @@ namespace orion
         [[nodiscard]] auto& position() const noexcept { return position_; }
         [[nodiscard]] auto& size() const noexcept { return size_; }
         [[nodiscard]] auto aspect_ratio() const noexcept { return static_cast<float>(size_.x()) / size_.y(); }
-        [[nodiscard]] auto should_close() const noexcept { return should_close_; }
 
-        [[nodiscard]] bool is_resizing() const noexcept { return is_resizing_; }
-        [[nodiscard]] bool is_moving() const noexcept { return is_moving_; }
-        [[nodiscard]] bool is_maximized() const noexcept { return is_maximized_; }
-        [[nodiscard]] bool is_minimized() const noexcept { return is_minimized_; }
+        [[nodiscard]] bool should_close() const noexcept { return get_bit(state_, close_bit) != 0; }
+        [[nodiscard]] bool is_resizing() const noexcept { return get_bit(state_, resize_bit) != 0; }
+        [[nodiscard]] bool is_moving() const noexcept { return get_bit(state_, move_bit) != 0; }
+        [[nodiscard]] bool is_maximized() const noexcept { return get_bit(state_, maximize_bit) != 0; }
+        [[nodiscard]] bool is_minimized() const noexcept { return get_bit(state_, minimize_bit) != 0; }
 
         [[nodiscard]] auto& on_close() noexcept { return on_close_; }
         [[nodiscard]] auto& on_move() noexcept { return on_move_; }
@@ -136,13 +138,14 @@ namespace orion
         std::string name_;
         WindowPosition position_;
         WindowSize size_;
-        bool should_close_ = false;
 
         // Window state information
-        bool is_resizing_ = false;
-        bool is_moving_ = false;
-        bool is_maximized_ = false;
-        bool is_minimized_ = false;
+        std::uint8_t state_;
+        static constexpr auto close_bit = std::uint8_t{0};
+        static constexpr auto resize_bit = std::uint8_t{1};
+        static constexpr auto move_bit = std::uint8_t{2};
+        static constexpr auto maximize_bit = std::uint8_t{3};
+        static constexpr auto minimize_bit = std::uint8_t{4};
 
         // Window related input devices
         Keyboard keyboard_;

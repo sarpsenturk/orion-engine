@@ -20,32 +20,32 @@ namespace orion
         // Events are invoked from platform implementations
         on_move_ += [this](const auto& move) {
             position_ = move.position;
-            is_moving_ = true;
+            set_bit(state_, move_bit);
         };
         on_move_end_ += [this](auto&) {
-            is_moving_ = false;
+            clear_bit(state_, move_bit);
         };
         on_resize_ += [this](const auto& resize) {
             size_ = resize.size;
-            is_resizing_ = true;
+            set_bit(state_, resize_bit);
         };
         on_resize_end_ += [this](const auto&) {
-            is_resizing_ = false;
+            clear_bit(state_, resize_bit);
         };
         on_close_ += [this](const auto&) {
-            should_close_ = true;
+            set_bit(state_, close_bit);
         };
         on_maximize_ += [this](const auto&) {
-            is_maximized_ = true;
-            is_minimized_ = false;
+            set_bit(state_, maximize_bit);
+            clear_bit(state_, minimize_bit);
         };
         on_minimize_ += [this](const auto&) {
-            is_minimized_ = true;
-            is_maximized_ = false;
+            set_bit(state_, minimize_bit);
+            clear_bit(state_, maximize_bit);
         };
         on_restore_ += [this](const auto&) {
-            is_maximized_ = false;
-            is_minimized_ = false;
+            clear_bit(state_, maximize_bit);
+            clear_bit(state_, minimize_bit);
         };
 
         SPDLOG_LOGGER_DEBUG(logger(), "Window \"{}\" created", name_);
