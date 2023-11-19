@@ -19,8 +19,6 @@ may vary depending on the system.
 
 * [CMake >= 3.21](https://cmake.org/download/)
 * [Ninja](https://ninja-build.org/)
-* [vcpkg](https://github.com/microsoft/vcpkg)
-* `VCPKG_ROOT` environment variable set to root of your vcpkg directory
 * C++ compiler with C++ 20 support
 
 Once all requirements are met:
@@ -28,6 +26,7 @@ Once all requirements are met:
 ```
 git clone --recurse-submodules https://github.com/sarpsenturk/orion-engine
 cd orion-engine
+./vcpkg/bootstrap-vcpkg
 mkdir build && cd build
 cmake --preset=<selected-preset> ..
 ```
