@@ -5,11 +5,16 @@ option(ORION_DEVELOPER_MODE "Enable developer mode" ON)
 option(ORION_SANDBOX "Build the sandbox project" ${ORION_DEVELOPER_MODE})
 option(ORION_TEST "Build tests for the orion engine" ${ORION_DEVELOPER_MODE})
 
+# Enable/disable builtin backends
+option(ORION_RENDER_BACKEND_VULKAN "Enable the Vulkan backend for the orion renderer" ON)
+
 # Enable testing feature with vcpkg
 if (ORION_TEST)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif ()
-
+if (ORION_RENDER_BACKEND_VULKAN)
+    list(APPEND VCPKG_MANIFEST_FEATURES "vulkan")
+endif ()
 
 project(orion-engine
         VERSION 0.1.0

@@ -26,6 +26,8 @@ target_compile_definitions(${ORION_VULKAN_MODULE} PRIVATE ORION_RENDER_BACKEND_E
 
 # Find vulkan dependency
 find_package(Vulkan REQUIRED)
+find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
+
 
 # Link with interface
 target_link_libraries(
@@ -33,6 +35,7 @@ target_link_libraries(
         PRIVATE
         orion::renderapi
         Vulkan::Vulkan
+        unofficial::vulkan-memory-allocator::vulkan-memory-allocator
 )
 
 # Precompiled headers

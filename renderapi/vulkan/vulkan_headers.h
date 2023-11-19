@@ -5,7 +5,7 @@
 
 #include "orion-utils/compiler.h"
 
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 #include <fmt/ranges.h>
