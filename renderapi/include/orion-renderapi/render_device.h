@@ -112,8 +112,7 @@ namespace orion
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
-        void bind_buffers(const DescriptorBufferBind& buffer_bind);
-        void bind_buffer(DescriptorHandle descriptor_handle, std::uint32_t binding, DescriptorType type, const BufferDescriptorDesc& desc);
+        void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
@@ -160,7 +159,7 @@ namespace orion
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 
-        virtual void bind_buffers_api(const DescriptorBufferBind& buffer_bind) = 0;
+        virtual void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) = 0;
 
         spdlog::logger* logger_;
     };

@@ -193,14 +193,12 @@ namespace orion
         Any
     };
 
-    enum class DescriptorType : std::uint8_t {
+    enum class BindingType : std::uint8_t {
         ConstantBuffer,
-        ImageSampler,
-        SampledImage
     };
 
     struct DescriptorBindingDesc {
-        DescriptorType type;
+        BindingType type;
         ShaderStageFlags shader_stages;
         std::uint32_t count;
 
@@ -214,19 +212,21 @@ namespace orion
         [[nodiscard]] std::size_t hash() const;
     };
 
-    struct BufferDescriptorDesc {
-        GPUBufferHandle buffer_handle;
+    struct BufferBindingDesc {
+        GPUBufferHandle buffer_handle = GPUBufferHandle::invalid();
         std::size_t size;
         std::size_t offset;
     };
 
-    struct DescriptorBufferBind {
-        DescriptorHandle descriptor_handle;
+    struct DescriptorBinding {
         std::uint32_t binding;
-        std::uint32_t array_element;
-        DescriptorType descriptor_type;
-        std::span<const BufferDescriptorDesc> buffers;
+        BindingType binding_type;
+        BufferBindingDesc buffer;
+
+        [[nodiscard]] bool is_buffer() const noexcept { return buffer.buffer_handle.is_valid(); }
     };
+
+    [[nodiscard]] bool is_buffer_binding(const DescriptorBinding& binding);
 
     struct PushConstantDesc {
         std::uint32_t size;

@@ -38,6 +38,8 @@ public:
         entity.add_component<orion::SpriteComponent>(orion::colors::yellow);
         // Translate entity
         entity.transform().translate({5.f, 0.f, 0.f});
+
+        // device->write_descriptor(descriptor_set, bindings);
     }
 
 private:

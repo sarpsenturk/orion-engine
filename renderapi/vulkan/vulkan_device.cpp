@@ -825,6 +825,7 @@ namespace orion::vulkan
 
     void VulkanDevice::destroy_api(DescriptorHandle descriptor_handle)
     {
+        descriptor_sets_.remove(descriptor_handle);
     }
 
     void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout_handle)
@@ -900,29 +901,39 @@ namespace orion::vulkan
         vk_result_check(vkDeviceWaitIdle(vk_device()));
     }
 
-    void VulkanDevice::bind_buffers_api(const DescriptorBufferBind& buffer_bind)
+    void VulkanDevice::write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings)
     {
-        std::vector<VkDescriptorBufferInfo> buffer_infos(buffer_bind.buffers.size());
-        std::ranges::transform(buffer_bind.buffers, buffer_infos.begin(), [this](const BufferDescriptorDesc& buffer) {
-            return VkDescriptorBufferInfo{
-                .buffer = buffers_.handle_at(buffer.buffer_handle),
-                .offset = buffer.offset,
-                .range = buffer.size,
+        std::vector<VkWriteDescriptorSet> writes;
+        writes.reserve(bindings.size());
+        std::vector<VkDescriptorBufferInfo> buffer_descriptors;
+        buffer_descriptors.reserve(std::ranges::count_if(bindings, is_buffer_binding));
+
+        VkDescriptorSet descriptor_set = descriptor_sets_.handle_at(descriptor_handle);
+        std::ranges::for_each(bindings, [&](const DescriptorBinding& binding) {
+            VkWriteDescriptorSet write_descriptor{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = nullptr,
+                .dstSet = descriptor_set,
+                .dstBinding = binding.binding,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = to_vulkan_type(binding.binding_type),
+                .pImageInfo = nullptr,
+                .pBufferInfo = nullptr,
+                .pTexelBufferView = nullptr,
             };
+            if (const auto& buffer = binding.buffer; binding.is_buffer()) {
+                buffer_descriptors.push_back({
+                    .buffer = buffers_.handle_at(buffer.buffer_handle),
+                    .offset = buffer.offset,
+                    .range = buffer.size,
+                });
+                write_descriptor.pBufferInfo = &(buffer_descriptors.back());
+            }
+            writes.push_back(write_descriptor);
         });
 
-        const auto write = VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = descriptor_sets_.handle_at(buffer_bind.descriptor_handle),
-            .dstBinding = buffer_bind.binding,
-            .dstArrayElement = buffer_bind.array_element,
-            .descriptorCount = static_cast<uint32_t>(buffer_infos.size()),
-            .pImageInfo = nullptr,
-            .pBufferInfo = buffer_infos.data(),
-            .pTexelBufferView = nullptr,
-        };
-        vkUpdateDescriptorSets(vk_device(), 1u, &write, 0u, nullptr);
+        vkUpdateDescriptorSets(vk_device(), static_cast<uint32_t>(writes.size()), writes.data(), 0u, nullptr);
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()

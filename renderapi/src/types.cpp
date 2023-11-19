@@ -42,4 +42,9 @@ namespace orion
             return hash_combine(acc, binding.hash());
         });
     }
+
+    bool is_buffer_binding(const DescriptorBinding& binding)
+    {
+        return binding.is_buffer();
+    }
 } // namespace orion

@@ -210,19 +210,8 @@ namespace orion
         wait_idle_api();
     }
 
-    void RenderDevice::bind_buffers(const DescriptorBufferBind& buffer_bind)
+    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings)
     {
-        bind_buffers_api(buffer_bind);
-    }
-
-    void RenderDevice::bind_buffer(DescriptorHandle descriptor_handle, std::uint32_t binding, DescriptorType type, const BufferDescriptorDesc& desc)
-    {
-        bind_buffers({
-            .descriptor_handle = descriptor_handle,
-            .binding = binding,
-            .array_element = 0,
-            .descriptor_type = type,
-            .buffers = {&desc, 1},
-        });
+        write_descriptor_api(descriptor_handle, bindings);
     }
 } // namespace orion
