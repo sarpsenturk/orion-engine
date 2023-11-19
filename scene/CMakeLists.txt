@@ -1,4 +1,4 @@
-option(ORION_SCENE_TEST "Enable tests for orion-scene" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_SCENE_TEST "Enable tests for orion-scene" ${ORION_DEVELOPER_MODE})
 
 find_package(EnTT CONFIG REQUIRED)
 

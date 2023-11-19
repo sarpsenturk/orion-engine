@@ -1,5 +1,5 @@
 # Module specific options
-option(ORION_CORE_TEST "Build tests for orion-core" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_CORE_TEST "Build tests for orion-core" ${ORION_DEVELOPER_MODE})
 
 # Module specific dependencies
 find_package(spdlog REQUIRED)
@@ -41,6 +41,6 @@ add_subdirectory(include/orion-core)
 add_subdirectory(src)
 
 # Enable/disable tests
-if (ORION_CORE_TEST AND ORION_ENGINE_TEST)
+if (ORION_CORE_TEST AND ORION_TEST)
     add_subdirectory(tests)
 endif ()

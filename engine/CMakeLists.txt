@@ -28,6 +28,6 @@ add_subdirectory(include/orion-engine)
 add_subdirectory(src)
 
 # Enable/disable tests
-if (ORION_ENGINE_TESTS)
+if (ORION_TESTS)
     add_subdirectory(tests)
 endif ()

@@ -1,5 +1,5 @@
 # Module specific options
-option(ORION_RENDERER_TEST "Enable tests for the orion renderer" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_RENDERER_TEST "Enable tests for the orion renderer" ${ORION_DEVELOPER_MODE})
 option(ORION_RENDERER_HEADLESS "Build renderer in headless mode (disables support for surfaces etc.)" OFF)
 set(ORION_FRAMES_IN_FLIGHT 2 CACHE STRING "Number of frames in flight")
 
@@ -52,6 +52,6 @@ add_subdirectory(include/orion-renderer)
 add_subdirectory(src)
 
 # Enable/disable tests
-if (ORION_RENDERER_TEST AND ORION_ENGINE_TEST)
+if (ORION_RENDERER_TEST AND ORION_TEST)
     add_subdirectory(tests)
 endif ()

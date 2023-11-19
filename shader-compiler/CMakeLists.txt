@@ -1,4 +1,4 @@
-option(ORION_SHADER_COMPILER_TEST "Enable tests for the Orion Shader Compiler" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_SHADER_COMPILER_TEST "Enable tests for the Orion Shader Compiler" ${ORION_DEVELOPER_MODE})
 
 # Find dependencies
 find_package(directx-dxc CONFIG REQUIRED)
@@ -32,7 +32,7 @@ add_subdirectory(include/orion-shader-compiler)
 add_subdirectory(src)
 
 # Enable/disable tests
-if (ORION_SHADER_COMPILER_TEST AND ORION_ENGINE_TEST)
+if (ORION_SHADER_COMPILER_TEST AND ORION_TEST)
     add_subdirectory(tests)
 endif ()
 

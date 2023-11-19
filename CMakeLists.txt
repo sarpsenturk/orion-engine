@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.21)
 
 # Project configuration options
-option(ORION_ENGINE_DEVELOPER_MODE "Enable developer mode" ON)
-option(ORION_ENGINE_SANDBOX "Build the sandbox project" ${ORION_ENGINE_DEVELOPER_MODE})
-option(ORION_ENGINE_TEST "Build tests for the orion engine" ${ORION_ENGINE_DEVELOPER_MODE})
+option(ORION_DEVELOPER_MODE "Enable developer mode" ON)
+option(ORION_SANDBOX "Build the sandbox project" ${ORION_DEVELOPER_MODE})
+option(ORION_TEST "Build tests for the orion engine" ${ORION_DEVELOPER_MODE})
 
 # Enable testing feature with vcpkg
-if (ORION_ENGINE_TEST)
+if (ORION_TEST)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif ()
 
@@ -35,20 +35,20 @@ add_compile_definitions(
         $<$<BOOL:${ORION_PLATFORM_LINUX}>:ORION_PLATFORM_LINUX>
 )
 
-option(ORION_ENGINE_SANITIZE_ADDRESS "Enable address sanitizer" ${ORION_ENGINE_DEVELOPER_MODE})
-if (ORION_ENGINE_SANITIZE_ADDRESS)
+option(ORION_SANITIZE_ADDRESS "Enable address sanitizer" ${ORION_DEVELOPER_MODE})
+if (ORION_SANITIZE_ADDRESS)
     if ("${CXX_SANITIZE_ADDRESS}" STREQUAL "")
         message(AUTHOR_WARNING "Current platform/compiler doesn't support address sanitizer. Disabling.")
-        set(ORION_ENGINE_SANITIZE_ADDRESS OFF CACHE BOOL "Enable address sanitizer" FORCE)
+        set(ORION_SANITIZE_ADDRESS OFF CACHE BOOL "Enable address sanitizer" FORCE)
     endif ()
     add_compile_options(${CXX_SANITIZE_ADDRESS})
 endif ()
 
-option(ORION_ENGINE_SANITIZE_UNDEFINED "Enable undefined behaviour sanitizer" ${ORION_ENGINE_DEVELOPER_MODE})
-if (ORION_ENGINE_SANITIZE_UNDEFINED)
+option(ORION_SANITIZE_UNDEFINED "Enable undefined behaviour sanitizer" ${ORION_DEVELOPER_MODE})
+if (ORION_SANITIZE_UNDEFINED)
     if ("${CXX_SANITIZE_UNDEFINED}" STREQUAL "")
         message(AUTHOR_WARNING "Current platform/compiler doesn't support undefined behaviour sanitizer. Disabling.")
-        set(ORION_ENGINE_SANITIZE_UNDEFINED OFF CACHE BOOL "Enable undefined behaviour sanitizer" FORCE)
+        set(ORION_SANITIZE_UNDEFINED OFF CACHE BOOL "Enable undefined behaviour sanitizer" FORCE)
     endif ()
     add_compile_options(${CXX_SANITIZE_UNDEFINED})
 endif ()
@@ -59,7 +59,7 @@ target_precompile_headers(orion-pch PUBLIC pch.h)
 add_library(orion::pch ALIAS orion-pch)
 
 # Enable/disable testing
-if (ORION_ENGINE_TEST)
+if (ORION_TEST)
     enable_testing()
 endif ()
 
@@ -75,6 +75,6 @@ add_subdirectory(scene)
 add_subdirectory(engine)
 
 # Enable/disable sandbox
-if (ORION_ENGINE_SANDBOX)
+if (ORION_SANDBOX)
     add_subdirectory(sandbox)
 endif ()
