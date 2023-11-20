@@ -134,4 +134,12 @@ namespace orion
             return ~arg;
         }
     };
+
+    template<typename To>
+    struct StaticCast {
+        constexpr To operator()(auto arg) const
+        {
+            return static_cast<To>(arg);
+        }
+    };
 } // namespace orion

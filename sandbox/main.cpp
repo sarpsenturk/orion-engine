@@ -51,7 +51,7 @@ private:
     void on_user_render() override
     {
         renderer_.begin();
-        renderer_.draw(scene_);
+        renderer_.draw_test_triangle();
         renderer_.end();
     }
 

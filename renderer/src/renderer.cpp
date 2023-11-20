@@ -37,9 +37,12 @@ namespace orion
         : backend_module_(desc.backend_module)
         , render_backend_(create_render_backend())
         , render_device_(create_render_device(desc.device_select_fn))
+        , shader_manager_(device())
         , render_size_(desc.render_size)
         , render_pass_(create_render_pass())
-        , shader_manager_(device())
+        , triangle_pipeline_layout_(create_triangle_pipeline_layout())
+        , triangle_shader_effect_(shader_manager_.load_shader_effect("triangle"))
+        , triangle_pipeline_(create_triangle_pipeline())
         , frames_(create_frame_data())
     {
     }
@@ -48,24 +51,71 @@ namespace orion
     {
         auto& frame = current_frame();
 
-        frame.sprite_renderer.reset();
+        // Wait for frame to finish
+        device()->wait_for_job(frame.render_job);
+
+        // Reset command allocator
+        frame.command_allocator->reset();
+
+        // Begin command list
+        frame.command_list->begin();
+
+        // Begin render pass
+        frame.command_list->begin_render_pass({
+            .render_pass = render_pass_,
+            .framebuffer = frame.render_target,
+            .render_area = {
+                .offset = {0, 0},
+                .size = render_size_,
+            },
+            .clear_color = colors::magenta,
+        });
     }
 
     void Renderer::end()
     {
+        auto& frame = current_frame();
+
+        // Finish render pass
+        frame.command_list->end_render_pass();
+
+        // End command list recording
+        frame.command_list->end();
+
+        // Submit command buffer
+        const auto command_lists = std::array{frame.command_list.get()};
+        device()->submit({.queue_type = CommandQueueType::Graphics, .command_lists = command_lists, .job = frame.render_job});
+
+        // Advance to next frame
+        advance_frame();
     }
 
     void Renderer::draw(const Scene& scene)
     {
+    }
+
+    void Renderer::draw_test_triangle()
+    {
         auto& frame = current_frame();
-        // Render sprites
-        {
-            auto sprites = scene.view<TransformComponent, SpriteComponent>();
-            sprites.each([&](auto entity, const auto& transform, const auto& sprite) {
-                (void)entity;
-                frame.sprite_renderer.draw({.sprite = &sprite, .position = transform.position()});
-            });
-        }
+
+        // Bind the triangle pipeline
+        frame.command_list->bind_pipeline({.pipeline = triangle_pipeline_, .bind_point = PipelineBindPoint::Graphics});
+
+        // Set the viewports
+        frame.command_list->set_viewports(Viewport{
+            .position = Vector2_f{},
+            .size = vector_cast<float>(render_size_),
+            .depth = {0.f, 1.f},
+        });
+
+        // Set the scissors
+        frame.command_list->set_scissors(Scissor{
+            .offset = {},
+            .size = render_size_,
+        });
+
+        // Make draw call
+        frame.command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
     }
 
     spdlog::logger* Renderer::logger()
@@ -148,6 +198,25 @@ namespace orion
         });
     }
 
+    PipelineLayoutHandle Renderer::create_triangle_pipeline_layout() const
+    {
+        return device()->create_pipeline_layout({.descriptors = {}, .push_constants = {}});
+    }
+
+    PipelineHandle Renderer::create_triangle_pipeline() const
+    {
+        const auto color_blend_attachments = std::array{
+            BlendAttachmentDesc{.enable_blend = false},
+        };
+        return device()->create_graphics_pipeline({
+            .shaders = triangle_shader_effect_.shader_stages(),
+            .vertex_bindings = {},
+            .pipeline_layout = triangle_pipeline_layout_,
+            .color_blend = {.attachments = color_blend_attachments, .blend_constants = {}},
+            .render_pass = render_pass_,
+        });
+    }
+
     Renderer::FrameDataArr Renderer::create_frame_data() const
     {
         FrameDataArr frame_data;
@@ -179,12 +248,15 @@ namespace orion
                 .image_views = {&image_view, 1},
                 .size = render_size_,
             });
+            auto command_allocator = device()->create_command_allocator(CommandQueueType::Graphics);
+            auto command_list = command_allocator->create_command_list();
             return {
                 .render_image = image,
                 .render_image_view = image_view,
                 .render_target = render_target,
-                .command_allocator = device()->create_command_allocator(CommandQueueType::Graphics),
-                .sprite_renderer = SpriteRenderer{{.device = device()}},
+                .command_allocator = std::move(command_allocator),
+                .command_list = std::move(command_list),
+                .render_job = device()->create_job({.start_finished = true}),
             };
         };
         for (int i = 0; i < frames_in_flight; ++i) {

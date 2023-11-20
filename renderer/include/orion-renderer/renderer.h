@@ -41,6 +41,7 @@ namespace orion
         void begin();
         void end();
         void draw(const Scene& scene);
+        void draw_test_triangle();
 
     private:
         struct FrameData {
@@ -48,7 +49,8 @@ namespace orion
             ImageViewHandle render_image_view;
             FramebufferHandle render_target;
             std::unique_ptr<CommandAllocator> command_allocator;
-            SpriteRenderer sprite_renderer;
+            std::unique_ptr<CommandList> command_list;
+            GPUJobHandle render_job;
         };
         using FrameDataArr = static_vector<FrameData, frames_in_flight>;
 
@@ -64,17 +66,21 @@ namespace orion
         [[nodiscard]] std::unique_ptr<RenderBackend> create_render_backend() const;
         [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(pfnSelectPhysicalDevice device_select_fn) const;
         [[nodiscard]] RenderPassHandle create_render_pass() const;
+        [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
+        [[nodiscard]] PipelineHandle create_triangle_pipeline() const;
         [[nodiscard]] FrameDataArr create_frame_data() const;
 
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+        ShaderManager shader_manager_;
 
         Vector2_u render_size_;
 
         RenderPassHandle render_pass_;
-
-        ShaderManager shader_manager_;
+        PipelineLayoutHandle triangle_pipeline_layout_;
+        ShaderEffect triangle_shader_effect_;
+        PipelineHandle triangle_pipeline_;
 
         FrameDataArr frames_;
         std::int8_t current_frame_index_ = 0;
