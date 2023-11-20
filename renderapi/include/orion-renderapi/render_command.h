@@ -53,6 +53,16 @@ namespace orion
         Vector4_f clear_color;
     };
 
+    struct CmdSetViewports {
+        std::uint32_t first_viewport = 0;
+        std::span<const Viewport> viewports;
+    };
+
+    struct CmdSetScissors {
+        std::uint32_t first_scissor = 0;
+        std::span<const Scissor> scissors;
+    };
+
     class CommandList
     {
     public:
@@ -69,6 +79,10 @@ namespace orion
         void bind_descriptor(const CmdBindDescriptor& cmd_bind_descriptor);
         void begin_render_pass(const CmdBeginRenderPass& cmd_begin_render_pass);
         void end_render_pass();
+        void set_viewports(const CmdSetViewports& cmd_set_viewports);
+        void set_viewports(const Viewport& viewport);
+        void set_scissors(const CmdSetScissors& cmd_set_scissors);
+        void set_scissors(const Scissor& scissor);
 
     protected:
         CommandList(const CommandList&) = default;
@@ -87,6 +101,8 @@ namespace orion
         virtual void bind_descriptor_api(const CmdBindDescriptor& cmd_bind_descriptor) = 0;
         virtual void begin_render_pass_api(const CmdBeginRenderPass& cmd_begin_render_pass) = 0;
         virtual void end_render_pass_api() = 0;
+        virtual void set_viewports_api(const CmdSetViewports& cmd_set_viewports) = 0;
+        virtual void set_scissors_api(const CmdSetScissors& cmd_set_scissors) = 0;
     };
 
     class CommandAllocator

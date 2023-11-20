@@ -3,6 +3,8 @@
 #include "vulkan_conversion.h"
 #include "vulkan_device.h"
 
+#include <ranges>
+
 namespace orion::vulkan
 {
     VulkanCommandList::VulkanCommandList(VulkanDevice* device, UniqueVkCommandBuffer command_buffer)
@@ -117,6 +119,28 @@ namespace orion::vulkan
     void VulkanCommandList::end_render_pass_api()
     {
         vkCmdEndRenderPass(command_buffer_.get());
+    }
+
+    void VulkanCommandList::set_viewports_api(const CmdSetViewports& cmd_set_viewports)
+    {
+        std::vector<VkViewport> viewports(cmd_set_viewports.viewports.size());
+        std::ranges::transform(cmd_set_viewports.viewports, viewports.begin(), to_vulkan_viewport);
+        vkCmdSetViewport(
+            command_buffer_.get(),
+            cmd_set_viewports.first_viewport,
+            static_cast<uint32_t>(viewports.size()),
+            viewports.data());
+    }
+
+    void VulkanCommandList::set_scissors_api(const CmdSetScissors& cmd_set_scissors)
+    {
+        std::vector<VkRect2D> scissors(cmd_set_scissors.scissors.size());
+        std::ranges::transform(cmd_set_scissors.scissors, scissors.begin(), to_vulkan_scissor);
+        vkCmdSetScissor(
+            command_buffer_.get(),
+            cmd_set_scissors.first_scissor,
+            static_cast<uint32_t>(scissors.size()),
+            scissors.data());
     }
 
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)

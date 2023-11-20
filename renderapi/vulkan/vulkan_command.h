@@ -27,6 +27,8 @@ namespace orion::vulkan
         void bind_descriptor_api(const CmdBindDescriptor& cmd_bind_descriptor) override;
         void begin_render_pass_api(const CmdBeginRenderPass& cmd_begin_render_pass) override;
         void end_render_pass_api() override;
+        void set_viewports_api(const CmdSetViewports& cmd_set_viewports) override;
+        void set_scissors_api(const CmdSetScissors& cmd_set_scissors) override;
 
         VulkanDevice* device_;
         UniqueVkCommandBuffer command_buffer_;

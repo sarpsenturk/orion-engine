@@ -52,6 +52,26 @@ namespace orion
         end_render_pass_api();
     }
 
+    void CommandList::set_viewports(const CmdSetViewports& cmd_set_viewports)
+    {
+        set_viewports_api(cmd_set_viewports);
+    }
+
+    void CommandList::set_viewports(const Viewport& viewport)
+    {
+        set_viewports({.first_viewport = 0, .viewports = {&viewport, 1}});
+    }
+
+    void CommandList::set_scissors(const CmdSetScissors& cmd_set_scissors)
+    {
+        set_scissors_api(cmd_set_scissors);
+    }
+
+    void CommandList::set_scissors(const Scissor& scissor)
+    {
+        set_scissors({.first_scissor = 0, .scissors = {&scissor, 1}});
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();

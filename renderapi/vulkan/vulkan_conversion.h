@@ -552,7 +552,7 @@ namespace orion::vulkan
         };
     }
 
-    constexpr auto to_vulkan_rect(const Scissor& scissor) -> VkRect2D
+    constexpr auto to_vulkan_scissor(const Scissor& scissor) -> VkRect2D
     {
         return {
             .offset = {scissor.offset.x(), scissor.offset.y()},
