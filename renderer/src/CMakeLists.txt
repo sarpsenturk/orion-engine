@@ -6,5 +6,4 @@ target_sources(
         mesh.cpp
         renderer.cpp
         shader.cpp
-        sprite_renderer.cpp
 )

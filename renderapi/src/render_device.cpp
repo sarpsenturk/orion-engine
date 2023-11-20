@@ -101,10 +101,10 @@ namespace orion
         return handle;
     }
 
-    GPUJobHandle RenderDevice::create_job(const GPUJobDesc& desc)
+    FenceHandle RenderDevice::create_fence(const FenceDesc& desc)
     {
-        auto handle = create_job_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created GPU job {}", handle);
+        auto handle = create_fence_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created fence {}", handle);
         return handle;
     }
 
@@ -174,10 +174,10 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed sampler {}", sampler_handle);
     }
 
-    void RenderDevice::destroy(GPUJobHandle job_handle)
+    void RenderDevice::destroy(FenceHandle fence_handle)
     {
-        destroy_api(job_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed GPU job {}", job_handle);
+        destroy_api(fence_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed GPU job {}", fence_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)
@@ -190,14 +190,14 @@ namespace orion
         return unmap_api(buffer_handle);
     }
 
-    void RenderDevice::wait_for_job(GPUJobHandle job_handle)
+    void RenderDevice::wait_for_fence(FenceHandle fence_handle)
     {
-        wait_for_job_api(job_handle);
+        wait_for_fences_api({&fence_handle, 1});
     }
 
-    void RenderDevice::wait_for_jobs(std::span<const GPUJobHandle> job_handles)
+    void RenderDevice::wait_for_fences(std::span<const FenceHandle> fence_handles)
     {
-        wait_for_jobs_api(job_handles);
+        wait_for_fences_api(fence_handles);
     }
 
     void RenderDevice::wait_queue_idle(CommandQueueType queue_type)

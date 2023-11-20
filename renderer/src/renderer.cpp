@@ -1,5 +1,7 @@
 #include "orion-renderer/renderer.h"
 
+#include "orion-renderer/colors.h"
+
 #include "orion-renderapi/config.h"
 
 #include "orion-core/window.h"
@@ -52,7 +54,7 @@ namespace orion
         auto& frame = current_frame();
 
         // Wait for frame to finish
-        device()->wait_for_job(frame.render_job);
+        device()->wait_for_fence(frame.fence);
 
         // Reset command allocator
         frame.command_allocator->reset();
@@ -84,7 +86,7 @@ namespace orion
 
         // Submit command buffer
         const auto command_lists = std::array{frame.command_list.get()};
-        device()->submit({.queue_type = CommandQueueType::Graphics, .command_lists = command_lists, .job = frame.render_job});
+        device()->submit({.queue_type = CommandQueueType::Graphics, .command_lists = command_lists, .signal_fence = frame.fence});
 
         // Advance to next frame
         advance_frame();
@@ -256,7 +258,7 @@ namespace orion
                 .render_target = render_target,
                 .command_allocator = std::move(command_allocator),
                 .command_list = std::move(command_list),
-                .render_job = device()->create_job({.start_finished = true}),
+                .fence = device()->create_fence({.start_finished = true}),
             };
         };
         for (int i = 0; i < frames_in_flight; ++i) {

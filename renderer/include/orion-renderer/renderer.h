@@ -3,7 +3,6 @@
 #include "orion-renderer/config.h"
 
 #include "shader.h"
-#include "sprite_renderer.h"
 
 #include "orion-renderapi/render_backend.h"
 #include "orion-renderapi/render_device.h"
@@ -50,7 +49,7 @@ namespace orion
             FramebufferHandle render_target;
             std::unique_ptr<CommandAllocator> command_allocator;
             std::unique_ptr<CommandList> command_list;
-            GPUJobHandle render_job;
+            FenceHandle fence;
         };
         using FrameDataArr = static_vector<FrameData, frames_in_flight>;
 

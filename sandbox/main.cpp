@@ -34,8 +34,6 @@ public:
 
         // Create entity
         auto entity = scene_.create_entity();
-        // Add sprite component with yellow color
-        entity.add_component<orion::SpriteComponent>(orion::colors::yellow);
         // Translate entity
         entity.transform().translate({5.f, 0.f, 0.f});
 

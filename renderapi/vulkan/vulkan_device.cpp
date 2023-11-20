@@ -736,19 +736,10 @@ namespace orion::vulkan
         return handle;
     }
 
-    GPUJobHandle VulkanDevice::create_job_api(const GPUJobDesc& desc)
+    FenceHandle VulkanDevice::create_fence_api(const FenceDesc& desc)
     {
-        // Create fence and semaphore associated with this job
-        VkFence fence = create_vk_fence(desc.start_finished);
-        VkSemaphore semaphore = create_vk_semaphore();
-
-        // Find semaphore dependencies
-        auto find_dep_semaphore = [this](GPUJobHandle job_handle) { return jobs_.at(job_handle).vk_semaphore(); };
-        std::vector<VkSemaphore> wait_semaphores(desc.dependencies.size());
-        std::ranges::transform(desc.dependencies, wait_semaphores.begin(), find_dep_semaphore);
-
-        const auto handle = GPUJobHandle::generate();
-        jobs_.insert(std::make_pair(handle, VulkanJob{unique(fence, vk_device()), unique(semaphore, vk_device()), std::move(wait_semaphores)}));
+        const auto handle = FenceHandle::generate();
+        fences_.add(handle, make_unique_fence(desc.start_finished));
         return handle;
     }
 
@@ -808,9 +799,9 @@ namespace orion::vulkan
         samplers_.remove(sampler_handle);
     }
 
-    void VulkanDevice::destroy_api(GPUJobHandle job_handle)
+    void VulkanDevice::destroy_api(FenceHandle fence_handle)
     {
-        jobs_.erase(job_handle);
+        fences_.remove(fence_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
@@ -827,17 +818,10 @@ namespace orion::vulkan
         vmaUnmapMemory(vma_allocator_.get(), allocations_.at(buffer_handle.value()));
     }
 
-    void VulkanDevice::wait_for_job_api(GPUJobHandle job_handle)
+    void VulkanDevice::wait_for_fences_api(std::span<const FenceHandle> fence_handles)
     {
-        VkFence fence = jobs_.at(job_handle).vk_fence();
-        vk_result_check(vkWaitForFences(vk_device(), 1, &fence, VK_TRUE, UINT64_MAX));
-        vk_result_check(vkResetFences(vk_device(), 1, &fence));
-    }
-
-    void VulkanDevice::wait_for_jobs_api(std::span<const GPUJobHandle> job_handles)
-    {
-        std::vector<VkFence> fences{job_handles.size()};
-        std::ranges::transform(job_handles, fences.begin(), [this](const auto handle) { return jobs_.at(handle).vk_fence(); });
+        std::vector<VkFence> fences{fence_handles.size()};
+        std::ranges::transform(fence_handles, fences.begin(), [this](const auto handle) { return fences_.handle_at(handle); });
         vk_result_check(vkWaitForFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX));
         vk_result_check(vkResetFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data()));
     }
@@ -889,12 +873,6 @@ namespace orion::vulkan
 
     void VulkanDevice::submit_api(const SubmitDesc& desc)
     {
-        VkFence fence = VK_NULL_HANDLE;
-        if (auto job = desc.job) {
-            const auto& vulkan_job = jobs_.at(job);
-            fence = vulkan_job.vk_fence();
-        }
-
         std::vector<VkCommandBuffer> command_buffers(desc.command_lists.size());
         std::ranges::transform(desc.command_lists | std::views::transform(StaticCast<const VulkanCommandList*>{}), command_buffers.begin(), &VulkanCommandList::command_buffer);
 
@@ -909,7 +887,7 @@ namespace orion::vulkan
             .signalSemaphoreCount = 0,
             .pSignalSemaphores = nullptr,
         };
-        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, fence));
+        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, fences_.handle_at(desc.signal_fence)));
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()

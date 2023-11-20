@@ -503,8 +503,7 @@ namespace orion
         float max_lod;
     };
 
-    struct GPUJobDesc {
-        std::span<const GPUJobHandle> dependencies;
+    struct FenceDesc {
         bool start_finished;
     };
 

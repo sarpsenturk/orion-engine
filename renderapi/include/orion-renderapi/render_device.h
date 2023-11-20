@@ -41,12 +41,12 @@ namespace orion
     using UniqueImage = unique_device_resource<ImageHandle_tag>;
     using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
     using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
-    using UniqueGPUJob = unique_device_resource<GPUJobHandle_tag>;
+    using UniqueFence = unique_device_resource<FenceHandle_tag>;
 
     struct SubmitDesc {
         CommandQueueType queue_type;
         std::span<const CommandList* const> command_lists;
-        GPUJobHandle job;
+        FenceHandle signal_fence;
     };
 
     class RenderDevice
@@ -70,7 +70,7 @@ namespace orion
         [[nodiscard]] ImageHandle create_image(const ImageDesc& desc);
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
         [[nodiscard]] SamplerHandle create_sampler(const SamplerDesc& desc);
-        [[nodiscard]] GPUJobHandle create_job(const GPUJobDesc& desc);
+        [[nodiscard]] FenceHandle create_fence(const FenceDesc& desc);
 
         [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
@@ -83,7 +83,7 @@ namespace orion
         [[nodiscard]] ImageHandle create(ImageHandle_tag, const ImageDesc& desc) { return create_image(desc); }
         [[nodiscard]] ImageViewHandle create(ImageViewHandle_tag, const ImageViewDesc& desc) { return create_image_view(desc); }
         [[nodiscard]] SamplerHandle create(SamplerHandle_tag, const SamplerDesc& desc) { return create_sampler(desc); }
-        [[nodiscard]] GPUJobHandle create(GPUJobHandle_tag, const GPUJobDesc& desc) { return create_job(desc); }
+        [[nodiscard]] FenceHandle create(FenceHandle_tag, const FenceDesc& desc) { return create_fence(desc); }
 
         template<typename Tag, typename... Args>
         auto make_unique(Tag tag, Args&&... args)
@@ -108,13 +108,13 @@ namespace orion
         void destroy(ImageHandle image_handle);
         void destroy(ImageViewHandle image_view_handle);
         void destroy(SamplerHandle sampler_handle);
-        void destroy(GPUJobHandle job_handle);
+        void destroy(FenceHandle fence_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
 
-        void wait_for_job(GPUJobHandle job_handle);
-        void wait_for_jobs(std::span<const GPUJobHandle> job_handles);
+        void wait_for_fence(FenceHandle fence_handle);
+        void wait_for_fences(std::span<const FenceHandle> fence_handles);
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
 
@@ -144,7 +144,7 @@ namespace orion
         [[nodiscard]] virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
         [[nodiscard]] virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
-        [[nodiscard]] virtual GPUJobHandle create_job_api(const GPUJobDesc& desc) = 0;
+        [[nodiscard]] virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
 
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
@@ -157,13 +157,12 @@ namespace orion
         virtual void destroy_api(ImageHandle image_handle) = 0;
         virtual void destroy_api(ImageViewHandle image_view_handle) = 0;
         virtual void destroy_api(SamplerHandle sampler_handle) = 0;
-        virtual void destroy_api(GPUJobHandle job_handle) = 0;
+        virtual void destroy_api(FenceHandle fence_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
 
-        virtual void wait_for_job_api(GPUJobHandle job_handle) = 0;
-        virtual void wait_for_jobs_api(std::span<const GPUJobHandle> job_handles) = 0;
+        virtual void wait_for_fences_api(std::span<const FenceHandle> fence_handles) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
 

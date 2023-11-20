@@ -33,6 +33,9 @@ namespace orion::vulkan
         [[nodiscard]] VkFence create_vk_fence(bool signaled);
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
 
+        [[nodiscard]] UniqueVkSemaphore make_unique_semaphore() { return unique(create_vk_semaphore(), vk_device()); }
+        [[nodiscard]] UniqueVkFence make_unique_fence(bool signaled) { return unique(create_vk_fence(signaled), vk_device()); }
+
         [[nodiscard]] auto& render_passes() const { return render_passes_; }
         [[nodiscard]] auto& framebuffers() const { return framebuffers_; }
         [[nodiscard]] auto& descriptor_sets() const { return descriptor_sets_; }
@@ -66,7 +69,7 @@ namespace orion::vulkan
         ImageHandle create_image_api(const ImageDesc& desc) override;
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
-        GPUJobHandle create_job_api(const GPUJobDesc& desc) override;
+        FenceHandle create_fence_api(const FenceDesc& desc) override;
 
         void destroy_api(RenderPassHandle render_pass_handle) override;
         void destroy_api(FramebufferHandle framebuffer_handle) override;
@@ -79,13 +82,12 @@ namespace orion::vulkan
         void destroy_api(ImageHandle image_handle) override;
         void destroy_api(ImageViewHandle image_view_handle) override;
         void destroy_api(SamplerHandle sampler_handle) override;
-        void destroy_api(GPUJobHandle job_handle) override;
+        void destroy_api(FenceHandle fence_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
 
-        void wait_for_job_api(GPUJobHandle job_handle) override;
-        void wait_for_jobs_api(std::span<const GPUJobHandle> job_handles) override;
+        void wait_for_fences_api(std::span<const FenceHandle> fence_handles) override;
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
@@ -100,7 +102,6 @@ namespace orion::vulkan
         VulkanQueues queues_;
 
         std::unordered_map<std::size_t, VmaAllocation> allocations_;
-        std::unordered_map<GPUJobHandle, VulkanJob> jobs_;
 
         VulkanStore<ImageHandle, UniqueVkImage> images_;
         VulkanStore<ImageViewHandle, UniqueVkImageView> image_views_;
@@ -114,5 +115,6 @@ namespace orion::vulkan
         VulkanStore<PipelineHandle, UniqueVkPipeline> pipelines_;
         VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;
         VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
+        VulkanStore<FenceHandle, UniqueVkFence> fences_;
     };
 } // namespace orion::vulkan
