@@ -528,6 +528,15 @@ namespace orion
         Vector2_u size;
     };
 
+    // Forward declare
+    class CommandList;
+
+    struct SubmitDesc {
+        CommandQueueType queue_type;
+        std::span<const CommandList* const> command_lists;
+        FenceHandle signal_fence;
+    };
+
     const char* format_as(PhysicalDeviceType type) noexcept;
     const char* format_as(Format format) noexcept;
     std::string format_as(ShaderStageFlags shader_stages);

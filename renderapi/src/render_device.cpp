@@ -108,6 +108,13 @@ namespace orion
         return handle;
     }
 
+    SemaphoreHandle RenderDevice::create_semaphore()
+    {
+        auto handle = create_semaphore_api();
+        SPDLOG_LOGGER_DEBUG(logger(), "Created semaphore {}", handle);
+        return handle;
+    }
+
     void RenderDevice::destroy(RenderPassHandle render_pass_handle)
     {
         destroy_api(render_pass_handle);
@@ -177,7 +184,13 @@ namespace orion
     void RenderDevice::destroy(FenceHandle fence_handle)
     {
         destroy_api(fence_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed GPU job {}", fence_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed fence {}", fence_handle);
+    }
+
+    void RenderDevice::destroy(SemaphoreHandle semaphore_handle)
+    {
+        destroy_api(semaphore_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed semaphore {}", semaphore_handle);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)

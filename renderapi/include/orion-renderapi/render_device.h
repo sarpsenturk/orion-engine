@@ -42,12 +42,7 @@ namespace orion
     using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
     using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
     using UniqueFence = unique_device_resource<FenceHandle_tag>;
-
-    struct SubmitDesc {
-        CommandQueueType queue_type;
-        std::span<const CommandList* const> command_lists;
-        FenceHandle signal_fence;
-    };
+    using UniqueSemaphore = unique_device_resource<SemaphoreHandle_tag>;
 
     class RenderDevice
     {
@@ -71,6 +66,7 @@ namespace orion
         [[nodiscard]] ImageViewHandle create_image_view(const ImageViewDesc& desc);
         [[nodiscard]] SamplerHandle create_sampler(const SamplerDesc& desc);
         [[nodiscard]] FenceHandle create_fence(const FenceDesc& desc);
+        [[nodiscard]] SemaphoreHandle create_semaphore();
 
         [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
@@ -84,6 +80,7 @@ namespace orion
         [[nodiscard]] ImageViewHandle create(ImageViewHandle_tag, const ImageViewDesc& desc) { return create_image_view(desc); }
         [[nodiscard]] SamplerHandle create(SamplerHandle_tag, const SamplerDesc& desc) { return create_sampler(desc); }
         [[nodiscard]] FenceHandle create(FenceHandle_tag, const FenceDesc& desc) { return create_fence(desc); }
+        [[nodiscard]] SemaphoreHandle create(SemaphoreHandle_tag) { return create_semaphore(); }
 
         template<typename Tag, typename... Args>
         auto make_unique(Tag tag, Args&&... args)
@@ -109,6 +106,7 @@ namespace orion
         void destroy(ImageViewHandle image_view_handle);
         void destroy(SamplerHandle sampler_handle);
         void destroy(FenceHandle fence_handle);
+        void destroy(SemaphoreHandle semaphore_handle);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
@@ -145,6 +143,7 @@ namespace orion
         [[nodiscard]] virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
         [[nodiscard]] virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
         [[nodiscard]] virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
+        [[nodiscard]] virtual SemaphoreHandle create_semaphore_api() = 0;
 
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
@@ -158,6 +157,7 @@ namespace orion
         virtual void destroy_api(ImageViewHandle image_view_handle) = 0;
         virtual void destroy_api(SamplerHandle sampler_handle) = 0;
         virtual void destroy_api(FenceHandle fence_handle) = 0;
+        virtual void destroy_api(SemaphoreHandle semaphore_handle) = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;

@@ -30,11 +30,7 @@ namespace orion::vulkan
         [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.family; }
 
         [[nodiscard]] VkSemaphore create_vk_semaphore();
-        [[nodiscard]] VkFence create_vk_fence(bool signaled);
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
-
-        [[nodiscard]] UniqueVkSemaphore make_unique_semaphore() { return unique(create_vk_semaphore(), vk_device()); }
-        [[nodiscard]] UniqueVkFence make_unique_fence(bool signaled) { return unique(create_vk_fence(signaled), vk_device()); }
 
         [[nodiscard]] auto& render_passes() const { return render_passes_; }
         [[nodiscard]] auto& framebuffers() const { return framebuffers_; }
@@ -70,6 +66,7 @@ namespace orion::vulkan
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
         FenceHandle create_fence_api(const FenceDesc& desc) override;
+        SemaphoreHandle create_semaphore_api() override;
 
         void destroy_api(RenderPassHandle render_pass_handle) override;
         void destroy_api(FramebufferHandle framebuffer_handle) override;
@@ -83,6 +80,7 @@ namespace orion::vulkan
         void destroy_api(ImageViewHandle image_view_handle) override;
         void destroy_api(SamplerHandle sampler_handle) override;
         void destroy_api(FenceHandle fence_handle) override;
+        void destroy_api(SemaphoreHandle semaphore_handle) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
@@ -116,5 +114,6 @@ namespace orion::vulkan
         VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;
         VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
         VulkanStore<FenceHandle, UniqueVkFence> fences_;
+        VulkanStore<SemaphoreHandle , UniqueVkSemaphore> semaphores_;
     };
 } // namespace orion::vulkan

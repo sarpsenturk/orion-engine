@@ -23,4 +23,5 @@ namespace orion
     ORION_DEFINE_HANDLE(FramebufferHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(SamplerHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(FenceHandle, render_device_key_t);
+    ORION_DEFINE_HANDLE(SemaphoreHandle, render_device_key_t);
 } // namespace orion
