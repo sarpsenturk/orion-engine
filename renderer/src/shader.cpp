@@ -15,7 +15,7 @@ namespace orion
 {
     spdlog::logger* ShaderManager::logger()
     {
-        const auto logger = create_logger("orion-shader-manager", ORION_SHADER_MANAGER_LOG_LEVEL);
+        static const auto logger = create_logger("orion-shader-manager", ORION_SHADER_MANAGER_LOG_LEVEL);
         return logger.get();
     }
 
@@ -115,5 +115,10 @@ namespace orion
         const Shader* vertex_shader = find(vs_name).second;
         const Shader* pixel_shader = find(ps_name).second;
         return ShaderEffect{std::array{vertex_shader, pixel_shader}};
+    }
+
+    ShaderEffect ShaderManager::load_shader_effect(const std::string& name)
+    {
+        return ShaderEffect{std::array{load(name + ".vs").second, load(name + ".ps").second}};
     }
 } // namespace orion

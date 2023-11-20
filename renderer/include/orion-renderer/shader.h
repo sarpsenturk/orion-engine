@@ -82,6 +82,7 @@ namespace orion
         [[nodiscard]] bool exists(ShaderHandle shader_handle) const;
 
         [[nodiscard]] ShaderEffect make_shader_effect(const std::string& vs_name, const std::string& ps_name) const;
+        [[nodiscard]] ShaderEffect load_shader_effect(const std::string& name);
 
     private:
         static spdlog::logger* logger();
