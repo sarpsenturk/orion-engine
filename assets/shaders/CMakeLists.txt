@@ -24,8 +24,8 @@ function(orion_compile_shader filename il_target shader_output)
 endfunction()
 
 set(orion_shader_sources
-        basic.vs.hlsl basic.ps.hlsl
         imgui.vs.hlsl imgui.ps.hlsl
+        triangle.vs.hlsl triangle.ps.hlsl
 )
 
 set(orion_spirv_binaries "")

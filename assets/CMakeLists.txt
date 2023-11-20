@@ -2,7 +2,7 @@
 # Set asset and sub-asset directories
 set(ORION_ASSET_DIR assets)
 set(ORION_SHADER_DIR ${ORION_ASSET_DIR}/shaders)
-set(ORION_SPIRV_DIR ${ORION_SHADER_DIR}/spriv)
+set(ORION_SPIRV_DIR ${ORION_SHADER_DIR}/spirv)
 set(ORION_DXIL_DIR ${ORION_SHADER_DIR}/dxil)
 
 # Set asset source directories
