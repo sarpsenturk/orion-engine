@@ -460,8 +460,8 @@ namespace orion
     };
 
     struct ColorBlendDesc {
-        bool enable_logic_op;
-        LogicOp logic_op;
+        bool enable_logic_op = false;
+        LogicOp logic_op = LogicOp::NoOp;
         std::span<const BlendAttachmentDesc> attachments;
         std::array<float, 4> blend_constants;
     };

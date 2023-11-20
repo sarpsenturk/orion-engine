@@ -6,6 +6,7 @@
 #include "vulkan_swapchain.h"
 
 #include "orion-utils/assertion.h"
+#include "orion-utils/functors.h"
 #include "orion-utils/static_vector.h"
 
 #include <array>
@@ -830,6 +831,7 @@ namespace orion::vulkan
     {
         VkFence fence = jobs_.at(job_handle).vk_fence();
         vk_result_check(vkWaitForFences(vk_device(), 1, &fence, VK_TRUE, UINT64_MAX));
+        vk_result_check(vkResetFences(vk_device(), 1, &fence));
     }
 
     void VulkanDevice::wait_for_jobs_api(std::span<const GPUJobHandle> job_handles)
@@ -837,6 +839,7 @@ namespace orion::vulkan
         std::vector<VkFence> fences{job_handles.size()};
         std::ranges::transform(job_handles, fences.begin(), [this](const auto handle) { return jobs_.at(handle).vk_fence(); });
         vk_result_check(vkWaitForFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX));
+        vk_result_check(vkResetFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data()));
     }
 
     void VulkanDevice::wait_queue_idle_api(CommandQueueType queue_type)
@@ -882,6 +885,31 @@ namespace orion::vulkan
         });
 
         vkUpdateDescriptorSets(vk_device(), static_cast<uint32_t>(writes.size()), writes.data(), 0u, nullptr);
+    }
+
+    void VulkanDevice::submit_api(const SubmitDesc& desc)
+    {
+        VkFence fence = VK_NULL_HANDLE;
+        if (auto job = desc.job) {
+            const auto& vulkan_job = jobs_.at(job);
+            fence = vulkan_job.vk_fence();
+        }
+
+        std::vector<VkCommandBuffer> command_buffers(desc.command_lists.size());
+        std::ranges::transform(desc.command_lists | std::views::transform(StaticCast<const VulkanCommandList*>{}), command_buffers.begin(), &VulkanCommandList::command_buffer);
+
+        const auto submit = VkSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .waitSemaphoreCount = 0,
+            .pWaitSemaphores = nullptr,
+            .pWaitDstStageMask = nullptr,
+            .commandBufferCount = static_cast<uint32_t>(command_buffers.size()),
+            .pCommandBuffers = command_buffers.data(),
+            .signalSemaphoreCount = 0,
+            .pSignalSemaphores = nullptr,
+        };
+        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, fence));
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()

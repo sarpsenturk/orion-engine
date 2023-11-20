@@ -14,6 +14,8 @@ namespace orion::vulkan
     public:
         VulkanCommandList(VulkanDevice* device, UniqueVkCommandBuffer command_buffer);
 
+        [[nodiscard]] VkCommandBuffer command_buffer() const noexcept { return command_buffer_.get(); }
+
     private:
         void begin_api() override;
         void end_api() override;

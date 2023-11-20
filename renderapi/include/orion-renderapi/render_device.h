@@ -43,6 +43,12 @@ namespace orion
     using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
     using UniqueGPUJob = unique_device_resource<GPUJobHandle_tag>;
 
+    struct SubmitDesc {
+        CommandQueueType queue_type;
+        std::span<const CommandList* const> command_lists;
+        GPUJobHandle job;
+    };
+
     class RenderDevice
     {
     public:
@@ -114,6 +120,8 @@ namespace orion
 
         void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings);
 
+        void submit(const SubmitDesc& desc);
+
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
     protected:
@@ -160,6 +168,8 @@ namespace orion
         virtual void wait_idle_api() = 0;
 
         virtual void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) = 0;
+
+        virtual void submit_api(const SubmitDesc& desc) = 0;
 
         spdlog::logger* logger_;
     };

@@ -214,4 +214,9 @@ namespace orion
     {
         write_descriptor_api(descriptor_handle, bindings);
     }
+
+    void RenderDevice::submit(const SubmitDesc& desc)
+    {
+        submit_api(desc);
+    }
 } // namespace orion
