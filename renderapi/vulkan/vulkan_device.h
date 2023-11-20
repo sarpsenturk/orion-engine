@@ -47,7 +47,6 @@ namespace orion::vulkan
 
         [[nodiscard]] std::vector<std::uint32_t> get_unique_queue_families(const std::vector<CommandQueueType>& queue_types) const;
 
-        [[nodiscard]] VkRenderPass create_vk_render_pass(const AttachmentList& attachment_list) const;
         [[nodiscard]] VkDescriptorSetLayout create_vk_descriptor_set_layout(const DescriptorLayoutDesc& desc) const;
         [[nodiscard]] VkDescriptorSet create_vk_descriptor_set(VkDescriptorSetLayout descriptor_set_layout) const;
 

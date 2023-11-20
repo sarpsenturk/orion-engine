@@ -63,6 +63,7 @@ namespace orion
 
         [[nodiscard]] std::unique_ptr<RenderBackend> create_render_backend() const;
         [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(pfnSelectPhysicalDevice device_select_fn) const;
+        [[nodiscard]] RenderPassHandle create_render_pass() const;
         [[nodiscard]] FrameDataArr create_frame_data() const;
 
         Module backend_module_;
@@ -71,10 +72,9 @@ namespace orion
 
         Vector2_u render_size_;
 
-        ShaderManager shader_manager_;
+        RenderPassHandle render_pass_;
 
-        PipelineHandle present_pipeline_;
-        RenderPassHandle present_render_pass_;
+        ShaderManager shader_manager_;
 
         FrameDataArr frames_;
         std::int8_t current_frame_index_ = 0;

@@ -38,6 +38,7 @@ namespace orion
         , render_backend_(create_render_backend())
         , render_device_(create_render_device(desc.device_select_fn))
         , render_size_(desc.render_size)
+        , render_pass_(create_render_pass())
         , shader_manager_(device())
         , frames_(create_frame_data())
     {
@@ -128,6 +129,25 @@ namespace orion
         return render_device;
     }
 
+    RenderPassHandle Renderer::create_render_pass() const
+    {
+        const auto color_attachments = std::array{
+            AttachmentDesc{
+                .format = Format::B8G8R8A8_Srgb,
+                .load_op = AttachmentLoadOp::Clear,
+                .store_op = AttachmentStoreOp::Store,
+                .initial_layout = ImageLayout::Undefined,
+                .layout = ImageLayout::ColorAttachment,
+                .final_layout = ImageLayout::General,
+            },
+        };
+        return device()->create_render_pass({
+            .color_attachments = color_attachments,
+            .input_attachments = {},
+            .bind_point = PipelineBindPoint::Graphics,
+        });
+    }
+
     Renderer::FrameDataArr Renderer::create_frame_data() const
     {
         FrameDataArr frame_data;
@@ -155,7 +175,7 @@ namespace orion
                 },
             };
             auto render_target = device()->create_framebuffer({
-                .attachment_list = AttachmentList{.color_attachments = color_attachments},
+                .render_pass = render_pass_,
                 .image_views = {&image_view, 1},
                 .size = render_size_,
             });

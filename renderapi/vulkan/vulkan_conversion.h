@@ -85,6 +85,8 @@ namespace orion::vulkan
         switch (image_layout) {
             case ImageLayout::Undefined:
                 return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageLayout::General:
+                return VK_IMAGE_LAYOUT_GENERAL;
             case ImageLayout::ColorAttachment:
                 return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             case ImageLayout::PresentSrc:

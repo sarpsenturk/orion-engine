@@ -77,6 +77,7 @@ namespace orion
 
     enum class ImageLayout {
         Undefined = 0,
+        General,
         ColorAttachment,
         PresentSrc,
         TransferSrc,
@@ -302,16 +303,6 @@ namespace orion
         ImageLayout final_layout = ImageLayout::Undefined;
     };
 
-    struct AttachmentList {
-        std::span<const AttachmentDesc> color_attachments;
-        std::span<const AttachmentDesc> input_attachments;
-
-        [[nodiscard]] auto attachment_count() const noexcept
-        {
-            return color_attachments.size() + input_attachments.size();
-        }
-    };
-
     struct ImageBarrierDesc {
         ResourceAccessFlags src_access;
         ResourceAccessFlags dst_access;
@@ -327,9 +318,9 @@ namespace orion
     };
 
     struct FramebufferDesc {
-        AttachmentList attachment_list;
-        std::span<const ImageViewHandle> image_views = {};
-        Vector2_u size = {};
+        RenderPassHandle render_pass;
+        std::span<const ImageViewHandle> image_views;
+        Vector2_u size;
     };
 
     struct ImageDesc {
@@ -482,11 +473,7 @@ namespace orion
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
         ColorBlendDesc color_blend = {};
-        AttachmentList attachment_list;
-    };
-
-    struct RenderPassDesc {
-        AttachmentList attachments;
+        RenderPassHandle render_pass = RenderPassHandle::invalid();
     };
 
     struct ShaderModuleDesc {
@@ -524,6 +511,17 @@ namespace orion
     enum class PipelineBindPoint {
         Graphics,
         Compute
+    };
+
+    struct RenderPassDesc {
+        std::span<const AttachmentDesc> color_attachments;
+        std::span<const AttachmentDesc> input_attachments;
+        PipelineBindPoint bind_point;
+
+        [[nodiscard]] auto attachment_count() const noexcept
+        {
+            return color_attachments.size() + input_attachments.size();
+        }
     };
 
     const char* format_as(PhysicalDeviceType type) noexcept;

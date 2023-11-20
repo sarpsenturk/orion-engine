@@ -131,98 +131,6 @@ namespace orion::vulkan
         return queue_families;
     }
 
-    VkRenderPass VulkanDevice::create_vk_render_pass(const AttachmentList& attachment_list) const
-    {
-        // Add all attachment counts
-        const auto attachment_count = static_cast<std::uint32_t>(attachment_list.attachment_count());
-
-        // Convert our attachment descriptions to VkAttachmentDescription's
-        auto to_attachment = [](const auto& attachment) {
-            return VkAttachmentDescription{
-                .flags = 0,
-                .format = to_vulkan_type(attachment.format),
-                .samples = VK_SAMPLE_COUNT_1_BIT,
-                .loadOp = to_vulkan_type(attachment.load_op),
-                .storeOp = to_vulkan_type(attachment.store_op),
-                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .initialLayout = to_vulkan_type(attachment.initial_layout),
-                .finalLayout = to_vulkan_type(attachment.final_layout),
-            };
-        };
-
-        // Insert attachments
-        std::vector<VkAttachmentDescription> attachments(attachment_count);
-        auto iter = attachments.begin();
-        iter = std::ranges::transform(attachment_list.color_attachments, iter, to_attachment).out;
-        std::ranges::transform(attachment_list.input_attachments, iter, to_attachment);
-
-        // Get attachment index offsets
-        const auto color_attachment_offset = 0u;
-        const auto input_attachment_offset = static_cast<std::uint32_t>(attachment_list.color_attachments.size());
-
-        // Convert attachment
-        auto to_attachment_ref = [](std::uint32_t attachment_offset) {
-            return [index = attachment_offset](const auto& attachment) mutable {
-                return VkAttachmentReference{
-                    .attachment = index++,
-                    .layout = to_vulkan_type(attachment.layout),
-                };
-            };
-        };
-
-        // Create attachment references
-        std::vector<VkAttachmentReference> color_attachments(attachment_list.color_attachments.size());
-        std::ranges::transform(attachment_list.color_attachments, color_attachments.begin(), to_attachment_ref(color_attachment_offset));
-
-        std::vector<VkAttachmentReference> input_attachments(attachment_list.input_attachments.size());
-        std::ranges::transform(attachment_list.input_attachments, input_attachments.begin(), to_attachment_ref(input_attachment_offset));
-
-        // Create render pass
-        VkRenderPass render_pass = VK_NULL_HANDLE;
-        {
-            const auto subpass = VkSubpassDescription{
-                .flags = 0,
-                .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                .inputAttachmentCount = static_cast<std::uint32_t>(input_attachments.size()),
-                .pInputAttachments = input_attachments.data(),
-                .colorAttachmentCount = static_cast<std::uint32_t>(color_attachments.size()),
-                .pColorAttachments = color_attachments.data(),
-                .pResolveAttachments = nullptr,
-                .pDepthStencilAttachment = nullptr,
-                .preserveAttachmentCount = 0,
-                .pPreserveAttachments = nullptr,
-            };
-            const auto subpass_dependencies = std::array{
-                VkSubpassDependency{
-                    .srcSubpass = VK_SUBPASS_EXTERNAL,
-                    .dstSubpass = 0,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                                    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                    .srcAccessMask = 0,
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    .dependencyFlags = 0,
-                },
-            };
-            const auto info = VkRenderPassCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .attachmentCount = attachment_count,
-                .pAttachments = attachments.data(),
-                .subpassCount = 1,
-                .pSubpasses = &subpass,
-                .dependencyCount = static_cast<std::uint32_t>(subpass_dependencies.size()),
-                .pDependencies = subpass_dependencies.data(),
-            };
-            vk_result_check(vkCreateRenderPass(vk_device(), &info, alloc_callbacks(), &render_pass));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
-        }
-        return render_pass;
-    }
-
     VkDescriptorSetLayout VulkanDevice::create_vk_descriptor_set_layout(const DescriptorLayoutDesc& desc) const
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings(desc.bindings.size());
@@ -303,7 +211,59 @@ namespace orion::vulkan
 
     RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
     {
-        VkRenderPass render_pass = create_vk_render_pass(desc.attachments);
+        VkRenderPass render_pass = VK_NULL_HANDLE;
+        {
+            std::vector<VkAttachmentDescription> attachments(desc.attachment_count());
+            auto make_attachment = [&, index = 0u](const AttachmentDesc& attachment) mutable {
+                attachments[index] = VkAttachmentDescription{
+                    .flags = 0,
+                    .format = to_vulkan_type(attachment.format),
+                    .samples = VK_SAMPLE_COUNT_1_BIT,
+                    .loadOp = to_vulkan_type(attachment.load_op),
+                    .storeOp = to_vulkan_type(attachment.store_op),
+                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout = to_vulkan_type(attachment.initial_layout),
+                    .finalLayout = to_vulkan_type(attachment.final_layout),
+                };
+                return VkAttachmentReference{
+                    .attachment = index++,
+                    .layout = to_vulkan_type(attachment.layout),
+                };
+            };
+
+            std::vector<VkAttachmentReference> input_attachments(desc.input_attachments.size());
+            std::ranges::transform(desc.input_attachments, input_attachments.begin(), make_attachment);
+            std::vector<VkAttachmentReference> color_attachments(desc.color_attachments.size());
+            std::ranges::transform(desc.color_attachments, color_attachments.begin(), make_attachment);
+
+            const auto subpass = VkSubpassDescription{
+                .flags = 0,
+                .pipelineBindPoint = to_vulkan_type(desc.bind_point),
+                .inputAttachmentCount = static_cast<uint32_t>(input_attachments.size()),
+                .pInputAttachments = input_attachments.data(),
+                .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
+                .pColorAttachments = color_attachments.data(),
+                .pResolveAttachments = nullptr,
+                .pDepthStencilAttachment = nullptr,
+                .preserveAttachmentCount = 0,
+                .pPreserveAttachments = nullptr,
+            };
+
+            const auto info = VkRenderPassCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .attachmentCount = static_cast<uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .subpassCount = 1u,
+                .pSubpasses = &subpass,
+                .dependencyCount = 0,
+                .pDependencies = nullptr,
+            };
+            vk_result_check(vkCreateRenderPass(vk_device(), &info, alloc_callbacks(), &render_pass));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
+        }
 
         auto handle = RenderPassHandle::generate();
         render_passes_.add(handle, unique(render_pass, vk_device()));
@@ -318,9 +278,6 @@ namespace orion::vulkan
             return image_views_.handle_at(handle);
         });
 
-        // Create temporary compatible render pass
-        VkRenderPass render_pass = create_vk_render_pass(desc.attachment_list);
-
         // Create framebuffer
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
         {
@@ -328,7 +285,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = render_pass,
+                .renderPass = render_passes_.handle_at(desc.render_pass),
                 .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
                 .pAttachments = image_views.data(),
                 .width = desc.size.x(),
@@ -338,9 +295,6 @@ namespace orion::vulkan
             vk_result_check(vkCreateFramebuffer(vk_device(), &info, alloc_callbacks(), &framebuffer));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkFramebuffer {}", fmt::ptr(framebuffer));
         }
-
-        // Destroy temporary render pass
-        vkDestroyRenderPass(vk_device(), render_pass, alloc_callbacks());
 
         const auto handle = FramebufferHandle::generate();
         framebuffers_.add(handle, unique(framebuffer, vk_device()));
@@ -595,9 +549,6 @@ namespace orion::vulkan
             };
         }();
 
-        // Create temporary compatible render pass
-        VkRenderPass render_pass = create_vk_render_pass(desc.attachment_list);
-
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
         {
@@ -617,7 +568,7 @@ namespace orion::vulkan
                 .pColorBlendState = &vk_color_blend,
                 .pDynamicState = &vk_dynamic_state,
                 .layout = pipeline_layout,
-                .renderPass = render_pass,
+                .renderPass = render_passes_.handle_at(desc.render_pass),
                 .subpass = 0,
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
@@ -625,9 +576,6 @@ namespace orion::vulkan
             vk_result_check(vkCreateGraphicsPipelines(vk_device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkPipeline {}", fmt::ptr(pipeline));
         }
-
-        // Destroy temporary render pass
-        vkDestroyRenderPass(vk_device(), render_pass, alloc_callbacks());
 
         const auto handle = PipelineHandle::generate();
         pipelines_.add(handle, unique(pipeline, vk_device()));

@@ -374,11 +374,7 @@ namespace
                 .blend_constants = {0.f, 0.f, 0.f, 0.f},
             };
 
-            // Set attachment list
-            const auto color_attachments = std::array{
-                orion::AttachmentDesc{.format = orion::Format::B8G8R8A8_Srgb},
-            };
-            const auto attachment_list = orion::AttachmentList{color_attachments};
+            // TODO: Set render pass
 
             // Set pipeline description
             const auto desc = orion::GraphicsPipelineDesc{
@@ -388,7 +384,7 @@ namespace
                 input_assembly,
                 rasterization,
                 color_blend,
-                attachment_list,
+                {},
             };
             renderer_data->pipeline = device->make_unique(orion::PipelineHandle_tag{}, desc);
         }
