@@ -42,6 +42,16 @@ namespace orion
         bind_descriptor_api(cmd_bind_descriptor);
     }
 
+    void CommandList::begin_render_pass(const CmdBeginRenderPass& cmd_begin_render_pass)
+    {
+        begin_render_pass_api(cmd_begin_render_pass);
+    }
+
+    void CommandList::end_render_pass()
+    {
+        end_render_pass_api();
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();

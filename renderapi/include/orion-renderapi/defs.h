@@ -524,6 +524,11 @@ namespace orion
         }
     };
 
+    struct Rect2D {
+        Vector2_i offset;
+        Vector2_u size;
+    };
+
     const char* format_as(PhysicalDeviceType type) noexcept;
     const char* format_as(Format format) noexcept;
     std::string format_as(ShaderStageFlags shader_stages);

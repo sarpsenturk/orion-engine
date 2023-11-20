@@ -23,6 +23,8 @@ namespace orion::vulkan
         void bind_vertex_buffer_api(const CmdBindVertexBuffer& cmd_bind_vertex_buffer) override;
         void bind_pipeline_api(const CmdBindPipeline& cmd_bind_pipeline) override;
         void bind_descriptor_api(const CmdBindDescriptor& cmd_bind_descriptor) override;
+        void begin_render_pass_api(const CmdBeginRenderPass& cmd_begin_render_pass) override;
+        void end_render_pass_api() override;
 
         VulkanDevice* device_;
         UniqueVkCommandBuffer command_buffer_;

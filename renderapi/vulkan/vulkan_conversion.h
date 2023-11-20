@@ -560,22 +560,41 @@ namespace orion::vulkan
         };
     }
 
-    template<typename T>
-    constexpr auto to_vulkan_extent(const Vector2_t<T>& vec2) noexcept -> VkExtent2D
+    constexpr auto to_vulkan_extent(const Vector2_u& vec2) noexcept -> VkExtent2D
     {
         return {
-            .width = static_cast<std::uint32_t>(vec2.x()),
-            .height = static_cast<std::uint32_t>(vec2.y()),
+            .width = vec2.x(),
+            .height = vec2.y(),
         };
     }
 
-    template<typename T>
-    constexpr auto to_vulkan_extent(const Vector3_t<T>& vec3) noexcept -> VkExtent3D
+    constexpr auto to_vulkan_extent(const Vector3_u& vec3) noexcept -> VkExtent3D
     {
         return {
-            .width = static_cast<std::uint32_t>(vec3.x()),
-            .height = static_cast<std::uint32_t>(vec3.y()),
-            .depth = static_cast<std::uint32_t>(vec3.z()),
+            .width = vec3.x(),
+            .height = vec3.y(),
+            .depth = vec3.z(),
         };
+    }
+
+    constexpr auto to_vulkan_offset(const Vector2_i& vec2) noexcept -> VkOffset2D
+    {
+        return {
+            .x = vec2.x(),
+            .y = vec2.y(),
+        };
+    }
+
+    constexpr auto to_vulkan_rect(const Rect2D& rect2d) -> VkRect2D
+    {
+        return {
+            .offset = to_vulkan_offset(rect2d.offset),
+            .extent = to_vulkan_extent(rect2d.size),
+        };
+    }
+
+    constexpr auto to_vulkan_clear_color(const Vector4_f& color) -> VkClearColorValue
+    {
+        return {color[0], color[1], color[2], color[3]};
     }
 } // namespace orion::vulkan

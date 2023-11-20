@@ -94,6 +94,31 @@ namespace orion::vulkan
             nullptr);
     }
 
+    void VulkanCommandList::begin_render_pass_api(const CmdBeginRenderPass& cmd_begin_render_pass)
+    {
+        const auto clear_values = std::array{
+            VkClearValue{.color = to_vulkan_clear_color(cmd_begin_render_pass.clear_color)},
+        };
+        const auto info = VkRenderPassBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .pNext = nullptr,
+            .renderPass = device_->render_passes().handle_at(cmd_begin_render_pass.render_pass),
+            .framebuffer = device_->framebuffers().handle_at(cmd_begin_render_pass.framebuffer),
+            .renderArea = to_vulkan_rect(cmd_begin_render_pass.render_area),
+            .clearValueCount = static_cast<uint32_t>(clear_values.size()),
+            .pClearValues = clear_values.data(),
+        };
+        vkCmdBeginRenderPass(
+            command_buffer_.get(),
+            &info,
+            VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    void VulkanCommandList::end_render_pass_api()
+    {
+        vkCmdEndRenderPass(command_buffer_.get());
+    }
+
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)
         : device_(device)
         , command_pool_(std::move(command_pool))
