@@ -20,13 +20,13 @@ namespace orion
     {
         spdlog::logger* logger()
         {
-            static const auto logger = []() {
+            static const auto dxc_logger = []() {
                 auto logger = spdlog::stdout_color_st("orion-shader-compiler");
                 logger->set_pattern("[%n] [%^%l%$] %v");
                 logger->set_level((static_cast<spdlog::level::level_enum>(ORION_SHADER_COMPILER_LOG_LEVEL)));
                 return logger;
             }();
-            return logger.get();
+            return dxc_logger.get();
         }
 
         // Add SPIR-V specific compiler flags to out_args
@@ -52,7 +52,6 @@ namespace orion
         {
             CComPtr<IDxcBlob> out_blob;
             ORION_DXC_ASSERT(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&out_blob), nullptr));
-            SPDLOG_LOGGER_TRACE(logger(), "Shader '{}' compiled. Output size: {}", desc.filename, out_blob->GetBufferSize());
             std::vector<char> out_object(out_blob->GetBufferSize());
             std::memcpy(out_object.data(), out_blob->GetBufferPointer(), out_blob->GetBufferSize());
             return out_object;

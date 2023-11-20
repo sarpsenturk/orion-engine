@@ -25,14 +25,6 @@ target_link_libraries(
 # Precompiled headers
 target_precompile_headers(orion-core REUSE_FROM orion-pch)
 
-# Set compile time flags for spdlog
-target_compile_definitions(
-        orion-core PUBLIC
-        $<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE>
-        $<$<CONFIG:RelWithDebInfo>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO>
-        $<$<CONFIG:Release>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_WARN>
-)
-
 # Create file set for public headers
 target_sources(orion-core PUBLIC FILE_SET public_headers TYPE HEADERS)
 
