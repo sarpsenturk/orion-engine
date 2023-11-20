@@ -305,60 +305,6 @@ namespace orion::vulkan
         return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
     }
 
-    constexpr auto to_vulkan_type(PipelineStageFlags pipeline_stage_flags) -> VkPipelineStageFlags
-    {
-        auto conversion_fn = [](auto acc, PipelineStageFlags stage_flags) -> VkPipelineStageFlags {
-            if (!stage_flags) {
-                return acc;
-            }
-            switch (stage_flags) {
-                case PipelineStageFlags::TopOfPipe:
-                    return acc | VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-                case PipelineStageFlags::ColorAttachmentOutput:
-                    return acc | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-                case PipelineStageFlags::Transfer:
-                    return acc | VK_PIPELINE_STAGE_TRANSFER_BIT;
-                case PipelineStageFlags::BottomOfPipe:
-                    return acc | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-                case PipelineStageFlags::PixelShader:
-                    return acc | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-            }
-            ORION_ASSERT("Pipeline stage not handled in to_vulkan_type()");
-            return VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
-        };
-        const auto bitwise_range = BitwiseRange{pipeline_stage_flags};
-        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkPipelineStageFlags{}, conversion_fn);
-    }
-
-    constexpr auto to_vulkan_type(ResourceAccessFlags resource_access_flags) -> VkAccessFlags
-    {
-        auto conversion_fn = [](auto acc, ResourceAccessFlags access_flags) -> VkAccessFlags {
-            if (!access_flags) {
-                return acc;
-            }
-            switch (access_flags) {
-                case ResourceAccessFlags::ColorAttachmentWrite:
-                    return acc | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-                case ResourceAccessFlags::TransferRead:
-                    return acc | VK_ACCESS_TRANSFER_READ_BIT;
-                case ResourceAccessFlags::TransferWrite:
-                    return acc | VK_ACCESS_TRANSFER_WRITE_BIT;
-                case ResourceAccessFlags::MemoryRead:
-                    return acc | VK_ACCESS_MEMORY_READ_BIT;
-                case ResourceAccessFlags::MemoryWrite:
-                    return acc | VK_ACCESS_MEMORY_WRITE_BIT;
-                case ResourceAccessFlags::ShaderRead:
-                    return acc | VK_ACCESS_SHADER_READ_BIT;
-                case ResourceAccessFlags::ShaderWrite:
-                    return acc | VK_ACCESS_SHADER_WRITE_BIT;
-            }
-            ORION_ASSERT("Resource access not handled in to_vulkan_type()");
-            return VK_ACCESS_FLAG_BITS_MAX_ENUM;
-        };
-        const auto bitwise_range = BitwiseRange{resource_access_flags};
-        return std::accumulate(bitwise_range.begin(), bitwise_range.end(), VkAccessFlags{}, conversion_fn);
-    }
-
     constexpr auto to_vulkan_type(IndexType index_type) -> VkIndexType
     {
         switch (index_type) {

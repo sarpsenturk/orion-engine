@@ -896,15 +896,19 @@ namespace orion::vulkan
 
     void VulkanDevice::submit_api(const SubmitDesc& desc)
     {
+        std::vector<VkSemaphore> wait_semaphores(desc.wait_semaphores.size());
+        std::ranges::transform(desc.wait_semaphores, wait_semaphores.begin(), [this](auto handle) { return semaphores_.handle_at(handle); });
+        std::vector<VkPipelineStageFlags> wait_stages(desc.wait_semaphores.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
         std::vector<VkCommandBuffer> command_buffers(desc.command_lists.size());
         std::ranges::transform(desc.command_lists | std::views::transform(StaticCast<const VulkanCommandList*>{}), command_buffers.begin(), &VulkanCommandList::command_buffer);
 
         const auto submit = VkSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .pNext = nullptr,
-            .waitSemaphoreCount = 0,
-            .pWaitSemaphores = nullptr,
-            .pWaitDstStageMask = nullptr,
+            .waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size()),
+            .pWaitSemaphores = wait_semaphores.data(),
+            .pWaitDstStageMask = wait_stages.data(),
             .commandBufferCount = static_cast<uint32_t>(command_buffers.size()),
             .pCommandBuffers = command_buffers.data(),
             .signalSemaphoreCount = 0,

@@ -241,30 +241,6 @@ namespace orion
         ViewCubeArray,
     };
 
-    enum class ResourceAccessFlags : std::uint8_t {
-        ColorAttachmentWrite = 0x1,
-        TransferRead = 0x2,
-        TransferWrite = 0x4,
-        MemoryRead = 0x8,
-        MemoryWrite = 0x10,
-        ShaderRead = 0x20,
-        ShaderWrite = 0x40
-    };
-    template<>
-    struct enum_bitwise_enabled<ResourceAccessFlags> : std::true_type {
-    };
-
-    enum class PipelineStageFlags : std::uint8_t {
-        TopOfPipe = 0x1,
-        ColorAttachmentOutput = 0x2,
-        Transfer = 0x4,
-        BottomOfPipe = 0x8,
-        PixelShader = 0x10
-    };
-    template<>
-    struct enum_bitwise_enabled<PipelineStageFlags> : std::true_type {
-    };
-
     enum class IndexType {
         None = 0,
         Uint16,
@@ -304,8 +280,6 @@ namespace orion
     };
 
     struct ImageBarrierDesc {
-        ResourceAccessFlags src_access;
-        ResourceAccessFlags dst_access;
         ImageLayout old_layout;
         ImageLayout new_layout;
         ImageHandle image;
@@ -533,6 +507,7 @@ namespace orion
 
     struct SubmitDesc {
         CommandQueueType queue_type;
+        std::span<const SemaphoreHandle> wait_semaphores;
         std::span<const CommandList* const> command_lists;
         FenceHandle signal_fence;
     };
