@@ -29,12 +29,12 @@ namespace orion
         ShaderModuleHandle shader_module_;
     };
 
-    class ShaderPipeline
+    class ShaderEffect
     {
     public:
         static constexpr auto pipeline_size = 2ull;
 
-        explicit ShaderPipeline(std::array<const Shader*, pipeline_size> shaders);
+        explicit ShaderEffect(std::array<const Shader*, pipeline_size> shaders);
 
         [[nodiscard]] auto* vertex_shader() const { return shaders_[0]; }
         [[nodiscard]] auto* pixel_shader() const { return shaders_[1]; }
@@ -80,6 +80,8 @@ namespace orion
         void remove(ShaderHandle shader_handle);
 
         [[nodiscard]] bool exists(ShaderHandle shader_handle) const;
+
+        [[nodiscard]] ShaderEffect make_shader_effect(const std::string& vs_name, const std::string& ps_name) const;
 
     private:
         static spdlog::logger* logger();

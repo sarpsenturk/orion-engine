@@ -25,13 +25,13 @@ namespace orion
     {
     }
 
-    ShaderPipeline::ShaderPipeline(std::array<const Shader*, pipeline_size> shaders)
+    ShaderEffect::ShaderEffect(std::array<const Shader*, pipeline_size> shaders)
         : shaders_(shaders)
         , shader_stages_(create_shader_stages())
     {
     }
 
-    std::vector<ShaderStageDesc> ShaderPipeline::create_shader_stages() const
+    std::vector<ShaderStageDesc> ShaderEffect::create_shader_stages() const
     {
         std::vector<ShaderStageDesc> shader_stages;
         auto add_stage = [&](const Shader* shader, ShaderStageFlags stage, const char* entry_point) {
@@ -76,6 +76,10 @@ namespace orion
 
     std::pair<ShaderHandle, const Shader*> ShaderManager::find(const std::string& name) const
     {
+        if (name.empty()) {
+            return std::make_pair(ShaderHandle::invalid(), nullptr);
+        }
+
         auto find_by_name = [&](const auto& shader) { return shader.second.name() == name; };
         if (auto iter = std::find_if(shaders_.begin(), shaders_.end(), find_by_name);
             iter != shaders_.end()) {
@@ -104,5 +108,12 @@ namespace orion
     bool ShaderManager::exists(ShaderHandle shader_handle) const
     {
         return shaders_.contains(shader_handle);
+    }
+
+    ShaderEffect ShaderManager::make_shader_effect(const std::string& vs_name, const std::string& ps_name) const
+    {
+        const Shader* vertex_shader = find(vs_name).second;
+        const Shader* pixel_shader = find(ps_name).second;
+        return ShaderEffect{std::array{vertex_shader, pixel_shader}};
     }
 } // namespace orion

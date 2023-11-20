@@ -275,6 +275,7 @@ namespace
 
     struct ImGuiRendererData {
         orion::RenderDevice* device;
+        orion::ShaderManager* shader_manager;
         orion::UniquePipeline pipeline;
 
         orion::UniqueGPUBuffer vertex_buffer;
@@ -312,9 +313,16 @@ namespace
         auto* device = init_desc.device;
         renderer_data->device = device;
 
+        // Get the shader manager
+        auto* shader_manager = init_desc.shader_manager;
+        renderer_data->shader_manager = shader_manager;
+
         // Create pipeline
         {
-            // TODO: Create shaders
+            // Create shaders
+            const auto* vertex_shader = shader_manager->load("imgui.vs").second;
+            const auto* pixel_shader = shader_manager->load("imgui.ps").second;
+            const auto shader_effect = orion::ShaderEffect{std::array{vertex_shader, pixel_shader}};
 
             // Create vertex attributes and bindings
             const auto vertex_attributes = std::array{
