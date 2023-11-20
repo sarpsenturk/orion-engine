@@ -174,6 +174,11 @@ namespace orion
             }
             return physical_devices[0].index;
         }();
+
+        if (physical_device_index == invalid_physical_device_index) {
+            throw std::runtime_error("no suitable physical device found");
+        }
+
         SPDLOG_LOGGER_INFO(logger(), "Using physical device with index {}", physical_device_index);
 
         auto render_device = render_backend_->create_device(physical_device_index);
@@ -228,7 +233,7 @@ namespace orion
                 .format = Format::B8G8R8A8_Srgb,
                 .size = vec3(render_size_, 1u),
                 .tiling = ImageTiling::Optimal,
-                .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::InputAttachment,
+                .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::InputAttachment | ImageUsageFlags::TransferSrc,
             });
             auto image_view = device()->create_image_view({
                 .image = image,
