@@ -32,6 +32,7 @@ namespace orion::vulkan
         [[nodiscard]] VkSemaphore create_vk_semaphore();
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
 
+        [[nodiscard]] auto& images() const { return images_; }
         [[nodiscard]] auto& render_passes() const { return render_passes_; }
         [[nodiscard]] auto& framebuffers() const { return framebuffers_; }
         [[nodiscard]] auto& descriptor_sets() const { return descriptor_sets_; }
@@ -114,6 +115,6 @@ namespace orion::vulkan
         VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;
         VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
         VulkanStore<FenceHandle, UniqueVkFence> fences_;
-        VulkanStore<SemaphoreHandle , UniqueVkSemaphore> semaphores_;
+        VulkanStore<SemaphoreHandle, UniqueVkSemaphore> semaphores_;
     };
 } // namespace orion::vulkan
