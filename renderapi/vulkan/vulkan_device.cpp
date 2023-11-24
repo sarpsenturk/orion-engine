@@ -24,11 +24,14 @@ namespace orion::vulkan
         , physical_device_(physical_device)
         , device_(std::move(device))
         , queues_(queues)
+        , vma_allocator_(create_vma_allocator(instance_, physical_device_))
+        , descriptor_pool_(create_descriptor_pool())
+        , resource_manager_(vk_device(), vma_allocator())
     {
-        init_vma(instance, physical_device);
+        create_vma_allocator(instance, physical_device);
     }
 
-    void VulkanDevice::init_vma(VkInstance instance, VkPhysicalDevice physical_device)
+    UniqueVmaAllocator VulkanDevice::create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const
     {
         const auto allocator_info = VmaAllocatorCreateInfo{
             .flags = 0,
@@ -43,10 +46,10 @@ namespace orion::vulkan
         };
         VmaAllocator allocator = VK_NULL_HANDLE;
         vk_result_check(vmaCreateAllocator(&allocator_info, &allocator));
-        vma_allocator_ = unique(allocator);
+        return unique(allocator);
     }
 
-    void VulkanDevice::init_descriptor_pool()
+    UniqueVkDescriptorPool VulkanDevice::create_descriptor_pool() const
     {
         // TODO: Come up with a better solution to descriptor pools
         //  Descriptor pool per descriptor layout?
@@ -87,7 +90,7 @@ namespace orion::vulkan
             };
             vk_result_check(vkCreateDescriptorPool(vk_device(), &info, alloc_callbacks(), &descriptor_pool));
         }
-        descriptor_pool_ = unique(descriptor_pool, vk_device());
+        return unique(descriptor_pool, vk_device());
     }
 
     VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
@@ -267,7 +270,7 @@ namespace orion::vulkan
         }
 
         auto handle = RenderPassHandle::generate();
-        render_passes_.add(handle, unique(render_pass, vk_device()));
+        resource_manager_.add(handle, render_pass);
         return handle;
     }
 
@@ -276,7 +279,7 @@ namespace orion::vulkan
         // Find image views
         std::vector<VkImageView> image_views(desc.image_views.size());
         std::ranges::transform(desc.image_views, image_views.begin(), [this](auto handle) {
-            return image_views_.handle_at(handle);
+            return resource_manager_.find(handle);
         });
 
         // Create framebuffer
@@ -286,7 +289,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = render_passes_.handle_at(desc.render_pass),
+                .renderPass = resource_manager_.find(desc.render_pass),
                 .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
                 .pAttachments = image_views.data(),
                 .width = desc.size.x(),
@@ -298,7 +301,7 @@ namespace orion::vulkan
         }
 
         const auto handle = FramebufferHandle::generate();
-        framebuffers_.add(handle, unique(framebuffer, vk_device()));
+        resource_manager_.add(handle, framebuffer);
         return handle;
     }
 
@@ -323,28 +326,28 @@ namespace orion::vulkan
         }
 
         auto handle = ShaderModuleHandle::generate();
-        shader_modules_.add(handle, unique(shader_module, vk_device()));
+        resource_manager_.add(handle, shader_module);
         return handle;
     }
 
     DescriptorLayoutHandle VulkanDevice::create_descriptor_layout_api(const DescriptorLayoutDesc& desc)
     {
         const auto handle = DescriptorLayoutHandle{desc.hash()};
-        if (auto iter = descriptor_set_layouts_.find(handle); iter != descriptor_set_layouts_.end()) {
-            return iter->first;
+        if (resource_manager_.find(handle) != VK_NULL_HANDLE) {
+            return handle;
         }
 
         VkDescriptorSetLayout descriptor_set_layout = create_vk_descriptor_set_layout(desc);
-        descriptor_set_layouts_.add(handle, unique(descriptor_set_layout, vk_device()));
+        resource_manager_.add(handle, descriptor_set_layout);
         return handle;
     }
 
     DescriptorHandle VulkanDevice::create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle)
     {
-        VkDescriptorSetLayout layout = descriptor_set_layouts_.handle_at(descriptor_layout_handle);
+        VkDescriptorSetLayout layout = resource_manager_.find(descriptor_layout_handle);
         VkDescriptorSet descriptor_set = create_vk_descriptor_set(layout);
         const auto handle = DescriptorHandle::generate();
-        descriptor_sets_.add(handle, unique(descriptor_set, vk_device(), descriptor_pool_.get()));
+        resource_manager_.add(handle, descriptor_set, descriptor_pool_.get());
         return handle;
     }
 
@@ -352,7 +355,7 @@ namespace orion::vulkan
     {
         std::vector<VkDescriptorSetLayout> descriptor_sets(desc.descriptors.size());
         std::ranges::transform(desc.descriptors, descriptor_sets.begin(), [this](DescriptorLayoutHandle descriptor_layout) {
-            return descriptor_set_layouts_.handle_at(descriptor_layout);
+            return resource_manager_.find(descriptor_layout);
         });
 
         std::vector<VkPushConstantRange> push_constants(desc.push_constants.size());
@@ -380,14 +383,14 @@ namespace orion::vulkan
         }
 
         const auto handle = PipelineLayoutHandle::generate();
-        pipeline_layouts_.add(handle, unique(pipeline_layout, vk_device()));
+        resource_manager_.add(handle, pipeline_layout);
         return handle;
     }
 
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
         // Create pipeline layout
-        VkPipelineLayout pipeline_layout = pipeline_layouts_.handle_at(desc.pipeline_layout);
+        VkPipelineLayout pipeline_layout = resource_manager_.find(desc.pipeline_layout);
 
         // Convert to VkPipelineShaderStageCreateInfo
         ORION_EXPECTS(desc.shaders.size() <= UINT32_MAX);
@@ -399,7 +402,7 @@ namespace orion::vulkan
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                     .pNext = nullptr,
                     .stage = static_cast<VkShaderStageFlagBits>(to_vulkan_type(shader.stage)),
-                    .module = shader_modules_.handle_at(shader.module),
+                    .module = resource_manager_.find(shader.module),
                     .pName = shader.entry_point,
                     .pSpecializationInfo = nullptr,
                 });
@@ -569,7 +572,7 @@ namespace orion::vulkan
                 .pColorBlendState = &vk_color_blend,
                 .pDynamicState = &vk_dynamic_state,
                 .layout = pipeline_layout,
-                .renderPass = render_passes_.handle_at(desc.render_pass),
+                .renderPass = resource_manager_.find(desc.render_pass),
                 .subpass = 0,
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
@@ -579,7 +582,7 @@ namespace orion::vulkan
         }
 
         const auto handle = PipelineHandle::generate();
-        pipelines_.add(handle, unique(pipeline, vk_device()));
+        resource_manager_.add(handle, pipeline);
         return handle;
     }
 
@@ -621,10 +624,7 @@ namespace orion::vulkan
         }
 
         const auto handle = GPUBufferHandle::generate();
-        buffers_.add(handle, unique(buffer, vma_allocator(), allocation));
-        // Allocations are stored alongside resources in a
-        // type agnostic way.
-        allocations_.insert(std::make_pair(handle.value(), allocation));
+        resource_manager_.add(handle, buffer, allocation);
         return handle;
     }
 
@@ -666,7 +666,7 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkImage {}", fmt::ptr(image));
         }
         const auto handle = ImageHandle::generate();
-        images_.add(handle, unique(image, vma_allocator(), allocation, true));
+        resource_manager_.add(handle, image, allocation);
         return handle;
     }
 
@@ -678,7 +678,7 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .image = images_.handle_at(desc.image),
+                .image = resource_manager_.find(desc.image).image,
                 .viewType = to_vulkan_type(desc.type),
                 .format = to_vulkan_type(desc.format),
                 .components = {
@@ -699,7 +699,7 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkImageView {}", fmt::ptr(image_view));
         }
         const auto handle = ImageViewHandle::generate();
-        image_views_.add(handle, unique(image_view, vk_device()));
+        resource_manager_.add(handle, image_view);
         return handle;
     }
 
@@ -732,7 +732,7 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSampler {}", fmt::ptr(sampler));
         }
         const auto handle = SamplerHandle::generate();
-        samplers_.add(handle, unique(sampler, vk_device()));
+        resource_manager_.add(handle, sampler);
         return handle;
     }
 
@@ -750,87 +750,86 @@ namespace orion::vulkan
         }
 
         const auto handle = FenceHandle::generate();
-        fences_.add(handle, unique(fence, vk_device()));
+        resource_manager_.add(handle, fence);
         return handle;
     }
 
     SemaphoreHandle VulkanDevice::create_semaphore_api()
     {
         const auto handle = SemaphoreHandle::generate();
-        semaphores_.add(handle, unique(create_vk_semaphore(), vk_device()));
+        resource_manager_.add(handle, create_vk_semaphore());
         return handle;
     }
 
     void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
     {
-        render_passes_.remove(render_pass_handle);
+        resource_manager_.remove(render_pass_handle);
     }
 
     void VulkanDevice::destroy_api(FramebufferHandle framebuffer_handle)
     {
-        framebuffers_.remove(framebuffer_handle);
+        resource_manager_.remove(framebuffer_handle);
     }
 
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)
     {
-        shader_modules_.remove(shader_module_handle);
+        resource_manager_.remove(shader_module_handle);
     }
 
     void VulkanDevice::destroy_api(DescriptorLayoutHandle descriptor_layout_handle)
     {
-        descriptor_set_layouts_.remove(descriptor_layout_handle);
+        resource_manager_.remove(descriptor_layout_handle);
     }
 
     void VulkanDevice::destroy_api(DescriptorHandle descriptor_handle)
     {
-        descriptor_sets_.remove(descriptor_handle);
+        resource_manager_.remove(descriptor_handle);
     }
 
     void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout_handle)
     {
-        pipeline_layouts_.remove(pipeline_layout_handle);
+        resource_manager_.remove(pipeline_layout_handle);
     }
 
     void VulkanDevice::destroy_api(PipelineHandle graphics_pipeline_handle)
     {
-        pipelines_.remove(graphics_pipeline_handle);
+        resource_manager_.remove(graphics_pipeline_handle);
     }
 
     void VulkanDevice::destroy_api(GPUBufferHandle buffer_handle)
     {
-        buffers_.remove(buffer_handle);
-        allocations_.erase(buffer_handle.value());
+        resource_manager_.remove(buffer_handle);
     }
 
     void VulkanDevice::destroy_api(ImageHandle image_handle)
     {
-        images_.remove(image_handle);
+        resource_manager_.remove(image_handle);
     }
 
     void VulkanDevice::destroy_api(ImageViewHandle image_view_handle)
     {
-        image_views_.remove(image_view_handle);
+        resource_manager_.remove(image_view_handle);
     }
 
     void VulkanDevice::destroy_api(SamplerHandle sampler_handle)
     {
-        samplers_.remove(sampler_handle);
+        resource_manager_.remove(sampler_handle);
     }
 
     void VulkanDevice::destroy_api(FenceHandle fence_handle)
     {
-        fences_.remove(fence_handle);
+        resource_manager_.remove(fence_handle);
     }
 
     void VulkanDevice::destroy_api(SemaphoreHandle semaphore_handle)
     {
-        semaphores_.remove(semaphore_handle);
+        resource_manager_.remove(semaphore_handle);
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
     {
         void* ptr = nullptr;
-        VmaAllocation allocation = allocations_.at(buffer_handle.value());
+        VmaAllocation allocation = resource_manager_.find(buffer_handle).allocation;
         vk_result_check(vmaMapMemory(vma_allocator_.get(), allocation, &ptr));
         SPDLOG_LOGGER_TRACE(logger(), "Mapped VmaAllocation {} at memory address {}", fmt::ptr(allocation), fmt::ptr(ptr));
         return ptr;
@@ -838,13 +837,13 @@ namespace orion::vulkan
 
     void VulkanDevice::unmap_api(GPUBufferHandle buffer_handle)
     {
-        vmaUnmapMemory(vma_allocator_.get(), allocations_.at(buffer_handle.value()));
+        vmaUnmapMemory(vma_allocator_.get(), resource_manager_.find(buffer_handle).allocation);
     }
 
     void VulkanDevice::wait_for_fences_api(std::span<const FenceHandle> fence_handles)
     {
         std::vector<VkFence> fences{fence_handles.size()};
-        std::ranges::transform(fence_handles, fences.begin(), [this](const auto handle) { return fences_.handle_at(handle); });
+        std::ranges::transform(fence_handles, fences.begin(), [this](const auto handle) { return resource_manager_.find(handle); });
         vk_result_check(vkWaitForFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX));
         vk_result_check(vkResetFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data()));
     }
@@ -866,7 +865,7 @@ namespace orion::vulkan
         std::vector<VkDescriptorBufferInfo> buffer_descriptors;
         buffer_descriptors.reserve(std::ranges::count_if(bindings, is_buffer_binding));
 
-        VkDescriptorSet descriptor_set = descriptor_sets_.handle_at(descriptor_handle);
+        VkDescriptorSet descriptor_set = resource_manager_.find(descriptor_handle);
         std::ranges::for_each(bindings, [&](const DescriptorBinding& binding) {
             VkWriteDescriptorSet write_descriptor{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -882,7 +881,7 @@ namespace orion::vulkan
             };
             if (const auto& buffer = binding.buffer; binding.is_buffer()) {
                 buffer_descriptors.push_back({
-                    .buffer = buffers_.handle_at(buffer.buffer_handle),
+                    .buffer = resource_manager_.find(buffer.buffer_handle).buffer,
                     .offset = buffer.offset,
                     .range = buffer.size,
                 });
@@ -897,7 +896,7 @@ namespace orion::vulkan
     void VulkanDevice::submit_api(const SubmitDesc& desc)
     {
         std::vector<VkSemaphore> wait_semaphores(desc.wait_semaphores.size());
-        std::ranges::transform(desc.wait_semaphores, wait_semaphores.begin(), [this](auto handle) { return semaphores_.handle_at(handle); });
+        std::ranges::transform(desc.wait_semaphores, wait_semaphores.begin(), [this](auto handle) { return resource_manager_.find(handle); });
         std::vector<VkPipelineStageFlags> wait_stages(desc.wait_semaphores.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
         std::vector<VkCommandBuffer> command_buffers(desc.command_lists.size());
@@ -914,7 +913,7 @@ namespace orion::vulkan
             .signalSemaphoreCount = 0,
             .pSignalSemaphores = nullptr,
         };
-        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, fences_.handle_at(desc.signal_fence)));
+        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, resource_manager_.find(desc.signal_fence)));
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()

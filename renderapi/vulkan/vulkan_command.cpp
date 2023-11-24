@@ -7,8 +7,8 @@
 
 namespace orion::vulkan
 {
-    VulkanCommandList::VulkanCommandList(VulkanDevice* device, UniqueVkCommandBuffer command_buffer)
-        : device_(device)
+    VulkanCommandList::VulkanCommandList(VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer)
+        : resource_manager_(resource_manager)
         , command_buffer_(std::move(command_buffer))
     {
     }
@@ -52,7 +52,7 @@ namespace orion::vulkan
 
     void VulkanCommandList::bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer)
     {
-        VkBuffer vk_buffer = device_->buffers().handle_at(cmd_bind_index_buffer.index_buffer);
+        VkBuffer vk_buffer = resource_manager_->find(cmd_bind_index_buffer.index_buffer).buffer;
         vkCmdBindIndexBuffer(
             command_buffer_.get(),
             vk_buffer,
@@ -62,7 +62,7 @@ namespace orion::vulkan
 
     void VulkanCommandList::bind_vertex_buffer_api(const CmdBindVertexBuffer& cmd_bind_vertex_buffer)
     {
-        VkBuffer vk_buffer = device_->buffers().handle_at(cmd_bind_vertex_buffer.vertex_buffer);
+        VkBuffer vk_buffer = resource_manager_->find(cmd_bind_vertex_buffer.vertex_buffer).buffer;
         const auto offset = VkDeviceSize{cmd_bind_vertex_buffer.offset};
         vkCmdBindVertexBuffers(
             command_buffer_.get(),
@@ -74,7 +74,7 @@ namespace orion::vulkan
 
     void VulkanCommandList::bind_pipeline_api(const CmdBindPipeline& cmd_bind_pipeline)
     {
-        VkPipeline vk_pipeline = device_->pipelines().handle_at(cmd_bind_pipeline.pipeline);
+        VkPipeline vk_pipeline = resource_manager_->find(cmd_bind_pipeline.pipeline);
         vkCmdBindPipeline(
             command_buffer_.get(),
             to_vulkan_type(cmd_bind_pipeline.bind_point),
@@ -83,8 +83,8 @@ namespace orion::vulkan
 
     void VulkanCommandList::bind_descriptor_api(const CmdBindDescriptor& cmd_bind_descriptor)
     {
-        VkPipelineLayout layout = device_->pipeline_layouts().handle_at(cmd_bind_descriptor.pipeline_layout);
-        VkDescriptorSet descriptor_set = device_->descriptor_sets().handle_at(cmd_bind_descriptor.descriptor);
+        VkPipelineLayout layout = resource_manager_->find(cmd_bind_descriptor.pipeline_layout);
+        VkDescriptorSet descriptor_set = resource_manager_->find(cmd_bind_descriptor.descriptor);
         vkCmdBindDescriptorSets(
             command_buffer_.get(),
             to_vulkan_type(cmd_bind_descriptor.bind_point),
@@ -104,8 +104,8 @@ namespace orion::vulkan
         const auto info = VkRenderPassBeginInfo{
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
-            .renderPass = device_->render_passes().handle_at(cmd_begin_render_pass.render_pass),
-            .framebuffer = device_->framebuffers().handle_at(cmd_begin_render_pass.framebuffer),
+            .renderPass = resource_manager_->find(cmd_begin_render_pass.render_pass),
+            .framebuffer = resource_manager_->find(cmd_begin_render_pass.framebuffer),
             .renderArea = to_vulkan_rect(cmd_begin_render_pass.render_area),
             .clearValueCount = static_cast<uint32_t>(clear_values.size()),
             .pClearValues = clear_values.data(),
@@ -167,6 +167,6 @@ namespace orion::vulkan
             };
             vk_result_check(vkAllocateCommandBuffers(device_->vk_device(), &info, &command_buffer));
         }
-        return std::make_unique<VulkanCommandList>(device_, unique(command_buffer, device_->vk_device(), command_pool_.get()));
+        return std::make_unique<VulkanCommandList>(device_->resource_manager(), unique(command_buffer, device_->vk_device(), command_pool_.get()));
     }
 } // namespace orion::vulkan

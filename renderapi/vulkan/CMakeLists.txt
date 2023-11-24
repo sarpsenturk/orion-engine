@@ -15,7 +15,7 @@ add_library(
         vulkan_device.h vulkan_device.cpp
         vulkan_headers.h
         vulkan_platform.h ${vulkan_platform_impl}
-        vulkan_store.h
+        vulkan_resource.h vulkan_resource.cpp
         vulkan_swapchain.h vulkan_swapchain.cpp
         vulkan_synchronization.h vulkan_synchronization.cpp
         vulkan_types.h vulkan_types.cpp

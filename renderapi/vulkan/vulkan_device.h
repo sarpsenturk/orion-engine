@@ -4,7 +4,7 @@
 #include "orion-renderapi/render_device.h"
 
 #include "vulkan_headers.h"
-#include "vulkan_store.h"
+#include "vulkan_resource.h"
 #include "vulkan_synchronization.h"
 #include "vulkan_types.h"
 
@@ -32,17 +32,12 @@ namespace orion::vulkan
         [[nodiscard]] VkSemaphore create_vk_semaphore();
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
 
-        [[nodiscard]] auto& images() const { return images_; }
-        [[nodiscard]] auto& render_passes() const { return render_passes_; }
-        [[nodiscard]] auto& framebuffers() const { return framebuffers_; }
-        [[nodiscard]] auto& descriptor_sets() const { return descriptor_sets_; }
-        [[nodiscard]] auto& pipeline_layouts() const { return pipeline_layouts_; }
-        [[nodiscard]] auto& pipelines() const { return pipelines_; }
-        [[nodiscard]] auto& buffers() const { return buffers_; }
+        [[nodiscard]] VulkanResourceManager* resource_manager() { return &resource_manager_; }
+        [[nodiscard]] const VulkanResourceManager* resource_manager() const { return &resource_manager_; }
 
     private:
-        void init_vma(VkInstance instance, VkPhysicalDevice physical_device);
-        void init_descriptor_pool();
+        UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const;
+        UniqueVkDescriptorPool create_descriptor_pool() const;
 
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
@@ -97,24 +92,10 @@ namespace orion::vulkan
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         UniqueVkDevice device_;
-        UniqueVmaAllocator vma_allocator_;
         VulkanQueues queues_;
+        UniqueVmaAllocator vma_allocator_;
 
-        std::unordered_map<std::size_t, VmaAllocation> allocations_;
-
-        VulkanStore<ImageHandle, UniqueVkImage> images_;
-        VulkanStore<ImageViewHandle, UniqueVkImageView> image_views_;
-        VulkanStore<RenderPassHandle, UniqueVkRenderPass> render_passes_;
-        VulkanStore<FramebufferHandle, UniqueVkFramebuffer> framebuffers_;
-        VulkanStore<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
-        VulkanStore<DescriptorLayoutHandle, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
         UniqueVkDescriptorPool descriptor_pool_;
-        VulkanStore<DescriptorHandle, UniqueVkDescriptorSet> descriptor_sets_;
-        VulkanStore<PipelineLayoutHandle, UniqueVkPipelineLayout> pipeline_layouts_;
-        VulkanStore<PipelineHandle, UniqueVkPipeline> pipelines_;
-        VulkanStore<GPUBufferHandle, UniqueVkBuffer> buffers_;
-        VulkanStore<SamplerHandle, UniqueVkSampler> samplers_;
-        VulkanStore<FenceHandle, UniqueVkFence> fences_;
-        VulkanStore<SemaphoreHandle, UniqueVkSemaphore> semaphores_;
+        VulkanResourceManager resource_manager_;
     };
 } // namespace orion::vulkan

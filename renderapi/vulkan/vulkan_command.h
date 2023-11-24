@@ -8,11 +8,12 @@
 namespace orion::vulkan
 {
     class VulkanDevice;
+    class VulkanResourceManager;
 
     class VulkanCommandList final : public CommandList
     {
     public:
-        VulkanCommandList(VulkanDevice* device, UniqueVkCommandBuffer command_buffer);
+        VulkanCommandList(VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer);
 
         [[nodiscard]] VkCommandBuffer vk_command_buffer() const noexcept { return command_buffer_.get(); }
 
@@ -30,7 +31,7 @@ namespace orion::vulkan
         void set_viewports_api(const CmdSetViewports& cmd_set_viewports) override;
         void set_scissors_api(const CmdSetScissors& cmd_set_scissors) override;
 
-        VulkanDevice* device_;
+        VulkanResourceManager* resource_manager_;
         UniqueVkCommandBuffer command_buffer_;
     };
 
