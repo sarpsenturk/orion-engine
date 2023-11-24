@@ -738,19 +738,8 @@ namespace orion::vulkan
 
     FenceHandle VulkanDevice::create_fence_api(const FenceDesc& desc)
     {
-        VkFence fence = VK_NULL_HANDLE;
-        {
-            const auto info = VkFenceCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = desc.start_finished ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
-            };
-            vk_result_check(vkCreateFence(vk_device(), &info, alloc_callbacks(), &fence));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkFence {}", fmt::ptr(fence));
-        }
-
         const auto handle = FenceHandle::generate();
-        resource_manager_.add(handle, fence);
+        resource_manager_.add(handle, create_vk_fence(desc.start_finished));
         return handle;
     }
 
@@ -929,6 +918,21 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkSemaphore {}", fmt::ptr(semaphore));
         }
         return semaphore;
+    }
+
+    VkFence VulkanDevice::create_vk_fence(bool signaled)
+    {
+        VkFence fence = VK_NULL_HANDLE;
+        {
+            const auto info = VkFenceCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
+            };
+            vk_result_check(vkCreateFence(vk_device(), &info, alloc_callbacks(), &fence));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkFence {}", fmt::ptr(fence));
+        }
+        return fence;
     }
 
     VkSwapchainKHR VulkanDevice::create_vk_swapchain(const VulkanSwapchainDesc& desc)

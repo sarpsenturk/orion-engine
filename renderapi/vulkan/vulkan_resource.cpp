@@ -14,7 +14,12 @@ namespace orion::vulkan
 
     void VulkanResourceManager::add(ImageHandle handle, VkImage image, VmaAllocation allocation)
     {
-        images_.insert(std::make_pair(handle, unique(image, vma_allocator_, allocation, true)));
+        images_.insert(std::make_pair(handle, unique(image, vma_allocator_, allocation)));
+    }
+
+    void VulkanResourceManager::add(ImageHandle handle, VkImage image)
+    {
+        images_.insert(std::make_pair(handle, unique(image, VK_NULL_HANDLE, VK_NULL_HANDLE)));
     }
 
     void VulkanResourceManager::add(ImageViewHandle handle, VkImageView image_view)

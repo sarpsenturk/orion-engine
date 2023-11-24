@@ -15,18 +15,21 @@ namespace orion::vulkan
     private:
         static constexpr auto request_next_image = UINT32_MAX;
 
-        uint32_t current_image_index_api() override;
+        std::uint32_t current_image_index_api() override;
         ImageHandle get_image_api(std::uint32_t image_index) override;
         void resize_images_api(std::uint32_t image_count, Format image_format, const Vector2_u& image_size, ImageUsageFlags image_usage) override;
         void present_api() override;
 
-        std::vector<VkImage> acquire_swapchain_images();
+        void acquire_images();
 
         VulkanDevice* device_;
         UniqueVkSurfaceKHR surface_;
         UniqueVkSwapchainKHR swapchain_;
-        std::vector<VkImage> images_;
-        std::uint32_t image_index_ = request_next_image;
         UniqueVkSemaphore image_semaphore_;
+        UniqueVkFence image_fence_;
+
+        std::uint32_t image_index_ = request_next_image;
+
+        std::vector<ImageHandle> images_;
     };
 } // namespace orion::vulkan

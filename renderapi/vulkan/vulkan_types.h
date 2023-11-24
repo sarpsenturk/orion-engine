@@ -165,7 +165,6 @@ namespace orion::vulkan
 
         VmaAllocator allocator = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
-        bool application_owned = true;
 
         void operator()(VkImage image) const;
     };
@@ -221,7 +220,7 @@ namespace orion::vulkan
     UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device);
     UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool);
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
-    UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation, bool application_owned);
+    UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation);
     UniqueVkSampler unique(VkSampler sampler, VkDevice device);
 
     struct VulkanSwapchainDesc {

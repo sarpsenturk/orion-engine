@@ -30,6 +30,7 @@ namespace orion::vulkan
         [[nodiscard]] std::uint32_t compute_queue_family() const noexcept { return queues_.compute.family; }
 
         [[nodiscard]] VkSemaphore create_vk_semaphore();
+        [[nodiscard]] VkFence create_vk_fence(bool signaled);
         [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
 
         [[nodiscard]] VulkanResourceManager* resource_manager() { return &resource_manager_; }

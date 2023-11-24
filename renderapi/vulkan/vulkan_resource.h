@@ -25,6 +25,7 @@ namespace orion::vulkan
         VulkanResourceManager(VkDevice device, VmaAllocator vma_allocator);
 
         void add(ImageHandle handle, VkImage image, VmaAllocation allocation);
+        void add(ImageHandle handle, VkImage image);
         void add(ImageViewHandle handle, VkImageView image_view);
         void add(RenderPassHandle handle, VkRenderPass render_pass);
         void add(FramebufferHandle handle, VkFramebuffer framebuffer);

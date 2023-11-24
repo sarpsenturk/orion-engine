@@ -131,12 +131,10 @@ namespace orion::vulkan
 
     void ImageDeleter::operator()(VkImage image) const
     {
-        if (!application_owned) {
-            return;
+        if (allocation != VK_NULL_HANDLE) {
+            ORION_EXPECTS(allocator != VK_NULL_HANDLE);
+            vmaDestroyImage(allocator, image, allocation);
         }
-        ORION_EXPECTS(allocator != VK_NULL_HANDLE);
-        ORION_EXPECTS(allocation != VK_NULL_HANDLE);
-        vmaDestroyImage(allocator, image, allocation);
     }
 
     void SamplerDeleter::operator()(VkSampler sampler) const
@@ -244,9 +242,9 @@ namespace orion::vulkan
         return UniqueVkBuffer{buffer, BufferDeleter{allocator, allocation}};
     }
 
-    UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation, bool application_owned)
+    UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation)
     {
-        return UniqueVkImage{image, ImageDeleter{allocator, allocation, application_owned}};
+        return UniqueVkImage{image, ImageDeleter{allocator, allocation}};
     }
 
     UniqueVkSampler unique(VkSampler sampler, VkDevice device)
