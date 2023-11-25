@@ -53,7 +53,7 @@ namespace orion
         [[nodiscard]] virtual ShaderObjectType shader_object_type() const noexcept = 0;
 
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator(CommandQueueType queue_type);
-        [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc);
+        [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(Window& window, const SwapchainDesc& desc);
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
         [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
@@ -130,7 +130,7 @@ namespace orion
 
     private:
         [[nodiscard]] virtual std::unique_ptr<CommandAllocator> create_command_allocator_api(CommandQueueType queue_type) = 0;
-        [[nodiscard]] virtual std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) = 0;
+        [[nodiscard]] virtual std::unique_ptr<Swapchain> create_swapchain_api(Window& window, const SwapchainDesc& desc) = 0;
         [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
         [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;

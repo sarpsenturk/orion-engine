@@ -83,7 +83,7 @@ namespace orion
             }
         } // namespace
 
-        PlatformWindow* create_window(Window* this_ptr, const WindowCreateDesc& window_desc)
+        PlatformWindow* create_window(Window* this_ptr, const WindowDesc& window_desc)
         {
             // Get the module instance
             HINSTANCE hinstance = GetModuleHandle(nullptr);

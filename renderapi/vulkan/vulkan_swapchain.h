@@ -17,7 +17,7 @@ namespace orion::vulkan
 
         std::uint32_t current_image_index_api() override;
         ImageHandle get_image_api(std::uint32_t image_index) override;
-        void resize_images_api(std::uint32_t image_count, Format image_format, const Vector2_u& image_size, ImageUsageFlags image_usage) override;
+        void resize_images_api(const SwapchainDesc& desc) override;
         void present_api() override;
 
         void acquire_images();

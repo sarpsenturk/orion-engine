@@ -12,9 +12,9 @@ namespace orion
         return get_image_api(image_index);
     }
 
-    void Swapchain::resize_images(std::uint32_t image_count, Format image_format, const Vector2_u& image_size, ImageUsageFlags image_usage)
+    void Swapchain::resize_images(const SwapchainDesc& desc)
     {
-        return resize_images_api(image_count, image_format, image_size, image_usage);
+        return resize_images_api(desc);
     }
 
     void Swapchain::present()

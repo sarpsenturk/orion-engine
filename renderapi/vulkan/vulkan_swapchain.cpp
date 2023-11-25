@@ -34,14 +34,14 @@ namespace orion::vulkan
         return images_[image_index_];
     }
 
-    void VulkanSwapchain::resize_images_api(std::uint32_t image_count, Format image_format, const Vector2_u& image_size, ImageUsageFlags image_usage)
+    void VulkanSwapchain::resize_images_api(const SwapchainDesc& desc)
     {
         VkSwapchainKHR new_swapchain = device_->create_vk_swapchain({
             .surface = surface_.get(),
-            .image_count = image_count,
-            .format = to_vulkan_type(image_format),
-            .extent = to_vulkan_extent(image_size),
-            .usage = to_vulkan_type(image_usage),
+            .image_count = desc.image_count,
+            .format = to_vulkan_type(desc.image_format),
+            .extent = to_vulkan_extent(desc.image_size),
+            .usage = to_vulkan_type(desc.image_usage),
             .present_mode = VK_PRESENT_MODE_FIFO_KHR, // TODO: Allow present mode to be changed
             .old_swapchain = swapchain_.get(),
         });

@@ -6,6 +6,7 @@ target_sources(
         camera.h
         colors.h
         mesh.h
+        render_window.h
         renderer.h
         shader.h
         vertex.h

@@ -10,7 +10,7 @@
 
 namespace orion
 {
-    Window::Window(WindowCreateDesc window_desc)
+    Window::Window(WindowDesc window_desc)
         : platform_window_(platform::create_window(this, window_desc), platform::destroy_window)
         , name_(std::move(window_desc.name))
         , position_(window_desc.position)

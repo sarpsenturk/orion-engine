@@ -195,10 +195,10 @@ namespace orion::vulkan
         return std::make_unique<VulkanCommandAllocator>(this, unique(command_pool, vk_device()));
     }
 
-    std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(const SwapchainDesc& desc)
+    std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(Window& window, const SwapchainDesc& desc)
     {
         // Create surface
-        VkSurfaceKHR surface = create_platform_surface(instance_, *desc.window);
+        VkSurfaceKHR surface = create_platform_surface(instance_, window);
 
         // Create swapchain
         VkSwapchainKHR swapchain = create_vk_swapchain({

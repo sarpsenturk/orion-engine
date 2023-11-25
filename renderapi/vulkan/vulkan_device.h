@@ -50,7 +50,7 @@ namespace orion::vulkan
 
         // Interface Overrides
         std::unique_ptr<CommandAllocator> create_command_allocator_api(CommandQueueType queue_type) override;
-        std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
+        std::unique_ptr<Swapchain> create_swapchain_api(Window& window, const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;

@@ -16,10 +16,9 @@ namespace orion
         return allocator;
     }
 
-    std::unique_ptr<Swapchain> RenderDevice::create_swapchain(const SwapchainDesc& desc)
+    std::unique_ptr<Swapchain> RenderDevice::create_swapchain(Window& window, const SwapchainDesc& desc)
     {
-        ORION_EXPECTS(desc.window != nullptr);
-        auto swapchain = create_swapchain_api(desc);
+        auto swapchain = create_swapchain_api(window, desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain interface at {}", fmt::ptr(swapchain));
         return swapchain;
     }
