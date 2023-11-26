@@ -217,9 +217,10 @@ namespace orion::vulkan
     {
         VkRenderPass render_pass = VK_NULL_HANDLE;
         {
-            std::vector<VkAttachmentDescription> attachments(desc.attachment_count());
+            std::vector<VkAttachmentDescription> attachments;
+            attachments.reserve(desc.attachment_count());
             auto make_attachment = [&, index = 0u](const AttachmentDesc& attachment) mutable {
-                attachments[index] = VkAttachmentDescription{
+                attachments.push_back({
                     .flags = 0,
                     .format = to_vulkan_type(attachment.format),
                     .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -229,7 +230,7 @@ namespace orion::vulkan
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = to_vulkan_type(attachment.initial_layout),
                     .finalLayout = to_vulkan_type(attachment.final_layout),
-                };
+                });
                 return VkAttachmentReference{
                     .attachment = index++,
                     .layout = to_vulkan_type(attachment.layout),

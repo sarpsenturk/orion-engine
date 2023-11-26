@@ -24,6 +24,7 @@ namespace orion::vulkan
             //  for a uniform interface between D3D12 and Vulkan as I'm not 100% sure
             //  how and when DXGI and D3D12 synchronize accesses to swapchain images from command lists
             vk_result_check(vkWaitForFences(device_->vk_device(), 1, &fence, VK_TRUE, UINT64_MAX));
+            vk_result_check(vkResetFences(device_->vk_device(), 1, &fence));
         }
         return image_index_;
     }
