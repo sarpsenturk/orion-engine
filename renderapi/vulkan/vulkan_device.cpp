@@ -238,9 +238,9 @@ namespace orion::vulkan
             };
 
             std::vector<VkAttachmentReference> input_attachments(desc.input_attachments.size());
-            std::ranges::transform(desc.input_attachments, input_attachments.begin(), make_attachment);
+            std::ranges::transform(desc.input_attachments, input_attachments.begin(), std::ref(make_attachment));
             std::vector<VkAttachmentReference> color_attachments(desc.color_attachments.size());
-            std::ranges::transform(desc.color_attachments, color_attachments.begin(), make_attachment);
+            std::ranges::transform(desc.color_attachments, color_attachments.begin(), std::ref(make_attachment));
 
             const auto subpass = VkSubpassDescription{
                 .flags = 0,
