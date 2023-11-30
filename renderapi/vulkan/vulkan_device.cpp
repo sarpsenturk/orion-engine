@@ -26,9 +26,9 @@ namespace orion::vulkan
         , queues_(queues)
         , vma_allocator_(create_vma_allocator(instance_, physical_device_))
         , descriptor_pool_(create_descriptor_pool())
+        , empty_pipeline_layout_(create_empty_pipeline_layout())
         , resource_manager_(vk_device(), vma_allocator())
     {
-        create_vma_allocator(instance, physical_device);
     }
 
     UniqueVmaAllocator VulkanDevice::create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const
@@ -91,6 +91,24 @@ namespace orion::vulkan
             vk_result_check(vkCreateDescriptorPool(vk_device(), &info, alloc_callbacks(), &descriptor_pool));
         }
         return unique(descriptor_pool, vk_device());
+    }
+
+    UniqueVkPipelineLayout VulkanDevice::create_empty_pipeline_layout() const
+    {
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        {
+            const auto info = VkPipelineLayoutCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .setLayoutCount = 0,
+                .pSetLayouts = nullptr,
+                .pushConstantRangeCount = 0,
+                .pPushConstantRanges = nullptr,
+            };
+            vk_result_check(vkCreatePipelineLayout(vk_device(), &info, alloc_callbacks(), &pipeline_layout));
+        }
+        return unique(pipeline_layout, vk_device());
     }
 
     VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
@@ -391,7 +409,8 @@ namespace orion::vulkan
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
         // Create pipeline layout
-        VkPipelineLayout pipeline_layout = resource_manager_.find(desc.pipeline_layout);
+        VkPipelineLayout pipeline_layout = desc.pipeline_layout.is_valid() ? resource_manager_.find(desc.pipeline_layout) : empty_pipeline_layout_.get();
+        ORION_EXPECTS(pipeline_layout != VK_NULL_HANDLE);
 
         // Convert to VkPipelineShaderStageCreateInfo
         ORION_EXPECTS(desc.shaders.size() <= UINT32_MAX);

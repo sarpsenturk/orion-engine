@@ -37,8 +37,9 @@ namespace orion::vulkan
         [[nodiscard]] const VulkanResourceManager* resource_manager() const { return &resource_manager_; }
 
     private:
-        UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const;
-        UniqueVkDescriptorPool create_descriptor_pool() const;
+        [[nodiscard]] UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const;
+        [[nodiscard]] UniqueVkDescriptorPool create_descriptor_pool() const;
+        [[nodiscard]] UniqueVkPipelineLayout create_empty_pipeline_layout() const;
 
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
@@ -97,6 +98,9 @@ namespace orion::vulkan
         UniqueVmaAllocator vma_allocator_;
 
         UniqueVkDescriptorPool descriptor_pool_;
+
+        UniqueVkPipelineLayout empty_pipeline_layout_;
+
         VulkanResourceManager resource_manager_;
     };
 } // namespace orion::vulkan
