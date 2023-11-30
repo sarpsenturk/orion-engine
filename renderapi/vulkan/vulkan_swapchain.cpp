@@ -11,6 +11,7 @@ namespace orion::vulkan
         , image_semaphore_(device->create_vk_semaphore(), SemaphoreDeleter{device->vk_device()})
         , image_fence_(device->create_vk_fence(false), FenceDeleter{device->vk_device()})
     {
+        acquire_images();
     }
 
     std::uint32_t VulkanSwapchain::current_image_index_api()
@@ -32,7 +33,7 @@ namespace orion::vulkan
     ImageHandle VulkanSwapchain::get_image_api(std::uint32_t image_index)
     {
         ORION_EXPECTS(image_index < images_.size());
-        return images_[image_index_];
+        return images_[image_index];
     }
 
     void VulkanSwapchain::resize_images_api(const SwapchainDesc& desc)
@@ -53,16 +54,17 @@ namespace orion::vulkan
         acquire_images();
     }
 
-    void VulkanSwapchain::present_api()
+    void VulkanSwapchain::present_api(std::span<const SemaphoreHandle> wait_semaphores)
     {
         VkSwapchainKHR swapchain = swapchain_.get();
-        VkSemaphore image_semaphore = image_semaphore_.get();
+        std::vector<VkSemaphore> vk_semaphores(wait_semaphores.size());
+        std::ranges::transform(wait_semaphores, vk_semaphores.begin(), [this](auto semaphore) { return device_->resource_manager()->find(semaphore); });
         const auto image_index = current_image_index_api();
         const auto info = VkPresentInfoKHR{
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .pNext = nullptr,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &image_semaphore,
+            .waitSemaphoreCount = static_cast<uint32_t>(vk_semaphores.size()),
+            .pWaitSemaphores = vk_semaphores.data(),
             .swapchainCount = 1,
             .pSwapchains = &swapchain,
             .pImageIndices = &image_index,

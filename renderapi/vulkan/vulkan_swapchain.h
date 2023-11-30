@@ -18,7 +18,7 @@ namespace orion::vulkan
         std::uint32_t current_image_index_api() override;
         ImageHandle get_image_api(std::uint32_t image_index) override;
         void resize_images_api(const SwapchainDesc& desc) override;
-        void present_api() override;
+        void present_api(std::span<const SemaphoreHandle> wait_semaphores) override;
 
         void acquire_images();
 

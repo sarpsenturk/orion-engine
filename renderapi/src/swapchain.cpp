@@ -17,8 +17,8 @@ namespace orion
         return resize_images_api(desc);
     }
 
-    void Swapchain::present()
+    void Swapchain::present(std::span<const SemaphoreHandle> wait_semaphores)
     {
-        present_api();
+        present_api(wait_semaphores);
     }
 } // namespace orion

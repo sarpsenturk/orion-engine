@@ -13,6 +13,7 @@
 #include "orion-utils/static_vector.h"
 
 #include <memory>
+#include <vector>
 
 #include <spdlog/logger.h>
 
@@ -28,6 +29,14 @@ namespace orion
 
     // Forward declare
     class Scene;
+    class Window;
+
+    struct RenderWindow {
+        const Window* window;
+        std::unique_ptr<Swapchain> swapchain;
+        std::vector<ImageViewHandle> image_views;
+        std::vector<FramebufferHandle> framebuffers;
+    };
 
     class Renderer
     {
@@ -42,6 +51,9 @@ namespace orion
         void draw(const Scene& scene);
         void draw_test_triangle();
 
+        [[nodiscard]] RenderWindow create_render_window(const Window& window);
+        void present(const RenderWindow& render_window);
+
     private:
         struct FrameData {
             ImageHandle render_image;
@@ -49,9 +61,13 @@ namespace orion
             FramebufferHandle render_target;
             std::unique_ptr<CommandAllocator> command_allocator;
             std::unique_ptr<CommandList> command_list;
+            std::unique_ptr<CommandList> present_command;
             FenceHandle fence;
+            SemaphoreHandle render_semaphore;
+            SemaphoreHandle present_semaphore;
+            FenceHandle present_fence;
         };
-        using FrameDataArr = static_vector<FrameData, frames_in_flight>;
+        using FrameDataArr = std::vector<FrameData>;
 
         static spdlog::logger* logger();
 
@@ -67,6 +83,8 @@ namespace orion
         [[nodiscard]] RenderPassHandle create_render_pass() const;
         [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
         [[nodiscard]] PipelineHandle create_triangle_pipeline() const;
+        [[nodiscard]] RenderPassHandle create_present_pass() const;
+        [[nodiscard]] PipelineHandle create_present_pipeline() const;
         [[nodiscard]] FrameDataArr create_frame_data() const;
 
         Module backend_module_;
@@ -80,6 +98,10 @@ namespace orion
         PipelineLayoutHandle triangle_pipeline_layout_;
         ShaderEffect triangle_shader_effect_;
         PipelineHandle triangle_pipeline_;
+
+        RenderPassHandle present_pass_;
+        ShaderEffect present_shader_effect_;
+        PipelineHandle present_pipeline_;
 
         FrameDataArr frames_;
         std::int8_t current_frame_index_ = 0;

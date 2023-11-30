@@ -20,6 +20,7 @@ namespace orion::vulkan
     private:
         void begin_api() override;
         void end_api() override;
+        void reset_api() override;
         void draw_api(const CmdDraw& cmd_draw) override;
         void draw_indexed_api(const CmdDrawIndexed& cmd_draw_indexed) override;
         void bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer) override;

@@ -29,6 +29,11 @@ namespace orion::vulkan
         vk_result_check(vkEndCommandBuffer(command_buffer_.get()));
     }
 
+    void VulkanCommandList::reset_api()
+    {
+        vk_result_check(vkResetCommandBuffer(command_buffer_.get(), 0));
+    }
+
     void VulkanCommandList::draw_api(const CmdDraw& cmd_draw)
     {
         vkCmdDraw(

@@ -12,6 +12,11 @@ namespace orion
         end_api();
     }
 
+    void CommandList::reset()
+    {
+        reset_api();
+    }
+
     void CommandList::draw(const CmdDraw& cmd_draw)
     {
         draw_api(cmd_draw);

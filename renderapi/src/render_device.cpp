@@ -9,14 +9,14 @@ namespace orion
     {
     }
 
-    std::unique_ptr<CommandAllocator> RenderDevice::create_command_allocator(orion::CommandQueueType queue_type)
+    std::unique_ptr<CommandAllocator> RenderDevice::create_command_allocator(const CommandAllocatorDesc& desc)
     {
-        auto allocator = create_command_allocator_api(queue_type);
+        auto allocator = create_command_allocator_api(desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created command allocator interface at {}", fmt::ptr(allocator));
         return allocator;
     }
 
-    std::unique_ptr<Swapchain> RenderDevice::create_swapchain(Window& window, const SwapchainDesc& desc)
+    std::unique_ptr<Swapchain> RenderDevice::create_swapchain(const Window& window, const SwapchainDesc& desc)
     {
         auto swapchain = create_swapchain_api(window, desc);
         SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain interface at {}", fmt::ptr(swapchain));

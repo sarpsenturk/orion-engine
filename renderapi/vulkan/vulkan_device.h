@@ -50,8 +50,8 @@ namespace orion::vulkan
         [[nodiscard]] VkDescriptorSet create_vk_descriptor_set(VkDescriptorSetLayout descriptor_set_layout) const;
 
         // Interface Overrides
-        std::unique_ptr<CommandAllocator> create_command_allocator_api(CommandQueueType queue_type) override;
-        std::unique_ptr<Swapchain> create_swapchain_api(Window& window, const SwapchainDesc& desc) override;
+        std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
+        std::unique_ptr<Swapchain> create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;

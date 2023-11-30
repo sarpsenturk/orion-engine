@@ -45,6 +45,9 @@ namespace orion
         , triangle_pipeline_layout_(create_triangle_pipeline_layout())
         , triangle_shader_effect_(shader_manager_.load_shader_effect("triangle"))
         , triangle_pipeline_(create_triangle_pipeline())
+        , present_pass_(create_present_pass())
+        , present_shader_effect_(shader_manager_.load_shader_effect("present"))
+        , present_pipeline_(create_present_pipeline())
         , frames_(create_frame_data())
     {
     }
@@ -56,8 +59,8 @@ namespace orion
         // Wait for frame to finish
         device()->wait_for_fence(frame.fence);
 
-        // Reset command allocator
-        frame.command_allocator->reset();
+        // Reset command list
+        frame.command_list->reset();
 
         // Begin command list
         frame.command_list->begin();
@@ -85,8 +88,12 @@ namespace orion
         frame.command_list->end();
 
         // Submit command buffer
-        const auto command_lists = std::array{frame.command_list.get()};
-        device()->submit({.queue_type = CommandQueueType::Graphics, .command_lists = command_lists, .signal_fence = frame.fence});
+        device()->submit({
+            .queue_type = CommandQueueType::Graphics,
+            .command_lists = {{frame.command_list.get()}},
+            .signal_semaphores = {{frame.render_semaphore}},
+            .signal_fence = frame.fence,
+        });
 
         // Advance to next frame
         advance_frame();
@@ -118,6 +125,67 @@ namespace orion
 
         // Make draw call
         frame.command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
+    }
+
+    RenderWindow Renderer::create_render_window(const Window& window)
+    {
+        RenderWindow render_window{.window = &window};
+        render_window.swapchain = device()->create_swapchain(window, SwapchainDesc{.image_size = window.size()});
+        for (int i = 0; i < default_swapchain_image_count; ++i) {
+            auto image_view = device()->create_image_view({
+                .image = render_window.swapchain->get_image(i),
+                .type = ImageViewType::View2D,
+                .format = default_swapchain_format,
+            });
+            render_window.image_views.push_back(image_view);
+
+            auto framebuffer = device()->create_framebuffer({
+                .render_pass = present_pass_,
+                .image_views = {{image_view, frames_[i].render_image_view}},
+                .size = window.size(),
+            });
+            render_window.framebuffers.push_back(framebuffer);
+        }
+        return render_window;
+    }
+
+    void Renderer::present(const RenderWindow& render_window)
+    {
+        auto& frame = previous_frame();
+
+        auto* command_list = frame.present_command.get();
+
+        // Acquire image from swapchain
+        const auto image_index = render_window.swapchain->current_image_index();
+        const auto present_size = render_window.window->size();
+
+        // Reset present command list
+        device()->wait_for_fence(frame.present_fence);
+        command_list->reset();
+
+        command_list->begin();
+        command_list->begin_render_pass({
+            .render_pass = present_pass_,
+            .framebuffer = render_window.framebuffers[image_index],
+            .render_area = {.size = present_size},
+            .clear_color = {},
+        });
+        command_list->bind_pipeline({.pipeline = present_pipeline_, .bind_point = PipelineBindPoint::Graphics});
+        command_list->set_viewports(Viewport{.position = {}, .size = vector_cast<float>(present_size), .depth = {0.f, 1.f}});
+        command_list->set_scissors(Scissor{.offset = {}, .size = present_size});
+        command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
+        command_list->end_render_pass();
+        command_list->end();
+
+        device()->submit({
+            .queue_type = CommandQueueType::Graphics,
+            .wait_semaphores = {{frame.render_semaphore}},
+            .command_lists = {{command_list}},
+            .signal_semaphores = {{frame.present_semaphore}},
+            .signal_fence = frame.present_fence,
+        });
+
+        render_window.swapchain->present({{frame.present_semaphore}});
     }
 
     spdlog::logger* Renderer::logger()
@@ -188,18 +256,17 @@ namespace orion
 
     RenderPassHandle Renderer::create_render_pass() const
     {
-        const auto color_attachments = std::array{
-            AttachmentDesc{
-                .format = Format::B8G8R8A8_Srgb,
-                .load_op = AttachmentLoadOp::Clear,
-                .store_op = AttachmentStoreOp::Store,
-                .initial_layout = ImageLayout::Undefined,
-                .layout = ImageLayout::ColorAttachment,
-                .final_layout = ImageLayout::General,
-            },
-        };
         return device()->create_render_pass({
-            .color_attachments = color_attachments,
+            .color_attachments = {{
+                AttachmentDesc{
+                    .format = Format::B8G8R8A8_Srgb,
+                    .load_op = AttachmentLoadOp::Clear,
+                    .store_op = AttachmentStoreOp::Store,
+                    .initial_layout = ImageLayout::Undefined,
+                    .layout = ImageLayout::ColorAttachment,
+                    .final_layout = ImageLayout::ShaderReadOnly,
+                },
+            }},
             .input_attachments = {},
             .bind_point = PipelineBindPoint::Graphics,
         });
@@ -212,15 +279,69 @@ namespace orion
 
     PipelineHandle Renderer::create_triangle_pipeline() const
     {
-        const auto color_blend_attachments = std::array{
-            BlendAttachmentDesc{.enable_blend = false},
-        };
         return device()->create_graphics_pipeline({
             .shaders = triangle_shader_effect_.shader_stages(),
             .vertex_bindings = {},
             .pipeline_layout = triangle_pipeline_layout_,
-            .color_blend = {.attachments = color_blend_attachments, .blend_constants = {}},
+            .color_blend = {
+                .attachments = {{
+                    BlendAttachmentDesc{
+                        .enable_blend = true,
+                        .src_blend = BlendFactor::One,
+                        .dst_blend = BlendFactor::Zero,
+                        .blend_op = BlendOp::Add,
+                        .color_component_flags = ColorComponentFlags::All,
+                    },
+                }},
+            },
             .render_pass = render_pass_,
+        });
+    }
+
+    RenderPassHandle Renderer::create_present_pass() const
+    {
+        return device()->create_render_pass({
+            .color_attachments = {{
+                AttachmentDesc{
+                    .format = Format::B8G8R8A8_Srgb,
+                    .load_op = AttachmentLoadOp::DontCare,
+                    .store_op = AttachmentStoreOp::Store,
+                    .initial_layout = ImageLayout::Undefined,
+                    .layout = ImageLayout::ColorAttachment,
+                    .final_layout = ImageLayout::PresentSrc,
+                },
+            }},
+            .input_attachments = {{
+                AttachmentDesc{
+                    .format = Format::B8G8R8A8_Srgb,
+                    .load_op = AttachmentLoadOp::Load,
+                    .store_op = AttachmentStoreOp::Store,
+                    .initial_layout = ImageLayout::ShaderReadOnly,
+                    .layout = ImageLayout::ShaderReadOnly,
+                    .final_layout = ImageLayout::ColorAttachment,
+                },
+            }},
+            .bind_point = PipelineBindPoint::Graphics,
+        });
+    }
+
+    PipelineHandle Renderer::create_present_pipeline() const
+    {
+        return device()->create_graphics_pipeline({
+            .shaders = present_shader_effect_.shader_stages(),
+            .rasterization = {.cull_mode = CullMode::Back, .front_face = FrontFace::CounterClockWise},
+            .color_blend = {
+                .attachments = {{
+                    BlendAttachmentDesc{
+                        .enable_blend = true,
+                        .src_blend = BlendFactor::One,
+                        .dst_blend = BlendFactor::Zero,
+                        .blend_op = BlendOp::Add,
+                        .color_component_flags = ColorComponentFlags::All,
+                    },
+                }},
+            },
+            .render_pass = present_pass_,
         });
     }
 
@@ -240,30 +361,25 @@ namespace orion
                 .type = ImageViewType::View2D,
                 .format = Format::B8G8R8A8_Srgb,
             });
-            const auto color_attachments = std::array{
-                AttachmentDesc{
-                    .format = Format::B8G8R8A8_Srgb,
-                    .load_op = AttachmentLoadOp::Clear,
-                    .store_op = AttachmentStoreOp::Store,
-                    .initial_layout = ImageLayout::Undefined,
-                    .layout = ImageLayout::ColorAttachment,
-                    .final_layout = ImageLayout::ShaderReadOnly,
-                },
-            };
             auto render_target = device()->create_framebuffer({
                 .render_pass = render_pass_,
                 .image_views = {&image_view, 1},
                 .size = render_size_,
             });
-            auto command_allocator = device()->create_command_allocator(CommandQueueType::Graphics);
+            auto command_allocator = device()->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = true});
             auto command_list = command_allocator->create_command_list();
+            auto present_command = command_allocator->create_command_list();
             return {
                 .render_image = image,
                 .render_image_view = image_view,
                 .render_target = render_target,
                 .command_allocator = std::move(command_allocator),
                 .command_list = std::move(command_list),
+                .present_command = std::move(present_command),
                 .fence = device()->create_fence({.start_finished = true}),
+                .render_semaphore = device()->create_semaphore(),
+                .present_semaphore = device()->create_semaphore(),
+                .present_fence = device()->create_fence({.start_finished = true}),
             };
         };
         for (int i = 0; i < frames_in_flight; ++i) {

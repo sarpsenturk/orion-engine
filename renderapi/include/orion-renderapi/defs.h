@@ -437,7 +437,7 @@ namespace orion
         bool enable_logic_op = false;
         LogicOp logic_op = LogicOp::NoOp;
         std::span<const BlendAttachmentDesc> attachments;
-        std::array<float, 4> blend_constants;
+        std::array<float, 4> blend_constants = {1.f, 1.f, 1.f, 1.f};
     };
 
     struct GraphicsPipelineDesc {
@@ -501,6 +501,11 @@ namespace orion
         Vector2_u size;
     };
 
+    struct CommandAllocatorDesc {
+        CommandQueueType queue_type;
+        bool reset_command_buffer;
+    };
+
     // Forward declare
     class CommandList;
 
@@ -508,6 +513,7 @@ namespace orion
         CommandQueueType queue_type;
         std::span<const SemaphoreHandle> wait_semaphores;
         std::span<const CommandList* const> command_lists;
+        std::span<const SemaphoreHandle> signal_semaphores;
         FenceHandle signal_fence;
     };
 

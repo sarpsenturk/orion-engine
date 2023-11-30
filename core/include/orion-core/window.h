@@ -18,11 +18,14 @@ namespace orion
     using WindowPosition = Vector2_i;
     using WindowSize = Vector2_u;
 
+    inline constexpr auto default_window_position = WindowPosition{0, 0};
+    inline constexpr auto default_window_size = WindowSize{800, 600};
+
     // Window create info
     struct WindowDesc {
         std::string name = "Orion Window";
-        WindowPosition position;
-        WindowSize size;
+        WindowPosition position = default_window_position;
+        WindowSize size = default_window_size;
     };
 
     // Forward declarations

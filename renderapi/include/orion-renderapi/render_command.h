@@ -71,6 +71,7 @@ namespace orion
 
         void begin();
         void end();
+        void reset();
         void draw(const CmdDraw& cmd_draw);
         void draw_indexed(const CmdDrawIndexed& cmd_draw_indexed);
         void bind_index_buffer(const CmdBindIndexBuffer& cmd_bind_index_buffer);
@@ -93,6 +94,7 @@ namespace orion
     private:
         virtual void begin_api() = 0;
         virtual void end_api() = 0;
+        virtual void reset_api() = 0;
         virtual void draw_api(const CmdDraw& cmd_draw) = 0;
         virtual void draw_indexed_api(const CmdDrawIndexed& cmd_draw_indexed) = 0;
         virtual void bind_index_buffer_api(const CmdBindIndexBuffer& cmd_bind_index_buffer) = 0;

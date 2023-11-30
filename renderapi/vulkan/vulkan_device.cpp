@@ -198,22 +198,22 @@ namespace orion::vulkan
         return descriptor_set;
     }
 
-    std::unique_ptr<CommandAllocator> VulkanDevice::create_command_allocator_api(CommandQueueType queue_type)
+    std::unique_ptr<CommandAllocator> VulkanDevice::create_command_allocator_api(const CommandAllocatorDesc& desc)
     {
         VkCommandPool command_pool = VK_NULL_HANDLE;
         {
             const auto info = VkCommandPoolCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
                 .pNext = nullptr,
-                .flags = 0,
-                .queueFamilyIndex = get_queue_family(queue_type),
+                .flags = desc.reset_command_buffer ? VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT : VkCommandPoolCreateFlags{},
+                .queueFamilyIndex = get_queue_family(desc.queue_type),
             };
             vk_result_check(vkCreateCommandPool(vk_device(), &info, alloc_callbacks(), &command_pool));
         }
         return std::make_unique<VulkanCommandAllocator>(this, unique(command_pool, vk_device()));
     }
 
-    std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(Window& window, const SwapchainDesc& desc)
+    std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(const Window& window, const SwapchainDesc& desc)
     {
         // Create surface
         VkSurfaceKHR surface = create_platform_surface(instance_, window);
@@ -255,10 +255,11 @@ namespace orion::vulkan
                 };
             };
 
-            std::vector<VkAttachmentReference> input_attachments(desc.input_attachments.size());
-            std::ranges::transform(desc.input_attachments, input_attachments.begin(), std::ref(make_attachment));
+            // Color attachments added first
             std::vector<VkAttachmentReference> color_attachments(desc.color_attachments.size());
             std::ranges::transform(desc.color_attachments, color_attachments.begin(), std::ref(make_attachment));
+            std::vector<VkAttachmentReference> input_attachments(desc.input_attachments.size());
+            std::ranges::transform(desc.input_attachments, input_attachments.begin(), std::ref(make_attachment));
 
             const auto subpass = VkSubpassDescription{
                 .flags = 0,
@@ -906,10 +907,13 @@ namespace orion::vulkan
     {
         std::vector<VkSemaphore> wait_semaphores(desc.wait_semaphores.size());
         std::ranges::transform(desc.wait_semaphores, wait_semaphores.begin(), [this](auto handle) { return resource_manager_.find(handle); });
-        std::vector<VkPipelineStageFlags> wait_stages(desc.wait_semaphores.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        const std::vector<VkPipelineStageFlags> wait_stages(desc.wait_semaphores.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
         std::vector<VkCommandBuffer> command_buffers(desc.command_lists.size());
         std::ranges::transform(desc.command_lists | std::views::transform(StaticCast<const VulkanCommandList*>{}), command_buffers.begin(), &VulkanCommandList::vk_command_buffer);
+
+        std::vector<VkSemaphore> signal_semaphores(desc.signal_semaphores.size());
+        std::ranges::transform(desc.signal_semaphores, signal_semaphores.begin(), [this](auto handle) { return resource_manager_.find(handle); });
 
         const auto submit = VkSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -919,8 +923,8 @@ namespace orion::vulkan
             .pWaitDstStageMask = wait_stages.data(),
             .commandBufferCount = static_cast<uint32_t>(command_buffers.size()),
             .pCommandBuffers = command_buffers.data(),
-            .signalSemaphoreCount = 0,
-            .pSignalSemaphores = nullptr,
+            .signalSemaphoreCount = static_cast<uint32_t>(signal_semaphores.size()),
+            .pSignalSemaphores = signal_semaphores.data(),
         };
         vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, resource_manager_.find(desc.signal_fence)));
     }
