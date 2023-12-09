@@ -1,13 +1,13 @@
 #pragma once
 
-#include "orion-math/concepts.h"      // arithmetic
-#include "orion-math/vector/vector.h" // vector
-#include "orion-utils/functors.h"     // negate, plus, minus
+#include "orion-math/concepts.h"
+#include "orion-math/vector/vector.h"
+#include "orion-utils/callable.h"
 
-#include <algorithm>                  // std::transform
-#include <array>                      // std::array
-#include <cstddef>                    // std::size_t
-#include <stdexcept>                  // std::out_of_range
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <stdexcept>
 
 namespace orion
 {

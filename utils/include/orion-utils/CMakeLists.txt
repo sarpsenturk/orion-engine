@@ -7,9 +7,9 @@ target_sources(
         assertion.h
         bitflag.h
         bits.h
+        callable.h
         compiler.h
         expected.h
-        functors.h
         hash.h
         overload.h
         static_vector.h

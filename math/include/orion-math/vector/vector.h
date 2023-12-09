@@ -3,7 +3,7 @@
 #include "orion-math/concepts.h"
 #include "orion-math/sqrt.h"
 
-#include "orion-utils/functors.h"
+#include "orion-utils/callable.h"
 
 #include <algorithm>
 #include <array>

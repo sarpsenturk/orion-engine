@@ -6,7 +6,7 @@
 #include "vulkan_swapchain.h"
 
 #include "orion-utils/assertion.h"
-#include "orion-utils/functors.h"
+#include "orion-utils/callable.h"
 #include "orion-utils/static_vector.h"
 
 #include <array>
