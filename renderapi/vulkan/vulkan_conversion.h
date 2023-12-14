@@ -225,6 +225,10 @@ namespace orion::vulkan
         switch (descriptor_type) {
             case BindingType::ConstantBuffer:
                 return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case BindingType::SampledImage:
+                return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            case BindingType::Sampler:
+                return VK_DESCRIPTOR_TYPE_SAMPLER;
         }
         ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type() or is invalid");
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;

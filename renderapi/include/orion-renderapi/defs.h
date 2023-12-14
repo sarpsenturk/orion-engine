@@ -157,6 +157,8 @@ namespace orion
 
     enum class BindingType : std::uint8_t {
         ConstantBuffer,
+        SampledImage,
+        Sampler
     };
 
     struct DescriptorBindingDesc {
