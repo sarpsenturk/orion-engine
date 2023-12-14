@@ -87,6 +87,8 @@ namespace orion::vulkan
                 .pNext = nullptr,
                 .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
                 .maxSets = max_sets,
+                .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
+                .pPoolSizes = pool_sizes.data(),
             };
             vk_result_check(vkCreateDescriptorPool(vk_device(), &info, alloc_callbacks(), &descriptor_pool));
         }
