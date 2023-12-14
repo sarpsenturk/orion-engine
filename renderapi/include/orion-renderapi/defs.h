@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <variant>
 
 namespace orion
 {
@@ -179,17 +180,28 @@ namespace orion
         std::size_t offset;
     };
 
+    struct ImageBindingDesc {
+        ImageViewHandle image_view_handle = ImageViewHandle::invalid();
+        ImageLayout image_layout = ImageLayout::Undefined;
+        SamplerHandle sampler_handle = SamplerHandle::invalid();
+    };
+
+    using DescriptorBindingValue = std::variant<BufferBindingDesc, ImageBindingDesc>;
+
     struct DescriptorBinding {
         std::uint32_t binding;
         BindingType binding_type;
-        BufferBindingDesc buffer;
-
-        [[nodiscard]] bool is_buffer() const noexcept { return buffer.buffer_handle.is_valid(); }
+        DescriptorBindingValue binding_value;
     };
 
-    [[nodiscard]] inline bool is_buffer_binding(const DescriptorBinding& binding)
+    [[nodiscard]] constexpr bool is_buffer_binding(const DescriptorBinding& binding)
     {
-        return binding.is_buffer();
+        return std::holds_alternative<BufferBindingDesc>(binding.binding_value);
+    }
+
+    [[nodiscard]] constexpr bool is_image_binding(const DescriptorBinding& binding)
+    {
+        return std::holds_alternative<ImageBindingDesc>(binding.binding_value);
     }
 
     struct PushConstantDesc {
