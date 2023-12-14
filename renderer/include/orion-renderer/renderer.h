@@ -66,6 +66,7 @@ namespace orion
             SemaphoreHandle render_semaphore;
             SemaphoreHandle present_semaphore;
             FenceHandle present_fence;
+            DescriptorHandle present_descriptor;
         };
         using FrameDataArr = std::vector<FrameData>;
 
@@ -83,6 +84,9 @@ namespace orion
         [[nodiscard]] RenderPassHandle create_render_pass() const;
         [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
         [[nodiscard]] PipelineHandle create_triangle_pipeline() const;
+        [[nodiscard]] DescriptorLayoutHandle create_present_descriptor_layout() const;
+        [[nodiscard]] PipelineLayoutHandle create_present_pipeline_layout() const;
+        [[nodiscard]] SamplerHandle create_present_sampler() const;
         [[nodiscard]] RenderPassHandle create_present_pass() const;
         [[nodiscard]] PipelineHandle create_present_pipeline() const;
         [[nodiscard]] FrameDataArr create_frame_data() const;
@@ -99,6 +103,9 @@ namespace orion
         ShaderEffect triangle_shader_effect_;
         PipelineHandle triangle_pipeline_;
 
+        DescriptorLayoutHandle present_descriptor_layout_;
+        PipelineLayoutHandle present_pipeline_layout_;
+        SamplerHandle present_sampler_;
         RenderPassHandle present_pass_;
         ShaderEffect present_shader_effect_;
         PipelineHandle present_pipeline_;

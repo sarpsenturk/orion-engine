@@ -45,6 +45,9 @@ namespace orion
         , triangle_pipeline_layout_(create_triangle_pipeline_layout())
         , triangle_shader_effect_(shader_manager_.load_shader_effect("triangle"))
         , triangle_pipeline_(create_triangle_pipeline())
+        , present_descriptor_layout_(create_present_descriptor_layout())
+        , present_pipeline_layout_(create_present_pipeline_layout())
+        , present_sampler_(create_present_sampler())
         , present_pass_(create_present_pass())
         , present_shader_effect_(shader_manager_.load_shader_effect("present"))
         , present_pipeline_(create_present_pipeline())
@@ -141,7 +144,7 @@ namespace orion
 
             auto framebuffer = device()->create_framebuffer({
                 .render_pass = present_pass_,
-                .image_views = {{image_view, frames_[i].render_image_view}},
+                .image_views = {{image_view}},
                 .size = window.size(),
             });
             render_window.framebuffers.push_back(framebuffer);
@@ -171,6 +174,7 @@ namespace orion
             .clear_color = {},
         });
         command_list->bind_pipeline({.pipeline = present_pipeline_, .bind_point = PipelineBindPoint::Graphics});
+        command_list->bind_descriptor({.bind_point = PipelineBindPoint::Graphics, .pipeline_layout = present_pipeline_layout_, .index = 0, .descriptor = frame.present_descriptor});
         command_list->set_viewports(Viewport{.position = {}, .size = vector_cast<float>(present_size), .depth = {0.f, 1.f}});
         command_list->set_scissors(Scissor{.offset = {}, .size = present_size});
         command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
@@ -298,6 +302,46 @@ namespace orion
         });
     }
 
+    DescriptorLayoutHandle Renderer::create_present_descriptor_layout() const
+    {
+        return device()->create_descriptor_layout({
+            .bindings = {{
+                DescriptorBindingDesc{
+                    .type = BindingType::SampledImage,
+                    .shader_stages = ShaderStageFlags::Pixel,
+                    .count = 1,
+                },
+                DescriptorBindingDesc{
+                    .type = BindingType::Sampler,
+                    .shader_stages = ShaderStageFlags::Pixel,
+                    .count = 1,
+                },
+            }},
+        });
+    }
+
+    PipelineLayoutHandle Renderer::create_present_pipeline_layout() const
+    {
+        return device()->create_pipeline_layout({
+            .descriptors = {{present_descriptor_layout_}},
+        });
+    }
+
+    SamplerHandle Renderer::create_present_sampler() const
+    {
+        return device()->create_sampler({
+            .filter = Filter::Nearest,
+            .address_mode_u = AddressMode::Repeat,
+            .address_mode_v = AddressMode::Repeat,
+            .address_mode_w = AddressMode::Repeat,
+            .mip_load_bias = 0.f,
+            .max_anisotropy = 0.f,
+            .compare_func = CompareFunc::Always,
+            .min_lod = 0.f,
+            .max_lod = 0.f,
+        });
+    }
+
     RenderPassHandle Renderer::create_present_pass() const
     {
         return device()->create_render_pass({
@@ -311,16 +355,6 @@ namespace orion
                     .final_layout = ImageLayout::PresentSrc,
                 },
             }},
-            .input_attachments = {{
-                AttachmentDesc{
-                    .format = Format::B8G8R8A8_Srgb,
-                    .load_op = AttachmentLoadOp::Load,
-                    .store_op = AttachmentStoreOp::Store,
-                    .initial_layout = ImageLayout::ShaderReadOnly,
-                    .layout = ImageLayout::ShaderReadOnly,
-                    .final_layout = ImageLayout::ColorAttachment,
-                },
-            }},
             .bind_point = PipelineBindPoint::Graphics,
         });
     }
@@ -329,7 +363,8 @@ namespace orion
     {
         return device()->create_graphics_pipeline({
             .shaders = present_shader_effect_.shader_stages(),
-            .rasterization = {.cull_mode = CullMode::Back, .front_face = FrontFace::CounterClockWise},
+            .pipeline_layout = present_pipeline_layout_,
+            .rasterization = {.cull_mode = CullMode::Back, .front_face = FrontFace::ClockWise},
             .color_blend = {
                 .attachments = {{
                     BlendAttachmentDesc{
@@ -354,7 +389,7 @@ namespace orion
                 .format = Format::B8G8R8A8_Srgb,
                 .size = vec3(render_size_, 1u),
                 .tiling = ImageTiling::Optimal,
-                .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::InputAttachment | ImageUsageFlags::TransferSrc,
+                .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage | ImageUsageFlags::TransferSrc,
             });
             auto image_view = device()->create_image_view({
                 .image = image,
@@ -366,6 +401,23 @@ namespace orion
                 .image_views = {&image_view, 1},
                 .size = render_size_,
             });
+
+            // Create and update presentation descriptor
+            auto present_descriptor = device()->create_descriptor(present_descriptor_layout_);
+            const auto present_bindings = std::array{
+                DescriptorBinding{
+                    .binding = 0,
+                    .binding_type = BindingType::SampledImage,
+                    .binding_value = ImageBindingDesc{.image_view_handle = image_view, .image_layout = ImageLayout::ShaderReadOnly},
+                },
+                DescriptorBinding{
+                    .binding = 1,
+                    .binding_type = BindingType::Sampler,
+                    .binding_value = ImageBindingDesc{.sampler_handle = present_sampler_},
+                },
+            };
+            device()->write_descriptor(present_descriptor, present_bindings);
+
             auto command_allocator = device()->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = true});
             auto command_list = command_allocator->create_command_list();
             auto present_command = command_allocator->create_command_list();
@@ -380,6 +432,7 @@ namespace orion
                 .render_semaphore = device()->create_semaphore(),
                 .present_semaphore = device()->create_semaphore(),
                 .present_fence = device()->create_fence({.start_finished = true}),
+                .present_descriptor = present_descriptor,
             };
         };
         for (int i = 0; i < frames_in_flight; ++i) {

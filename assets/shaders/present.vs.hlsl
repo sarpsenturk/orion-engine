@@ -7,6 +7,6 @@ VsOutput vs_main(uint vertex_id : SV_VertexID)
 {
     VsOutput output;
     output.uv = float2((vertex_id << 1) & 2, vertex_id & 2);
-    output.position = float4(output.uv * 2.0f + -1.0f, 0.0f, 1.0f);
+    output.position = float4(output.uv * float2(2, -2) + float2(-1, 1), 0, 1);
     return output;
 }
