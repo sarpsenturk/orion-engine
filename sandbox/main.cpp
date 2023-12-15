@@ -48,7 +48,6 @@ private:
     orion::Window window_;
     orion::RenderWindow render_window_;
     orion::Scene scene_;
-    std::unique_ptr<orion::Swapchain> swapchain_;
 };
 
 ORION_MAIN(args)
