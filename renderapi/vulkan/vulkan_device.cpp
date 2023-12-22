@@ -299,10 +299,7 @@ namespace orion::vulkan
     FramebufferHandle VulkanDevice::create_framebuffer_api(const FramebufferDesc& desc)
     {
         // Find image views
-        std::vector<VkImageView> image_views(desc.image_views.size());
-        std::ranges::transform(desc.image_views, image_views.begin(), [this](auto handle) {
-            return resource_manager_.find(handle);
-        });
+        const auto image_views = resource_manager_.find(desc.image_views);
 
         // Create framebuffer
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
@@ -375,10 +372,7 @@ namespace orion::vulkan
 
     PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api(const PipelineLayoutDesc& desc)
     {
-        std::vector<VkDescriptorSetLayout> descriptor_sets(desc.descriptors.size());
-        std::ranges::transform(desc.descriptors, descriptor_sets.begin(), [this](DescriptorLayoutHandle descriptor_layout) {
-            return resource_manager_.find(descriptor_layout);
-        });
+        const auto descriptors = resource_manager_.find(desc.descriptors);
 
         std::vector<VkPushConstantRange> push_constants(desc.push_constants.size());
         std::ranges::transform(desc.push_constants, push_constants.begin(), [offset = 0u](const PushConstantDesc& push_constant) mutable {
@@ -395,8 +389,8 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .setLayoutCount = static_cast<std::uint32_t>(descriptor_sets.size()),
-                .pSetLayouts = descriptor_sets.data(),
+                .setLayoutCount = static_cast<std::uint32_t>(descriptors.size()),
+                .pSetLayouts = descriptors.data(),
                 .pushConstantRangeCount = static_cast<uint32_t>(push_constants.size()),
                 .pPushConstantRanges = push_constants.data(),
             };
@@ -854,8 +848,7 @@ namespace orion::vulkan
 
     void VulkanDevice::wait_for_fences_api(std::span<const FenceHandle> fence_handles)
     {
-        std::vector<VkFence> fences{fence_handles.size()};
-        std::ranges::transform(fence_handles, fences.begin(), [this](const auto handle) { return resource_manager_.find(handle); });
+        const auto fences = resource_manager_.find(fence_handles);
         vk_result_check(vkWaitForFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX));
         vk_result_check(vkResetFences(vk_device(), static_cast<std::uint32_t>(fences.size()), fences.data()));
     }
@@ -930,15 +923,13 @@ namespace orion::vulkan
 
     void VulkanDevice::submit_api(const SubmitDesc& desc)
     {
-        std::vector<VkSemaphore> wait_semaphores(desc.wait_semaphores.size());
-        std::ranges::transform(desc.wait_semaphores, wait_semaphores.begin(), [this](auto handle) { return resource_manager_.find(handle); });
+        const auto wait_semaphores = resource_manager_.find(desc.wait_semaphores);
         const std::vector<VkPipelineStageFlags> wait_stages(desc.wait_semaphores.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
         std::vector<VkCommandBuffer> command_buffers(desc.command_lists.size());
         std::ranges::transform(desc.command_lists | std::views::transform(StaticCast<const VulkanCommandList*>{}), command_buffers.begin(), &VulkanCommandList::vk_command_buffer);
 
-        std::vector<VkSemaphore> signal_semaphores(desc.signal_semaphores.size());
-        std::ranges::transform(desc.signal_semaphores, signal_semaphores.begin(), [this](auto handle) { return resource_manager_.find(handle); });
+        const auto signal_semaphores = resource_manager_.find(desc.signal_semaphores);
 
         const auto submit = VkSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,

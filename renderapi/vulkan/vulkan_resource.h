@@ -5,7 +5,9 @@
 
 #include "orion-renderapi/handles.h"
 
+#include <span>
 #include <unordered_map>
+#include <vector>
 
 namespace orion::vulkan
 {
@@ -66,6 +68,20 @@ namespace orion::vulkan
         [[nodiscard]] VkSampler find(SamplerHandle handle) const noexcept;
         [[nodiscard]] VkFence find(FenceHandle handle) const noexcept;
         [[nodiscard]] VkSemaphore find(SemaphoreHandle handle) const noexcept;
+
+        [[nodiscard]] std::vector<VulkanImageResource> find(std::span<const ImageHandle> handles) const;
+        [[nodiscard]] std::vector<VkImageView> find(std::span<const ImageViewHandle> handles) const;
+        [[nodiscard]] std::vector<VkRenderPass> find(std::span<const RenderPassHandle> handles) const;
+        [[nodiscard]] std::vector<VkFramebuffer> find(std::span<const FramebufferHandle> handles) const;
+        [[nodiscard]] std::vector<VkShaderModule> find(std::span<const ShaderModuleHandle> handles) const;
+        [[nodiscard]] std::vector<VkDescriptorSetLayout> find(std::span<const DescriptorLayoutHandle> handles) const;
+        [[nodiscard]] std::vector<VkDescriptorSet> find(std::span<const DescriptorHandle> handles) const;
+        [[nodiscard]] std::vector<VkPipelineLayout> find(std::span<const PipelineLayoutHandle> handles) const;
+        [[nodiscard]] std::vector<VkPipeline> find(std::span<const PipelineHandle> handles) const;
+        [[nodiscard]] std::vector<VulkanBufferResource> find(std::span<const GPUBufferHandle> handles) const;
+        [[nodiscard]] std::vector<VkSampler> find(std::span<const SamplerHandle> handles) const;
+        [[nodiscard]] std::vector<VkFence> find(std::span<const FenceHandle> handles) const;
+        [[nodiscard]] std::vector<VkSemaphore> find(std::span<const SemaphoreHandle> handles) const;
 
     private:
         VkDevice device_;

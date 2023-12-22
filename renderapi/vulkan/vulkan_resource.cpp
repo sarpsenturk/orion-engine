@@ -2,6 +2,8 @@
 
 #include "orion-utils/assertion.h"
 
+#include <algorithm>
+
 namespace orion::vulkan
 {
     VulkanResourceManager::VulkanResourceManager(VkDevice device, VmaAllocator vma_allocator)
@@ -249,5 +251,96 @@ namespace orion::vulkan
             return iter->second.get();
         }
         return VK_NULL_HANDLE;
+    }
+
+    std::vector<VulkanImageResource> VulkanResourceManager::find(std::span<const ImageHandle> handles) const
+    {
+        std::vector<VulkanImageResource> images(handles.size());
+        std::ranges::transform(handles, images.begin(), [this](auto handle) { return find(handle); });
+        return images;
+    }
+
+    std::vector<VkImageView> VulkanResourceManager::find(std::span<const ImageViewHandle> handles) const
+    {
+        std::vector<VkImageView> image_views(handles.size());
+        std::ranges::transform(handles, image_views.begin(), [this](auto handle) { return find(handle); });
+        return image_views;
+    }
+
+    std::vector<VkRenderPass> VulkanResourceManager::find(std::span<const RenderPassHandle> handles) const
+    {
+        std::vector<VkRenderPass> render_passes(handles.size());
+        std::ranges::transform(handles, render_passes.begin(), [this](auto handle) { return find(handle); });
+        return render_passes;
+    }
+
+    std::vector<VkFramebuffer> VulkanResourceManager::find(std::span<const FramebufferHandle> handles) const
+    {
+        std::vector<VkFramebuffer> framebuffers(handles.size());
+        std::ranges::transform(handles, framebuffers.begin(), [this](auto handle) { return find(handle); });
+        return framebuffers;
+    }
+
+    std::vector<VkShaderModule> VulkanResourceManager::find(std::span<const ShaderModuleHandle> handles) const
+    {
+        std::vector<VkShaderModule> shaders(handles.size());
+        std::ranges::transform(handles, shaders.begin(), [this](auto handle) { return find(handle); });
+        return shaders;
+    }
+
+    std::vector<VkDescriptorSetLayout> VulkanResourceManager::find(std::span<const DescriptorLayoutHandle> handles) const
+    {
+        std::vector<VkDescriptorSetLayout> descriptor_layouts(handles.size());
+        std::ranges::transform(handles, descriptor_layouts.begin(), [this](auto handle) { return find(handle); });
+        return descriptor_layouts;
+    }
+
+    std::vector<VkDescriptorSet> VulkanResourceManager::find(std::span<const DescriptorHandle> handles) const
+    {
+        std::vector<VkDescriptorSet> descriptors(handles.size());
+        std::ranges::transform(handles, descriptors.begin(), [this](auto handle) { return find(handle); });
+        return descriptors;
+    }
+
+    std::vector<VkPipelineLayout> VulkanResourceManager::find(std::span<const PipelineLayoutHandle> handles) const
+    {
+        std::vector<VkPipelineLayout> pipeline_layouts(handles.size());
+        std::ranges::transform(handles, pipeline_layouts.begin(), [this](auto handle) { return find(handle); });
+        return pipeline_layouts;
+    }
+
+    std::vector<VkPipeline> VulkanResourceManager::find(std::span<const PipelineHandle> handles) const
+    {
+        std::vector<VkPipeline> pipelines(handles.size());
+        std::ranges::transform(handles, pipelines.begin(), [this](auto handle) { return find(handle); });
+        return pipelines;
+    }
+
+    std::vector<VulkanBufferResource> VulkanResourceManager::find(std::span<const GPUBufferHandle> handles) const
+    {
+        std::vector<VulkanBufferResource> buffers(handles.size());
+        std::ranges::transform(handles, buffers.begin(), [this](auto handle) { return find(handle); });
+        return buffers;
+    }
+
+    std::vector<VkSampler> VulkanResourceManager::find(std::span<const SamplerHandle> handles) const
+    {
+        std::vector<VkSampler> samplers(handles.size());
+        std::ranges::transform(handles, samplers.begin(), [this](auto handle) { return find(handle); });
+        return samplers;
+    }
+
+    std::vector<VkFence> VulkanResourceManager::find(std::span<const FenceHandle> handles) const
+    {
+        std::vector<VkFence> fences(handles.size());
+        std::ranges::transform(handles, fences.begin(), [this](auto handle) { return find(handle); });
+        return fences;
+    }
+
+    std::vector<VkSemaphore> VulkanResourceManager::find(std::span<const SemaphoreHandle> handles) const
+    {
+        std::vector<VkSemaphore> semaphores(handles.size());
+        std::ranges::transform(handles, semaphores.begin(), [this](auto handle) { return find(handle); });
+        return semaphores;
     }
 } // namespace orion::vulkan

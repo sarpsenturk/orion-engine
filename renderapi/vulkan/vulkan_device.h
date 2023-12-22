@@ -98,9 +98,7 @@ namespace orion::vulkan
         UniqueVmaAllocator vma_allocator_;
 
         UniqueVkDescriptorPool descriptor_pool_;
-
         UniqueVkPipelineLayout empty_pipeline_layout_;
-
         VulkanResourceManager resource_manager_;
     };
 } // namespace orion::vulkan
