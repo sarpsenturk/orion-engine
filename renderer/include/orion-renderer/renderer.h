@@ -19,7 +19,7 @@
 
 namespace orion
 {
-    const char* default_backend_module(Platform platform = k_current_platform);
+    const char* default_backend_module(Platform platform = current_platform);
 
     struct RendererDesc {
         const char* backend_module = default_backend_module();

@@ -174,7 +174,12 @@ namespace orion
             .clear_color = {},
         });
         command_list->bind_pipeline({.pipeline = present_pipeline_, .bind_point = PipelineBindPoint::Graphics});
-        command_list->bind_descriptor({.bind_point = PipelineBindPoint::Graphics, .pipeline_layout = present_pipeline_layout_, .index = 0, .descriptor = frame.present_descriptor});
+        command_list->bind_descriptor({
+            .bind_point = PipelineBindPoint::Graphics,
+            .pipeline_layout = present_pipeline_layout_,
+            .index = 0,
+            .descriptor = frame.present_descriptor,
+        });
         command_list->set_viewports(Viewport{.position = {}, .size = vector_cast<float>(present_size), .depth = {0.f, 1.f}});
         command_list->set_scissors(Scissor{.offset = {}, .size = present_size});
         command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});

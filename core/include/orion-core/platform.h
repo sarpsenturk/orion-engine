@@ -11,9 +11,9 @@ namespace orion
     };
 
 #if defined(ORION_PLATFORM_WINDOWS)
-    inline constexpr auto k_current_platform = Platform::Windows;
+    inline constexpr auto current_platform = Platform::Windows;
 #elif defined(ORION_PLATFORM_LINUX)
-    inline constexpr auto k_current_platform = Platform::Linux;
+    inline constexpr auto current_platform = Platform::Linux;
 #endif
 
     constexpr auto format_as(Platform platform) -> const char*

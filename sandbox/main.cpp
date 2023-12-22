@@ -23,7 +23,6 @@ public:
         , render_window_(renderer_.create_render_window(window_))
     {
         window_.on_close().subscribe([this](const auto&) { exit_application(); });
-
         // Create entity
         auto entity = scene_.create_entity();
         // Translate entity

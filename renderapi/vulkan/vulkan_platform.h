@@ -14,7 +14,7 @@ namespace orion::vulkan
     // win32 -> VK_KHR_win32_surface, X11 -> VK_KHR_xlib_surface, etc.
     constexpr const char* platform_surface_ext() noexcept
     {
-        if constexpr (k_current_platform == Platform::Windows) {
+        if constexpr (current_platform == Platform::Windows) {
             return "VK_KHR_win32_surface";
         } else {
             throw std::exception("No supported Vulkan surface extension for current platform");
