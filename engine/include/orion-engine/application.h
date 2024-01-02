@@ -37,3 +37,6 @@ namespace orion
         bool should_exit_ = false;
     };
 } // namespace orion
+
+// Helper macro to subscribe to events
+#define ORION_EXIT_APP_FN [this](const auto&) { exit_application(); }

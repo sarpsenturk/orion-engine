@@ -22,7 +22,7 @@ public:
         , window_({})
         , render_window_(renderer_.create_render_window(window_))
     {
-        window_.on_close().subscribe([this](const auto&) { exit_application(); });
+        window_.on_close().subscribe(ORION_EXIT_APP_FN);
         // Create entity
         auto entity = scene_.create_entity();
         // Translate entity

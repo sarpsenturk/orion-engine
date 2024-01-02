@@ -218,9 +218,6 @@ namespace orion
 
     using MousePosition = Vector2_i;
 
-    inline constexpr auto x_button_max = 15;
-    using MouseXButtonID = std::uint8_t;
-    static_assert(x_button_max < std::numeric_limits<MouseXButtonID>::max());
 
     namespace events
     {

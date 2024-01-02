@@ -143,7 +143,7 @@ namespace orion
         WindowSize size_;
 
         // Window state information
-        std::uint8_t state_;
+        std::uint8_t state_ = 0u;
         static constexpr auto close_bit = std::uint8_t{0};
         static constexpr auto resize_bit = std::uint8_t{1};
         static constexpr auto move_bit = std::uint8_t{2};
