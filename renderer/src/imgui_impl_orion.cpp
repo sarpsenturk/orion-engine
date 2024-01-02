@@ -320,19 +320,14 @@ namespace
         // Create pipeline
         {
             // Create shaders
-            const auto* vertex_shader = shader_manager->load("imgui.vs").second;
-            const auto* pixel_shader = shader_manager->load("imgui.ps").second;
-            const auto shader_effect = orion::ShaderEffect{std::array{vertex_shader, pixel_shader}};
+            const auto shader_effect = shader_manager->load_shader_effect("imgui");
 
             // Create vertex attributes and bindings
-            const auto vertex_attributes = std::array{
-                orion::VertexAttributeDesc{.name = "POSITION", .format = orion::Format::R32G32_Float},
-                orion::VertexAttributeDesc{.name = "TEXCOORD", .format = orion::Format::R32G32_Float},
-                orion::VertexAttributeDesc{.name = "COLOR", .format = orion::Format::R8G8B8A8_Unorm},
-            };
-            const auto vertex_bindings = std::array{
-                orion::VertexBinding{vertex_attributes, orion::InputRate::Vertex},
-            };
+            const auto vertex_binding = orion::vertex_binding_v({
+                orion::vertex_attr("POSITION", orion::Format::R32G32_Float),
+                orion::vertex_attr("TEXCOORD", orion::Format::R32G32_Float),
+                orion::vertex_attr("COLOR", orion::Format::R8G8B8A8_Unorm),
+            });
 
             // TODO: Create pipeline layout
             const auto push_constants = std::array{
@@ -378,13 +373,13 @@ namespace
 
             // Set pipeline description
             const auto desc = orion::GraphicsPipelineDesc{
-                {},
-                vertex_bindings,
-                {},
-                input_assembly,
-                rasterization,
-                color_blend,
-                {},
+                .shaders = shader_effect.shader_stages(),
+                .vertex_bindings = {{vertex_binding}},
+                .pipeline_layout = {},
+                .input_assembly = input_assembly,
+                .rasterization = rasterization,
+                .color_blend = color_blend,
+                .render_pass = {},
             };
             renderer_data->pipeline = device->make_unique(orion::PipelineHandle_tag{}, desc);
         }

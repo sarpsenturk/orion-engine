@@ -337,6 +337,11 @@ namespace orion
         std::uint32_t offset;
     };
 
+    inline constexpr VertexAttributeDesc vertex_attr(const char* name, Format format)
+    {
+        return {name, format};
+    }
+
     class VertexBinding
     {
     public:
@@ -356,7 +361,7 @@ namespace orion
         {
         }
 
-        [[nodiscard]] constexpr auto& attributes() const noexcept { return attributes_; }
+        [[nodiscard]] constexpr auto attributes() const noexcept { return std::span{attributes_}; }
         [[nodiscard]] constexpr auto input_rate() const noexcept { return input_rate_; }
         [[nodiscard]] constexpr auto stride() const noexcept { return stride_; }
 
@@ -375,6 +380,16 @@ namespace orion
         InputRate input_rate_;
         std::uint32_t stride_;
     };
+
+    inline constexpr VertexBinding vertex_binding_v(std::initializer_list<VertexAttributeDesc> attributes)
+    {
+        return {attributes, InputRate::Vertex};
+    }
+
+    inline constexpr VertexBinding vertex_binding_i(std::initializer_list<VertexAttributeDesc> attributes)
+    {
+        return {attributes, InputRate::Instance};
+    }
 
     struct InputAssemblyDesc {
         PrimitiveTopology topology = PrimitiveTopology::TriangleList;
