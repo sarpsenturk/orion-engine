@@ -20,10 +20,10 @@ namespace orion::vulkan
     void DebugUtilsMessengerDeleter::operator()(VkDebugUtilsMessengerEXT debug_messenger) const
     {
         ORION_EXPECTS(instance != VK_NULL_HANDLE);
-        static const auto pfn_vkDestroyDebugUtilsMessengerEXT = [this]() {
+        static const auto vkDestroyDebugUtilsMessengerEXT_fn = [this]() {
             return reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
         }();
-        pfn_vkDestroyDebugUtilsMessengerEXT(instance, debug_messenger, alloc_callbacks());
+        vkDestroyDebugUtilsMessengerEXT_fn(instance, debug_messenger, alloc_callbacks());
     }
 
     void SurfaceDeleter::operator()(VkSurfaceKHR surface) const

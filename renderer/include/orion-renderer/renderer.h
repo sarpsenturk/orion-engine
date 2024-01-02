@@ -23,7 +23,7 @@ namespace orion
 
     struct RendererDesc {
         const char* backend_module = default_backend_module();
-        pfnSelectPhysicalDevice device_select_fn = nullptr;
+        SelectPhysicalDeviceFn device_select_fn = nullptr;
         Vector2_u render_size;
     };
 
@@ -80,7 +80,7 @@ namespace orion
         void advance_frame() noexcept;
 
         [[nodiscard]] std::unique_ptr<RenderBackend> create_render_backend() const;
-        [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(pfnSelectPhysicalDevice device_select_fn) const;
+        [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(SelectPhysicalDeviceFn device_select_fn) const;
         [[nodiscard]] RenderPassHandle create_render_pass() const;
         [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
         [[nodiscard]] PipelineHandle create_triangle_pipeline() const;

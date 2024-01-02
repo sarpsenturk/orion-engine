@@ -18,7 +18,7 @@
 #include <unordered_set>
 #include <utility>
 
-extern "C" ORION_RENDER_API orion::RenderBackend* create_render_backend()
+extern "C" ORION_RENDER_API orion::RenderBackend* create_orion_render_backend()
 {
     try {
         // Initialize the vulkan backend
@@ -381,7 +381,7 @@ namespace orion::vulkan
 #else
         try {
             // Get creation function pointer
-            auto pfn_vk_create_debug_utils_messenger_ext = get_instance_proc<PFN_vkCreateDebugUtilsMessengerEXT>(instance(), "vkCreateDebugUtilsMessengerEXT");
+            auto vk_create_debug_utils_messenger_ext_fn = get_instance_proc<PFN_vkCreateDebugUtilsMessengerEXT>(instance(), "vkCreateDebugUtilsMessengerEXT");
 
             VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
             {
@@ -394,7 +394,7 @@ namespace orion::vulkan
                     .pfnUserCallback = &debug_message_callback,
                     .pUserData = logger(),
                 };
-                vk_result_check(pfn_vk_create_debug_utils_messenger_ext(instance(), &info, alloc_callbacks(), &debug_messenger));
+                vk_result_check(vk_create_debug_utils_messenger_ext_fn(instance(), &info, alloc_callbacks(), &debug_messenger));
             }
             return unique(debug_messenger, instance());
         } catch (const std::exception& exception) {

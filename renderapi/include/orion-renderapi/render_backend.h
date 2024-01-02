@@ -49,5 +49,5 @@ namespace orion
     };
 } // namespace orion
 
-extern "C" ORION_RENDER_API orion::RenderBackend* create_render_backend();
-using pfnCreateRenderBackend = decltype(create_render_backend);
+extern "C" ORION_RENDER_API orion::RenderBackend* create_orion_render_backend();
+using CreateOrionRenderBackendFn = decltype(create_orion_render_backend);

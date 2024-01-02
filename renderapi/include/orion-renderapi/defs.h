@@ -33,7 +33,7 @@ namespace orion
         std::string name;
     };
 
-    using pfnSelectPhysicalDevice = physical_device_index_t (*)(std::span<const PhysicalDeviceDesc>);
+    using SelectPhysicalDeviceFn = physical_device_index_t (*)(std::span<const PhysicalDeviceDesc>);
 
     enum class Format : std::uint32_t {
         Undefined,

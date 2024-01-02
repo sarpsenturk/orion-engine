@@ -213,12 +213,12 @@ namespace orion
     {
         ORION_ASSERT(backend_module_.is_loaded());
 
-        auto* fn_create_render_backend = backend_module_.load_symbol<pfnCreateRenderBackend>("create_render_backend");
+        auto* fn_create_render_backend = backend_module_.load_symbol<CreateOrionRenderBackendFn>("create_orion_render_backend");
         if (fn_create_render_backend == nullptr) {
-            SPDLOG_LOGGER_ERROR(logger(), "Failed to load function 'create_render_backend' from module {}", backend_module_.filename());
-            throw std::runtime_error("failed to load create_render_backend()");
+            SPDLOG_LOGGER_ERROR(logger(), "Failed to load function 'create_orion_render_backend' from module {}", backend_module_.filename());
+            throw std::runtime_error("failed to load create_orion_render_backend()");
         }
-        SPDLOG_LOGGER_DEBUG(logger(), "Symbol create_render_backend() loaded at {}", fmt::ptr(fn_create_render_backend));
+        SPDLOG_LOGGER_DEBUG(logger(), "Symbol create_orion_render_backend() loaded at {}", fmt::ptr(fn_create_render_backend));
 
         RenderBackend* render_backend = fn_create_render_backend();
         if (render_backend == nullptr) {
@@ -230,7 +230,7 @@ namespace orion
         return std::unique_ptr<RenderBackend>{render_backend};
     }
 
-    std::unique_ptr<RenderDevice> Renderer::create_render_device(pfnSelectPhysicalDevice device_select_fn) const
+    std::unique_ptr<RenderDevice> Renderer::create_render_device(SelectPhysicalDeviceFn device_select_fn) const
     {
         ORION_ASSERT(render_backend_ != nullptr);
 
