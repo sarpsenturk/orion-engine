@@ -31,6 +31,7 @@ namespace orion::vulkan
         void end_render_pass_api() override;
         void set_viewports_api(const CmdSetViewports& cmd_set_viewports) override;
         void set_scissors_api(const CmdSetScissors& cmd_set_scissors) override;
+        void copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image) override;
 
         VulkanResourceManager* resource_manager_;
         UniqueVkCommandBuffer command_buffer_;

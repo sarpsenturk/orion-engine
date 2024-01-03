@@ -77,6 +77,11 @@ namespace orion
         set_scissors({.first_scissor = 0, .scissors = {&scissor, 1}});
     }
 
+    void CommandList::copy_buffer_to_image(const CmdCopyBufferToImage& cmd_copy_buffer_to_image)
+    {
+        copy_buffer_to_image_api(cmd_copy_buffer_to_image);
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();

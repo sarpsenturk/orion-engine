@@ -3,6 +3,7 @@
 #include "vulkan_conversion.h"
 #include "vulkan_device.h"
 
+#include <array>
 #include <ranges>
 
 namespace orion::vulkan
@@ -146,6 +147,35 @@ namespace orion::vulkan
             cmd_set_scissors.first_scissor,
             static_cast<uint32_t>(scissors.size()),
             scissors.data());
+    }
+
+    void VulkanCommandList::copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image)
+    {
+        VkBuffer src_buffer = resource_manager_->find(cmd_copy_buffer_to_image.src_buffer).buffer;
+        ORION_EXPECTS(src_buffer != VK_NULL_HANDLE);
+        VkImage dst_image = resource_manager_->find(cmd_copy_buffer_to_image.dst_image).image;
+        ORION_EXPECTS(dst_image != VK_NULL_HANDLE);
+        VkImageLayout dst_layout = to_vulkan_type(cmd_copy_buffer_to_image.dst_layout);
+        const auto region = VkBufferImageCopy{
+            .bufferOffset = cmd_copy_buffer_to_image.buffer_offset,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = {
+                // TODO: Make customizable
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .imageExtent = to_vulkan_extent(cmd_copy_buffer_to_image.dst_size),
+        };
+        vkCmdCopyBufferToImage(
+            command_buffer_.get(),
+            src_buffer,
+            dst_image,
+            dst_layout,
+            1u,
+            &region);
     }
 
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)

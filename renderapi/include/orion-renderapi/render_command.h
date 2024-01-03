@@ -63,6 +63,15 @@ namespace orion
         std::span<const Scissor> scissors;
     };
 
+    struct CmdCopyBufferToImage {
+        GPUBufferHandle src_buffer;
+        ImageHandle dst_image;
+        ImageLayout dst_layout;
+        std::size_t buffer_offset;
+        std::size_t image_offset;
+        Vector3_u dst_size;
+    };
+
     class CommandList
     {
     public:
@@ -84,6 +93,7 @@ namespace orion
         void set_viewports(const Viewport& viewport);
         void set_scissors(const CmdSetScissors& cmd_set_scissors);
         void set_scissors(const Scissor& scissor);
+        void copy_buffer_to_image(const CmdCopyBufferToImage& cmd_copy_buffer_to_image);
 
     protected:
         CommandList(const CommandList&) = default;
@@ -105,6 +115,7 @@ namespace orion
         virtual void end_render_pass_api() = 0;
         virtual void set_viewports_api(const CmdSetViewports& cmd_set_viewports) = 0;
         virtual void set_scissors_api(const CmdSetScissors& cmd_set_scissors) = 0;
+        virtual void copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image) = 0;
     };
 
     class CommandAllocator
