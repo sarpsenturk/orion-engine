@@ -32,10 +32,16 @@ namespace orion
     class Window;
 
     struct RenderWindow {
-        const Window* window;
+        Window* window;
         std::unique_ptr<Swapchain> swapchain;
         std::vector<ImageViewHandle> image_views;
         std::vector<FramebufferHandle> framebuffers;
+    };
+
+    class ImGuiContext
+    {
+    public:
+        ~ImGuiContext();
     };
 
     class Renderer
@@ -46,12 +52,16 @@ namespace orion
         [[nodiscard]] auto* backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto* device() const noexcept { return render_device_.get(); }
 
+        void imgui_init(RenderWindow& render_window);
+
         void begin();
         void end();
+        void imgui_begin();
+        void imgui_end();
         void draw(const Scene& scene);
         void draw_test_triangle();
 
-        [[nodiscard]] RenderWindow create_render_window(const Window& window);
+        [[nodiscard]] RenderWindow create_render_window(Window& window);
         void present(const RenderWindow& render_window);
 
     private:
@@ -59,7 +69,6 @@ namespace orion
             ImageHandle render_image;
             ImageViewHandle render_image_view;
             FramebufferHandle render_target;
-            std::unique_ptr<CommandAllocator> command_allocator;
             std::unique_ptr<CommandList> command_list;
             std::unique_ptr<CommandList> present_command;
             FenceHandle fence;
@@ -81,6 +90,7 @@ namespace orion
 
         [[nodiscard]] std::unique_ptr<RenderBackend> create_render_backend() const;
         [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(SelectPhysicalDeviceFn device_select_fn) const;
+        [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator() const;
         [[nodiscard]] RenderPassHandle create_render_pass() const;
         [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
         [[nodiscard]] PipelineHandle create_triangle_pipeline() const;
@@ -94,6 +104,9 @@ namespace orion
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+
+        std::unique_ptr<CommandAllocator> command_allocator_;
+
         ShaderManager shader_manager_;
 
         Vector2_u render_size_;
@@ -113,5 +126,7 @@ namespace orion
         FrameDataArr frames_;
         std::int8_t current_frame_index_ = 0;
         std::int8_t previous_frame_index_ = -1;
+
+        std::unique_ptr<ImGuiContext> imgui_;
     };
 } // namespace orion

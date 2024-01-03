@@ -11,6 +11,8 @@
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
+#include <imgui.h>
+
 #include <algorithm>
 #include <array>
 
@@ -22,7 +24,12 @@ public:
         , window_({})
         , render_window_(renderer_.create_render_window(window_))
     {
+        // Close app on callback
         window_.on_close().subscribe(ORION_EXIT_APP_FN);
+
+        // Initialize imgui
+        renderer_.imgui_init(render_window_);
+
         // Create entity
         auto entity = scene_.create_entity();
         // Translate entity
@@ -38,7 +45,13 @@ private:
     void on_user_render() override
     {
         renderer_.begin();
+
         renderer_.draw_test_triangle();
+
+        renderer_.imgui_begin();
+        ImGui::ShowDemoWindow();
+        renderer_.imgui_end();
+
         renderer_.end();
         renderer_.present(render_window_);
     }

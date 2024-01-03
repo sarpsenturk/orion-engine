@@ -19,10 +19,12 @@
 struct ImGui_ImplOrion_InitDesc {
     orion::Window* window;
     orion::RenderDevice* device;
+    orion::CommandAllocator* command_allocator;
+    orion::RenderPassHandle render_pass;
     orion::ShaderManager* shader_manager;
 };
 
 void ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitDesc& desc);
 void ImGui_ImplOrion_Shutdow();
-void ImGui_ImplOrion_NewFrame();
-void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data);
+void ImGui_ImplOrion_NewFrame(std::int8_t frame_index);
+void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* cmd_list);

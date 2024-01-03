@@ -2,6 +2,9 @@
 
 #include "orion-renderer/colors.h"
 
+#include "imgui_impl_orion.h"
+#include <imgui.h>
+
 #include "orion-renderapi/config.h"
 
 #include "orion-core/window.h"
@@ -35,10 +38,17 @@ namespace orion
         return nullptr;
     }
 
+    ImGuiContext::~ImGuiContext()
+    {
+        ImGui_ImplOrion_Shutdow();
+        ImGui::DestroyContext();
+    }
+
     Renderer::Renderer(const RendererDesc& desc)
         : backend_module_(desc.backend_module)
         , render_backend_(create_render_backend())
         , render_device_(create_render_device(desc.device_select_fn))
+        , command_allocator_(create_command_allocator())
         , shader_manager_(device())
         , render_size_(desc.render_size)
         , render_pass_(create_render_pass())
@@ -53,6 +63,31 @@ namespace orion
         , present_pipeline_(create_present_pipeline())
         , frames_(create_frame_data())
     {
+    }
+
+    void Renderer::imgui_init(RenderWindow& render_window)
+    {
+        if (imgui_) {
+            SPDLOG_LOGGER_WARN(logger(), "ImGui already initialized");
+            return;
+        }
+
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplOrion_Init({
+            .window = render_window.window,
+            .device = device(),
+            .command_allocator = command_allocator_.get(),
+            .render_pass = render_pass_,
+            .shader_manager = &shader_manager_,
+        });
+        imgui_ = std::make_unique<ImGuiContext>();
+        SPDLOG_LOGGER_DEBUG(logger(), "Renderer ImGui initialized");
     }
 
     void Renderer::begin()
@@ -103,6 +138,20 @@ namespace orion
         advance_frame();
     }
 
+    void Renderer::imgui_begin()
+    {
+        ORION_ASSERT(imgui_ && "ImGui not initialized. Need to call Renderer::imgui_init() first");
+        ImGui_ImplOrion_NewFrame(current_frame_index_);
+        ImGui::NewFrame();
+    }
+
+    void Renderer::imgui_end()
+    {
+        ORION_ASSERT(imgui_ && "ImGui not initialized. Need to call Renderer::imgui_init() first");
+        ImGui::Render();
+        ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), current_frame().command_list.get());
+    }
+
     void Renderer::draw(const Scene& scene)
     {
     }
@@ -131,7 +180,7 @@ namespace orion
         frame.command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
     }
 
-    RenderWindow Renderer::create_render_window(const Window& window)
+    RenderWindow Renderer::create_render_window(Window& window)
     {
         RenderWindow render_window{.window = &window};
         render_window.swapchain = device()->create_swapchain(window, SwapchainDesc{.image_size = window.size()});
@@ -263,6 +312,14 @@ namespace orion
         auto render_device = render_backend_->create_device(physical_device_index);
         SPDLOG_LOGGER_DEBUG(logger(), "Render device created");
         return render_device;
+    }
+
+    std::unique_ptr<CommandAllocator> Renderer::create_command_allocator() const
+    {
+        return device()->create_command_allocator({
+            .queue_type = CommandQueueType::Graphics,
+            .reset_command_buffer = true,
+        });
     }
 
     RenderPassHandle Renderer::create_render_pass() const
@@ -425,14 +482,12 @@ namespace orion
             };
             device()->write_descriptor(present_descriptor, present_bindings);
 
-            auto command_allocator = device()->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = true});
-            auto command_list = command_allocator->create_command_list();
-            auto present_command = command_allocator->create_command_list();
+            auto command_list = command_allocator_->create_command_list();
+            auto present_command = command_allocator_->create_command_list();
             return {
                 .render_image = image,
                 .render_image_view = image_view,
                 .render_target = render_target,
-                .command_allocator = std::move(command_allocator),
                 .command_list = std::move(command_list),
                 .present_command = std::move(present_command),
                 .fence = device()->create_fence({.start_finished = true}),

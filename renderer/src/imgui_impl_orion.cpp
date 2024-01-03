@@ -13,6 +13,8 @@
 
 #include "orion-core/clock.h"
 
+#include "orion-renderer/config.h"
+
 namespace
 {
     struct ImGuiCSceneBuffer {
@@ -273,24 +275,34 @@ namespace
         SPDLOG_LOGGER_TRACE(logger(), "ImGui_ImplOrion_Platform shut down");
     }
 
-    struct ImGuiRendererData {
-        orion::RenderDevice* device;
-        orion::ShaderManager* shader_manager;
-        orion::UniquePipeline pipeline;
-
+    struct ImGuiFrameData {
         orion::UniqueGPUBuffer vertex_buffer;
-        std::size_t vertex_buffer_size;
-        void* vertex_buffer_ptr;
+        std::size_t vertex_buffer_size = 0;
+        void* vertex_buffer_ptr = nullptr;
 
         orion::UniqueGPUBuffer index_buffer;
-        std::size_t index_buffer_size;
-        void* index_buffer_ptr;
+        std::size_t index_buffer_size = 0;
+        void* index_buffer_ptr = nullptr;
 
         ImGuiCSceneBuffer scene_buffer;
+    };
+
+    struct ImGuiRendererData {
+        orion::RenderDevice* device;
+        orion::UniquePipelineLayout pipeline_layout;
+        orion::UniquePipeline pipeline;
+
+        std::vector<ImGuiFrameData> frame_data;
+        std::int8_t frame_index;
+
+        auto& current_frame() { return frame_data[frame_index]; }
 
         orion::UniqueImage font_image;
         orion::UniqueImageView font_image_view;
         orion::UniqueSampler font_sampler;
+
+        orion::UniqueDescriptorLayout descriptor_layout;
+        orion::UniqueDescriptor descriptor;
     };
 
     ImGuiRendererData* imgui_get_renderer_data()
@@ -298,124 +310,144 @@ namespace
         return ImGui::GetCurrentContext() ? static_cast<ImGuiRendererData*>(ImGui::GetIO().BackendRendererUserData) : nullptr;
     }
 
-    void imgui_init_renderer(const ImGui_ImplOrion_InitDesc& init_desc)
+    orion::UniqueDescriptorLayout imgui_create_descriptor_layout(orion::RenderDevice* device)
     {
-        // Get IO
-        auto& io = ImGui::GetIO();
-        io.BackendRendererName = "Orion Renderer";
-        io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
-
-        // Create renderer data
-        auto* renderer_data = IM_NEW(ImGuiRendererData)();
-        io.BackendRendererUserData = renderer_data;
-
-        // Get render device
-        auto* device = init_desc.device;
-        renderer_data->device = device;
-
-        // Get the shader manager
-        auto* shader_manager = init_desc.shader_manager;
-        renderer_data->shader_manager = shader_manager;
-
-        // Create pipeline
-        {
-            // Create shaders
-            const auto shader_effect = shader_manager->load_shader_effect("imgui");
-
-            // Create vertex attributes and bindings
-            const auto vertex_binding = orion::vertex_binding_v({
-                orion::vertex_attr("POSITION", orion::Format::R32G32_Float),
-                orion::vertex_attr("TEXCOORD", orion::Format::R32G32_Float),
-                orion::vertex_attr("COLOR", orion::Format::R8G8B8A8_Unorm),
-            });
-
-            // TODO: Create pipeline layout
-            const auto push_constants = std::array{
-                orion::PushConstantDesc{
-                    .size = sizeof(ImGuiCSceneBuffer),
-                    .shader_stages = orion::ShaderStageFlags::Vertex,
+        auto descriptor_layout = device->create_descriptor_layout({
+            .bindings = {
+                {
+                    orion::DescriptorBindingDesc{
+                        .type = orion::BindingType::SampledImage,
+                        .shader_stages = orion::ShaderStageFlags::Pixel,
+                        .count = 1,
+                    },
+                    orion::DescriptorBindingDesc{
+                        .type = orion::BindingType::Sampler,
+                        .shader_stages = orion::ShaderStageFlags::Pixel,
+                        .count = 1,
+                    },
                 },
-            };
+            },
+        });
+        return device->to_unique(descriptor_layout);
+    }
 
-            // Set input assembly description
-            const auto input_assembly = orion::InputAssemblyDesc{
-                .topology = orion::PrimitiveTopology::TriangleList,
-            };
+    orion::UniquePipelineLayout imgui_create_pipeline_layout(orion::RenderDevice* device, orion::DescriptorLayoutHandle descriptor_layout)
+    {
+        const auto descriptors = std::array{descriptor_layout};
+        const auto push_constants = std::array{
+            orion::PushConstantDesc{
+                .size = sizeof(ImGuiCSceneBuffer),
+                .shader_stages = orion::ShaderStageFlags::Vertex,
+            },
+        };
+        return device->to_unique(device->create_pipeline_layout({
+            .descriptors = descriptors,
+            .push_constants = push_constants,
+        }));
+    }
 
-            // Set rasterization description
-            const auto rasterization = orion::RasterizationDesc{
-                .fill_mode = orion::FillMode::Solid,
-                .cull_mode = orion::CullMode::None,
-                .front_face = orion::FrontFace::CounterClockWise,
-            };
+    orion::UniquePipeline imgui_create_pipeline(
+        orion::RenderDevice* device,
+        orion::ShaderManager* shader_manager,
+        orion::PipelineLayoutHandle pipeline_layout,
+        orion::RenderPassHandle render_pass)
+    {
+        // Create shaders
+        const auto shader_effect = shader_manager->load_shader_effect("imgui");
 
-            // Set color blend
-            const auto blend_attachments = std::array{
-                orion::BlendAttachmentDesc{
-                    .enable_blend = true,
-                    .src_blend = orion::BlendFactor::SrcAlpha,
-                    .dst_blend = orion::BlendFactor::InvertedSrcAlpha,
-                    .blend_op = orion::BlendOp::Add,
-                    .src_blend_alpha = orion::BlendFactor::One,
-                    .dst_blend_alpha = orion::BlendFactor::InvertedSrcAlpha,
-                    .blend_op_alpha = orion::BlendOp::Add,
-                    .color_component_flags = orion::ColorComponentFlags::All,
-                },
-            };
-            const auto color_blend = orion::ColorBlendDesc{
-                .enable_logic_op = false,
-                .logic_op = orion::LogicOp::NoOp,
-                .attachments = blend_attachments,
-                .blend_constants = {0.f, 0.f, 0.f, 0.f},
-            };
+        // Create vertex attributes and bindings
+        const auto vertex_attributes = std::array{
+            orion::VertexAttributeDesc{.name = "POSITION", .format = orion::Format::R32G32_Float},
+            orion::VertexAttributeDesc{.name = "TEXCOORD", .format = orion::Format::R32G32_Float},
+            orion::VertexAttributeDesc{.name = "COLOR", .format = orion::Format::R8G8B8A8_Unorm},
+        };
+        const auto vertex_bindings = std::array{
+            orion::VertexBinding{vertex_attributes, orion::InputRate::Vertex},
+        };
 
-            // TODO: Set render pass
+        // Set input assembly description
+        const auto input_assembly = orion::InputAssemblyDesc{
+            .topology = orion::PrimitiveTopology::TriangleList,
+        };
 
-            // Set pipeline description
-            const auto desc = orion::GraphicsPipelineDesc{
-                .shaders = shader_effect.shader_stages(),
-                .vertex_bindings = {{vertex_binding}},
-                .pipeline_layout = {},
-                .input_assembly = input_assembly,
-                .rasterization = rasterization,
-                .color_blend = color_blend,
-                .render_pass = {},
-            };
-            renderer_data->pipeline = device->make_unique(orion::PipelineHandle_tag{}, desc);
-        }
+        // Set rasterization description
+        const auto rasterization = orion::RasterizationDesc{
+            .fill_mode = orion::FillMode::Solid,
+            .cull_mode = orion::CullMode::None,
+            .front_face = orion::FrontFace::CounterClockWise,
+        };
 
-        // Get font data
-        unsigned char* pixels;
-        int width;
-        int height;
-        int bytes_per_pixel;
-        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytes_per_pixel);
-        const auto upload_size = static_cast<std::size_t>(width * height * bytes_per_pixel);
-        const auto font_image_format = orion::Format::R8G8B8A8_Unorm;
+        // Set color blend
+        const auto blend_attachments = std::array{
+            orion::BlendAttachmentDesc{
+                .enable_blend = true,
+                .src_blend = orion::BlendFactor::SrcAlpha,
+                .dst_blend = orion::BlendFactor::InvertedSrcAlpha,
+                .blend_op = orion::BlendOp::Add,
+                .src_blend_alpha = orion::BlendFactor::One,
+                .dst_blend_alpha = orion::BlendFactor::InvertedSrcAlpha,
+                .blend_op_alpha = orion::BlendOp::Add,
+                .color_component_flags = orion::ColorComponentFlags::All,
+            },
+        };
+        const auto color_blend = orion::ColorBlendDesc{
+            .enable_logic_op = false,
+            .logic_op = orion::LogicOp::NoOp,
+            .attachments = blend_attachments,
+            .blend_constants = {0.f, 0.f, 0.f, 0.f},
+        };
 
-        // Create font image
-        {
-            const auto desc = orion::ImageDesc{
-                .type = orion::ImageType::Image2D,
-                .format = font_image_format,
-                .size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1},
-                .tiling = orion::ImageTiling::Optimal,
-                .usage = orion::ImageUsageFlags::SampledImage | orion::ImageUsageFlags::TransferDst,
-            };
-            renderer_data->font_image = device->make_unique(orion::ImageHandle_tag{}, desc);
-        }
+        // Set pipeline description
+        const auto desc = orion::GraphicsPipelineDesc{
+            .shaders = shader_effect.shader_stages(),
+            .vertex_bindings = vertex_bindings,
+            .pipeline_layout = pipeline_layout,
+            .input_assembly = input_assembly,
+            .rasterization = rasterization,
+            .color_blend = color_blend,
+            .render_pass = render_pass,
+        };
+        return device->make_unique(orion::PipelineHandle_tag{}, desc);
+    }
 
-        // Create font image view
-        {
-            const auto desc = orion::ImageViewDesc{
-                .image = renderer_data->font_image.get(),
-                .type = orion::ImageViewType::View2D,
-                .format = font_image_format,
-            };
-            renderer_data->font_image_view = device->make_unique(orion::ImageViewHandle_tag{}, desc);
-        }
+    inline constexpr auto font_image_format = orion::Format::B8G8R8A8_Srgb;
 
-        // Create font upload buffer
+    orion::UniqueImage imgui_create_font_image(
+        orion::RenderDevice* device,
+        int width,
+        int height)
+    {
+        const auto desc = orion::ImageDesc{
+            .type = orion::ImageType::Image2D,
+            .format = font_image_format,
+            .size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1},
+            .tiling = orion::ImageTiling::Optimal,
+            .usage = orion::ImageUsageFlags::SampledImage | orion::ImageUsageFlags::TransferDst,
+        };
+        return device->make_unique(orion::ImageHandle_tag{}, desc);
+    }
+
+    orion::UniqueImageView imgui_create_font_image_view(
+        orion::RenderDevice* device,
+        orion::ImageHandle font_image)
+    {
+        const auto desc = orion::ImageViewDesc{
+            .image = font_image,
+            .type = orion::ImageViewType::View2D,
+            .format = font_image_format,
+        };
+        return device->make_unique(orion::ImageViewHandle_tag{}, desc);
+    }
+
+    void imgui_upload_font_image(
+        orion::RenderDevice* device,
+        std::size_t upload_size,
+        const void* pixels,
+        orion::CommandAllocator* command_allocator,
+        orion::ImageHandle font_image,
+        int width,
+        int height)
+    {
         orion::GPUBufferHandle upload_buffer;
         {
             const auto desc = orion::GPUBufferDesc{
@@ -433,27 +465,126 @@ namespace
             device->unmap(upload_buffer);
         }
 
-        // TODO: Copy buffer to image
+        // Upload buffer to image
+        auto cmd_list = command_allocator->create_command_list();
+        cmd_list->begin();
+        {
+            cmd_list->transition_barrier({.image = font_image, .old_layout = orion::ImageLayout::Undefined, .new_layout = orion::ImageLayout::TransferDst});
+            cmd_list->copy_buffer_to_image({
+                .src_buffer = upload_buffer,
+                .dst_image = font_image,
+                .dst_layout = orion::ImageLayout::TransferDst,
+                .buffer_offset = 0,
+                .image_offset = 0,
+                .dst_size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1},
+            });
+            cmd_list->transition_barrier({.image = font_image, .old_layout = orion::ImageLayout::TransferDst, .new_layout = orion::ImageLayout::ShaderReadOnly});
+        }
+        cmd_list->end();
+        // Submit the image upload
+        device->submit_immediate({
+            .queue_type = orion::CommandQueueType::Graphics,
+            .command_lists = {{cmd_list.get()}},
+        });
 
         // Destroy upload buffer
         device->destroy(upload_buffer);
+    }
 
-        // Create font sampler
-        {
-            const auto desc = orion::SamplerDesc{
-                .filter = orion::Filter::Nearest,
-                .address_mode_u = orion::AddressMode::Repeat,
-                .address_mode_v = orion::AddressMode::Repeat,
-                .address_mode_w = orion::AddressMode::Repeat,
-                .mip_load_bias = 0.f,
-                .max_anisotropy = 1.f,
-                .min_lod = -1000,
-                .max_lod = 1000,
-            };
-            renderer_data->font_sampler = device->make_unique(orion::SamplerHandle_tag{}, desc);
-        }
+    orion::UniqueSampler imgui_create_font_sampler(orion::RenderDevice* device)
+    {
+        const auto desc = orion::SamplerDesc{
+            .filter = orion::Filter::Nearest,
+            .address_mode_u = orion::AddressMode::Repeat,
+            .address_mode_v = orion::AddressMode::Repeat,
+            .address_mode_w = orion::AddressMode::Repeat,
+            .mip_load_bias = 0.f,
+            .max_anisotropy = 1.f,
+            .min_lod = -1000,
+            .max_lod = 1000,
+        };
+        return device->make_unique(orion::SamplerHandle_tag{}, desc);
+    }
 
-        // TODO: Set font texture as descriptor set handle
+    orion::UniqueDescriptor imgui_create_font_descriptor(
+        orion::RenderDevice* device,
+        orion::DescriptorLayoutHandle descriptor_layout,
+        orion::ImageViewHandle font_image_view,
+        orion::SamplerHandle font_sampler)
+    {
+        // Create descriptor
+        const auto descriptor = device->create_descriptor(descriptor_layout);
+
+        // Update descriptor
+        const auto descriptor_bindings = std::array{
+            orion::DescriptorBinding{
+                .binding = 0,
+                .binding_type = orion::BindingType::SampledImage,
+                .binding_value = orion::ImageBindingDesc{
+                    .image_view_handle = font_image_view,
+                    .image_layout = orion::ImageLayout::ShaderReadOnly,
+                },
+            },
+            orion::DescriptorBinding{
+                .binding = 1,
+                .binding_type = orion::BindingType::Sampler,
+                .binding_value = orion::ImageBindingDesc{
+                    .sampler_handle = font_sampler,
+                },
+            },
+        };
+        device->write_descriptor(descriptor, descriptor_bindings);
+
+        return device->to_unique(descriptor);
+    }
+
+    void imgui_init_renderer(const ImGui_ImplOrion_InitDesc& init_desc)
+    {
+        // Get IO
+        auto& io = ImGui::GetIO();
+        io.BackendRendererName = "Orion Renderer";
+        io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+
+        // Create renderer data
+        auto* renderer_data = IM_NEW(ImGuiRendererData)();
+        io.BackendRendererUserData = renderer_data;
+
+        // Get render device
+        auto* device = init_desc.device;
+        renderer_data->device = device;
+
+        // Get command allocator
+        auto* command_allocator = init_desc.command_allocator;
+
+        // Create frames in flight
+        renderer_data->frame_data.resize(orion::frames_in_flight);
+
+        // Get the shader manager
+        auto* shader_manager = init_desc.shader_manager;
+
+        renderer_data->descriptor_layout = imgui_create_descriptor_layout(device);
+        renderer_data->pipeline_layout = imgui_create_pipeline_layout(device, renderer_data->descriptor_layout.get());
+        renderer_data->pipeline = imgui_create_pipeline(device, shader_manager, renderer_data->pipeline_layout.get(), init_desc.render_pass);
+
+        // Get font data
+        unsigned char* pixels;
+        int width;
+        int height;
+        int bytes_per_pixel;
+        io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytes_per_pixel);
+        const auto upload_size = static_cast<std::size_t>(width * height * bytes_per_pixel);
+
+        renderer_data->font_image = imgui_create_font_image(device, width, height);
+        renderer_data->font_image_view = imgui_create_font_image_view(device, renderer_data->font_image.get());
+        imgui_upload_font_image(device, upload_size, pixels, command_allocator, renderer_data->font_image.get(), width, height);
+
+        renderer_data->font_sampler = imgui_create_font_sampler(device);
+
+        renderer_data->descriptor = imgui_create_font_descriptor(
+            device,
+            renderer_data->descriptor_layout.get(),
+            renderer_data->font_image_view.get(),
+            renderer_data->font_sampler.get());
 
         SPDLOG_LOGGER_TRACE(logger(), "ImGui_ImplOrion_Renderer initialized");
     }
@@ -468,12 +599,14 @@ namespace
 
         auto* device = renderer_data->device;
 
-        // Unmap buffers
-        if (renderer_data->vertex_buffer_ptr) {
-            device->unmap(renderer_data->vertex_buffer.get());
-        }
-        if (renderer_data->index_buffer_ptr) {
-            device->unmap(renderer_data->index_buffer.get());
+        for (auto& frame : renderer_data->frame_data) {
+            // Unmap buffers
+            if (frame.vertex_buffer_ptr) {
+                device->unmap(frame.vertex_buffer.get());
+            }
+            if (frame.index_buffer_ptr) {
+                device->unmap(frame.index_buffer.get());
+            }
         }
 
         // Delete renderer data
@@ -497,7 +630,7 @@ void ImGui_ImplOrion_Shutdow()
     SPDLOG_LOGGER_DEBUG(logger(), "ImGui_ImplOrion shut down");
 }
 
-void ImGui_ImplOrion_NewFrame()
+void ImGui_ImplOrion_NewFrame(std::int8_t frame_index)
 {
     auto* platform_data = imgui_get_platform_data();
     ORION_ASSERT(platform_data != nullptr && "Did you call ImGui_ImplOrion_Init()?");
@@ -507,9 +640,12 @@ void ImGui_ImplOrion_NewFrame()
     platform_data->last_frame = now;
     auto& io = ImGui::GetIO();
     io.DeltaTime = delta_time.count();
+
+    auto* renderer_data = imgui_get_renderer_data();
+    renderer_data->frame_index = frame_index;
 }
 
-void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
+void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* cmd_list)
 {
     // Don't render if minimized
     if (draw_data->DisplaySize.x <= 0.f || draw_data->DisplaySize.y <= 0.f) {
@@ -528,83 +664,113 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
     const auto vb_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
     const auto ib_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 
+    // Get frame
+    auto& frame = renderer_data->current_frame();
+
     // Resize buffers if needed
-    if (renderer_data->vertex_buffer_size < vb_size) {
-        if (renderer_data->vertex_buffer) {
-            device->unmap(renderer_data->vertex_buffer.get());
+    if (frame.vertex_buffer_size < vb_size) {
+        if (frame.vertex_buffer) {
+            device->unmap(frame.vertex_buffer.get());
         }
         const auto desc = orion::GPUBufferDesc{
             .size = vb_size,
             .usage = orion::GPUBufferUsageFlags::VertexBuffer,
             .host_visible = true,
         };
-        renderer_data->vertex_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
-        renderer_data->vertex_buffer_size = vb_size;
-        renderer_data->vertex_buffer_ptr = device->map(renderer_data->vertex_buffer.get());
+        frame.vertex_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
+        frame.vertex_buffer_size = vb_size;
+        frame.vertex_buffer_ptr = device->map(frame.vertex_buffer.get());
     }
-    if (renderer_data->index_buffer_size < ib_size) {
-        if (renderer_data->index_buffer) {
-            device->unmap(renderer_data->index_buffer.get());
+    if (frame.index_buffer_size < ib_size) {
+        if (frame.index_buffer) {
+            device->unmap(frame.index_buffer.get());
         }
         const auto desc = orion::GPUBufferDesc{
             .size = ib_size,
             .usage = orion::GPUBufferUsageFlags::IndexBuffer,
             .host_visible = true,
         };
-        renderer_data->index_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
-        renderer_data->index_buffer_size = ib_size;
-        renderer_data->index_buffer_ptr = device->map(renderer_data->index_buffer.get());
+        frame.index_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
+        frame.index_buffer_size = ib_size;
+        frame.index_buffer_ptr = device->map(frame.index_buffer.get());
     }
 
     // Upload vertex and index data
-    auto* vert_ptr = static_cast<ImDrawVert*>(renderer_data->vertex_buffer_ptr);
-    auto* idx_ptr = static_cast<ImDrawIdx*>(renderer_data->index_buffer_ptr);
+    auto* vert_ptr = static_cast<ImDrawVert*>(frame.vertex_buffer_ptr);
+    auto* idx_ptr = static_cast<ImDrawIdx*>(frame.index_buffer_ptr);
     for (int i = 0; i < draw_data->CmdListsCount; ++i) {
-        auto* cmd_list = draw_data->CmdLists[i];
-        std::memcpy(vert_ptr, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-        std::memcpy(idx_ptr, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-        vert_ptr += cmd_list->VtxBuffer.Size;
-        idx_ptr += cmd_list->IdxBuffer.Size;
+        auto* imgui_cmd_list = draw_data->CmdLists[i];
+        std::memcpy(vert_ptr, imgui_cmd_list->VtxBuffer.Data, imgui_cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+        std::memcpy(idx_ptr, imgui_cmd_list->IdxBuffer.Data, imgui_cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+        vert_ptr += imgui_cmd_list->VtxBuffer.Size;
+        idx_ptr += imgui_cmd_list->IdxBuffer.Size;
     }
+
+    // Bind pipeline
+    cmd_list->bind_pipeline({.pipeline = renderer_data->pipeline.get(), .bind_point = orion::PipelineBindPoint::Graphics});
+
+    // Bind vertex and index buffers
+    cmd_list->bind_vertex_buffer({.vertex_buffer = frame.vertex_buffer.get(), .offset = 0});
+    cmd_list->bind_index_buffer({.index_buffer = frame.index_buffer.get(), .offset = 0, .index_type = orion::IndexType::Uint16});
 
     // Create orthogonal projection matrix
     const float left = draw_data->DisplayPos.x;
     const float right = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
     const float top = draw_data->DisplayPos.y;
     const float bottom = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
-    renderer_data->scene_buffer.projection = orion::orthographic_rh(left, right, bottom, top, 0.f, 1.f);
+    frame.scene_buffer.projection = orion::orthographic_rh(left, right, bottom, top, 0.f, 1.f);
 
-    // TODO: Push the projection matrix
+    // Push the projection matrix as push constant
+    cmd_list->push_constants({
+        .pipeline_layout = renderer_data->pipeline_layout.get(),
+        .shader_stages = orion::ShaderStageFlags::Vertex,
+        .offset = 0,
+        .size = sizeof(frame.scene_buffer),
+        .values = &frame.scene_buffer,
+    });
 
     // Render command lists
     std::uint32_t global_idx_offset = 0u;
     std::uint32_t global_vtx_offset = 0u;
     ImVec2 clip_off = draw_data->DisplayPos;
     for (int i = 0; i < draw_data->CmdListsCount; ++i) {
-        const auto* cmd_list = draw_data->CmdLists[i];
-        for (const auto& draw_cmd : cmd_list->CmdBuffer) {
+        const auto* imgui_cmd_list = draw_data->CmdLists[i];
+        for (const auto& draw_cmd : imgui_cmd_list->CmdBuffer) {
             // Project scissor/clipping rectangles into framebuffer space
             ImVec2 clip_min(draw_cmd.ClipRect.x - clip_off.x, draw_cmd.ClipRect.y - clip_off.y);
             ImVec2 clip_max(draw_cmd.ClipRect.z - clip_off.x, draw_cmd.ClipRect.w - clip_off.y);
             if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
                 continue;
+
             // Set viewport
-            const auto viewport = orion::Viewport{
+            cmd_list->set_viewports({
                 .position = {},
                 .size = {draw_data->DisplaySize.x, draw_data->DisplaySize.y},
                 .depth = {0.f, 1.f},
-            };
+            });
+
             // Set scissor
-            const auto scissor = orion::Scissor{
+            cmd_list->set_scissors({
                 .offset = {static_cast<int>(clip_min.x), static_cast<int>(clip_min.y)},
                 .size = {static_cast<uint32_t>(clip_max.x - clip_min.x), static_cast<uint32_t>(clip_max.y - clip_min.y)},
-            };
+            });
 
-            // TODO: Bind descriptor set
+            cmd_list->bind_descriptor({
+                .bind_point = orion::PipelineBindPoint::Graphics,
+                .pipeline_layout = renderer_data->pipeline_layout.get(),
+                .index = 0,
+                .descriptor = renderer_data->descriptor.get(),
+            });
 
-            // TODO: Draw indexed
+            cmd_list->draw_indexed({
+                .index_count = draw_cmd.ElemCount,
+                .instance_count = 1,
+                .first_index = global_idx_offset + draw_cmd.IdxOffset,
+                .vertex_offset = static_cast<std::int32_t>(global_vtx_offset + draw_cmd.VtxOffset),
+                .first_instance = 0,
+            });
         }
-        global_vtx_offset += cmd_list->VtxBuffer.Size;
-        global_idx_offset += cmd_list->IdxBuffer.Size;
+        global_vtx_offset += imgui_cmd_list->VtxBuffer.Size;
+        global_idx_offset += imgui_cmd_list->IdxBuffer.Size;
     }
 }
