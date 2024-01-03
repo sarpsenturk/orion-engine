@@ -376,9 +376,11 @@ namespace orion::vulkan
 
         std::vector<VkPushConstantRange> push_constants(desc.push_constants.size());
         std::ranges::transform(desc.push_constants, push_constants.begin(), [offset = 0u](const PushConstantDesc& push_constant) mutable {
+            const auto current_offset = offset;
+            offset += push_constant.size;
             return VkPushConstantRange{
                 .stageFlags = to_vulkan_type(push_constant.shader_stages),
-                .offset = (offset += push_constant.size),
+                .offset = current_offset,
                 .size = push_constant.size,
             };
         });
@@ -605,15 +607,6 @@ namespace orion::vulkan
 
     GPUBufferHandle VulkanDevice::create_buffer_api(const GPUBufferDesc& desc)
     {
-        // Find set of queue families to be used
-        auto queue_types = std::vector{CommandQueueType::Graphics};
-        const auto has_transfer = !!(desc.usage & GPUBufferUsageFlags::Transfer);
-        if (has_transfer) {
-            queue_types.push_back(CommandQueueType::Transfer);
-        }
-        const auto queue_families = get_unique_queue_families(queue_types);
-        const auto sharing_mode = queue_families.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
-
         // Create buffer and allocation
         VkBuffer buffer = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
@@ -624,9 +617,7 @@ namespace orion::vulkan
                 .flags = 0,
                 .size = desc.size,
                 .usage = to_vulkan_type(desc.usage),
-                .sharingMode = sharing_mode,
-                .queueFamilyIndexCount = static_cast<std::uint32_t>(queue_families.size()),
-                .pQueueFamilyIndices = queue_families.data(),
+                .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             };
             const auto allocation_info = VmaAllocationCreateInfo{
                 .flags = desc.host_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
@@ -650,14 +641,6 @@ namespace orion::vulkan
         VkImage image = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
         {
-            auto queue_types = std::vector{CommandQueueType::Graphics};
-            const auto has_transfer = !!(desc.usage & ImageUsageFlags::Transfer);
-            if (has_transfer) {
-                queue_types.push_back(CommandQueueType::Transfer);
-            }
-            const auto queue_families = get_unique_queue_families(queue_types);
-            const auto sharing_mode = queue_families.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
-
             const auto image_info = VkImageCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
                 .pNext = nullptr,
@@ -670,9 +653,7 @@ namespace orion::vulkan
                 .samples = VK_SAMPLE_COUNT_1_BIT,
                 .tiling = to_vulkan_type(desc.tiling),
                 .usage = to_vulkan_type(desc.usage),
-                .sharingMode = sharing_mode,
-                .queueFamilyIndexCount = static_cast<std::uint32_t>(queue_families.size()),
-                .pQueueFamilyIndices = queue_families.data(),
+                .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
                 .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             };
             const auto allocation_info = VmaAllocationCreateInfo{
