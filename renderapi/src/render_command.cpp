@@ -82,6 +82,11 @@ namespace orion
         copy_buffer_to_image_api(cmd_copy_buffer_to_image);
     }
 
+    void CommandList::push_constants(const CmdPushConstants& cmd_push_constants)
+    {
+        push_constants_api(cmd_push_constants);
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();

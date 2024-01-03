@@ -178,6 +178,19 @@ namespace orion::vulkan
             &region);
     }
 
+    void VulkanCommandList::push_constants_api(const CmdPushConstants& cmd_push_constants)
+    {
+        VkPipelineLayout pipeline_layout = resource_manager_->find(cmd_push_constants.pipeline_layout);
+        ORION_EXPECTS(pipeline_layout != VK_NULL_HANDLE);
+        vkCmdPushConstants(
+            command_buffer_.get(),
+            pipeline_layout,
+            to_vulkan_type(cmd_push_constants.shader_stages),
+            cmd_push_constants.offset,
+            cmd_push_constants.size,
+            cmd_push_constants.values);
+    }
+
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)
         : device_(device)
         , command_pool_(std::move(command_pool))

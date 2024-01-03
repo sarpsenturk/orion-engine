@@ -72,6 +72,15 @@ namespace orion
         Vector3_u dst_size;
     };
 
+    struct CmdPushConstants {
+        PipelineLayoutHandle pipeline_layout;
+        ShaderStageFlags shader_stages;
+        std::uint32_t offset;
+        // TODO: size & ptr interface is bad. look into using span
+        std::uint32_t size;
+        const void* values;
+    };
+
     class CommandList
     {
     public:
@@ -94,6 +103,7 @@ namespace orion
         void set_scissors(const CmdSetScissors& cmd_set_scissors);
         void set_scissors(const Scissor& scissor);
         void copy_buffer_to_image(const CmdCopyBufferToImage& cmd_copy_buffer_to_image);
+        void push_constants(const CmdPushConstants& cmd_push_constants);
 
     protected:
         CommandList(const CommandList&) = default;
@@ -116,7 +126,10 @@ namespace orion
         virtual void set_viewports_api(const CmdSetViewports& cmd_set_viewports) = 0;
         virtual void set_scissors_api(const CmdSetScissors& cmd_set_scissors) = 0;
         virtual void copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image) = 0;
+        virtual void push_constants_api(const CmdPushConstants& cmd_push_constants) = 0;
     };
+
+    using CommandListPtr = std::unique_ptr<CommandList>;
 
     class CommandAllocator
     {
@@ -136,4 +149,6 @@ namespace orion
         virtual void reset_api() = 0;
         [[nodiscard]] virtual std::unique_ptr<CommandList> create_command_list_api() = 0;
     };
+
+    using CommandAllocatorPtr = std::unique_ptr<CommandAllocator>;
 } // namespace orion
