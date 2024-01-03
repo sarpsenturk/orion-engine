@@ -1,12 +1,13 @@
 #pragma once
 
 #include "orion-math/concepts.h"
-#include "orion-math/vector/vector.h"
+#include "orion-utils/assertion.h"
 #include "orion-utils/callable.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <span>
 #include <stdexcept>
 
 namespace orion
@@ -14,29 +15,30 @@ namespace orion
     template<typename T, std::size_t Rows, std::size_t Cols>
     struct Matrix {
         using value_type = T;
-        using row_type = Vector<T, Cols>;
-        using storage = std::array<row_type, Rows>;
+        using storage_type = std::array<value_type, Rows * Cols>;
         using reference = value_type&;
         using const_reference = const value_type&;
         using pointer = value_type*;
         using const_pointer = const value_type*;
         using size_type = std::size_t;
-        using iterator = typename storage::iterator;
-        using const_iterator = typename storage::const_iterator;
-        using reverse_iterator = typename storage::reverse_iterator;
-        using const_reverse_iterator = typename storage::const_reverse_iterator;
+        using iterator = typename storage_type::iterator;
+        using const_iterator = typename storage_type::const_iterator;
+        using reverse_iterator = typename storage_type::reverse_iterator;
+        using const_reverse_iterator = typename storage_type::const_reverse_iterator;
+        using view_type = std::span<value_type, Cols>;
+        using const_view_type = std::span<const value_type, Cols>;
 
         static constexpr auto rows = Rows;
         static constexpr auto columns = Cols;
 
-        storage elements_;
+        storage_type elements_;
 
         [[nodiscard]] static constexpr Matrix identity() noexcept
             requires(rows == columns)
         {
             Matrix identity{};
             for (std::size_t i = 0; i < rows; ++i) {
-                identity[i][i] = value_type{1};
+                identity(i, i) = value_type{1};
             }
             return identity;
         }
@@ -47,8 +49,44 @@ namespace orion
         [[nodiscard]] constexpr pointer data() noexcept { return elements_.data(); }
         [[nodiscard]] constexpr const_pointer data() const noexcept { return elements_.data(); }
 
-        [[nodiscard]] constexpr row_type& operator[](size_type idx) noexcept { return elements_[idx]; }
-        [[nodiscard]] constexpr const row_type& operator[](size_type idx) const noexcept { return elements_[idx]; }
+        [[nodiscard]] constexpr size_type row_major_index(size_type row, size_type column) const noexcept
+        {
+            return row * columns + column;
+        }
+
+        [[nodiscard]] constexpr reference at(size_type row, size_type column)
+        {
+            validate_bounds(row, column);
+            return elements_[row_major_index(row, column)];
+        }
+        [[nodiscard]] constexpr const_reference at(size_type row, size_type column) const
+        {
+            validate_bounds(row, column);
+            return elements_[row_major_index(row, column)];
+        }
+        [[nodiscard]] constexpr view_type at(size_type row)
+        {
+            validate_row_bound(row);
+            return {elements_[row_major_index(row)]};
+        }
+        [[nodiscard]] constexpr const_view_type at(size_type row) const
+        {
+            validate_row_bound(row);
+            return {elements_[row_major_index(row)]};
+        }
+
+        [[nodiscard]] constexpr reference operator()(size_type row, size_type column)
+        {
+            ORION_ASSERT(row <= rows);
+            ORION_ASSERT(column <= columns);
+            return elements_[row_major_index(row, column)];
+        }
+        [[nodiscard]] constexpr const_reference operator()(size_type row, size_type column) const
+        {
+            ORION_ASSERT(row <= rows);
+            ORION_ASSERT(column <= columns);
+            return elements_[row_major_index(row, column)];
+        }
 
         [[nodiscard]] constexpr friend bool operator==(const Matrix& lhs, const Matrix& rhs) = default;
 
@@ -91,9 +129,9 @@ namespace orion
                 for (std::size_t j = 0; j < rhs.columns; ++j) {
                     common_type sum{};
                     for (std::size_t k = 0; k < lhs.columns; ++k) {
-                        sum += lhs[i][k] * rhs[k][j];
+                        sum += lhs(i, k) * rhs(k, j);
                     }
-                    result[i][j] = sum;
+                    result(i, j) = sum;
                 }
             }
             return result;
@@ -104,7 +142,7 @@ namespace orion
             Matrix<value_type, Cols, Rows> result;
             for (std::size_t i = 0; i < rows; ++i) {
                 for (std::size_t j = 0; j < columns; ++j) {
-                    result[j][i] = (*this)[i][j];
+                    result(j, i) = (*this)(i, j);
                 }
             }
             return result;
@@ -132,6 +170,26 @@ namespace orion
             Matrix result;
             std::ranges::transform(matrix, result.begin(), [&scalar](auto value) { return value * scalar; });
             return result;
+        }
+
+        void validate_row_bound(size_type row) const
+        {
+            if (row >= rows) {
+                throw std::out_of_range("row is out of range");
+            }
+        }
+
+        void validate_column_bound(size_type column) const
+        {
+            if (column >= columns) {
+                throw std::out_of_range("column is out of range");
+            }
+        }
+
+        void validate_bounds(size_type row, size_type column) const
+        {
+            validate_row_bound(row);
+            validate_column_bound(column);
         }
     };
 } // namespace orion

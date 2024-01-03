@@ -13,7 +13,7 @@ namespace orion
     {
         const Matrix<T, 1, 4> vector_matrix{vector[0], vector[1], vector[2], T{1}};
         const auto result = vector_matrix * transform;
-        return {result[0][0], result[0][1], result[0][2]};
+        return {result(0, 0), result(0, 1), result(0, 2)};
     }
 
     template<typename T>

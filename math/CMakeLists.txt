@@ -20,6 +20,6 @@ add_subdirectory(include/orion-math)
 add_library(orion::math ALIAS orion-math)
 
 # Enable/disable tests
-if (ORION_MATH_TEST AND ORION_ENGINE_TEST)
+if (ORION_MATH_TEST AND ORION_TEST)
     add_subdirectory(tests)
 endif ()

@@ -32,8 +32,8 @@ namespace
         static constexpr int expected = 42;
 
         Matrix matrix{};
-        matrix[1][2] = expected;
-        EXPECT_EQ(matrix[1][2], expected);
+        matrix(1, 2) = expected;
+        EXPECT_EQ(matrix(1, 2), expected);
     }
 
     TEST(Matrix, Initializer)
@@ -43,7 +43,7 @@ namespace
         int index = 0;
         for (int row = 0; row < matrix.rows; ++row) {
             for (int col = 0; col < matrix.columns; ++col) {
-                EXPECT_EQ(matrix[row][col], index++);
+                EXPECT_EQ(matrix(row, col), index++);
             }
         }
     }
