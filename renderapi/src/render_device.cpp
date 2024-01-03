@@ -231,4 +231,11 @@ namespace orion
     {
         submit_api(desc, signal_fence);
     }
+
+    void RenderDevice::submit_immediate(const SubmitDesc& desc)
+    {
+        static const auto immediate_fence = create_fence({.start_finished = false});
+        submit(desc, immediate_fence);
+        wait_for_fence(immediate_fence);
+    }
 } // namespace orion

@@ -17,7 +17,7 @@ namespace orion
 
         static constexpr key_type min_handle_value = std::numeric_limits<key_type>::min();
         static constexpr key_type max_handle_value = std::numeric_limits<key_type>::max() - 1;
-        static constexpr key_type invalid_handle_value = std::numeric_limits<key_type>::max();
+        static constexpr key_type invalid_handle_value = key_type{0};
 
         static constexpr Handle invalid() noexcept { return Handle{invalid_handle_value}; };
 

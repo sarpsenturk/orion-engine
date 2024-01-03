@@ -24,7 +24,9 @@ namespace orion
 
         void operator()(pointer handle) const
         {
-            device->destroy(handle);
+            if (handle) {
+                device->destroy(handle);
+            }
         }
     };
 
@@ -36,6 +38,7 @@ namespace orion
     using UniqueShaderModule = unique_device_resource<ShaderModuleHandle_tag>;
     using UniquePipelineLayout = unique_device_resource<PipelineLayoutHandle_tag>;
     using UniqueDescriptorLayout = unique_device_resource<DescriptorLayoutHandle_tag>;
+    using UniqueDescriptor = unique_device_resource<DescriptorHandle_tag>;
     using UniquePipeline = unique_device_resource<PipelineHandle_tag>;
     using UniqueGPUBuffer = unique_device_resource<GPUBufferHandle_tag>;
     using UniqueImage = unique_device_resource<ImageHandle_tag>;
@@ -119,6 +122,7 @@ namespace orion
         void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings);
 
         void submit(const SubmitDesc& desc, FenceHandle signal_fence);
+        void submit_immediate(const SubmitDesc& desc);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 

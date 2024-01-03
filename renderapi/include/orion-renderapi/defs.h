@@ -376,7 +376,7 @@ namespace orion
             return offset;
         }
 
-        static_vector<VertexAttributeDesc, max_attribute_count> attributes_;
+        std::vector<VertexAttributeDesc> attributes_;
         InputRate input_rate_;
         std::uint32_t stride_;
     };
