@@ -11,6 +11,8 @@
 #include "orion-math/matrix/matrix4.h"
 #include "orion-math/matrix/projection.h"
 
+#include "orion-utils/minmax.h"
+
 #include "orion-core/clock.h"
 
 #include "orion-renderer/config.h"
@@ -672,27 +674,31 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
         if (frame.vertex_buffer) {
             device->unmap(frame.vertex_buffer.get());
         }
+        const auto new_size = orion::max(vb_size, frame.vertex_buffer_size * 2);
         const auto desc = orion::GPUBufferDesc{
-            .size = vb_size,
+            .size = new_size,
             .usage = orion::GPUBufferUsageFlags::VertexBuffer,
             .host_visible = true,
         };
         frame.vertex_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
-        frame.vertex_buffer_size = vb_size;
+        frame.vertex_buffer_size = new_size;
         frame.vertex_buffer_ptr = device->map(frame.vertex_buffer.get());
+        SPDLOG_LOGGER_TRACE(logger(), "ImGui vertex buffer resized to {} bytes", new_size);
     }
     if (frame.index_buffer_size < ib_size) {
         if (frame.index_buffer) {
             device->unmap(frame.index_buffer.get());
         }
+        const auto new_size = orion::max(ib_size, frame.index_buffer_size * 2);
         const auto desc = orion::GPUBufferDesc{
-            .size = ib_size,
+            .size = new_size,
             .usage = orion::GPUBufferUsageFlags::IndexBuffer,
             .host_visible = true,
         };
         frame.index_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
-        frame.index_buffer_size = ib_size;
+        frame.index_buffer_size = new_size;
         frame.index_buffer_ptr = device->map(frame.index_buffer.get());
+        SPDLOG_LOGGER_TRACE(logger(), "ImGui index buffer resized to {} bytes", new_size);
     }
 
     // Upload vertex and index data
