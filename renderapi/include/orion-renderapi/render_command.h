@@ -81,6 +81,12 @@ namespace orion
         const void* values;
     };
 
+    struct CmdTransitionBarrier {
+        ImageHandle image;
+        ImageLayout old_layout;
+        ImageLayout new_layout;
+    };
+
     class CommandList
     {
     public:
@@ -104,6 +110,7 @@ namespace orion
         void set_scissors(const Scissor& scissor);
         void copy_buffer_to_image(const CmdCopyBufferToImage& cmd_copy_buffer_to_image);
         void push_constants(const CmdPushConstants& cmd_push_constants);
+        void transition_barrier(const CmdTransitionBarrier& cmd_transition_barrier);
 
     protected:
         CommandList(const CommandList&) = default;
@@ -127,6 +134,7 @@ namespace orion
         virtual void set_scissors_api(const CmdSetScissors& cmd_set_scissors) = 0;
         virtual void copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image) = 0;
         virtual void push_constants_api(const CmdPushConstants& cmd_push_constants) = 0;
+        virtual void transition_barrier_api(const CmdTransitionBarrier& cmd_transition_barrier) = 0;
     };
 
     using CommandListPtr = std::unique_ptr<CommandList>;

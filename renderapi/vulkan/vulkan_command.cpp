@@ -5,9 +5,35 @@
 
 #include <array>
 #include <ranges>
+#include <unordered_map>
 
 namespace orion::vulkan
 {
+    namespace
+    {
+        std::pair<VkAccessFlags, VkAccessFlags> access_flags_for_transition(VkImageLayout old_layout, VkImageLayout new_layout)
+        {
+            if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+                return std::make_pair(0, VK_ACCESS_TRANSFER_WRITE_BIT);
+            }
+            if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                return std::make_pair(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+            }
+            throw std::invalid_argument("invalid vulkan transition");
+        }
+
+        std::pair<VkPipelineStageFlags, VkPipelineStageFlags> stage_flags_for_transition(VkImageLayout old_layout, VkImageLayout new_layout)
+        {
+            if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+                return std::make_pair(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+            }
+            if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                return std::make_pair(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+            }
+            throw std::invalid_argument("invalid vulkan transition");
+        }
+    } // namespace
+
     VulkanCommandList::VulkanCommandList(VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer)
         : resource_manager_(resource_manager)
         , command_buffer_(std::move(command_buffer))
@@ -189,6 +215,42 @@ namespace orion::vulkan
             cmd_push_constants.offset,
             cmd_push_constants.size,
             cmd_push_constants.values);
+    }
+
+    void VulkanCommandList::transition_barrier_api(const CmdTransitionBarrier& cmd_transition_barrier)
+    {
+        const auto old_layout = to_vulkan_type(cmd_transition_barrier.old_layout);
+        const auto new_layout = to_vulkan_type(cmd_transition_barrier.new_layout);
+        const auto [src_access, dst_access] = access_flags_for_transition(old_layout, new_layout);
+        VkImage image = resource_manager_->find(cmd_transition_barrier.image).image;
+        ORION_EXPECTS(image != VK_NULL_HANDLE);
+        const auto image_barrier = VkImageMemoryBarrier{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .pNext = nullptr,
+            .srcAccessMask = src_access,
+            .dstAccessMask = dst_access,
+            .oldLayout = old_layout,
+            .newLayout = new_layout,
+            .image = image,
+            // TODO: Custom subresource
+            .subresourceRange = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        };
+        const auto [src_stages, dst_stages] = stage_flags_for_transition(old_layout, new_layout);
+        vkCmdPipelineBarrier(
+            command_buffer_.get(),
+            src_stages,                  // Src stage mask
+            dst_stages,                  // Dst stage mask
+            VK_DEPENDENCY_BY_REGION_BIT, // Dependency flags
+            0, nullptr,                  // Memory barriers
+            0, nullptr,                  // Buffer memory barriers
+            1, &image_barrier            // Image barriers
+        );
     }
 
     VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)

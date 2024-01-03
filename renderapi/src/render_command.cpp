@@ -87,6 +87,11 @@ namespace orion
         push_constants_api(cmd_push_constants);
     }
 
+    void CommandList::transition_barrier(const CmdTransitionBarrier& cmd_transition_barrier)
+    {
+        transition_barrier_api(cmd_transition_barrier);
+    }
+
     void CommandAllocator::reset()
     {
         reset_api();
