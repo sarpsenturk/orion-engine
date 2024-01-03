@@ -118,7 +118,7 @@ namespace orion
 
         void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings);
 
-        void submit(const SubmitDesc& desc);
+        void submit(const SubmitDesc& desc, FenceHandle signal_fence);
 
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
@@ -168,7 +168,7 @@ namespace orion
 
         virtual void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) = 0;
 
-        virtual void submit_api(const SubmitDesc& desc) = 0;
+        virtual void submit_api(const SubmitDesc& desc, FenceHandle signal_fence) = 0;
 
         spdlog::logger* logger_;
     };

@@ -921,7 +921,7 @@ namespace orion::vulkan
         vkUpdateDescriptorSets(vk_device(), static_cast<uint32_t>(writes.size()), writes.data(), 0u, nullptr);
     }
 
-    void VulkanDevice::submit_api(const SubmitDesc& desc)
+    void VulkanDevice::submit_api(const SubmitDesc& desc, FenceHandle signal_fence)
     {
         const auto wait_semaphores = resource_manager_.find(desc.wait_semaphores);
         const std::vector<VkPipelineStageFlags> wait_stages(desc.wait_semaphores.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
@@ -942,7 +942,7 @@ namespace orion::vulkan
             .signalSemaphoreCount = static_cast<uint32_t>(signal_semaphores.size()),
             .pSignalSemaphores = signal_semaphores.data(),
         };
-        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, resource_manager_.find(desc.signal_fence)));
+        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, resource_manager_.find(signal_fence)));
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()

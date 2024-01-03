@@ -227,8 +227,8 @@ namespace orion
         write_descriptor_api(descriptor_handle, bindings);
     }
 
-    void RenderDevice::submit(const SubmitDesc& desc)
+    void RenderDevice::submit(const SubmitDesc& desc, FenceHandle signal_fence)
     {
-        submit_api(desc);
+        submit_api(desc, signal_fence);
     }
 } // namespace orion

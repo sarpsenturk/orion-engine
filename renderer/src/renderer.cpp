@@ -91,12 +91,13 @@ namespace orion
         frame.command_list->end();
 
         // Submit command buffer
-        device()->submit({
-            .queue_type = CommandQueueType::Graphics,
-            .command_lists = {{frame.command_list.get()}},
-            .signal_semaphores = {{frame.render_semaphore}},
-            .signal_fence = frame.fence,
-        });
+        device()->submit(
+            {
+                .queue_type = CommandQueueType::Graphics,
+                .command_lists = {{frame.command_list.get()}},
+                .signal_semaphores = {{frame.render_semaphore}},
+            },
+            frame.fence);
 
         // Advance to next frame
         advance_frame();
@@ -186,13 +187,14 @@ namespace orion
         command_list->end_render_pass();
         command_list->end();
 
-        device()->submit({
-            .queue_type = CommandQueueType::Graphics,
-            .wait_semaphores = {{frame.render_semaphore}},
-            .command_lists = {{command_list}},
-            .signal_semaphores = {{frame.present_semaphore}},
-            .signal_fence = frame.present_fence,
-        });
+        device()->submit(
+            {
+                .queue_type = CommandQueueType::Graphics,
+                .wait_semaphores = {{frame.render_semaphore}},
+                .command_lists = {{command_list}},
+                .signal_semaphores = {{frame.present_semaphore}},
+            },
+            frame.present_fence);
 
         render_window.swapchain->present({{frame.present_semaphore}});
     }

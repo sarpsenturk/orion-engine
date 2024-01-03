@@ -543,7 +543,6 @@ namespace orion
         std::span<const SemaphoreHandle> wait_semaphores;
         std::span<const CommandList* const> command_lists;
         std::span<const SemaphoreHandle> signal_semaphores;
-        FenceHandle signal_fence;
     };
 
     const char* format_as(PhysicalDeviceType type) noexcept;
