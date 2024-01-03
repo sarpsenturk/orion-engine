@@ -1,9 +1,9 @@
 #pragma once
 
-#include "orion-math/concepts.h"
 #include "orion-math/sqrt.h"
 
 #include "orion-utils/callable.h"
+#include "orion-utils/concepts.h"
 
 #include <algorithm>
 #include <array>
@@ -32,7 +32,7 @@
 
 namespace orion
 {
-    template<arithmetic T, std::size_t N>
+    template<Arithmetic T, std::size_t N>
     struct Vector {
     public:
         using value_type = T;
@@ -125,7 +125,7 @@ namespace orion
 
         [[nodiscard]] friend constexpr bool operator==(const Vector& lhs, const Vector& rhs) noexcept = default;
 
-        [[nodiscard]] friend constexpr auto operator*(const Vector& vector, arithmetic auto scalar) noexcept
+        [[nodiscard]] friend constexpr auto operator*(const Vector& vector, Arithmetic auto scalar) noexcept
         {
             using common_type = std::common_type_t<value_type, decltype(scalar)>;
             using ResultVector = Vector<common_type, N>;
@@ -134,7 +134,7 @@ namespace orion
             return result;
         }
 
-        [[nodiscard]] friend constexpr auto operator/(const Vector& vector, arithmetic auto scalar) noexcept
+        [[nodiscard]] friend constexpr auto operator/(const Vector& vector, Arithmetic auto scalar) noexcept
         {
             using common_type = std::common_type_t<value_type, decltype(scalar)>;
             using ResultVector = Vector<common_type, N>;

@@ -9,8 +9,10 @@ target_sources(
         bits.h
         callable.h
         compiler.h
+        concepts.h
         expected.h
         hash.h
+        minmax.h
         overload.h
         static_vector.h
         string.h

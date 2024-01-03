@@ -1,7 +1,8 @@
 #pragma once
 
-#include "concepts.h"
 #include "constants.h"
+
+#include "orion-utils/concepts.h"
 
 #include <concepts>
 #include <type_traits>
@@ -94,19 +95,19 @@ namespace orion
             return Angle<common_type, Tag>{result};
         }
 
-        template<arithmetic T1>
+        template<Arithmetic T1>
         constexpr friend Angle operator*(Angle angle, T1 factor) noexcept
         {
             return Angle{angle.value() * factor};
         }
 
-        template<arithmetic T1>
+        template<Arithmetic T1>
         constexpr friend Angle operator*(T1 factor, Angle angle) noexcept
         {
             return Angle{factor * angle.value()};
         }
 
-        template<arithmetic T1>
+        template<Arithmetic T1>
         constexpr friend Angle operator/(Angle angle, T1 divider) noexcept
         {
             return Angle{angle.value() / divider};

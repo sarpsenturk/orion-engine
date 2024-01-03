@@ -1,8 +1,8 @@
 #pragma once
 
-#include "orion-math/concepts.h"
 #include "orion-utils/assertion.h"
 #include "orion-utils/callable.h"
+#include "orion-utils/concepts.h"
 
 #include <algorithm>
 #include <array>
@@ -110,11 +110,11 @@ namespace orion
             return result;
         }
 
-        [[nodiscard]] constexpr friend Matrix operator*(const Matrix& matrix, arithmetic auto scalar)
+        [[nodiscard]] constexpr friend Matrix operator*(const Matrix& matrix, Arithmetic auto scalar)
         {
             return scalar_multiply(matrix, scalar);
         }
-        [[nodiscard]] constexpr friend Matrix operator*(arithmetic auto scalar, const Matrix& matrix)
+        [[nodiscard]] constexpr friend Matrix operator*(Arithmetic auto scalar, const Matrix& matrix)
         {
             return scalar_multiply(matrix, scalar);
         }
@@ -165,7 +165,7 @@ namespace orion
         [[nodiscard]] constexpr const_reverse_iterator crend() const noexcept { return elements_.crend(); }
 
     private:
-        static constexpr Matrix scalar_multiply(const Matrix& matrix, arithmetic auto scalar)
+        static constexpr Matrix scalar_multiply(const Matrix& matrix, Arithmetic auto scalar)
         {
             Matrix result;
             std::ranges::transform(matrix, result.begin(), [&scalar](auto value) { return value * scalar; });
