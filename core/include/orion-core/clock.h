@@ -27,6 +27,6 @@ namespace orion
         };
     } // namespace detail
 
-    using clock = detail::QPCClock;
-    using frame_time = clock::duration;
+    using Clock = detail::QPCClock;
+    using FrameTime = typename Clock::duration;
 } // namespace orion

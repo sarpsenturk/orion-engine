@@ -33,13 +33,17 @@ public:
     }
 
 private:
-    void on_user_update([[maybe_unused]] orion::frame_time delta_time) override
+    void on_user_update([[maybe_unused]] orion::FrameTime delta_time) override
     {
         window_.poll_events();
     }
 
     void on_user_render() override
     {
+        if (window_.is_minimized()) {
+            return;
+        }
+
         renderer_.begin();
 
         renderer_.draw_test_triangle();

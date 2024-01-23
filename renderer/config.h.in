@@ -6,7 +6,8 @@
 static_assert(ORION_FRAMES_IN_FLIGHT > 0);
 namespace orion
 {
-    inline constexpr auto frames_in_flight = int{ORION_FRAMES_IN_FLIGHT};
+    using frame_index_t = std::int8_t;
+    inline constexpr auto frames_in_flight = frame_index_t{ORION_FRAMES_IN_FLIGHT};
 }
 
 #cmakedefine01 ORION_RENDERER_HEADLESS

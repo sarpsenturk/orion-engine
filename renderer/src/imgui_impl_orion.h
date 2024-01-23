@@ -8,13 +8,21 @@
 
 #pragma once
 
-#include "orion-renderer/shader.h"
+#include "orion-renderapi/handles.h"
 
-#include "orion-core/window.h"
-
-#include "orion-renderapi/render_device.h"
+#include "orion-renderer/config.h"
 
 #include <imgui.h>
+
+namespace orion
+{
+    // Forward declare
+    class Window;
+    class RenderDevice;
+    class CommandAllocator;
+    class CommandList;
+    class ShaderManager;
+} // namespace orion
 
 struct ImGui_ImplOrion_InitDesc {
     orion::Window* window;
@@ -26,5 +34,5 @@ struct ImGui_ImplOrion_InitDesc {
 
 void ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitDesc& desc);
 void ImGui_ImplOrion_Shutdow();
-void ImGui_ImplOrion_NewFrame(std::int8_t frame_index);
+void ImGui_ImplOrion_NewFrame(orion::frame_index_t frame_index);
 void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* cmd_list);

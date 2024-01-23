@@ -14,8 +14,13 @@
 #include "orion-utils/minmax.h"
 
 #include "orion-core/clock.h"
+#include "orion-core/input.h"
+#include "orion-core/window.h"
+
+#include "orion-renderapi/render_device.h"
 
 #include "orion-renderer/config.h"
+#include "orion-renderer/shader.h"
 
 namespace
 {
@@ -216,7 +221,7 @@ namespace
         orion::handler_index mouse_button_down_handler;
         orion::handler_index mouse_button_up_handler;
         orion::handler_index mouse_scroll_handler;
-        orion::clock::time_point last_frame = orion::clock::now();
+        orion::Clock::time_point last_frame = orion::Clock::now();
     };
 
     ImGuiPlatformData* imgui_get_platform_data()
@@ -295,7 +300,7 @@ namespace
         orion::UniquePipeline pipeline;
 
         std::vector<ImGuiFrameData> frame_data;
-        std::int8_t frame_index;
+        orion::frame_index_t frame_index;
 
         auto& current_frame() { return frame_data[frame_index]; }
 
@@ -632,12 +637,12 @@ void ImGui_ImplOrion_Shutdow()
     SPDLOG_LOGGER_DEBUG(logger(), "ImGui_ImplOrion shut down");
 }
 
-void ImGui_ImplOrion_NewFrame(std::int8_t frame_index)
+void ImGui_ImplOrion_NewFrame(orion::frame_index_t frame_index)
 {
     auto* platform_data = imgui_get_platform_data();
     ORION_ASSERT(platform_data != nullptr && "Did you call ImGui_ImplOrion_Init()?");
 
-    const auto now = orion::clock::now();
+    const auto now = orion::Clock::now();
     const std::chrono::duration<float> delta_time = now - platform_data->last_frame;
     platform_data->last_frame = now;
     auto& io = ImGui::GetIO();

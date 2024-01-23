@@ -47,8 +47,6 @@ namespace orion
         [[nodiscard]] auto* backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto* device() const noexcept { return render_device_.get(); }
 
-        void imgui_init();
-
         void begin();
         void end();
         void imgui_begin();
@@ -130,8 +128,8 @@ namespace orion
         PipelineHandle present_pipeline_;
 
         FrameDataArr frames_;
-        std::int8_t current_frame_index_ = 0;
-        std::int8_t previous_frame_index_ = -1;
+        frame_index_t current_frame_index_ = 0;
+        frame_index_t previous_frame_index_ = -1;
 
         std::unique_ptr<ImGuiContext> imgui_;
     };

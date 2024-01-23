@@ -15,7 +15,7 @@ namespace orion
                            ORION_VERSION, ORION_PLATFORM, ORION_BUILD_TYPE);
     }
 
-    void Application::on_update(frame_time dt)
+    void Application::on_update(FrameTime dt)
     {
         on_user_update(dt);
     }
@@ -32,9 +32,9 @@ namespace orion
 
     void Application::run()
     {
-        clock::time_point last_frame;
+        Clock::time_point last_frame;
         while (!should_exit()) {
-            const auto now = clock::now();
+            const auto now = Clock::now();
             const auto dt = now - last_frame;
             last_frame = now;
             on_update(dt);

@@ -13,7 +13,7 @@ namespace orion
         Application();
         virtual ~Application() = default;
 
-        void on_update(frame_time dt);
+        void on_update(FrameTime dt);
         void on_render();
         [[nodiscard]] bool should_exit() const noexcept;
         void run();
@@ -29,7 +29,7 @@ namespace orion
         void exit_application();
 
     private:
-        virtual void on_user_update(frame_time dt) = 0;
+        virtual void on_user_update(FrameTime dt) = 0;
         virtual void on_user_render() = 0;
 
         std::shared_ptr<spdlog::logger> logger_;
