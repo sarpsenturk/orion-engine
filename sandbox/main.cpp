@@ -20,15 +20,11 @@ class SandboxApp final : public orion::Application
 {
 public:
     SandboxApp()
-        : renderer_({.device_select_fn = orion::device_select_discrete, .render_size = {800, 600}})
-        , window_({})
-        , render_window_(renderer_.create_render_window(window_))
+        : window_({.name = "Sandbox App", .size = orion::default_window_size})
+        , renderer_({.window = &window_, .device_select_fn = orion::device_select_discrete, .render_size = {800, 600}, .init_imgui = true})
     {
         // Close app on callback
         window_.on_close().subscribe(ORION_EXIT_APP_FN);
-
-        // Initialize imgui
-        renderer_.imgui_init(render_window_);
 
         // Create entity
         auto entity = scene_.create_entity();
@@ -53,12 +49,11 @@ private:
         renderer_.imgui_end();
 
         renderer_.end();
-        renderer_.present(render_window_);
+        renderer_.present(window_);
     }
 
-    orion::Renderer renderer_;
     orion::Window window_;
-    orion::RenderWindow render_window_;
+    orion::Renderer renderer_;
     orion::Scene scene_;
 };
 

@@ -3,8 +3,6 @@
 #include "orion-core/event.h"
 #include "orion-core/input.h"
 
-#include "orion-utils/bits.h"
-
 #include <memory>
 #include <string>
 
@@ -98,11 +96,11 @@ namespace orion
         [[nodiscard]] auto& size() const noexcept { return size_; }
         [[nodiscard]] auto aspect_ratio() const noexcept { return static_cast<float>(size_.x()) / size_.y(); }
 
-        [[nodiscard]] bool should_close() const noexcept { return get_bit(state_, close_bit) != 0; }
-        [[nodiscard]] bool is_resizing() const noexcept { return get_bit(state_, resize_bit) != 0; }
-        [[nodiscard]] bool is_moving() const noexcept { return get_bit(state_, move_bit) != 0; }
-        [[nodiscard]] bool is_maximized() const noexcept { return get_bit(state_, maximize_bit) != 0; }
-        [[nodiscard]] bool is_minimized() const noexcept { return get_bit(state_, minimize_bit) != 0; }
+        [[nodiscard]] bool should_close() const noexcept;
+        [[nodiscard]] bool is_resizing() const noexcept;
+        [[nodiscard]] bool is_moving() const noexcept;
+        [[nodiscard]] bool is_maximized() const noexcept;
+        [[nodiscard]] bool is_minimized() const noexcept;
 
         [[nodiscard]] auto& on_close() noexcept { return on_close_; }
         [[nodiscard]] auto& on_move() noexcept { return on_move_; }

@@ -1,5 +1,7 @@
 #include "orion-core/window.h"
 
+#include "orion-utils/bits.h"
+
 #ifndef ORION_WINDOW_LOG_LEVEL
     #define ORION_WINDOW_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
 #endif
@@ -54,6 +56,31 @@ namespace orion
     void Window::poll_events()
     {
         platform::update_window(platform_window_.get());
+    }
+
+    bool Window::should_close() const noexcept
+    {
+        return get_bit(state_, close_bit) != 0;
+    }
+
+    bool Window::is_resizing() const noexcept
+    {
+        return get_bit(state_, resize_bit) != 0;
+    }
+
+    bool Window::is_moving() const noexcept
+    {
+        return get_bit(state_, move_bit) != 0;
+    }
+
+    bool Window::is_maximized() const noexcept
+    {
+        return get_bit(state_, maximize_bit) != 0;
+    }
+
+    bool Window::is_minimized() const noexcept
+    {
+        return get_bit(state_, minimize_bit) != 0;
     }
 
     spdlog::logger* Window::logger()

@@ -22,21 +22,16 @@ namespace orion
     const char* default_backend_module(Platform platform = current_platform);
 
     struct RendererDesc {
+        Window* window;
         const char* backend_module = default_backend_module();
         SelectPhysicalDeviceFn device_select_fn = nullptr;
         Vector2_u render_size;
+        bool init_imgui;
     };
 
     // Forward declare
     class Scene;
     class Window;
-
-    struct RenderWindow {
-        Window* window;
-        std::unique_ptr<Swapchain> swapchain;
-        std::vector<ImageViewHandle> image_views;
-        std::vector<FramebufferHandle> framebuffers;
-    };
 
     class ImGuiContext
     {
@@ -52,7 +47,7 @@ namespace orion
         [[nodiscard]] auto* backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto* device() const noexcept { return render_device_.get(); }
 
-        void imgui_init(RenderWindow& render_window);
+        void imgui_init();
 
         void begin();
         void end();
@@ -61,8 +56,7 @@ namespace orion
         void draw(const Scene& scene);
         void draw_test_triangle();
 
-        [[nodiscard]] RenderWindow create_render_window(Window& window);
-        void present(const RenderWindow& render_window);
+        void present(const Window& window);
 
     private:
         struct FrameData {
@@ -79,6 +73,9 @@ namespace orion
         };
         using FrameDataArr = std::vector<FrameData>;
 
+        static constexpr auto swapchain_image_count = frames_in_flight;
+        static constexpr auto swapchain_image_format = Format::B8G8R8A8_Srgb;
+
         static spdlog::logger* logger();
 
         [[nodiscard]] FrameData& current_frame() noexcept { return frames_[current_frame_index_]; }
@@ -90,6 +87,9 @@ namespace orion
 
         [[nodiscard]] std::unique_ptr<RenderBackend> create_render_backend() const;
         [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(SelectPhysicalDeviceFn device_select_fn) const;
+        [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(const Window* window) const;
+        [[nodiscard]] std::vector<ImageViewHandle> create_swapchain_image_views() const;
+        [[nodiscard]] std::vector<FramebufferHandle> create_swapchain_framebuffers(const Vector2_u& size) const;
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator() const;
         [[nodiscard]] RenderPassHandle create_render_pass() const;
         [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
@@ -100,10 +100,18 @@ namespace orion
         [[nodiscard]] RenderPassHandle create_present_pass() const;
         [[nodiscard]] PipelineHandle create_present_pipeline() const;
         [[nodiscard]] FrameDataArr create_frame_data() const;
+        [[nodiscard]] std::unique_ptr<ImGuiContext> create_imgui_context(Window* window);
 
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+
+        RenderPassHandle render_pass_;
+        RenderPassHandle present_pass_;
+
+        std::unique_ptr<Swapchain> swapchain_;
+        std::vector<ImageViewHandle> swapchain_image_views_;
+        std::vector<FramebufferHandle> swapchain_framebuffers_;
 
         std::unique_ptr<CommandAllocator> command_allocator_;
 
@@ -111,7 +119,6 @@ namespace orion
 
         Vector2_u render_size_;
 
-        RenderPassHandle render_pass_;
         PipelineLayoutHandle triangle_pipeline_layout_;
         ShaderEffect triangle_shader_effect_;
         PipelineHandle triangle_pipeline_;
@@ -119,7 +126,6 @@ namespace orion
         DescriptorLayoutHandle present_descriptor_layout_;
         PipelineLayoutHandle present_pipeline_layout_;
         SamplerHandle present_sampler_;
-        RenderPassHandle present_pass_;
         ShaderEffect present_shader_effect_;
         PipelineHandle present_pipeline_;
 

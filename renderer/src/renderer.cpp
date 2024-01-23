@@ -48,46 +48,25 @@ namespace orion
         : backend_module_(desc.backend_module)
         , render_backend_(create_render_backend())
         , render_device_(create_render_device(desc.device_select_fn))
+        , render_pass_(create_render_pass())
+        , present_pass_(create_present_pass())
+        , swapchain_(create_swapchain(desc.window))
+        , swapchain_image_views_(create_swapchain_image_views())
+        , swapchain_framebuffers_(create_swapchain_framebuffers(desc.window->size()))
         , command_allocator_(create_command_allocator())
         , shader_manager_(device())
         , render_size_(desc.render_size)
-        , render_pass_(create_render_pass())
         , triangle_pipeline_layout_(create_triangle_pipeline_layout())
         , triangle_shader_effect_(shader_manager_.load_shader_effect("triangle"))
         , triangle_pipeline_(create_triangle_pipeline())
         , present_descriptor_layout_(create_present_descriptor_layout())
         , present_pipeline_layout_(create_present_pipeline_layout())
         , present_sampler_(create_present_sampler())
-        , present_pass_(create_present_pass())
         , present_shader_effect_(shader_manager_.load_shader_effect("present"))
         , present_pipeline_(create_present_pipeline())
         , frames_(create_frame_data())
+        , imgui_(desc.init_imgui ? create_imgui_context(desc.window) : nullptr)
     {
-    }
-
-    void Renderer::imgui_init(RenderWindow& render_window)
-    {
-        if (imgui_) {
-            SPDLOG_LOGGER_WARN(logger(), "ImGui already initialized");
-            return;
-        }
-
-        // Setup Dear ImGui context
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplOrion_Init({
-            .window = render_window.window,
-            .device = device(),
-            .command_allocator = command_allocator_.get(),
-            .render_pass = render_pass_,
-            .shader_manager = &shader_manager_,
-        });
-        imgui_ = std::make_unique<ImGuiContext>();
-        SPDLOG_LOGGER_DEBUG(logger(), "Renderer ImGui initialized");
     }
 
     void Renderer::begin()
@@ -140,14 +119,14 @@ namespace orion
 
     void Renderer::imgui_begin()
     {
-        ORION_ASSERT(imgui_ && "ImGui not initialized. Need to call Renderer::imgui_init() first");
+        ORION_ASSERT(imgui_ && "ImGui not initialized. RendererDesc::init_imgui must be true to use ImGui");
         ImGui_ImplOrion_NewFrame(current_frame_index_);
         ImGui::NewFrame();
     }
 
     void Renderer::imgui_end()
     {
-        ORION_ASSERT(imgui_ && "ImGui not initialized. Need to call Renderer::imgui_init() first");
+        ORION_ASSERT(imgui_ && "ImGui not initialized. RendererDesc::init_imgui must be true to use ImGui");
         ImGui::Render();
         ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), current_frame().command_list.get());
     }
@@ -180,37 +159,15 @@ namespace orion
         frame.command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
     }
 
-    RenderWindow Renderer::create_render_window(Window& window)
-    {
-        RenderWindow render_window{.window = &window};
-        render_window.swapchain = device()->create_swapchain(window, SwapchainDesc{.image_size = window.size()});
-        for (int i = 0; i < default_swapchain_image_count; ++i) {
-            auto image_view = device()->create_image_view({
-                .image = render_window.swapchain->get_image(i),
-                .type = ImageViewType::View2D,
-                .format = default_swapchain_format,
-            });
-            render_window.image_views.push_back(image_view);
-
-            auto framebuffer = device()->create_framebuffer({
-                .render_pass = present_pass_,
-                .image_views = {{image_view}},
-                .size = window.size(),
-            });
-            render_window.framebuffers.push_back(framebuffer);
-        }
-        return render_window;
-    }
-
-    void Renderer::present(const RenderWindow& render_window)
+    void Renderer::present(const Window& window)
     {
         auto& frame = previous_frame();
 
         auto* command_list = frame.present_command.get();
 
         // Acquire image from swapchain
-        const auto image_index = render_window.swapchain->current_image_index();
-        const auto present_size = render_window.window->size();
+        const auto image_index = swapchain_->current_image_index();
+        const auto present_size = window.size();
 
         // Reset present command list
         device()->wait_for_fence(frame.present_fence);
@@ -219,7 +176,7 @@ namespace orion
         command_list->begin();
         command_list->begin_render_pass({
             .render_pass = present_pass_,
-            .framebuffer = render_window.framebuffers[image_index],
+            .framebuffer = swapchain_framebuffers_[image_index],
             .render_area = {.size = present_size},
             .clear_color = {},
         });
@@ -245,7 +202,7 @@ namespace orion
             },
             frame.present_fence);
 
-        render_window.swapchain->present({{frame.present_semaphore}});
+        swapchain_->present({{frame.present_semaphore}});
     }
 
     spdlog::logger* Renderer::logger()
@@ -312,6 +269,43 @@ namespace orion
         auto render_device = render_backend_->create_device(physical_device_index);
         SPDLOG_LOGGER_DEBUG(logger(), "Render device created");
         return render_device;
+    }
+
+    std::unique_ptr<Swapchain> Renderer::create_swapchain(const Window* window) const
+    {
+        ORION_ASSERT(window != nullptr);
+        ORION_ASSERT(device() != nullptr);
+        const auto desc = SwapchainDesc{
+            .image_count = swapchain_image_count,
+            .image_format = swapchain_image_format,
+            .image_size = window->size(),
+            .image_usage = ImageUsageFlags::ColorAttachment,
+        };
+        return device()->create_swapchain(*window, desc);
+    }
+    std::vector<ImageViewHandle> Renderer::create_swapchain_image_views() const
+    {
+        std::vector<ImageViewHandle> image_views(swapchain_image_count);
+        std::ranges::generate(image_views, [this, index = 0u]() mutable {
+            return device()->create_image_view({
+                .image = swapchain_->get_image(index++),
+                .type = ImageViewType::View2D,
+                .format = swapchain_image_format,
+            });
+        });
+        return image_views;
+    }
+    std::vector<FramebufferHandle> Renderer::create_swapchain_framebuffers(const Vector2_u& size) const
+    {
+        std::vector<FramebufferHandle> framebuffers(swapchain_image_count);
+        std::ranges::generate(framebuffers, [&, index = 0u]() mutable {
+            return device()->create_framebuffer({
+                .render_pass = present_pass_,
+                .image_views = {{swapchain_image_views_[index++]}},
+                .size = size,
+            });
+        });
+        return framebuffers;
     }
 
     std::unique_ptr<CommandAllocator> Renderer::create_command_allocator() const
@@ -501,5 +495,25 @@ namespace orion
             frame_data.push_back(generate_frame_data());
         }
         return frame_data;
+    }
+
+    std::unique_ptr<ImGuiContext> Renderer::create_imgui_context(Window* window)
+    {
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplOrion_Init({
+            .window = window,
+            .device = device(),
+            .command_allocator = command_allocator_.get(),
+            .render_pass = render_pass_,
+            .shader_manager = &shader_manager_,
+        });
+        SPDLOG_LOGGER_DEBUG(logger(), "Renderer ImGui initialized");
+        return std::make_unique<ImGuiContext>();
     }
 } // namespace orion
