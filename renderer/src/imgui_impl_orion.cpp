@@ -17,6 +17,7 @@
 #include "orion-core/input.h"
 #include "orion-core/window.h"
 
+#include "orion-renderapi/buffer.h"
 #include "orion-renderapi/render_device.h"
 
 #include "orion-renderer/config.h"
@@ -283,14 +284,8 @@ namespace
     }
 
     struct ImGuiFrameData {
-        orion::UniqueGPUBuffer vertex_buffer;
-        std::size_t vertex_buffer_size = 0;
-        void* vertex_buffer_ptr = nullptr;
-
-        orion::UniqueGPUBuffer index_buffer;
-        std::size_t index_buffer_size = 0;
-        void* index_buffer_ptr = nullptr;
-
+        orion::MappedGPUBuffer vertex_buffer;
+        orion::MappedGPUBuffer index_buffer;
         ImGuiCSceneBuffer scene_buffer;
     };
 
@@ -564,7 +559,12 @@ namespace
         auto* command_allocator = init_desc.command_allocator;
 
         // Create frames in flight
-        renderer_data->frame_data.resize(orion::frames_in_flight);
+        renderer_data->frame_data.reserve(orion::frames_in_flight);
+        for (int i = 0; i < orion::frames_in_flight; ++i) {
+            renderer_data->frame_data.emplace_back(
+                orion::MappedGPUBuffer{device, orion::GPUBufferUsageFlags::VertexBuffer},
+                orion::MappedGPUBuffer{device, orion::GPUBufferUsageFlags::IndexBuffer});
+        }
 
         // Get the shader manager
         auto* shader_manager = init_desc.shader_manager;
@@ -602,18 +602,6 @@ namespace
         auto* renderer_data = imgui_get_renderer_data();
         if (!renderer_data) {
             return;
-        }
-
-        auto* device = renderer_data->device;
-
-        for (auto& frame : renderer_data->frame_data) {
-            // Unmap buffers
-            if (frame.vertex_buffer_ptr) {
-                device->unmap(frame.vertex_buffer.get());
-            }
-            if (frame.index_buffer_ptr) {
-                device->unmap(frame.index_buffer.get());
-            }
         }
 
         // Delete renderer data
@@ -665,50 +653,25 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
     }
 
     auto* renderer_data = imgui_get_renderer_data();
-    auto* device = renderer_data->device;
+
+    // Get frame
+    auto& frame = renderer_data->current_frame();
 
     // Calculate buffer sizes
     const auto vb_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
     const auto ib_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 
-    // Get frame
-    auto& frame = renderer_data->current_frame();
-
     // Resize buffers if needed
-    if (frame.vertex_buffer_size < vb_size) {
-        if (frame.vertex_buffer) {
-            device->unmap(frame.vertex_buffer.get());
-        }
-        const auto new_size = orion::max(vb_size, frame.vertex_buffer_size * 2);
-        const auto desc = orion::GPUBufferDesc{
-            .size = new_size,
-            .usage = orion::GPUBufferUsageFlags::VertexBuffer,
-            .host_visible = true,
-        };
-        frame.vertex_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
-        frame.vertex_buffer_size = new_size;
-        frame.vertex_buffer_ptr = device->map(frame.vertex_buffer.get());
-        SPDLOG_LOGGER_TRACE(logger(), "ImGui vertex buffer resized to {} bytes", new_size);
+    if (vb_size > frame.vertex_buffer.size()) {
+        frame.vertex_buffer.resize(orion::max(vb_size, frame.vertex_buffer.size() * 2));
     }
-    if (frame.index_buffer_size < ib_size) {
-        if (frame.index_buffer) {
-            device->unmap(frame.index_buffer.get());
-        }
-        const auto new_size = orion::max(ib_size, frame.index_buffer_size * 2);
-        const auto desc = orion::GPUBufferDesc{
-            .size = new_size,
-            .usage = orion::GPUBufferUsageFlags::IndexBuffer,
-            .host_visible = true,
-        };
-        frame.index_buffer = device->make_unique(orion::GPUBufferHandle_tag{}, desc);
-        frame.index_buffer_size = new_size;
-        frame.index_buffer_ptr = device->map(frame.index_buffer.get());
-        SPDLOG_LOGGER_TRACE(logger(), "ImGui index buffer resized to {} bytes", new_size);
+    if (ib_size > frame.index_buffer.size()) {
+        frame.index_buffer.resize(orion::max(ib_size, frame.index_buffer.size() * 2));
     }
 
     // Upload vertex and index data
-    auto* vert_ptr = static_cast<ImDrawVert*>(frame.vertex_buffer_ptr);
-    auto* idx_ptr = static_cast<ImDrawIdx*>(frame.index_buffer_ptr);
+    auto* vert_ptr = static_cast<ImDrawVert*>(frame.vertex_buffer.ptr());
+    auto* idx_ptr = static_cast<ImDrawIdx*>(frame.index_buffer.ptr());
     for (int i = 0; i < draw_data->CmdListsCount; ++i) {
         auto* imgui_cmd_list = draw_data->CmdLists[i];
         std::memcpy(vert_ptr, imgui_cmd_list->VtxBuffer.Data, imgui_cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
@@ -721,8 +684,8 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
     cmd_list->bind_pipeline({.pipeline = renderer_data->pipeline.get(), .bind_point = orion::PipelineBindPoint::Graphics});
 
     // Bind vertex and index buffers
-    cmd_list->bind_vertex_buffer({.vertex_buffer = frame.vertex_buffer.get(), .offset = 0});
-    cmd_list->bind_index_buffer({.index_buffer = frame.index_buffer.get(), .offset = 0, .index_type = orion::IndexType::Uint16});
+    cmd_list->bind_vertex_buffer({.vertex_buffer = frame.vertex_buffer.handle(), .offset = 0});
+    cmd_list->bind_index_buffer({.index_buffer = frame.index_buffer.handle(), .offset = 0, .index_type = orion::IndexType::Uint16});
 
     // Create orthogonal projection matrix
     const float left = draw_data->DisplayPos.x;
