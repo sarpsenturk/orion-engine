@@ -86,14 +86,9 @@ namespace orion
         ShaderReadOnly
     };
 
-    enum class ShaderStageFlags : std::uint8_t {
+    ORION_BITFLAG(ShaderStageFlags, std::uint8_t){
         Vertex = 0x1,
-        Pixel = 0x2
-    };
-
-    template<>
-    struct enum_bitwise_enabled<ShaderStageFlags> : std::true_type {
-    };
+        Pixel = 0x2};
 
     enum class PrimitiveTopology {
         TriangleList
@@ -121,17 +116,13 @@ namespace orion
         Instance
     };
 
-    enum class GPUBufferUsageFlags : std::uint8_t {
+    ORION_BITFLAG(GPUBufferUsageFlags, std::uint8_t){
         VertexBuffer = 0x1,
         IndexBuffer = 0x2,
         ConstantBuffer = 0x4,
         TransferSrc = 0x8,
         TransferDst = 0x10,
-        Transfer = TransferSrc | TransferDst
-    };
-    template<>
-    struct enum_bitwise_enabled<GPUBufferUsageFlags> : std::true_type {
-    };
+        Transfer = TransferSrc | TransferDst};
 
     struct Viewport {
         Vector2_f position;
@@ -232,18 +223,14 @@ namespace orion
         Linear
     };
 
-    enum class ImageUsageFlags : std::uint8_t {
+    ORION_BITFLAG(ImageUsageFlags, std::uint8_t){
         TransferSrc = 0x1,
         TransferDst = 0x2,
         ColorAttachment = 0x4,
         DepthStencilAttachment = 0x8,
         InputAttachment = 0x10,
         SampledImage = 0x20,
-        Transfer = TransferSrc | TransferDst
-    };
-    template<>
-    struct enum_bitwise_enabled<ImageUsageFlags> : std::true_type {
-    };
+        Transfer = TransferSrc | TransferDst};
 
     enum class ImageViewType {
         View1D,
@@ -422,16 +409,12 @@ namespace orion
         Max
     };
 
-    enum class ColorComponentFlags : std::uint8_t {
+    ORION_BITFLAG(ColorComponentFlags, std::uint8_t){
         R = 0x1u,
         G = 0x2u,
         B = 0x4u,
         A = 0x8u,
-        All = R | G | B | A
-    };
-    template<>
-    struct enum_bitwise_enabled<ColorComponentFlags> : std::true_type {
-    };
+        All = R | G | B | A};
 
     struct BlendAttachmentDesc {
         bool enable_blend;

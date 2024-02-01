@@ -3,14 +3,6 @@
 //
 // Bitwise operators:
 // 2 ways to enable bitwise operations on your enums are:
-//  - Have the ORION_ENABLE_BITWISE value in your enum
-//      ```
-//      enum class MyEnum {
-//          First,
-//          Second,
-//          ORION_ENABLE_BITWISE
-//      };
-//      ```
 //  - Specialize orion::enum_bitwise_enabled type trait
 //      ```
 //      enum class MyEnum {
@@ -20,6 +12,9 @@
 //      template<>
 //      struct orion::enum_bitwise_enabled<MyEnum> : std::true_type {};
 //      ```
+//  - Define your enum using the ORION_BITFLAG() macro
+//      ```
+//      ORION_BITFLAG(MyEnum,
 // Bitwise operators for enums satisfying either of those
 // are defined in global scope which allows it to be easily used while
 // keeping default behaviour for any other enum types.
@@ -55,7 +50,7 @@ namespace orion
     inline constexpr auto enum_bitwise_enabled_v = enum_bitwise_enabled<E>::value;
 
     template<typename E>
-    concept bitwise_enum = requires() { E::ORION_ENABLE_BITWISE; } || enum_bitwise_enabled_v<E>;
+    concept bitwise_enum = enum_bitwise_enabled_v<E>;
 
     template<bitwise_enum E, typename F>
     void for_set_bit(E value, F&& callback)
@@ -221,3 +216,10 @@ constexpr bool operator!(E value)
 {
     return orion::to_underlying(value) == 0;
 }
+
+#define ORION_BITFLAG(name, base)                                 \
+    enum class name : base;                                       \
+    template<>                                                    \
+    struct ::orion::enum_bitwise_enabled<name> : std::true_type { \
+    };                                                            \
+    enum class name : base

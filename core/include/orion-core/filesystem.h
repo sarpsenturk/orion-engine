@@ -11,19 +11,17 @@ namespace orion
 {
     namespace fs = std::filesystem;
 
-    enum class FileAccessFlags : std::uint8_t {
+    ORION_BITFLAG(FileAccessFlags, std::uint8_t){
         Read = 0x1,
         Write = 0x2,
         ReadWrite = Read | Write,
-        ORION_ENABLE_BITWISE,
     };
 
-    enum class FileShareFlags : std::uint8_t {
+    ORION_BITFLAG(FileShareFlags, std::uint8_t){
         None = 0,
         Delete = 0x1,
         Read = 0x2,
         Write = 0x4,
-        ORION_ENABLE_BITWISE,
     };
 
     enum class FileCreateMode {
@@ -34,7 +32,7 @@ namespace orion
         Truncate,
     };
 
-    enum class FileAttributeFlags : std::uint32_t {
+    ORION_BITFLAG(FileAttributeFlags, std::uint32_t){
         Normal = 0x1,
         ReadOnly = 0x2,
         Hidden = 0x4,
@@ -45,7 +43,6 @@ namespace orion
         Temporary = 0x90,
         Compressed = 0x100,
         Virtual = 0x200,
-        ORION_ENABLE_BITWISE,
     };
 
     struct FileOpenDesc {
