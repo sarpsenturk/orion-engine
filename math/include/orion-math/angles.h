@@ -81,7 +81,7 @@ namespace orion
         constexpr friend Angle<std::common_type_t<T, T1>, Tag> operator+(Angle lhs, Angle<T1, TagOther> rhs) noexcept
         {
             using common_type = std::common_type_t<T, T1>;
-            const auto converted = AngleConverter<TagOther, Tag>{}(rhs.value());
+            const auto converted = convert_angle<TagOther, Tag>(rhs.value());
             const auto result = static_cast<common_type>(lhs.value()) + static_cast<common_type>(converted);
             return Angle<common_type, Tag>{result};
         }
@@ -90,7 +90,7 @@ namespace orion
         constexpr friend Angle<std::common_type_t<T, T1>, Tag> operator-(Angle lhs, Angle<T1, TagOther> rhs) noexcept
         {
             using common_type = std::common_type_t<T, T1>;
-            const auto converted = AngleConverter<TagOther, Tag>{}(rhs.value());
+            const auto converted = convert_angle<TagOther, Tag>(rhs.value());
             const auto result = static_cast<common_type>(lhs.value()) - static_cast<common_type>(converted);
             return Angle<common_type, Tag>{result};
         }
@@ -159,4 +159,20 @@ namespace orion
     }
 
     inline constexpr auto pi_radians = radians(pi);
+
+    inline namespace literals
+    {
+        inline namespace angle_literals
+        {
+            inline constexpr auto operator""_rad(long double value) noexcept
+            {
+                return radians(value);
+            }
+
+            inline constexpr auto operator""_deg(long double value) noexcept
+            {
+                return degrees(value);
+            }
+        } // namespace angle_literals
+    } // namespace literals
 } // namespace orion

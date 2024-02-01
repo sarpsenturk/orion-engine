@@ -198,8 +198,7 @@ version but there's no issue using `uint32_t` over `std::uint32_t`
 ## Type Aliases
 
 Orion uses modern C++'s `using` for type aliases.
-`typedef` is not allowed and will give you a clang-tidy warning (
-see [here](https://clang.llvm.org/extra/clang-tidy/checks/modernize/use-using.html))
+`typedef` is not allowed and will give you a clang-tidy warning (see [here](https://clang.llvm.org/extra/clang-tidy/checks/modernize/use-using.html))
 
 ### Aliases to Primitive Types
 

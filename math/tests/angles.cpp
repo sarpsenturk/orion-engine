@@ -173,8 +173,13 @@ namespace
         {
             const auto degrees = orion::degrees(135.0);
             const auto negated = -degrees;
-            static_assert(std::is_same_v<std::remove_cvref_t<decltype(negated)>, orion::Degree_t<double>>);
+            static_assert(std::is_same_v<std::remove_const_t<decltype(negated)>, orion::Degree_t<double>>);
             EXPECT_EQ(negated.value(), -135.0);
         }
+    }
+
+    TEST(Angle, Literals)
+    {
+        using namespace orion::angle_literals;
     }
 } // namespace
