@@ -3,7 +3,7 @@
 #include <memory> // std::unique_ptr
 #include <string> // std::string
 
-#ifdef _WIN32
+#ifdef ORION_PLATFORM_WINDOWS
     #define ORION_EXPORT __declspec(dllexport)
     #define ORION_IMPORT __declspec(dllimport)
 #else

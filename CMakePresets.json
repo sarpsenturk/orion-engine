@@ -62,8 +62,7 @@
         "CMAKE_CXX_FLAGS": "/permissive- /W4 /external:anglebrackets /external:W0 /EHsc",
         "CXX_SANITIZE_ADDRESS": "/fsanitize=address",
         "CXX_SANITIZE_UNDEFINED": "",
-        "ORION_PLATFORM": "Windows",
-        "ORION_PLATFORM_WINDOWS": true
+        "ORION_PLATFORM": "Windows"
       }
     },
     {
