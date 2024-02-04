@@ -5,8 +5,6 @@ target_sources(
         FILES
         camera.h
         colors.h
-        mesh.h
         renderer.h
         shader.h
-        vertex.h
 )
