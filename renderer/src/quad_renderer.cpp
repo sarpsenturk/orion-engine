@@ -4,12 +4,16 @@
 
 #include "orion-renderapi/render_device.h"
 
+#include <span>
+
 namespace orion
 {
     QuadRenderer::QuadRenderer(RenderDevice* device, ShaderManager* shader_manager, RenderPassHandle render_pass)
         : device_(device)
+        , descriptor_layout_(create_descriptor_layout())
+        , pipeline_layout_(create_pipeline_layout())
         , pipeline_(create_pipeline(shader_manager, render_pass))
-        , frames_([this] { return FrameData{.quad_buffer = {device_, GPUBufferUsageFlags::StorageBuffer}}; })
+        , frames_([this] { return FrameData{.quad_buffer = {device_, GPUBufferUsageFlags::StorageBuffer}, .descriptor = device_->create_descriptor(descriptor_layout_)}; })
     {
     }
 
@@ -25,8 +29,34 @@ namespace orion
 
     void QuadRenderer::flush(CommandList* command_list)
     {
+        auto& frame = frames_.current_frame();
+        auto& buffer = frame.quad_buffer;
+
+        buffer.upload_grow(std::as_bytes(std::span{quads_}));
+        device_->write_descriptor(frame.descriptor, frame.quad_buffer.descriptor_binding(0));
+
         command_list->bind_pipeline({.pipeline = pipeline_, .bind_point = PipelineBindPoint::Graphics});
+        const auto descriptor = frame.descriptor;
+        command_list->bind_descriptor({.bind_point = PipelineBindPoint::Graphics, .pipeline_layout = pipeline_layout_, .index = 0, .descriptor = descriptor});
         command_list->draw({.vertex_count = static_cast<std::uint32_t>(vertex_count()), .instance_count = 1, .first_vertex = 0, .first_instance = 0});
+    }
+
+    DescriptorLayoutHandle QuadRenderer::create_descriptor_layout() const
+    {
+        return device_->create_descriptor_layout({
+            .bindings = {{
+                DescriptorBindingDesc{
+                    .type = BindingType::StorageBuffer,
+                    .shader_stages = ShaderStageFlags::Vertex,
+                    .count = 1,
+                },
+            }},
+        });
+    }
+
+    PipelineLayoutHandle QuadRenderer::create_pipeline_layout() const
+    {
+        return device_->create_pipeline_layout({.descriptors = {{descriptor_layout_}}});
     }
 
     PipelineHandle QuadRenderer::create_pipeline(ShaderManager* shader_manager, RenderPassHandle render_pass) const
@@ -35,7 +65,7 @@ namespace orion
         return device_->create_graphics_pipeline({
             .shaders = shader.shader_stages(),
             .vertex_bindings = {},
-            .pipeline_layout = {},
+            .pipeline_layout = pipeline_layout_,
             .input_assembly = {.topology = PrimitiveTopology::TriangleList},
             .rasterization = {.front_face = FrontFace::ClockWise},
             .color_blend = {

@@ -21,6 +21,18 @@ namespace orion
         });
     }
 
+    BindingType get_binding_type(GPUBufferUsageFlags buffer_usage)
+    {
+        if (!!(buffer_usage & GPUBufferUsageFlags::ConstantBuffer)) {
+            return BindingType::ConstantBuffer;
+        }
+        if (!!(buffer_usage & GPUBufferUsageFlags::StorageBuffer)) {
+            return BindingType::StorageBuffer;
+        }
+        ORION_ASSERT(!"Buffer usage not valid for descriptor binding");
+        return {};
+    }
+
     const char* format_as(PhysicalDeviceType type) noexcept
     {
         switch (type) {
@@ -75,6 +87,8 @@ namespace orion
                     break;
                 }
             }
+            ORION_ASSERT("Shader stage not handled in format_as()");
+            return "";
         }
         return result.substr(0, result.size() - 3);
     }

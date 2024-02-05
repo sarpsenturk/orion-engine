@@ -154,6 +154,8 @@ namespace orion
         Sampler
     };
 
+    BindingType get_binding_type(GPUBufferUsageFlags buffer_usage);
+
     struct DescriptorBindingDesc {
         BindingType type;
         ShaderStageFlags shader_stages;

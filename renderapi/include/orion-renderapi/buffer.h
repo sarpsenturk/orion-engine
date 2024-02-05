@@ -23,15 +23,30 @@ namespace orion
         MappedGPUBuffer& operator=(MappedGPUBuffer&& other) noexcept;
         ~MappedGPUBuffer();
 
-        [[nodiscard]] auto handle() const noexcept { return buffer_; }
-        [[nodiscard]] auto size() const noexcept { return size_; }
-        [[nodiscard]] auto usage() const noexcept { return usage_; }
+        [[nodiscard]] GPUBufferHandle handle() const noexcept { return buffer_; }
+        [[nodiscard]] std::size_t size() const noexcept { return size_; }
+        [[nodiscard]] GPUBufferUsageFlags usage() const noexcept { return usage_; }
         [[nodiscard]] void* ptr() noexcept { return ptr_; }
 
+        [[nodiscard]] bool needs_resize(std::size_t new_size) const noexcept { return new_size != size_; }
+        [[nodiscard]] bool needs_grow(std::size_t new_size) const noexcept { return new_size > size_; }
+        [[nodiscard]] bool needs_shrink(std::size_t new_size) const noexcept { return new_size < size_; }
+
+        [[nodiscard]] BufferBindingDesc binding_desc(std::size_t offset = 0ull) const noexcept;
+        [[nodiscard]] DescriptorBinding descriptor_binding(std::uint32_t binding, std::size_t offset = 0ull) const noexcept;
+
         void resize(std::size_t new_size);
+        void grow(std::size_t new_size);
+        void shrink(std::size_t new_size);
+
         void upload(std::span<const std::byte> data);
+        void upload_resize(std::span<const std::byte> data);
+        void upload_grow(std::span<const std::byte> data);
+        void upload_shrink(std::span<const std::byte> data);
 
     private:
+        void recreate(size_t new_size);
+
         RenderDevice* device_;
         std::size_t size_ = 0;
         GPUBufferUsageFlags usage_;

@@ -227,6 +227,11 @@ namespace orion
         write_descriptor_api(descriptor_handle, bindings);
     }
 
+    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, const DescriptorBinding& binding)
+    {
+        write_descriptor_api(descriptor_handle, {{binding}});
+    }
+
     void RenderDevice::submit(const SubmitDesc& desc, FenceHandle signal_fence)
     {
         submit_api(desc, signal_fence);

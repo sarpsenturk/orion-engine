@@ -120,6 +120,7 @@ namespace orion
         void wait_idle();
 
         void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings);
+        void write_descriptor(DescriptorHandle descriptor_handle, const DescriptorBinding& binding);
 
         void submit(const SubmitDesc& desc, FenceHandle signal_fence);
         void submit_immediate(const SubmitDesc& desc);

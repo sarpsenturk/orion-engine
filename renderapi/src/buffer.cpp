@@ -64,22 +64,73 @@ namespace orion
         }
     }
 
+    void MappedGPUBuffer::recreate(size_t new_size)
+    {
+        if (buffer_.is_valid()) {
+            device_->unmap(buffer_);
+            device_->destroy(buffer_);
+        }
+        buffer_ = device_->create_buffer({.size = new_size, .usage = usage_, .host_visible = true});
+        ptr_ = device_->map(buffer_);
+        size_ = new_size;
+    }
+
+    BufferBindingDesc MappedGPUBuffer::binding_desc(std::size_t offset) const noexcept
+    {
+        return {.buffer_handle = buffer_, .size = size_, .offset = offset};
+    }
+
+    DescriptorBinding MappedGPUBuffer::descriptor_binding(std::uint32_t binding, std::size_t offset) const noexcept
+    {
+        return {
+            .binding = binding,
+            .binding_type = get_binding_type(usage_),
+            .binding_value = binding_desc(offset),
+        };
+    }
+
     void MappedGPUBuffer::resize(std::size_t new_size)
     {
-        if (new_size > size_) {
-            if (buffer_.is_valid()) {
-                device_->unmap(buffer_);
-                device_->destroy(buffer_);
-            }
-            buffer_ = device_->create_buffer({.size = new_size, .usage = usage_, .host_visible = true});
-            ptr_ = device_->map(buffer_);
-            size_ = new_size;
+        if (needs_resize(new_size)) {
+            recreate(new_size);
+        }
+    }
+
+    void MappedGPUBuffer::grow(std::size_t new_size)
+    {
+        if (needs_grow(new_size)) {
+            recreate(new_size);
+        }
+    }
+
+    void MappedGPUBuffer::shrink(std::size_t new_size)
+    {
+        if (needs_shrink(new_size)) {
+            recreate(new_size);
         }
     }
 
     void MappedGPUBuffer::upload(std::span<const std::byte> data)
     {
-        resize(data.size_bytes());
+        ORION_ASSERT(data.size_bytes() <= size_);
         std::memcpy(ptr_, data.data(), data.size_bytes());
+    }
+
+    void MappedGPUBuffer::upload_resize(std::span<const std::byte> data)
+    {
+        resize(data.size_bytes());
+        upload(data);
+    }
+
+    void MappedGPUBuffer::upload_grow(std::span<const std::byte> data)
+    {
+        grow(data.size_bytes());
+        upload(data);
+    }
+
+    void MappedGPUBuffer::upload_shrink(std::span<const std::byte> data)
+    {
+        shrink(data.size_bytes());
+        upload(data);
     }
 } // namespace orion

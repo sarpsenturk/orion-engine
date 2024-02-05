@@ -15,6 +15,7 @@ namespace orion
 {
     struct QuadData {
         Vector3_f position;
+        char pad0;
         Vector4_f color;
     };
 
@@ -40,13 +41,18 @@ namespace orion
     private:
         struct FrameData {
             MappedGPUBuffer quad_buffer;
+            DescriptorHandle descriptor;
         };
 
+        [[nodiscard]] DescriptorLayoutHandle create_descriptor_layout() const;
+        [[nodiscard]] PipelineLayoutHandle create_pipeline_layout() const;
         [[nodiscard]] PipelineHandle create_pipeline(ShaderManager* shader_manager, RenderPassHandle render_pass) const;
 
         RenderDevice* device_;
         std::vector<QuadData> quads_;
 
+        DescriptorLayoutHandle descriptor_layout_;
+        PipelineLayoutHandle pipeline_layout_;
         PipelineHandle pipeline_;
 
         PerFrameData<FrameData> frames_;

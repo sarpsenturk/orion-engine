@@ -3,6 +3,7 @@
 #include <orion-core/window.h>
 
 #include <orion-renderer/renderer.h>
+#include <orion-renderer/colors.h>
 
 #include <orion-scene/scene.h>
 
@@ -44,7 +45,8 @@ private:
         renderer_.draw_test_triangle();
 
         quad_renderer_.begin();
-        quad_renderer_.add({});
+        quad_renderer_.add({.position = {-0.75f, 0.f, 0.f}, .color = orion::colors::cyan});
+        quad_renderer_.add({.position = {0.75f, 0.f, 0.f}, .color = orion::colors::green});
         renderer_.render(quad_renderer_);
     }
 
