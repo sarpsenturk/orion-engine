@@ -56,6 +56,8 @@ namespace orion
         , command_allocator_(create_command_allocator())
         , shader_manager_(device())
         , render_size_(desc.render_size)
+        , viewport_(Vector2_f{}, vector_cast<float>(render_size_), {0.f, 1.f})
+        , scissor_({}, render_size_)
         , triangle_pipeline_layout_(create_triangle_pipeline_layout())
         , triangle_shader_effect_(shader_manager_.load_shader_effect("triangle"))
         , triangle_pipeline_(create_triangle_pipeline())
@@ -64,14 +66,19 @@ namespace orion
         , present_sampler_(create_present_sampler())
         , present_shader_effect_(shader_manager_.load_shader_effect("present"))
         , present_pipeline_(create_present_pipeline())
-        , frames_(create_frame_data())
+        , frames_([this] { return create_frame_data(); })
         , imgui_(desc.init_imgui ? create_imgui_context(desc.window) : nullptr)
     {
     }
 
+    QuadRenderer Renderer::create_quad_renderer()
+    {
+        return {device(), &shader_manager_, render_pass_};
+    }
+
     void Renderer::begin()
     {
-        auto& frame = current_frame();
+        auto& frame = frames_.current_frame();
 
         // Wait for frame to finish
         device()->wait_for_fence(frame.fence);
@@ -92,11 +99,17 @@ namespace orion
             },
             .clear_color = colors::magenta,
         });
+
+        // Set the viewports
+        frame.command_list->set_viewports(viewport_);
+
+        // Set the scissors
+        frame.command_list->set_scissors(scissor_);
     }
 
     void Renderer::end()
     {
-        auto& frame = current_frame();
+        auto& frame = frames_.current_frame();
 
         // Finish render pass
         frame.command_list->end_render_pass();
@@ -128,32 +141,22 @@ namespace orion
     {
         ORION_ASSERT(imgui_ && "ImGui not initialized. RendererDesc::init_imgui must be true to use ImGui");
         ImGui::Render();
-        ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), current_frame().command_list.get());
+        ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), frames_.current_frame().command_list.get());
     }
 
-    void Renderer::draw(const Scene& scene)
+    void Renderer::render(QuadRenderer& quad_renderer)
     {
+        auto* command_list = frames_.current_frame().command_list.get();
+
+        quad_renderer.flush(command_list);
     }
 
     void Renderer::draw_test_triangle()
     {
-        auto& frame = current_frame();
+        auto& frame = frames_.current_frame();
 
         // Bind the triangle pipeline
         frame.command_list->bind_pipeline({.pipeline = triangle_pipeline_, .bind_point = PipelineBindPoint::Graphics});
-
-        // Set the viewports
-        frame.command_list->set_viewports(Viewport{
-            .position = Vector2_f{},
-            .size = vector_cast<float>(render_size_),
-            .depth = {0.f, 1.f},
-        });
-
-        // Set the scissors
-        frame.command_list->set_scissors(Scissor{
-            .offset = {},
-            .size = render_size_,
-        });
 
         // Make draw call
         frame.command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
@@ -161,7 +164,7 @@ namespace orion
 
     void Renderer::present(const Window& window)
     {
-        auto& frame = previous_frame();
+        auto& frame = frames_.previous_frame();
 
         auto* command_list = frame.present_command.get();
 
@@ -209,12 +212,6 @@ namespace orion
     {
         static const auto logger = create_logger("orion-renderer", ORION_RENDERER_LOG_LEVEL);
         return logger.get();
-    }
-
-    void Renderer::advance_frame() noexcept
-    {
-        previous_frame_index_ = current_frame_index_;
-        current_frame_index_ = (current_frame_index_ + 1) % frames_in_flight;
     }
 
     std::unique_ptr<RenderBackend> Renderer::create_render_backend() const
@@ -438,63 +435,56 @@ namespace orion
         });
     }
 
-    Renderer::FrameDataArr Renderer::create_frame_data() const
+    Renderer::FrameData Renderer::create_frame_data() const
     {
-        FrameDataArr frame_data;
-        auto generate_frame_data = [this]() -> FrameData {
-            auto image = device()->create_image({
-                .type = ImageType::Image2D,
-                .format = Format::B8G8R8A8_Srgb,
-                .size = vec3(render_size_, 1u),
-                .tiling = ImageTiling::Optimal,
-                .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage | ImageUsageFlags::TransferSrc,
-            });
-            auto image_view = device()->create_image_view({
-                .image = image,
-                .type = ImageViewType::View2D,
-                .format = Format::B8G8R8A8_Srgb,
-            });
-            auto render_target = device()->create_framebuffer({
-                .render_pass = render_pass_,
-                .image_views = {&image_view, 1},
-                .size = render_size_,
-            });
+        auto image = device()->create_image({
+            .type = ImageType::Image2D,
+            .format = Format::B8G8R8A8_Srgb,
+            .size = vec3(render_size_, 1u),
+            .tiling = ImageTiling::Optimal,
+            .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage | ImageUsageFlags::TransferSrc,
+        });
+        auto image_view = device()->create_image_view({
+            .image = image,
+            .type = ImageViewType::View2D,
+            .format = Format::B8G8R8A8_Srgb,
+        });
+        auto render_target = device()->create_framebuffer({
+            .render_pass = render_pass_,
+            .image_views = {&image_view, 1},
+            .size = render_size_,
+        });
 
-            // Create and update presentation descriptor
-            auto present_descriptor = device()->create_descriptor(present_descriptor_layout_);
-            const auto present_bindings = std::array{
-                DescriptorBinding{
-                    .binding = 0,
-                    .binding_type = BindingType::SampledImage,
-                    .binding_value = ImageBindingDesc{.image_view_handle = image_view, .image_layout = ImageLayout::ShaderReadOnly},
-                },
-                DescriptorBinding{
-                    .binding = 1,
-                    .binding_type = BindingType::Sampler,
-                    .binding_value = ImageBindingDesc{.sampler_handle = present_sampler_},
-                },
-            };
-            device()->write_descriptor(present_descriptor, present_bindings);
-
-            auto command_list = command_allocator_->create_command_list();
-            auto present_command = command_allocator_->create_command_list();
-            return {
-                .render_image = image,
-                .render_image_view = image_view,
-                .render_target = render_target,
-                .command_list = std::move(command_list),
-                .present_command = std::move(present_command),
-                .fence = device()->create_fence({.start_finished = true}),
-                .render_semaphore = device()->create_semaphore(),
-                .present_semaphore = device()->create_semaphore(),
-                .present_fence = device()->create_fence({.start_finished = true}),
-                .present_descriptor = present_descriptor,
-            };
+        // Create and update presentation descriptor
+        auto present_descriptor = device()->create_descriptor(present_descriptor_layout_);
+        const auto present_bindings = std::array{
+            DescriptorBinding{
+                .binding = 0,
+                .binding_type = BindingType::SampledImage,
+                .binding_value = ImageBindingDesc{.image_view_handle = image_view, .image_layout = ImageLayout::ShaderReadOnly},
+            },
+            DescriptorBinding{
+                .binding = 1,
+                .binding_type = BindingType::Sampler,
+                .binding_value = ImageBindingDesc{.sampler_handle = present_sampler_},
+            },
         };
-        for (int i = 0; i < frames_in_flight; ++i) {
-            frame_data.push_back(generate_frame_data());
-        }
-        return frame_data;
+        device()->write_descriptor(present_descriptor, present_bindings);
+
+        auto command_list = command_allocator_->create_command_list();
+        auto present_command = command_allocator_->create_command_list();
+        return {
+            .render_image = image,
+            .render_image_view = image_view,
+            .render_target = render_target,
+            .command_list = std::move(command_list),
+            .present_command = std::move(present_command),
+            .fence = device()->create_fence({.start_finished = true}),
+            .render_semaphore = device()->create_semaphore(),
+            .present_semaphore = device()->create_semaphore(),
+            .present_fence = device()->create_fence({.start_finished = true}),
+            .present_descriptor = present_descriptor,
+        };
     }
 
     std::unique_ptr<ImGuiContext> Renderer::create_imgui_context(Window* window)

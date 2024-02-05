@@ -1,0 +1,54 @@
+#pragma once
+
+#include "orion-renderer/frame.h"
+
+#include "orion-renderapi/buffer.h"
+#include "orion-renderapi/defs.h"
+#include "orion-renderapi/handles.h"
+
+#include "orion-math/vector/vector3.h"
+#include "orion-math/vector/vector4.h"
+
+#include <vector>
+
+namespace orion
+{
+    struct QuadData {
+        Vector3_f position;
+        Vector4_f color;
+    };
+
+    // Forward declare
+    class RenderDevice;
+    class ShaderManager;
+    class CommandList;
+
+    class QuadRenderer
+    {
+    public:
+        static constexpr auto quad_vertex_count = 6;
+
+        QuadRenderer(RenderDevice* device, ShaderManager* shader_manager, RenderPassHandle render_pass);
+
+        void begin();
+        void add(const QuadData& quad);
+        void flush(CommandList* command_list);
+
+        [[nodiscard]] std::size_t quad_count() const noexcept { return quads_.size(); }
+        [[nodiscard]] std::size_t vertex_count() const noexcept { return quads_.size() * quad_vertex_count; }
+
+    private:
+        struct FrameData {
+            MappedGPUBuffer quad_buffer;
+        };
+
+        [[nodiscard]] PipelineHandle create_pipeline(ShaderManager* shader_manager, RenderPassHandle render_pass) const;
+
+        RenderDevice* device_;
+        std::vector<QuadData> quads_;
+
+        PipelineHandle pipeline_;
+
+        PerFrameData<FrameData> frames_;
+    };
+} // namespace orion

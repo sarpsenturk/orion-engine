@@ -1,8 +1,9 @@
 #pragma once
 
 #include "orion-renderer/config.h"
-
-#include "shader.h"
+#include "orion-renderer/frame.h"
+#include "orion-renderer/quad_renderer.h"
+#include "orion-renderer/shader.h"
 
 #include "orion-renderapi/render_backend.h"
 #include "orion-renderapi/render_device.h"
@@ -47,12 +48,15 @@ namespace orion
         [[nodiscard]] auto* backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto* device() const noexcept { return render_device_.get(); }
 
+        [[nodiscard]] QuadRenderer create_quad_renderer();
+
         void begin();
         void end();
         void imgui_begin();
         void imgui_end();
-        void draw(const Scene& scene);
+        void render(QuadRenderer& quad_renderer);
         void draw_test_triangle();
+        void draw_debug_window();
 
         void present(const Window& window);
 
@@ -69,19 +73,11 @@ namespace orion
             FenceHandle present_fence;
             DescriptorHandle present_descriptor;
         };
-        using FrameDataArr = std::vector<FrameData>;
 
         static constexpr auto swapchain_image_count = frames_in_flight;
         static constexpr auto swapchain_image_format = Format::B8G8R8A8_Srgb;
 
         static spdlog::logger* logger();
-
-        [[nodiscard]] FrameData& current_frame() noexcept { return frames_[current_frame_index_]; }
-        [[nodiscard]] const FrameData& current_frame() const noexcept { return frames_[current_frame_index_]; }
-        [[nodiscard]] FrameData& previous_frame() noexcept { return frames_[previous_frame_index_]; }
-        [[nodiscard]] const FrameData& previous_frame() const noexcept { return frames_[previous_frame_index_]; }
-
-        void advance_frame() noexcept;
 
         [[nodiscard]] std::unique_ptr<RenderBackend> create_render_backend() const;
         [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(SelectPhysicalDeviceFn device_select_fn) const;
@@ -97,7 +93,7 @@ namespace orion
         [[nodiscard]] SamplerHandle create_present_sampler() const;
         [[nodiscard]] RenderPassHandle create_present_pass() const;
         [[nodiscard]] PipelineHandle create_present_pipeline() const;
-        [[nodiscard]] FrameDataArr create_frame_data() const;
+        [[nodiscard]] FrameData create_frame_data() const;
         [[nodiscard]] std::unique_ptr<ImGuiContext> create_imgui_context(Window* window);
 
         Module backend_module_;
@@ -116,6 +112,8 @@ namespace orion
         ShaderManager shader_manager_;
 
         Vector2_u render_size_;
+        Viewport viewport_;
+        Scissor scissor_;
 
         PipelineLayoutHandle triangle_pipeline_layout_;
         ShaderEffect triangle_shader_effect_;
@@ -127,7 +125,7 @@ namespace orion
         ShaderEffect present_shader_effect_;
         PipelineHandle present_pipeline_;
 
-        FrameDataArr frames_;
+        PerFrameData<FrameData> frames_;
         frame_index_t current_frame_index_ = 0;
         frame_index_t previous_frame_index_ = -1;
 
