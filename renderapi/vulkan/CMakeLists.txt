@@ -11,7 +11,7 @@ add_library(
         vma_impl.cpp
         vulkan_backend.h vulkan_backend.cpp
         vulkan_command.h vulkan_command.cpp
-        vulkan_conversion.h
+        vulkan_conversion.h vulkan_conversion.cpp
         vulkan_device.h vulkan_device.cpp
         vulkan_headers.h
         vulkan_platform.h ${vulkan_platform_impl}

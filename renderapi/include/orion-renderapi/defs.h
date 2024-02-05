@@ -122,6 +122,7 @@ namespace orion
         ConstantBuffer = 0x4,
         TransferSrc = 0x8,
         TransferDst = 0x10,
+        StorageBuffer = 0x20,
         Transfer = TransferSrc | TransferDst};
 
     struct Viewport {
@@ -148,6 +149,7 @@ namespace orion
 
     enum class BindingType : std::uint8_t {
         ConstantBuffer,
+        StorageBuffer,
         SampledImage,
         Sampler
     };
@@ -243,7 +245,6 @@ namespace orion
     };
 
     enum class IndexType {
-        None = 0,
         Uint16,
         Uint32,
     };

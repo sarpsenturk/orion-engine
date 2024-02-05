@@ -5,6 +5,7 @@
 
 #include <bit>
 #include <numeric>
+#include <unordered_map>
 
 namespace orion
 {
@@ -60,22 +61,19 @@ namespace orion
 
     std::string format_as(ShaderStageFlags shader_stages)
     {
-        if (!shader_stages) {
-            return {};
-        }
+        static const auto string_map = std::unordered_map{
+            std::make_pair(ShaderStageFlags::Vertex, std::string{"Vertex |"}),
+            std::make_pair(ShaderStageFlags::Pixel, std::string{"Pixel |"}),
+        };
 
         std::string result{};
-        for (auto stage : BitwiseRange{shader_stages}) {
-            if (!stage) {
-                continue;
-            }
-            switch (stage) {
-                case ShaderStageFlags::Vertex:
-                    result += "Vertex | ";
+        while (!!shader_stages) {
+            for (const auto& [from, to] : string_map) {
+                if (!!(shader_stages & from)) {
+                    result += to;
+                    shader_stages ^= from;
                     break;
-                case ShaderStageFlags::Pixel:
-                    result += "Pixel | ";
-                    break;
+                }
             }
         }
         return result.substr(0, result.size() - 3);
