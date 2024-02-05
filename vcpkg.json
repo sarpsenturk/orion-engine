@@ -5,7 +5,6 @@
   "builtin-baseline": "228987a6fdbd56739a16d47eacf6e79d71a47973",
   "dependencies": [
     "spdlog",
-    "directx-dxc",
     "tl-expected",
     "entt",
     {
@@ -28,6 +27,12 @@
       "dependencies": [
         "vulkan",
         "vulkan-memory-allocator"
+      ]
+    },
+    "directx-dxc": {
+      "description": "DirectX Shader Compiler from vcpkg",
+      "dependencies": [
+        "directx-dxc"
       ]
     }
   }

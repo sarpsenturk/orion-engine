@@ -6,15 +6,24 @@ option(ORION_SANDBOX "Build the sandbox project" ${ORION_DEVELOPER_MODE})
 option(ORION_TEST "Build tests for the orion engine" ${ORION_DEVELOPER_MODE})
 
 # Enable/disable builtin backends
-option(ORION_RENDER_BACKEND_VULKAN "Enable the Vulkan backend for the orion renderer" ON)
+option(ORION_ENABLE_VULKAN "Enable the Vulkan backend for the orion renderer" ON)
+
+include(CMakeDependentOption)
+cmake_dependent_option(ORION_USE_VULKAN_DXC "Use DXC from the Vulkan SDK" ON ORION_ENABLE_VULKAN OFF)
+if (NOT ORION_USE_VULKAN_DXC)
+    list(APPEND VCPKG_MANIFEST_FEATURES "directx-dxc")
+endif ()
 
 # Enable testing feature with vcpkg
 if (ORION_TEST)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif ()
-if (ORION_RENDER_BACKEND_VULKAN)
+if (ORION_ENABLE_VULKAN)
     list(APPEND VCPKG_MANIFEST_FEATURES "vulkan")
 endif ()
+
+# Add cmake path
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 project(orion-engine
         VERSION 0.1.0
@@ -40,8 +49,9 @@ add_compile_definitions(
         $<$<CONFIG:Release>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_WARN>
 
         ORION_PLATFORM="${ORION_PLATFORM}"
-        $<$<STREQUAL:${ORION_PLATFORM},Windows>:ORION_PLATFORM_WINDOWS>
-        $<$<STREQUAL:${ORION_PLATFORM},Linux>:ORION_PLATFORM_LINUX>
+        $<$<BOOL:${ORION_PLATFORM_WINDOWS}>:ORION_PLATFORM_WINDOWS>
+        $<$<BOOL:${ORION_PLATFORM_LINUX}>:ORION_PLATFORM_LINUX>
+        $<$<BOOL:${ORION_PLATFORM_MACOS}>:ORION_PLATFORM_MACOS>
 )
 
 option(ORION_SANITIZE_ADDRESS "Enable address sanitizer" ${ORION_DEVELOPER_MODE})

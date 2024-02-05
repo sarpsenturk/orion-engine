@@ -121,7 +121,7 @@ namespace orion
 
         template<typename T1, std::size_t Rows1, std::size_t Cols1>
         [[nodiscard]] constexpr friend auto operator*(const Matrix& lhs, const Matrix<T1, Rows1, Cols1>& rhs) noexcept
-            requires(lhs.columns == rhs.rows)
+            requires(Cols == Rows1)
         {
             using common_type = std::common_type_t<T, T1>;
             Matrix<common_type, Rows, Cols1> result;

@@ -7,7 +7,7 @@
     #define ORION_EXPORT __declspec(dllexport)
     #define ORION_IMPORT __declspec(dllimport)
 #else
-    #define ORION_EXPORT __attribute__((visibility(default)))
+    #define ORION_EXPORT
     #define ORION_IMPORT
 #endif
 

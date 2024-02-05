@@ -1,6 +1,8 @@
 # Set vulkan platform implementation
 if (ORION_PLATFORM_WINDOWS)
     set(vulkan_platform_impl vulkan_win32.cpp)
+elseif (ORION_PLATFORM_MACOS)
+    # TODO: Set platform implementation to macos
 else ()
     message(FATAL_ERROR "Unsupported platform for the Vulkan backend")
 endif ()

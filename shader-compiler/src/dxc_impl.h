@@ -3,7 +3,9 @@
 #ifdef ORION_PLATFORM_WINDOWS
     #include <atlbase.h>
 #else
-    #error "Orion Shader Compiler is not currently supported on this platform"
+// TODO: __EMULATE_UUID seems necessary. Investigate.
+    #define __EMULATE_UUID
+    #include <WinAdapter.h>
 #endif
 
 #include <dxcapi.h>

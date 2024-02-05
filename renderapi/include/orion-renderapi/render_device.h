@@ -16,37 +16,6 @@ namespace orion
     class Window;
     class RenderDevice;
 
-    template<typename Tag>
-    struct ResourceDeleter {
-        using pointer = Handle<Tag>;
-
-        RenderDevice* device;
-
-        void operator()(pointer handle) const
-        {
-            if (handle) {
-                device->destroy(handle);
-            }
-        }
-    };
-
-    template<typename Tag>
-    using unique_device_resource = std::unique_ptr<Handle<Tag>, ResourceDeleter<Tag>>;
-
-    using UniqueRenderPass = unique_device_resource<RenderPassHandle_tag>;
-    using UniqueFramebuffer = unique_device_resource<FramebufferHandle_tag>;
-    using UniqueShaderModule = unique_device_resource<ShaderModuleHandle_tag>;
-    using UniquePipelineLayout = unique_device_resource<PipelineLayoutHandle_tag>;
-    using UniqueDescriptorLayout = unique_device_resource<DescriptorLayoutHandle_tag>;
-    using UniqueDescriptor = unique_device_resource<DescriptorHandle_tag>;
-    using UniquePipeline = unique_device_resource<PipelineHandle_tag>;
-    using UniqueGPUBuffer = unique_device_resource<GPUBufferHandle_tag>;
-    using UniqueImage = unique_device_resource<ImageHandle_tag>;
-    using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
-    using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
-    using UniqueFence = unique_device_resource<FenceHandle_tag>;
-    using UniqueSemaphore = unique_device_resource<SemaphoreHandle_tag>;
-
     class RenderDevice
     {
     public:
@@ -84,18 +53,6 @@ namespace orion
         [[nodiscard]] SamplerHandle create(SamplerHandle_tag, const SamplerDesc& desc) { return create_sampler(desc); }
         [[nodiscard]] FenceHandle create(FenceHandle_tag, const FenceDesc& desc) { return create_fence(desc); }
         [[nodiscard]] SemaphoreHandle create(SemaphoreHandle_tag) { return create_semaphore(); }
-
-        template<typename Tag, typename... Args>
-        auto make_unique(Tag tag, Args&&... args)
-        {
-            return unique_device_resource<Tag>{create(tag, std::forward<Args>(args)...), {this}};
-        }
-
-        template<typename Tag>
-        auto to_unique(Handle<Tag> handle)
-        {
-            return unique_device_resource<Tag>{handle, {this}};
-        }
 
         void destroy(RenderPassHandle render_pass_handle);
         void destroy(FramebufferHandle framebuffer_handle);

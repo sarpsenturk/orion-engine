@@ -7,13 +7,16 @@ namespace orion
     enum class Platform {
         Unknown,
         Windows,
-        Linux
+        Linux,
+        MacOS
     };
 
 #if defined(ORION_PLATFORM_WINDOWS)
     inline constexpr auto current_platform = Platform::Windows;
 #elif defined(ORION_PLATFORM_LINUX)
     inline constexpr auto current_platform = Platform::Linux;
+#elif defined(ORION_PLATFORM_MACOS)
+    inline constexpr auto current_platform = Platform::MacOS;
 #endif
 
     constexpr auto format_as(Platform platform) -> const char*
@@ -25,6 +28,8 @@ namespace orion
                 return "Windows";
             case Platform::Linux:
                 return "Linux";
+            case Platform::MacOS:
+                return "macOS";
         }
         return "Unknown";
     }

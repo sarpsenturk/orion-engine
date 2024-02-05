@@ -3,8 +3,8 @@
 #include "vulkan_headers.h"
 #include "vulkan_types.h"
 
-#include "orion-core/window.h"
 #include "orion-core/platform.h"
+#include "orion-core/window.h"
 
 #include <exception>
 
@@ -16,8 +16,10 @@ namespace orion::vulkan
     {
         if constexpr (current_platform == Platform::Windows) {
             return "VK_KHR_win32_surface";
+        } else if constexpr (current_platform == Platform::MacOS) {
+            return "VK_EXT_metal_surface";
         } else {
-            throw std::exception("No supported Vulkan surface extension for current platform");
+            throw "No supported Vulkan surface extension for current platform";
         }
     }
 

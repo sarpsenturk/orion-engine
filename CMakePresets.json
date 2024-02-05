@@ -62,7 +62,8 @@
         "CMAKE_CXX_FLAGS": "/permissive- /W4 /external:anglebrackets /external:W0 /EHsc",
         "CXX_SANITIZE_ADDRESS": "/fsanitize=address",
         "CXX_SANITIZE_UNDEFINED": "",
-        "ORION_PLATFORM": "Windows"
+        "ORION_PLATFORM": "Windows",
+        "ORION_PLATFORM_WINDOWS": true
       }
     },
     {
@@ -79,6 +80,42 @@
       "name": "win32-dist",
       "displayName": "Win32 Distribution",
       "inherits": ["win32-base", "dist"]
+    },
+    {
+      "name": "macos-base",
+      "hidden": true,
+      "inherits": [
+        "base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic -Wconversion -Wunused -Wsign-conversion",
+        "CXX_SANITIZE_ADDRESS": "",
+        "CXX_SANITIZE_UNDEFINED": "",
+        "ORION_PLATFORM": "macOS",
+        "ORION_PLATFORM_MACOS": true
+      }
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "macOS Debug",
+      "inherits": ["macos-base", "debug"]
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS Release",
+      "inherits": ["macos-base", "release"]
+    },
+    {
+      "name": "macos-dist",
+      "displayName": "macOS Distribution",
+      "inherits": ["macos-base", "dist"]
     }
   ]
 }

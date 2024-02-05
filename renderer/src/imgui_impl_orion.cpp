@@ -291,20 +291,20 @@ namespace
 
     struct ImGuiRendererData {
         orion::RenderDevice* device;
-        orion::UniquePipelineLayout pipeline_layout;
-        orion::UniquePipeline pipeline;
+        orion::PipelineLayoutHandle pipeline_layout;
+        orion::PipelineHandle pipeline;
 
         std::vector<ImGuiFrameData> frame_data;
         orion::frame_index_t frame_index;
 
         auto& current_frame() { return frame_data[frame_index]; }
 
-        orion::UniqueImage font_image;
-        orion::UniqueImageView font_image_view;
-        orion::UniqueSampler font_sampler;
+        orion::ImageHandle font_image;
+        orion::ImageViewHandle font_image_view;
+        orion::SamplerHandle font_sampler;
 
-        orion::UniqueDescriptorLayout descriptor_layout;
-        orion::UniqueDescriptor descriptor;
+        orion::DescriptorLayoutHandle descriptor_layout;
+        orion::DescriptorHandle descriptor;
     };
 
     ImGuiRendererData* imgui_get_renderer_data()
@@ -312,9 +312,9 @@ namespace
         return ImGui::GetCurrentContext() ? static_cast<ImGuiRendererData*>(ImGui::GetIO().BackendRendererUserData) : nullptr;
     }
 
-    orion::UniqueDescriptorLayout imgui_create_descriptor_layout(orion::RenderDevice* device)
+    orion::DescriptorLayoutHandle imgui_create_descriptor_layout(orion::RenderDevice* device)
     {
-        auto descriptor_layout = device->create_descriptor_layout({
+        return device->create_descriptor_layout({
             .bindings = {
                 {
                     orion::DescriptorBindingDesc{
@@ -330,10 +330,9 @@ namespace
                 },
             },
         });
-        return device->to_unique(descriptor_layout);
     }
 
-    orion::UniquePipelineLayout imgui_create_pipeline_layout(orion::RenderDevice* device, orion::DescriptorLayoutHandle descriptor_layout)
+    orion::PipelineLayoutHandle imgui_create_pipeline_layout(orion::RenderDevice* device, orion::DescriptorLayoutHandle descriptor_layout)
     {
         const auto descriptors = std::array{descriptor_layout};
         const auto push_constants = std::array{
@@ -342,13 +341,13 @@ namespace
                 .shader_stages = orion::ShaderStageFlags::Vertex,
             },
         };
-        return device->to_unique(device->create_pipeline_layout({
+        return device->create_pipeline_layout({
             .descriptors = descriptors,
             .push_constants = push_constants,
-        }));
+        });
     }
 
-    orion::UniquePipeline imgui_create_pipeline(
+    orion::PipelineHandle imgui_create_pipeline(
         orion::RenderDevice* device,
         orion::ShaderManager* shader_manager,
         orion::PipelineLayoutHandle pipeline_layout,
@@ -400,7 +399,7 @@ namespace
         };
 
         // Set pipeline description
-        const auto desc = orion::GraphicsPipelineDesc{
+        return device->create_graphics_pipeline({
             .shaders = shader_effect.shader_stages(),
             .vertex_bindings = vertex_bindings,
             .pipeline_layout = pipeline_layout,
@@ -408,37 +407,34 @@ namespace
             .rasterization = rasterization,
             .color_blend = color_blend,
             .render_pass = render_pass,
-        };
-        return device->make_unique(orion::PipelineHandle_tag{}, desc);
+        });
     }
 
     inline constexpr auto font_image_format = orion::Format::B8G8R8A8_Srgb;
 
-    orion::UniqueImage imgui_create_font_image(
+    orion::ImageHandle imgui_create_font_image(
         orion::RenderDevice* device,
         int width,
         int height)
     {
-        const auto desc = orion::ImageDesc{
+        return device->create_image({
             .type = orion::ImageType::Image2D,
             .format = font_image_format,
             .size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1},
             .tiling = orion::ImageTiling::Optimal,
             .usage = orion::ImageUsageFlags::SampledImage | orion::ImageUsageFlags::TransferDst,
-        };
-        return device->make_unique(orion::ImageHandle_tag{}, desc);
+        });
     }
 
-    orion::UniqueImageView imgui_create_font_image_view(
+    orion::ImageViewHandle imgui_create_font_image_view(
         orion::RenderDevice* device,
         orion::ImageHandle font_image)
     {
-        const auto desc = orion::ImageViewDesc{
+        return device->create_image_view({
             .image = font_image,
             .type = orion::ImageViewType::View2D,
             .format = font_image_format,
-        };
-        return device->make_unique(orion::ImageViewHandle_tag{}, desc);
+        });
     }
 
     void imgui_upload_font_image(
@@ -493,9 +489,9 @@ namespace
         device->destroy(upload_buffer);
     }
 
-    orion::UniqueSampler imgui_create_font_sampler(orion::RenderDevice* device)
+    orion::SamplerHandle imgui_create_font_sampler(orion::RenderDevice* device)
     {
-        const auto desc = orion::SamplerDesc{
+        return device->create_sampler({
             .filter = orion::Filter::Nearest,
             .address_mode_u = orion::AddressMode::Repeat,
             .address_mode_v = orion::AddressMode::Repeat,
@@ -504,11 +500,10 @@ namespace
             .max_anisotropy = 1.f,
             .min_lod = -1000,
             .max_lod = 1000,
-        };
-        return device->make_unique(orion::SamplerHandle_tag{}, desc);
+        });
     }
 
-    orion::UniqueDescriptor imgui_create_font_descriptor(
+    orion::DescriptorHandle imgui_create_font_descriptor(
         orion::RenderDevice* device,
         orion::DescriptorLayoutHandle descriptor_layout,
         orion::ImageViewHandle font_image_view,
@@ -537,7 +532,7 @@ namespace
         };
         device->write_descriptor(descriptor, descriptor_bindings);
 
-        return device->to_unique(descriptor);
+        return descriptor;
     }
 
     void imgui_init_renderer(const ImGui_ImplOrion_InitDesc& init_desc)
@@ -561,17 +556,19 @@ namespace
         // Create frames in flight
         renderer_data->frame_data.reserve(orion::frames_in_flight);
         for (int i = 0; i < orion::frames_in_flight; ++i) {
-            renderer_data->frame_data.emplace_back(
+            renderer_data->frame_data.push_back({
+
                 orion::MappedGPUBuffer{device, orion::GPUBufferUsageFlags::VertexBuffer},
-                orion::MappedGPUBuffer{device, orion::GPUBufferUsageFlags::IndexBuffer});
+                orion::MappedGPUBuffer{device, orion::GPUBufferUsageFlags::IndexBuffer},
+            });
         }
 
         // Get the shader manager
         auto* shader_manager = init_desc.shader_manager;
 
         renderer_data->descriptor_layout = imgui_create_descriptor_layout(device);
-        renderer_data->pipeline_layout = imgui_create_pipeline_layout(device, renderer_data->descriptor_layout.get());
-        renderer_data->pipeline = imgui_create_pipeline(device, shader_manager, renderer_data->pipeline_layout.get(), init_desc.render_pass);
+        renderer_data->pipeline_layout = imgui_create_pipeline_layout(device, renderer_data->descriptor_layout);
+        renderer_data->pipeline = imgui_create_pipeline(device, shader_manager, renderer_data->pipeline_layout, init_desc.render_pass);
 
         // Get font data
         unsigned char* pixels;
@@ -582,16 +579,16 @@ namespace
         const auto upload_size = static_cast<std::size_t>(width * height * bytes_per_pixel);
 
         renderer_data->font_image = imgui_create_font_image(device, width, height);
-        renderer_data->font_image_view = imgui_create_font_image_view(device, renderer_data->font_image.get());
-        imgui_upload_font_image(device, upload_size, pixels, command_allocator, renderer_data->font_image.get(), width, height);
+        renderer_data->font_image_view = imgui_create_font_image_view(device, renderer_data->font_image);
+        imgui_upload_font_image(device, upload_size, pixels, command_allocator, renderer_data->font_image, width, height);
 
         renderer_data->font_sampler = imgui_create_font_sampler(device);
 
         renderer_data->descriptor = imgui_create_font_descriptor(
             device,
-            renderer_data->descriptor_layout.get(),
-            renderer_data->font_image_view.get(),
-            renderer_data->font_sampler.get());
+            renderer_data->descriptor_layout,
+            renderer_data->font_image_view,
+            renderer_data->font_sampler);
 
         SPDLOG_LOGGER_TRACE(logger(), "ImGui_ImplOrion_Renderer initialized");
     }
@@ -681,7 +678,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
     }
 
     // Bind pipeline
-    cmd_list->bind_pipeline({.pipeline = renderer_data->pipeline.get(), .bind_point = orion::PipelineBindPoint::Graphics});
+    cmd_list->bind_pipeline({.pipeline = renderer_data->pipeline, .bind_point = orion::PipelineBindPoint::Graphics});
 
     // Bind vertex and index buffers
     cmd_list->bind_vertex_buffer({.vertex_buffer = frame.vertex_buffer.handle(), .offset = 0});
@@ -696,7 +693,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
 
     // Push the projection matrix as push constant
     cmd_list->push_constants({
-        .pipeline_layout = renderer_data->pipeline_layout.get(),
+        .pipeline_layout = renderer_data->pipeline_layout,
         .shader_stages = orion::ShaderStageFlags::Vertex,
         .offset = 0,
         .size = sizeof(frame.scene_buffer),
@@ -731,9 +728,9 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
 
             cmd_list->bind_descriptor({
                 .bind_point = orion::PipelineBindPoint::Graphics,
-                .pipeline_layout = renderer_data->pipeline_layout.get(),
+                .pipeline_layout = renderer_data->pipeline_layout,
                 .index = 0,
-                .descriptor = renderer_data->descriptor.get(),
+                .descriptor = renderer_data->descriptor,
             });
 
             cmd_list->draw_indexed({

@@ -1,7 +1,7 @@
 option(ORION_SHADER_COMPILER_TEST "Enable tests for the Orion Shader Compiler" ${ORION_DEVELOPER_MODE})
 
 # Find dependencies
-find_package(directx-dxc CONFIG REQUIRED)
+find_package(DXC REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 # Create shader compiler library
@@ -17,7 +17,7 @@ target_link_libraries(
         PUBLIC
         orion::utils
         PRIVATE
-        Microsoft::DirectXShaderCompiler
+        dxc_lib
         spdlog::spdlog
 )
 

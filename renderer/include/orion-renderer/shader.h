@@ -53,7 +53,7 @@ namespace orion
     ORION_DEFINE_HANDLE(ShaderHandle, shader_handle_key_t);
 
     // Shader paths for object types
-    constexpr fs::path shader_object_base_path(ShaderObjectType object_type)
+    inline fs::path shader_object_base_path(ShaderObjectType object_type)
     {
         switch (object_type) {
             case ShaderObjectType::SpirV:
@@ -61,7 +61,7 @@ namespace orion
             case ShaderObjectType::DXIL:
                 return ORION_DXIL_DIR;
         }
-        throw std::exception("invalid shader object type");
+        throw "invalid shader object type";
     }
 
     // Forward declare
