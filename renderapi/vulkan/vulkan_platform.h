@@ -6,8 +6,6 @@
 #include "orion-core/platform.h"
 #include "orion-core/window.h"
 
-#include <exception>
-
 namespace orion::vulkan
 {
     // Returns the platform specific surface extension
