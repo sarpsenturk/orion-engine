@@ -13,12 +13,14 @@ namespace orion
 
     std::size_t File::read(std::span<char> out_bytes)
     {
+        ORION_EXPECTS(platform_file_ != nullptr);
         ORION_ASSERT(can_read());
         return platform::read_file(platform_file_.get(), out_bytes);
     }
 
     std::size_t File::write(std::span<const char> in_bytes)
     {
+        ORION_EXPECTS(platform_file_ != nullptr);
         ORION_ASSERT(can_write());
         return platform::write_file(platform_file_.get(), in_bytes);
     }
@@ -32,6 +34,7 @@ namespace orion
 
     std::size_t File::size() const
     {
+        ORION_EXPECTS(platform_file_ != nullptr);
         return platform::get_file_size(platform_file_.get());
     }
 
