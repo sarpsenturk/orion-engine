@@ -38,10 +38,12 @@ namespace orion
 
         [[nodiscard]] bool is_loaded() const noexcept { return platform_module_ != nullptr; }
 
+        void* load_symbol(const char* symbol_name) const;
+
         template<typename T>
         [[nodiscard]] T* load_symbol(const char* symbol_name) const noexcept
         {
-            return reinterpret_cast<T*>(platform::load_library_address(platform_module_.get(), symbol_name));
+            return reinterpret_cast<T*>(load_symbol(symbol_name));
         }
 
     private:
