@@ -99,7 +99,8 @@
         "CXX_SANITIZE_ADDRESS": "",
         "CXX_SANITIZE_UNDEFINED": "",
         "ORION_PLATFORM": "macOS",
-        "ORION_PLATFORM_MACOS": true
+        "ORION_PLATFORM_MACOS": true,
+        "ORION_UNIX_LIKE": true
       }
     },
     {

@@ -4,3 +4,7 @@ if (ORION_PLATFORM_WINDOWS)
 elseif (ORION_PLATFORM_LINUX)
     add_subdirectory(linux)
 endif ()
+
+if (ORION_UNIX_LIKE)
+    add_subdirectory(unix)
+endif ()
