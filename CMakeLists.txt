@@ -28,6 +28,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 project(orion-engine
         VERSION 0.1.0
         DESCRIPTION "A game engine written in C++ 20"
+        LANGUAGES CXX
 )
 
 # Project wide configuration
@@ -80,6 +81,11 @@ add_library(orion::pch ALIAS orion-pch)
 # Enable/disable testing
 if (ORION_TEST)
     enable_testing()
+endif ()
+
+# Add extra external dependencies
+if (ORION_PLATFORM_MACOS)
+    add_subdirectory(external/metal-cpp)
 endif ()
 
 # Add sources for submodules
