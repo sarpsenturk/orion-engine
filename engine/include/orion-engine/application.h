@@ -7,6 +7,21 @@
 
 namespace orion
 {
+    // Forward declare
+    class Application;
+
+    // Platform specific application class
+    class PlatformApplication;
+    namespace platform
+    {
+        [[nodiscard]] PlatformApplication* create_application(Application* this_ptr);
+        void destroy_application(PlatformApplication* application);
+        void run_application(PlatformApplication* application);
+    } // namespace platform
+
+    using PlatformApplicationPtr = std::unique_ptr<PlatformApplication, decltype(&platform::destroy_application)>;
+
+    // Main application clas for Orion. Entry point for the engine
     class Application
     {
     public:
@@ -32,8 +47,8 @@ namespace orion
         virtual void on_user_update(FrameTime dt) = 0;
         virtual void on_user_render() = 0;
 
+        PlatformApplicationPtr platform_app_;
         std::shared_ptr<spdlog::logger> logger_;
-
         bool should_exit_ = false;
     };
 } // namespace orion

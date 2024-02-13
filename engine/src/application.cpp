@@ -6,10 +6,13 @@
 #include "orion-core/log.h"
 #include <spdlog/spdlog.h>
 
+#include "orion-utils/assertion.h"
+
 namespace orion
 {
     Application::Application()
-        : logger_(orion::create_logger("orion-application", ORION_APPLICATION_LOG_LEVEL))
+        : platform_app_(platform::create_application(this), &platform::destroy_application)
+        , logger_(orion::create_logger("orion-application", ORION_APPLICATION_LOG_LEVEL))
     {
         SPDLOG_LOGGER_INFO(logger(), "<Orion Engine> version: {}, platform: {}, build_type: {}",
                            ORION_VERSION, ORION_PLATFORM, ORION_BUILD_TYPE);
@@ -32,14 +35,8 @@ namespace orion
 
     void Application::run()
     {
-        Clock::time_point last_frame;
-        while (!should_exit()) {
-            const auto now = Clock::now();
-            const auto dt = now - last_frame;
-            last_frame = now;
-            on_update(dt);
-            on_render();
-        }
+        ORION_ASSERT(platform_app_ != nullptr);
+        platform::run_application(platform_app_.get());
     }
 
     void Application::exit_application()
