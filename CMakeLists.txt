@@ -21,6 +21,8 @@ project(orion-engine
         DESCRIPTION "A game engine written in C++ 20"
 )
 
+set(ORION_PLATFORM_WINDOWS $<STREQUAL:${ORION_PLATFORM},Windows>)
+
 # Project wide configuration
 set(CMAKE_CXX_STANDARD 20)
 include_directories(${CMAKE_BINARY_DIR}/include)
@@ -40,8 +42,7 @@ add_compile_definitions(
         $<$<CONFIG:Release>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_WARN>
 
         ORION_PLATFORM="${ORION_PLATFORM}"
-        $<$<STREQUAL:${ORION_PLATFORM},Windows>:ORION_PLATFORM_WINDOWS>
-        $<$<STREQUAL:${ORION_PLATFORM},Linux>:ORION_PLATFORM_LINUX>
+        $<$<BOOL:ORION_PLATFORM_WINDOWS>:ORION_PLATFORM_WINDOWS>
 )
 
 option(ORION_SANITIZE_ADDRESS "Enable address sanitizer" ${ORION_DEVELOPER_MODE})
