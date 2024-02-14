@@ -56,7 +56,7 @@ namespace orion
     ORION_DEFINE_HANDLE(ShaderHandle, shader_handle_key_t);
 
     // Shader paths for object types
-    constexpr fs::path shader_object_base_path(ShaderObjectType object_type)
+    constexpr FilePath shader_object_base_path(ShaderObjectType object_type)
     {
         switch (object_type) {
             case ShaderObjectType::SpirV:
@@ -74,9 +74,9 @@ namespace orion
     {
     public:
         explicit ShaderManager(RenderDevice* device);
-        explicit ShaderManager(RenderDevice* device, fs::path base_path);
+        explicit ShaderManager(RenderDevice* device, FilePath base_path);
 
-        std::pair<ShaderHandle, const Shader*> load(const fs::path& filepath, std::string name = "");
+        std::pair<ShaderHandle, const Shader*> load(const FilePath& filepath, std::string name = "");
 
         [[nodiscard]] std::pair<ShaderHandle, const Shader*> find(const std::string& name) const;
         [[nodiscard]] const Shader* get(ShaderHandle shader_handle) const;
@@ -91,7 +91,7 @@ namespace orion
         static spdlog::logger* logger();
 
         RenderDevice* device_;
-        fs::path base_path_;
+        FilePath base_path_;
         std::unordered_map<ShaderHandle, Shader> shaders_;
     };
 } // namespace orion

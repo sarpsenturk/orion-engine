@@ -52,16 +52,16 @@ namespace orion
         SPDLOG_LOGGER_TRACE(logger(), "ShaderManager initialized. Base path={}", base_path_);
     }
 
-    ShaderManager::ShaderManager(RenderDevice* device, fs::path base_path)
+    ShaderManager::ShaderManager(RenderDevice* device, FilePath base_path)
         : device_(device)
         , base_path_(std::move(base_path))
     {
         SPDLOG_LOGGER_TRACE(logger(), "ShaderManager initialized. Base path={}", base_path_);
     }
 
-    std::pair<ShaderHandle, const Shader*> ShaderManager::load(const fs::path& filepath, std::string name)
+    std::pair<ShaderHandle, const Shader*> ShaderManager::load(const FilePath& filepath, std::string name)
     {
-        auto file = create_input_file(base_path_ / filepath);
+        auto file = binary_input_file(base_path_ / filepath);
         auto object = file.read_all();
         auto shader_module = device_->create_shader_module({.byte_code = object});
         auto handle = static_cast<shader_handle_key_t>(shaders_.size());

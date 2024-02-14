@@ -17,6 +17,9 @@
             const auto what = fmt::format("[{}]: {}", e.type(), e.what()); \
             (void)std::fputs(what.c_str(), stderr);                        \
             return e.return_code();                                        \
+        } catch (const std::exception& e) {                                \
+            (void)std::fputs(e.what(), stderr);                            \
+            return -1;                                                     \
         }                                                                  \
     }                                                                      \
     int user_main([[maybe_unused]] std::span<const char* const> args)

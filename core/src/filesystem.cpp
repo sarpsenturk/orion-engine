@@ -1,57 +1,135 @@
 #include "orion-core/filesystem.h"
 
-#include "orion-utils/assertion.h"
+#include <filesystem>
+#include <system_error>
 
 namespace orion
 {
-    File::File(const fs::path& filepath, const FileOpenDesc& desc)
-        : platform_file_(platform::create_file(filepath, desc), &platform::destroy_file)
-        , open_desc_(desc)
-        , type_(platform::get_file_type(platform_file_.get()))
+    namespace
+    {
+        std::FILE* file_open(const char* path, const char* mode)
+        {
+            std::FILE* file = std::fopen(path, mode);
+            if (file == nullptr) {
+                // TODO: Log file open failed
+                throw std::system_error{errno, std::generic_category()};
+            }
+            return file;
+        }
+
+        void file_close(std::FILE* file)
+        {
+            std::fclose(file);
+        }
+
+        void file_noop(std::FILE* /*unused*/)
+        {
+        }
+    } // namespace
+
+    FilePath::FilePath(const char* path)
+        : path_(path)
     {
     }
 
-    std::size_t File::read(std::span<char> out_bytes)
+    FilePath::FilePath(std::string path)
+        : path_(std::move(path))
     {
-        ORION_ASSERT(can_read());
-        return platform::read_file(platform_file_.get(), out_bytes);
     }
 
-    std::size_t File::write(std::span<const char> in_bytes)
+    FilePath& FilePath::append(const FilePath& other)
     {
-        ORION_ASSERT(can_write());
-        return platform::write_file(platform_file_.get(), in_bytes);
+        path_ += (separator + other.path_);
+        return *this;
     }
 
-    std::vector<char> File::read_all()
+    FilePath operator/(const FilePath& lhs, const FilePath& rhs)
     {
-        std::vector<char> bytes(size());
-        read(bytes);
-        return bytes;
+        auto result = lhs;
+        result.append(rhs);
+        return result;
+    }
+
+    std::string format_as(const FilePath& path)
+    {
+        return path.string();
+    }
+
+    File::File(std::FILE* file)
+        : file_(file, &file_noop)
+    {
+    }
+
+    File::File(FilePath path, const char* mode)
+        : file_(file_open(path.c_str(), mode), &file_close)
+        , path_(std::move(path))
+    {
     }
 
     std::size_t File::size() const
     {
-        return platform::get_file_size(platform_file_.get());
+        return std::filesystem::file_size(path_.c_str());
     }
 
-    bool File::can_read() const noexcept
+    std::size_t File::read(std::span<std::byte> outbytes)
     {
-        return !!(open_desc_.access_flags & FileAccessFlags::Read);
+        return std::fread(outbytes.data(), sizeof(std::byte), outbytes.size(), file_.get());
     }
 
-    bool File::can_write() const noexcept
+    std::size_t File::write(std::span<const std::byte> inbytes)
     {
-        return !!(open_desc_.access_flags & FileAccessFlags::Write);
+        return std::fwrite(inbytes.data(), sizeof(std::byte), inbytes.size(), file_.get());
     }
 
-    File create_input_file(const fs::path& filepath)
+    void File::flush()
     {
-        return File(filepath, {.access_flags = FileAccessFlags::Read, .share_flags = FileShareFlags::Read, .create_mode = FileCreateMode::OpenExisting});
+        if (!std::fflush(file_.get())) {
+            throw std::system_error{errno, std::generic_category()};
+        }
     }
 
-    File create_output_file(const fs::path& filepath)
+    std::vector<std::byte> File::read_all()
     {
-        return File(filepath, {.access_flags = FileAccessFlags::Write, .share_flags = FileShareFlags::Read, .create_mode = FileCreateMode::Create});
+        std::vector<std::byte> bytes(size());
+        read(bytes);
+        return bytes;
+    }
+
+    File input_file(FilePath path)
+    {
+        return File{std::move(path), "r"};
+    }
+
+    File output_file(FilePath path)
+    {
+        return File{std::move(path), "w"};
+    }
+
+    File binary_input_file(FilePath path)
+    {
+        return File{std::move(path), "rb"};
+    }
+
+    File binary_output_file(FilePath path)
+    {
+        return File{std::move(path), "wb"};
+    }
+
+    File* stdinput()
+    {
+        static auto file = File(stdin);
+        return &file;
+    }
+
+    File* stdoutput()
+    {
+        static auto file = File(stdout);
+        return &file;
+    }
+
+    File* stderror()
+    {
+        static auto file = File(stderr);
+        return &file;
     }
 } // namespace orion
