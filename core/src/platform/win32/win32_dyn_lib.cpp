@@ -1,4 +1,4 @@
-#include "orion-core/platform/win32/win32_dl_lib.h"
+#include "orion-core/platform/win32/win32_dyn_lib.h"
 
 #include <spdlog/spdlog.h> // SPDLOG_LOGGER_*
 
