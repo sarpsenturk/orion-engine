@@ -8,7 +8,10 @@
 
 #include <orion-math/vector/vector2.h>
 
-#include <spdlog/logger.h>
+namespace spdlog
+{
+    class logger;
+}
 
 namespace orion
 {

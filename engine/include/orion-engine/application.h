@@ -3,7 +3,11 @@
 #include "orion-core/clock.h"
 
 #include <memory>
-#include <spdlog/logger.h>
+
+namespace spdlog
+{
+    class logger;
+}
 
 namespace orion
 {

@@ -16,7 +16,10 @@
 #include <memory>
 #include <vector>
 
-#include <spdlog/logger.h>
+namespace spdlog
+{
+    class logger;
+}
 
 namespace orion
 {

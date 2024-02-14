@@ -8,7 +8,10 @@
 #include <memory>
 #include <span>
 
-#include <spdlog/logger.h>
+namespace spdlog
+{
+    class logger;
+}
 
 namespace orion
 {

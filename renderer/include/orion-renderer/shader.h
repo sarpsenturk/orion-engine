@@ -7,12 +7,15 @@
 
 #include "orion-renderapi/defs.h"
 
-#include <spdlog/logger.h>
-
 #include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace spdlog
+{
+    class logger;
+}
 
 namespace orion
 {

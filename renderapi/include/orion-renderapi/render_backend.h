@@ -5,7 +5,6 @@
 #include "render_device.h"
 
 #include <memory>
-#include <spdlog/logger.h>
 #include <vector>
 
 #ifdef ORION_RENDER_BACKEND_EXPORT
@@ -13,6 +12,11 @@
 #else
     #define ORION_RENDER_API ORION_IMPORT
 #endif
+
+namespace spdlog
+{
+    class logger;
+}
 
 namespace orion
 {
