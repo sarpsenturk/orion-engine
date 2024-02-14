@@ -1,6 +1,6 @@
 #include "orion-core/platform.h"
 
-#include "orion-core/platform/win32/win32_platform.h"
+#include "orion-win32/win32_platform.h"
 
 namespace orion
 {

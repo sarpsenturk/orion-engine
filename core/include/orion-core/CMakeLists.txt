@@ -15,6 +15,3 @@ target_sources(
         version.h
         window.h
 )
-
-# Platform specific implementation headers
-add_subdirectory(platform)

@@ -1,5 +1,5 @@
-#include "orion-core/platform/win32/win32_window.h"
-#include "orion-core/platform/win32/win32_input.h"
+#include "orion-win32/win32_window.h"
+#include "orion-win32/win32_input.h"
 
 #include "orion-utils/type.h"
 

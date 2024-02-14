@@ -4,7 +4,7 @@
 
 #include "vulkan_platform.h"
 
-#include <orion-core/platform/win32/win32_window.h>
+#include <orion-win32/win32_window.h>
 
 namespace orion::vulkan
 {

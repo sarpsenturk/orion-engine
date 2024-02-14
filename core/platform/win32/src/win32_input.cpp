@@ -1,6 +1,4 @@
-#include "orion-core/platform/win32/win32_input.h"
-
-#include <array>
+#include "orion-win32/win32_input.h"
 
 namespace orion
 {

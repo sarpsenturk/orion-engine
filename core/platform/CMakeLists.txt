@@ -1,0 +1,5 @@
+if (ORION_PLATFORM_WINDOWS)
+    add_subdirectory(win32)
+else ()
+    message(FATAL_ERROR "orion-core is not implemented on this platform")
+endif ()

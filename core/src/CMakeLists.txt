@@ -8,6 +8,3 @@ target_sources(
         log.cpp
         window.cpp
 )
-
-# Platform specific implementation sources
-add_subdirectory(platform)
