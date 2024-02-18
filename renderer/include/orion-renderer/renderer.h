@@ -131,6 +131,7 @@ namespace orion
         PerFrameData<FrameData> frames_;
         frame_index_t current_frame_index_ = 0;
         frame_index_t previous_frame_index_ = -1;
+        void advance_frame();
 
         std::unique_ptr<ImGuiContext> imgui_;
     };

@@ -78,7 +78,7 @@ namespace orion
 
     void Renderer::begin()
     {
-        auto& frame = frames_.current_frame();
+        auto& frame = frames_.get(current_frame_index_);
 
         // Wait for frame to finish
         device()->wait_for_fence(frame.fence);
@@ -109,7 +109,7 @@ namespace orion
 
     void Renderer::end()
     {
-        auto& frame = frames_.current_frame();
+        auto& frame = frames_.get(current_frame_index_);
 
         // Finish render pass
         frame.command_list->end_render_pass();
@@ -141,19 +141,19 @@ namespace orion
     {
         ORION_ASSERT(imgui_ && "ImGui not initialized. RendererDesc::init_imgui must be true to use ImGui");
         ImGui::Render();
-        ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), frames_.current_frame().command_list.get());
+        ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), frames_.get(current_frame_index_).command_list.get());
     }
 
     void Renderer::render(QuadRenderer& quad_renderer)
     {
-        auto* command_list = frames_.current_frame().command_list.get();
+        auto* command_list = frames_.get(current_frame_index_).command_list.get();
 
-        quad_renderer.flush(command_list);
+        quad_renderer.flush(command_list, current_frame_index_);
     }
 
     void Renderer::draw_test_triangle()
     {
-        auto& frame = frames_.current_frame();
+        auto& frame = frames_.get(current_frame_index_);
 
         // Bind the triangle pipeline
         frame.command_list->bind_pipeline({.pipeline = triangle_pipeline_, .bind_point = PipelineBindPoint::Graphics});
@@ -164,7 +164,7 @@ namespace orion
 
     void Renderer::present(const Window& window)
     {
-        auto& frame = frames_.previous_frame();
+        auto& frame = frames_.get(previous_frame_index_);
 
         auto* command_list = frame.present_command.get();
 
@@ -505,5 +505,11 @@ namespace orion
         });
         SPDLOG_LOGGER_DEBUG(logger(), "Renderer ImGui initialized");
         return std::make_unique<ImGuiContext>();
+    }
+
+    void Renderer::advance_frame()
+    {
+        previous_frame_index_ = current_frame_index_;
+        current_frame_index_ = (current_frame_index_ + frame_index_t{1}) % frames_in_flight;
     }
 } // namespace orion

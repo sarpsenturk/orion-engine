@@ -27,9 +27,9 @@ namespace orion
         quads_.push_back(quad);
     }
 
-    void QuadRenderer::flush(CommandList* command_list)
+    void QuadRenderer::flush(CommandList* command_list, frame_index_t frame_index)
     {
-        auto& frame = frames_.current_frame();
+        auto& frame = frames_.get(frame_index);
         auto& buffer = frame.quad_buffer;
 
         buffer.upload_grow(std::as_bytes(std::span{quads_}));

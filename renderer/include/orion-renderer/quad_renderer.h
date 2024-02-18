@@ -33,7 +33,7 @@ namespace orion
 
         void begin();
         void add(const QuadData& quad);
-        void flush(CommandList* command_list);
+        void flush(CommandList* command_list, frame_index_t frame_index);
 
         [[nodiscard]] std::size_t quad_count() const noexcept { return quads_.size(); }
         [[nodiscard]] std::size_t vertex_count() const noexcept { return quads_.size() * quad_vertex_count; }
