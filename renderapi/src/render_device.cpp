@@ -192,6 +192,11 @@ namespace orion
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed semaphore {}", semaphore_handle);
     }
 
+    void RenderDevice::destroy_flush()
+    {
+        destroy_flush_api();
+    }
+
     void* RenderDevice::map(GPUBufferHandle buffer_handle)
     {
         return map_api(buffer_handle);

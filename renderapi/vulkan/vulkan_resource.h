@@ -41,19 +41,28 @@ namespace orion::vulkan
         void add(FenceHandle handle, VkFence fence);
         void add(SemaphoreHandle handle, VkSemaphore semaphore);
 
-        void remove(ImageHandle handle);
-        void remove(ImageViewHandle handle);
-        void remove(RenderPassHandle handle);
-        void remove(FramebufferHandle handle);
-        void remove(ShaderModuleHandle handle);
-        void remove(DescriptorLayoutHandle handle);
-        void remove(DescriptorHandle handle);
-        void remove(PipelineLayoutHandle handle);
-        void remove(PipelineHandle handle);
-        void remove(GPUBufferHandle handle);
-        void remove(SamplerHandle handle);
-        void remove(FenceHandle handle);
-        void remove(SemaphoreHandle handle);
+        template<typename HandleType>
+        void remove(HandleType handle)
+        {
+            deletion_queue_.emplace_back(handle.value(), [](VulkanResourceManager* resource_manager, render_device_key_t handle) {
+                resource_manager->destroy(HandleType{handle});
+            });
+        }
+
+        void destroy(ImageHandle handle);
+        void destroy(ImageViewHandle handle);
+        void destroy(RenderPassHandle handle);
+        void destroy(FramebufferHandle handle);
+        void destroy(ShaderModuleHandle handle);
+        void destroy(DescriptorLayoutHandle handle);
+        void destroy(DescriptorHandle handle);
+        void destroy(PipelineLayoutHandle handle);
+        void destroy(PipelineHandle handle);
+        void destroy(GPUBufferHandle handle);
+        void destroy(SamplerHandle handle);
+        void destroy(FenceHandle handle);
+        void destroy(SemaphoreHandle handle);
+        void destroy_flush();
 
         [[nodiscard]] VulkanImageResource find(ImageHandle handle) const noexcept;
         [[nodiscard]] VkImageView find(ImageViewHandle handle) const noexcept;
@@ -100,5 +109,12 @@ namespace orion::vulkan
         std::unordered_map<SamplerHandle, UniqueVkSampler> samplers_;
         std::unordered_map<FenceHandle, UniqueVkFence> fences_;
         std::unordered_map<SemaphoreHandle, UniqueVkSemaphore> semaphores_;
+
+        using DestroyFn = void (*)(VulkanResourceManager*, render_device_key_t);
+        struct QueueItem {
+            render_device_key_t handle;
+            DestroyFn deleter;
+        };
+        std::vector<QueueItem> deletion_queue_;
     };
 } // namespace orion::vulkan

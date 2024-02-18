@@ -47,6 +47,11 @@ namespace orion
     {
     public:
         explicit Renderer(const RendererDesc& desc);
+        Renderer(const Renderer&) = delete;
+        Renderer(Renderer&&) noexcept = default;
+        Renderer& operator=(const Renderer&) = delete;
+        Renderer& operator=(Renderer&&) noexcept = default;
+        ~Renderer();
 
         [[nodiscard]] auto* backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto* device() const noexcept { return render_device_.get(); }
@@ -59,7 +64,6 @@ namespace orion
         void imgui_end();
         void render(QuadRenderer& quad_renderer);
         void draw_test_triangle();
-        void draw_debug_window();
 
         void present(const Window& window);
 

@@ -79,6 +79,7 @@ namespace orion::vulkan
         void destroy_api(SamplerHandle sampler_handle) override;
         void destroy_api(FenceHandle fence_handle) override;
         void destroy_api(SemaphoreHandle semaphore_handle) override;
+        void destroy_flush_api() override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;

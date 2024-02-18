@@ -113,6 +113,7 @@ namespace orion
         void destroy(SamplerHandle sampler_handle);
         void destroy(FenceHandle fence_handle);
         void destroy(SemaphoreHandle semaphore_handle);
+        void destroy_flush();
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         void unmap(GPUBufferHandle buffer_handle);
@@ -166,6 +167,8 @@ namespace orion
         virtual void destroy_api(SamplerHandle sampler_handle) = 0;
         virtual void destroy_api(FenceHandle fence_handle) = 0;
         virtual void destroy_api(SemaphoreHandle semaphore_handle) = 0;
+
+        virtual void destroy_flush_api() = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;

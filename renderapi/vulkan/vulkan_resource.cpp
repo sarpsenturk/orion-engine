@@ -84,69 +84,76 @@ namespace orion::vulkan
         semaphores_.insert(std::make_pair(handle, unique(semaphore, device_)));
     }
 
-    void VulkanResourceManager::remove(ImageHandle handle)
+    void VulkanResourceManager::destroy(ImageHandle handle)
     {
         images_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(ImageViewHandle handle)
+    void VulkanResourceManager::destroy(ImageViewHandle handle)
     {
         image_views_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(RenderPassHandle handle)
+    void VulkanResourceManager::destroy(RenderPassHandle handle)
     {
         render_passes_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(FramebufferHandle handle)
+    void VulkanResourceManager::destroy(FramebufferHandle handle)
     {
         framebuffers_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(ShaderModuleHandle handle)
+    void VulkanResourceManager::destroy(ShaderModuleHandle handle)
     {
         shader_modules_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(DescriptorLayoutHandle handle)
+    void VulkanResourceManager::destroy(DescriptorLayoutHandle handle)
     {
         descriptor_set_layouts_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(DescriptorHandle handle)
+    void VulkanResourceManager::destroy(DescriptorHandle handle)
     {
         descriptor_sets_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(PipelineLayoutHandle handle)
+    void VulkanResourceManager::destroy(PipelineLayoutHandle handle)
     {
         pipeline_layouts_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(PipelineHandle handle)
+    void VulkanResourceManager::destroy(PipelineHandle handle)
     {
         pipelines_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(GPUBufferHandle handle)
+    void VulkanResourceManager::destroy(GPUBufferHandle handle)
     {
         buffers_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(SamplerHandle handle)
+    void VulkanResourceManager::destroy(SamplerHandle handle)
     {
         samplers_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(FenceHandle handle)
+    void VulkanResourceManager::destroy(FenceHandle handle)
     {
         fences_.erase(handle);
     }
 
-    void VulkanResourceManager::remove(SemaphoreHandle handle)
+    void VulkanResourceManager::destroy(SemaphoreHandle handle)
     {
         semaphores_.erase(handle);
+    }
+
+    void VulkanResourceManager::destroy_flush()
+    {
+        for (auto [handle, deleter] : deletion_queue_) {
+            deleter(this, handle);
+        }
     }
 
     VulkanImageResource VulkanResourceManager::find(ImageHandle handle) const noexcept

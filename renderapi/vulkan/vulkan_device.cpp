@@ -813,6 +813,10 @@ namespace orion::vulkan
         resource_manager_.remove(semaphore_handle);
     }
 
+    void VulkanDevice::destroy_flush_api()
+    {
+    }
+
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
     {
         void* ptr = nullptr;

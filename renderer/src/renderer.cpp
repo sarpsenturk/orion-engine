@@ -71,6 +71,11 @@ namespace orion
     {
     }
 
+    Renderer::~Renderer()
+    {
+        device()->wait_idle();
+    }
+
     QuadRenderer Renderer::create_quad_renderer()
     {
         return {device(), &shader_manager_, render_pass_};
@@ -82,6 +87,9 @@ namespace orion
 
         // Wait for frame to finish
         device()->wait_for_fence(frame.fence);
+
+        // Flush all destroyed resources in previous frame
+        device()->destroy_flush();
 
         // Reset command list
         frame.command_list->reset();
