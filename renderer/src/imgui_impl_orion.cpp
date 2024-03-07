@@ -314,7 +314,7 @@ namespace
 
     orion::UniqueDescriptorLayout imgui_create_descriptor_layout(orion::RenderDevice* device)
     {
-        auto descriptor_layout = device->create_descriptor_layout({
+        const auto desc = orion::DescriptorLayoutDesc{
             .bindings = {
                 {
                     orion::DescriptorBindingDesc{
@@ -329,8 +329,8 @@ namespace
                     },
                 },
             },
-        });
-        return device->to_unique(descriptor_layout);
+        };
+        return orion::make_unique<orion::DescriptorLayoutHandle_tag>(device, desc);
     }
 
     orion::UniquePipelineLayout imgui_create_pipeline_layout(orion::RenderDevice* device, orion::DescriptorLayoutHandle descriptor_layout)
@@ -342,10 +342,9 @@ namespace
                 .shader_stages = orion::ShaderStageFlags::Vertex,
             },
         };
-        return device->to_unique(device->create_pipeline_layout({
-            .descriptors = descriptors,
-            .push_constants = push_constants,
-        }));
+
+        const auto desc = orion::PipelineLayoutDesc{descriptors, push_constants};
+        return orion::make_unique<orion::PipelineLayoutHandle_tag>(device, desc);
     }
 
     orion::UniquePipeline imgui_create_pipeline(
@@ -409,7 +408,7 @@ namespace
             .color_blend = color_blend,
             .render_pass = render_pass,
         };
-        return device->make_unique(orion::PipelineHandle_tag{}, desc);
+        return orion::make_unique<orion::PipelineHandle_tag>(device, desc);
     }
 
     inline constexpr auto font_image_format = orion::Format::B8G8R8A8_Srgb;
@@ -426,7 +425,7 @@ namespace
             .tiling = orion::ImageTiling::Optimal,
             .usage = orion::ImageUsageFlags::SampledImage | orion::ImageUsageFlags::TransferDst,
         };
-        return device->make_unique(orion::ImageHandle_tag{}, desc);
+        return orion::make_unique<orion::ImageHandle_tag>(device, desc);
     }
 
     orion::UniqueImageView imgui_create_font_image_view(
@@ -438,7 +437,7 @@ namespace
             .type = orion::ImageViewType::View2D,
             .format = font_image_format,
         };
-        return device->make_unique(orion::ImageViewHandle_tag{}, desc);
+        return orion::make_unique<orion::ImageViewHandle_tag>(device, desc);
     }
 
     void imgui_upload_font_image(
@@ -505,7 +504,7 @@ namespace
             .min_lod = -1000,
             .max_lod = 1000,
         };
-        return device->make_unique(orion::SamplerHandle_tag{}, desc);
+        return orion::make_unique<orion::SamplerHandle_tag>(device, desc);
     }
 
     orion::UniqueDescriptor imgui_create_font_descriptor(
@@ -537,7 +536,7 @@ namespace
         };
         device->write_descriptor(descriptor, descriptor_bindings);
 
-        return device->to_unique(descriptor);
+        return orion::make_unique(device, descriptor);
     }
 
     void imgui_init_renderer(const ImGui_ImplOrion_InitDesc& init_desc)
