@@ -314,7 +314,7 @@ namespace
 
     orion::UniqueDescriptorLayout imgui_create_descriptor_layout(orion::RenderDevice* device)
     {
-        const auto desc = orion::DescriptorLayoutDesc{
+        return device->make_unique<orion::DescriptorLayoutHandle_tag>(orion::DescriptorLayoutDesc{
             .bindings = {
                 {
                     orion::DescriptorBindingDesc{
@@ -329,8 +329,7 @@ namespace
                     },
                 },
             },
-        };
-        return orion::make_unique<orion::DescriptorLayoutHandle_tag>(device, desc);
+        });
     }
 
     orion::UniquePipelineLayout imgui_create_pipeline_layout(orion::RenderDevice* device, orion::DescriptorLayoutHandle descriptor_layout)
@@ -343,8 +342,7 @@ namespace
             },
         };
 
-        const auto desc = orion::PipelineLayoutDesc{descriptors, push_constants};
-        return orion::make_unique<orion::PipelineLayoutHandle_tag>(device, desc);
+        return device->make_unique<orion::PipelineLayoutHandle_tag>(orion::PipelineLayoutDesc{descriptors, push_constants});
     }
 
     orion::UniquePipeline imgui_create_pipeline(
@@ -399,7 +397,7 @@ namespace
         };
 
         // Set pipeline description
-        const auto desc = orion::GraphicsPipelineDesc{
+        return device->make_unique<orion::PipelineHandle_tag>(orion::GraphicsPipelineDesc{
             .shaders = shader_effect.shader_stages(),
             .vertex_bindings = vertex_bindings,
             .pipeline_layout = pipeline_layout,
@@ -407,8 +405,7 @@ namespace
             .rasterization = rasterization,
             .color_blend = color_blend,
             .render_pass = render_pass,
-        };
-        return orion::make_unique<orion::PipelineHandle_tag>(device, desc);
+        });
     }
 
     inline constexpr auto font_image_format = orion::Format::B8G8R8A8_Srgb;
@@ -418,26 +415,24 @@ namespace
         int width,
         int height)
     {
-        const auto desc = orion::ImageDesc{
+        return device->make_unique<orion::ImageHandle_tag>(orion::ImageDesc{
             .type = orion::ImageType::Image2D,
             .format = font_image_format,
             .size = {static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1},
             .tiling = orion::ImageTiling::Optimal,
             .usage = orion::ImageUsageFlags::SampledImage | orion::ImageUsageFlags::TransferDst,
-        };
-        return orion::make_unique<orion::ImageHandle_tag>(device, desc);
+        });
     }
 
     orion::UniqueImageView imgui_create_font_image_view(
         orion::RenderDevice* device,
         orion::ImageHandle font_image)
     {
-        const auto desc = orion::ImageViewDesc{
+        return device->make_unique<orion::ImageViewHandle_tag>(orion::ImageViewDesc{
             .image = font_image,
             .type = orion::ImageViewType::View2D,
             .format = font_image_format,
-        };
-        return orion::make_unique<orion::ImageViewHandle_tag>(device, desc);
+        });
     }
 
     void imgui_upload_font_image(
@@ -494,7 +489,7 @@ namespace
 
     orion::UniqueSampler imgui_create_font_sampler(orion::RenderDevice* device)
     {
-        const auto desc = orion::SamplerDesc{
+        return device->make_unique<orion::SamplerHandle_tag>(orion::SamplerDesc{
             .filter = orion::Filter::Nearest,
             .address_mode_u = orion::AddressMode::Repeat,
             .address_mode_v = orion::AddressMode::Repeat,
@@ -503,8 +498,7 @@ namespace
             .max_anisotropy = 1.f,
             .min_lod = -1000,
             .max_lod = 1000,
-        };
-        return orion::make_unique<orion::SamplerHandle_tag>(device, desc);
+        });
     }
 
     orion::UniqueDescriptor imgui_create_font_descriptor(
@@ -535,8 +529,7 @@ namespace
             },
         };
         device->write_descriptor(descriptor, descriptor_bindings);
-
-        return orion::make_unique(device, descriptor);
+        return device->to_unique(descriptor);
     }
 
     void imgui_init_renderer(const ImGui_ImplOrion_InitDesc& init_desc)

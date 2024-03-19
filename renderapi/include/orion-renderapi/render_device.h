@@ -1,9 +1,10 @@
 #pragma once
 
-#include "defs.h"
-#include "handles.h"
-#include "render_command.h"
-#include "swapchain.h"
+#include "orion-renderapi/defs.h"
+#include "orion-renderapi/device_resource.h"
+#include "orion-renderapi/handles.h"
+#include "orion-renderapi/render_command.h"
+#include "orion-renderapi/swapchain.h"
 
 #include <memory>
 #include <span>
@@ -55,6 +56,22 @@ namespace orion
         [[nodiscard]] SamplerHandle create(SamplerHandle_tag, const SamplerDesc& desc) { return create_sampler(desc); }
         [[nodiscard]] FenceHandle create(FenceHandle_tag, const FenceDesc& desc) { return create_fence(desc); }
         [[nodiscard]] SemaphoreHandle create(SemaphoreHandle_tag) { return create_semaphore(); }
+
+        template<typename Tag, typename... Args>
+        auto make_unique(Args&&... args)
+        {
+            using deleter_fn_t = void (RenderDevice::*)(RenderDeviceHandle<Tag>);
+            const auto deleter_fn = static_cast<deleter_fn_t>(&RenderDevice::destroy);
+            return UniqueDeviceResource<Tag>{create(Tag{}, std::forward<Args>(args)...), {this, deleter_fn}};
+        }
+
+        template<typename Tag>
+        auto to_unique(RenderDeviceHandle<Tag> handle)
+        {
+            using deleter_fn_t = void (RenderDevice::*)(RenderDeviceHandle<Tag>);
+            const auto deleter_fn = static_cast<deleter_fn_t>(&RenderDevice::destroy);
+            return UniqueDeviceResource<Tag>{handle, {this, deleter_fn}};
+        }
 
         void destroy(RenderPassHandle render_pass_handle);
         void destroy(FramebufferHandle framebuffer_handle);
@@ -139,48 +156,4 @@ namespace orion
 
         spdlog::logger* logger_;
     };
-
-    template<typename Tag>
-    struct ResourceDeleter {
-        using pointer = Handle<Tag>;
-
-        RenderDevice* device;
-
-        void operator()(pointer handle) const
-        {
-            if (handle) {
-                device->destroy(handle);
-            }
-        }
-    };
-
-    template<typename Tag>
-    using unique_device_resource = std::unique_ptr<Handle<Tag>, ResourceDeleter<Tag>>;
-
-    using UniqueRenderPass = unique_device_resource<RenderPassHandle_tag>;
-    using UniqueFramebuffer = unique_device_resource<FramebufferHandle_tag>;
-    using UniqueShaderModule = unique_device_resource<ShaderModuleHandle_tag>;
-    using UniquePipelineLayout = unique_device_resource<PipelineLayoutHandle_tag>;
-    using UniqueDescriptorLayout = unique_device_resource<DescriptorLayoutHandle_tag>;
-    using UniqueDescriptor = unique_device_resource<DescriptorHandle_tag>;
-    using UniquePipeline = unique_device_resource<PipelineHandle_tag>;
-    using UniqueGPUBuffer = unique_device_resource<GPUBufferHandle_tag>;
-    using UniqueImage = unique_device_resource<ImageHandle_tag>;
-    using UniqueImageView = unique_device_resource<ImageViewHandle_tag>;
-    using UniqueSampler = unique_device_resource<SamplerHandle_tag>;
-    using UniqueFence = unique_device_resource<FenceHandle_tag>;
-    using UniqueSemaphore = unique_device_resource<SemaphoreHandle_tag>;
-
-    template<typename Tag>
-    auto make_unique(RenderDevice* device, Handle<Tag> handle)
-    {
-        return unique_device_resource<Tag>{handle, ResourceDeleter<Tag>{device}};
-    }
-
-    template<typename Tag, typename... Args>
-    auto make_unique(RenderDevice* device, Args&&... args)
-    {
-        const auto handle = device->create(Tag{}, std::forward<Args>(args)...);
-        return unique_device_resource<Tag>{handle, ResourceDeleter<Tag>{device}};
-    }
 } // namespace orion

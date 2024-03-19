@@ -5,6 +5,7 @@ target_sources(
         FILES
         buffer.h
         defs.h
+        device_resource.h
         handles.h
         render_backend.h
         render_command.h
