@@ -862,8 +862,8 @@ namespace orion::vulkan
             }
             buffer_descriptors.push_back({
                 .buffer = resource_manager_.find(buffer->buffer_handle).buffer,
-                .offset = buffer->offset,
-                .range = buffer->size,
+                .offset = buffer->region.offset,
+                .range = buffer->region.size,
             });
             return &(buffer_descriptors.back());
         };

@@ -171,10 +171,16 @@ namespace orion
         [[nodiscard]] std::size_t hash() const;
     };
 
+    inline constexpr auto buffer_whole_size = SIZE_MAX;
+
+    struct BufferRegion {
+        std::size_t size = buffer_whole_size;
+        std::size_t offset = 0ull;
+    };
+
     struct BufferBindingDesc {
         GPUBufferHandle buffer_handle = GPUBufferHandle::invalid();
-        std::size_t size;
-        std::size_t offset;
+        BufferRegion region;
     };
 
     struct ImageBindingDesc {

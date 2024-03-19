@@ -11,46 +11,57 @@ namespace orion
     // Forward declare
     class RenderDevice;
 
-    class MappedGPUBuffer
+    class GPUBuffer
     {
     public:
-        MappedGPUBuffer(RenderDevice* device, GPUBufferUsageFlags usage);
+        GPUBuffer(RenderDevice* device, const GPUBufferDesc& desc);
+        GPUBuffer(const GPUBuffer&) = delete;
+        GPUBuffer(GPUBuffer&& other) noexcept;
+        GPUBuffer& operator=(const GPUBuffer&) = delete;
+        GPUBuffer& operator=(GPUBuffer&& other) noexcept;
+        virtual ~GPUBuffer();
+
+        [[nodiscard]] RenderDevice* device() const noexcept { return device_; }
+        [[nodiscard]] std::size_t size() const noexcept { return desc_.size; }
+        [[nodiscard]] GPUBufferUsageFlags usage() const noexcept { return desc_.usage; }
+        [[nodiscard]] bool host_visible() const noexcept { return desc_.host_visible; }
+        [[nodiscard]] const GPUBufferDesc& desc() const noexcept { return desc_; }
+        [[nodiscard]] GPUBufferHandle handle() const noexcept { return handle_; }
+
+        [[nodiscard]] bool is_empty() const noexcept { return desc_.size == 0; }
+
+        [[nodiscard]] BufferBindingDesc descriptor_value(BufferRegion region = {}) const;
+        [[nodiscard]] DescriptorBinding descriptor_binding(std::uint32_t binding, const BufferRegion& region = {}) const;
+
+    protected:
+        void recreate(const GPUBufferDesc& desc);
+
+    private:
+        RenderDevice* device_;
+        GPUBufferDesc desc_;
+        GPUBufferHandle handle_;
+    };
+
+    class MappedGPUBuffer : public GPUBuffer
+    {
+    public:
         MappedGPUBuffer(RenderDevice* device, std::size_t size, GPUBufferUsageFlags usage);
-        MappedGPUBuffer(RenderDevice* device, std::span<const std::byte> data, GPUBufferUsageFlags usage);
         MappedGPUBuffer(const MappedGPUBuffer&) = delete;
         MappedGPUBuffer(MappedGPUBuffer&& other) noexcept;
         MappedGPUBuffer& operator=(const MappedGPUBuffer&) = delete;
         MappedGPUBuffer& operator=(MappedGPUBuffer&& other) noexcept;
-        ~MappedGPUBuffer();
+        ~MappedGPUBuffer() override;
 
-        [[nodiscard]] GPUBufferHandle handle() const noexcept { return buffer_; }
-        [[nodiscard]] std::size_t size() const noexcept { return size_; }
-        [[nodiscard]] GPUBufferUsageFlags usage() const noexcept { return usage_; }
-        [[nodiscard]] void* ptr() noexcept { return ptr_; }
+        [[nodiscard]] void* ptr() const noexcept { return ptr_; }
 
-        [[nodiscard]] bool needs_resize(std::size_t new_size) const noexcept { return new_size != size_; }
-        [[nodiscard]] bool needs_grow(std::size_t new_size) const noexcept { return new_size > size_; }
-        [[nodiscard]] bool needs_shrink(std::size_t new_size) const noexcept { return new_size < size_; }
-
-        [[nodiscard]] BufferBindingDesc binding_desc(std::size_t offset = 0ull) const noexcept;
-        [[nodiscard]] DescriptorBinding descriptor_binding(std::uint32_t binding, std::size_t offset = 0ull) const noexcept;
-
+        void* map();
+        void unmap();
         void resize(std::size_t new_size);
-        void grow(std::size_t new_size);
-        void shrink(std::size_t new_size);
 
-        void upload(std::span<const std::byte> data);
-        void upload_resize(std::span<const std::byte> data);
-        void upload_grow(std::span<const std::byte> data);
-        void upload_shrink(std::span<const std::byte> data);
+        void upload(std::span<const std::byte> bytes, std::size_t offset = 0ull);
+        void upload_grow(std::span<const std::byte> bytes, std::size_t offset = 0ull);
 
     private:
-        void recreate(size_t new_size);
-
-        RenderDevice* device_;
-        std::size_t size_ = 0;
-        GPUBufferUsageFlags usage_;
-        GPUBufferHandle buffer_ = GPUBufferHandle::invalid();
-        void* ptr_ = nullptr;
+        void* ptr_;
     };
 } // namespace orion

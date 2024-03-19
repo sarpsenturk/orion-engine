@@ -561,8 +561,8 @@ namespace
         renderer_data->frame_data.reserve(orion::frames_in_flight);
         for (int i = 0; i < orion::frames_in_flight; ++i) {
             renderer_data->frame_data.emplace_back(
-                orion::MappedGPUBuffer{device, orion::GPUBufferUsageFlags::VertexBuffer},
-                orion::MappedGPUBuffer{device, orion::GPUBufferUsageFlags::IndexBuffer});
+                orion::MappedGPUBuffer{device, 0, orion::GPUBufferUsageFlags::VertexBuffer},
+                orion::MappedGPUBuffer{device, 0, orion::GPUBufferUsageFlags::IndexBuffer});
         }
 
         // Get the shader manager
@@ -607,6 +607,12 @@ namespace
         IM_DELETE(renderer_data);
 
         SPDLOG_LOGGER_TRACE(logger(), "ImGui_ImplOrion_Renderer shut down");
+    }
+
+    template<typename T>
+    std::span<const std::byte> to_byte_span(const ImVector<T>& vector)
+    {
+        return std::as_bytes(std::span{vector.Data, static_cast<std::size_t>(vector.Size)});
     }
 } // namespace
 
@@ -669,14 +675,15 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
     }
 
     // Upload vertex and index data
-    auto* vert_ptr = static_cast<ImDrawVert*>(frame.vertex_buffer.ptr());
-    auto* idx_ptr = static_cast<ImDrawIdx*>(frame.index_buffer.ptr());
-    for (int i = 0; i < draw_data->CmdListsCount; ++i) {
-        auto* imgui_cmd_list = draw_data->CmdLists[i];
-        std::memcpy(vert_ptr, imgui_cmd_list->VtxBuffer.Data, imgui_cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-        std::memcpy(idx_ptr, imgui_cmd_list->IdxBuffer.Data, imgui_cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-        vert_ptr += imgui_cmd_list->VtxBuffer.Size;
-        idx_ptr += imgui_cmd_list->IdxBuffer.Size;
+    std::size_t vtx_offset = 0ull;
+    std::size_t idx_offset = 0ull;
+    for (auto* imgui_cmd_list : std::span{draw_data->CmdLists, static_cast<std::size_t>(draw_data->CmdListsCount)}) {
+        const auto vertices = to_byte_span(imgui_cmd_list->VtxBuffer);
+        frame.vertex_buffer.upload(vertices, vtx_offset);
+        vtx_offset += vertices.size_bytes();
+        const auto indices = to_byte_span(imgui_cmd_list->IdxBuffer);
+        frame.index_buffer.upload(indices, idx_offset);
+        idx_offset += indices.size_bytes();
     }
 
     // Bind pipeline

@@ -2,8 +2,8 @@
 
 #include <orion-core/window.h>
 
-#include <orion-renderer/renderer.h>
 #include <orion-renderer/colors.h>
+#include <orion-renderer/renderer.h>
 
 #include <orion-scene/scene.h>
 

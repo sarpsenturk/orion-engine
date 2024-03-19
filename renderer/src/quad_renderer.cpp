@@ -13,7 +13,7 @@ namespace orion
         , descriptor_layout_(create_descriptor_layout())
         , pipeline_layout_(create_pipeline_layout())
         , pipeline_(create_pipeline(shader_manager, render_pass))
-        , frames_([this] { return FrameData{.quad_buffer = {device_, GPUBufferUsageFlags::StorageBuffer}, .descriptor = device_->create_descriptor(descriptor_layout_)}; })
+        , frames_([this] { return FrameData{.quad_buffer = {device_, 0, GPUBufferUsageFlags::StorageBuffer}, .descriptor = device_->create_descriptor(descriptor_layout_)}; })
     {
     }
 

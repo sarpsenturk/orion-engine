@@ -9,128 +9,139 @@
 
 namespace orion
 {
-    MappedGPUBuffer::MappedGPUBuffer(RenderDevice* device, GPUBufferUsageFlags usage)
+    GPUBuffer::GPUBuffer(RenderDevice* device, const GPUBufferDesc& desc)
         : device_(device)
-        , usage_(usage)
+        , desc_(desc)
+        , handle_(desc.size > 0 ? device->create_buffer(desc) : GPUBufferHandle::invalid())
     {
-        ORION_EXPECTS(device != nullptr);
+    }
+
+    GPUBuffer::GPUBuffer(GPUBuffer&& other) noexcept
+        : device_(other.device_)
+        , desc_(other.desc_)
+        , handle_(std::exchange(other.handle_, GPUBufferHandle::invalid()))
+    {
+    }
+
+    GPUBuffer& GPUBuffer::operator=(GPUBuffer&& other) noexcept
+    {
+        if (&other != this) {
+            device_ = other.device_;
+            desc_ = other.desc_;
+            handle_ = std::exchange(other.handle_, GPUBufferHandle::invalid());
+        }
+        return *this;
+    }
+
+    GPUBuffer::~GPUBuffer()
+    {
+        if (handle_.is_valid()) {
+            device_->destroy(handle_);
+        }
+    }
+
+    void GPUBuffer::recreate(const GPUBufferDesc& desc)
+    {
+        if (handle_.is_valid()) {
+            device_->destroy(handle_);
+        }
+        handle_ = device_->create_buffer(desc);
+        desc_ = desc;
+    }
+
+    BufferBindingDesc GPUBuffer::descriptor_value(BufferRegion region) const
+    {
+        ORION_ASSERT(region.offset < size() && "buffer region offset can't be larger than buffer size");
+
+        if (region.size == buffer_whole_size) {
+            region.size = size() - region.offset;
+        }
+
+        return {
+            .buffer_handle = handle_,
+            .region = region,
+        };
+    }
+
+    DescriptorBinding GPUBuffer::descriptor_binding(std::uint32_t binding, const BufferRegion& region) const
+    {
+        return {
+            .binding = binding,
+            .binding_type = get_binding_type(usage()),
+            .binding_value = descriptor_value(region),
+        };
     }
 
     MappedGPUBuffer::MappedGPUBuffer(RenderDevice* device, std::size_t size, GPUBufferUsageFlags usage)
-        : device_(device)
-        , size_(size)
-        , usage_(usage)
-        , buffer_(device->create_buffer({.size = size, .usage = usage, .host_visible = true}))
-        , ptr_(device->map(buffer_))
+        : GPUBuffer(device, {.size = size, .usage = usage, .host_visible = true})
+        , ptr_(is_empty() ? nullptr : map())
     {
-    }
-
-    MappedGPUBuffer::MappedGPUBuffer(RenderDevice* device, std::span<const std::byte> data, GPUBufferUsageFlags usage)
-        : device_(device)
-        , size_(data.size_bytes())
-        , usage_(usage)
-        , buffer_(device->create_buffer({.size = data.size_bytes(), .usage = usage, .host_visible = true}))
-        , ptr_(device->map(buffer_))
-    {
-        std::memcpy(ptr_, data.data(), data.size_bytes());
     }
 
     MappedGPUBuffer::MappedGPUBuffer(MappedGPUBuffer&& other) noexcept
-        : device_(other.device_)
-        , size_(other.size_)
-        , usage_(other.usage_)
-        , buffer_(std::exchange(other.buffer_, GPUBufferHandle::invalid()))
-        , ptr_(other.ptr_)
+        : GPUBuffer(std::move(other))
+        , ptr_(std::exchange(other.ptr_, nullptr))
     {
     }
 
     MappedGPUBuffer& MappedGPUBuffer::operator=(MappedGPUBuffer&& other) noexcept
     {
         if (&other != this) {
-            device_ = other.device_;
-            size_ = other.size_;
-            usage_ = other.usage_;
-            buffer_ = std::exchange(other.buffer_, GPUBufferHandle::invalid());
-            ptr_ = other.ptr_;
+            GPUBuffer::operator=(std::move(other));
+            ptr_ = std::exchange(other.ptr_, nullptr);
         }
         return *this;
     }
 
     MappedGPUBuffer::~MappedGPUBuffer()
     {
-        if (buffer_.is_valid()) {
-            device_->unmap(buffer_);
-            device_->destroy(buffer_);
+        if (ptr_ != nullptr) {
+            unmap();
         }
     }
 
-    void MappedGPUBuffer::recreate(size_t new_size)
+    void* MappedGPUBuffer::map()
     {
-        if (buffer_.is_valid()) {
-            device_->unmap(buffer_);
-            device_->destroy(buffer_);
+        ORION_ASSERT(!is_empty() && "trying to map() an empty buffer");
+        if (ptr_ != nullptr) {
+            return ptr_;
         }
-        buffer_ = device_->create_buffer({.size = new_size, .usage = usage_, .host_visible = true});
-        ptr_ = device_->map(buffer_);
-        size_ = new_size;
+        return device()->map(handle());
     }
 
-    BufferBindingDesc MappedGPUBuffer::binding_desc(std::size_t offset) const noexcept
+    void MappedGPUBuffer::unmap()
     {
-        return {.buffer_handle = buffer_, .size = size_, .offset = offset};
-    }
-
-    DescriptorBinding MappedGPUBuffer::descriptor_binding(std::uint32_t binding, std::size_t offset) const noexcept
-    {
-        return {
-            .binding = binding,
-            .binding_type = get_binding_type(usage_),
-            .binding_value = binding_desc(offset),
-        };
+        ORION_ASSERT(ptr_ != nullptr && "trying to unmap() buffer which was not previously mapped with map()");
+        device()->unmap(handle());
     }
 
     void MappedGPUBuffer::resize(std::size_t new_size)
     {
-        if (needs_resize(new_size)) {
-            recreate(new_size);
+        if (ptr_ != nullptr) {
+            unmap();
+            ptr_ = nullptr;
+        }
+        auto new_desc = desc();
+        new_desc.size = new_size;
+        recreate(new_desc);
+
+        if (!is_empty()) {
+            ptr_ = map();
         }
     }
 
-    void MappedGPUBuffer::grow(std::size_t new_size)
+    void MappedGPUBuffer::upload(std::span<const std::byte> bytes, std::size_t offset)
     {
-        if (needs_grow(new_size)) {
-            recreate(new_size);
+        ORION_ASSERT(bytes.size() + offset <= size());
+        std::memcpy(static_cast<char*>(ptr_) + offset, bytes.data(), bytes.size());
+    }
+
+    void MappedGPUBuffer::upload_grow(std::span<const std::byte> bytes, std::size_t offset)
+    {
+        const auto data_size = bytes.size() + offset;
+        if (size() < data_size) {
+            resize(data_size);
         }
-    }
-
-    void MappedGPUBuffer::shrink(std::size_t new_size)
-    {
-        if (needs_shrink(new_size)) {
-            recreate(new_size);
-        }
-    }
-
-    void MappedGPUBuffer::upload(std::span<const std::byte> data)
-    {
-        ORION_ASSERT(data.size_bytes() <= size_);
-        std::memcpy(ptr_, data.data(), data.size_bytes());
-    }
-
-    void MappedGPUBuffer::upload_resize(std::span<const std::byte> data)
-    {
-        resize(data.size_bytes());
-        upload(data);
-    }
-
-    void MappedGPUBuffer::upload_grow(std::span<const std::byte> data)
-    {
-        grow(data.size_bytes());
-        upload(data);
-    }
-
-    void MappedGPUBuffer::upload_shrink(std::span<const std::byte> data)
-    {
-        shrink(data.size_bytes());
-        upload(data);
+        std::memcpy(static_cast<char*>(ptr_) + offset, bytes.data(), bytes.size());
     }
 } // namespace orion
