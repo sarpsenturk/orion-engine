@@ -5,17 +5,9 @@
 #include <orion-renderer/colors.h>
 #include <orion-renderer/renderer.h>
 
-#include <orion-scene/scene.h>
-
 #include <orion-math/vector/vector3.h>
 
-#include <fmt/chrono.h>
-#include <spdlog/spdlog.h>
-
 #include <imgui.h>
-
-#include <algorithm>
-#include <array>
 
 class SandboxApp final : public orion::Application
 {
@@ -27,11 +19,6 @@ public:
     {
         // Close app on callback
         window_.on_close().subscribe(ORION_EXIT_APP_FN);
-
-        // Create entity
-        auto entity = scene_.create_entity();
-        // Translate entity
-        entity.transform().translate({5.f, 0.f, 0.f});
     }
 
 private:
@@ -76,7 +63,6 @@ private:
     orion::Window window_;
     orion::Renderer renderer_;
     orion::QuadRenderer quad_renderer_;
-    orion::Scene scene_;
 };
 
 ORION_MAIN(args)
