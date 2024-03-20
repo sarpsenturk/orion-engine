@@ -7,6 +7,8 @@
 
 #include <orion-math/vector/vector3.h>
 
+#include <imgui.h>
+
 class SandboxApp final : public orion::Application
 {
 public:
@@ -15,6 +17,7 @@ public:
         , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = {800, 600}})
         , render_window_(renderer_.create_render_window(window_))
         , quad_renderer_(renderer_.create_quad_renderer())
+        , imgui_(renderer_.imgui_init(window_))
     {
         // Close app on callback
         window_.on_close().subscribe(ORION_EXIT_APP_FN);
@@ -36,6 +39,13 @@ private:
         renderer_.render(quad_renderer_);
     }
 
+    void render_gui()
+    {
+        renderer_.imgui_new_frame();
+        ImGui::ShowDemoWindow();
+        renderer_.imgui_render();
+    }
+
     void on_user_render() override
     {
         if (window_.is_minimized()) {
@@ -43,7 +53,11 @@ private:
         }
 
         renderer_.begin();
+
         render_scene();
+
+        render_gui();
+
         renderer_.end();
 
         renderer_.present(render_window_);
@@ -53,6 +67,7 @@ private:
     orion::Renderer renderer_;
     orion::RenderWindow render_window_;
     orion::QuadRenderer quad_renderer_;
+    orion::ImGuiContext imgui_;
 };
 
 ORION_MAIN(args)

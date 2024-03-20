@@ -2,6 +2,7 @@
 
 #include "orion-renderer/config.h"
 #include "orion-renderer/frame.h"
+#include "orion-renderer/imgui.h"
 #include "orion-renderer/quad_renderer.h"
 #include "orion-renderer/render_window.h"
 #include "orion-renderer/shader.h"
@@ -58,6 +59,10 @@ namespace orion
 
         RenderWindow create_render_window(Window& window);
         void present(RenderWindow& render_window);
+
+        ImGuiContext imgui_init(Window& window);
+        void imgui_new_frame();
+        void imgui_render();
 
     private:
         struct FrameData {

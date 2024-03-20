@@ -747,3 +747,8 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
         global_idx_offset += imgui_cmd_list->IdxBuffer.Size;
     }
 }
+
+bool ImGui_ImpOrion_Is_Initialized()
+{
+    return ImGui::GetCurrentContext() != nullptr;
+}

@@ -5,7 +5,6 @@
 #include "orion-utils/static_vector.h"
 
 #include <algorithm>
-#include <vector>
 
 namespace orion
 {

@@ -32,11 +32,6 @@ namespace orion
 
         constexpr Handle() noexcept = default;
 
-        constexpr Handle(std::nullptr_t) noexcept
-            : value_(invalid_handle_value)
-        {
-        }
-
         constexpr explicit Handle(key_type value) noexcept
             : value_(value)
         {
@@ -48,16 +43,14 @@ namespace orion
 
         [[nodiscard]] constexpr friend bool operator==(Handle, Handle) noexcept = default;
 
-        [[nodiscard]] constexpr operator bool() const noexcept { return is_valid(); }
-
     private:
-        key_type value_;
+        key_type value_ = invalid_handle_value;
     };
 
     template<typename Tag, typename ValueType>
     inline auto format_as(Handle<Tag, ValueType> handle)
     {
-        return fmt::format("{}{{{}}}", Tag::string, handle.value());
+        return fmt::format("{}{{{:#x}}}", Tag::string, handle.value());
     }
 } // namespace orion
 

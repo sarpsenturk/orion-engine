@@ -156,6 +156,41 @@ namespace orion
         });
     }
 
+    ImGuiContext Renderer::imgui_init(Window& window)
+    {
+        ORION_ASSERT(!ImGui_ImpOrion_Is_Initialized() && "ImGui is already initialized");
+
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplOrion_Init({
+            .window = &window,
+            .device = device(),
+            .command_allocator = command_allocator_.get(),
+            .render_pass = render_pass_,
+            .shader_manager = &shader_manager_,
+        });
+        return {};
+    }
+
+    void Renderer::imgui_new_frame()
+    {
+        ORION_ASSERT(ImGui_ImpOrion_Is_Initialized() && "ImGui is not initialized. Did you call Renderer::imgui_init()");
+        ImGui_ImplOrion_NewFrame(current_frame_index_);
+        ImGui::NewFrame();
+    }
+
+    void Renderer::imgui_render()
+    {
+        ORION_ASSERT(ImGui_ImpOrion_Is_Initialized() && "ImGui is not initialized. Did you call Renderer::imgui_init()");
+        ImGui::Render();
+        ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), frames_.get(current_frame_index_).command_list.get());
+    }
+
     spdlog::logger* Renderer::logger()
     {
         static const auto logger = create_logger("orion-renderer", ORION_RENDERER_LOG_LEVEL);

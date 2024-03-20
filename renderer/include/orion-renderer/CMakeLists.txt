@@ -6,6 +6,7 @@ target_sources(
         camera.h
         colors.h
         frame.h
+        imgui.h
         quad_renderer.h
         render_window.h
         renderer.h

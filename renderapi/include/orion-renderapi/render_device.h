@@ -58,19 +58,15 @@ namespace orion
         [[nodiscard]] SemaphoreHandle create(SemaphoreHandle_tag) { return create_semaphore(); }
 
         template<typename Tag, typename... Args>
-        auto make_unique(Args&&... args)
+        UniqueDeviceHandle<Tag> make_unique(Args&&... args)
         {
-            using deleter_fn_t = void (RenderDevice::*)(RenderDeviceHandle<Tag>);
-            const auto deleter_fn = static_cast<deleter_fn_t>(&RenderDevice::destroy);
-            return UniqueDeviceResource<Tag>{create(Tag{}, std::forward<Args>(args)...), {this, deleter_fn}};
+            return {create(Tag{}, std::forward<Args>(args)...), this};
         }
 
         template<typename Tag>
-        auto to_unique(RenderDeviceHandle<Tag> handle)
+        UniqueDeviceHandle<Tag> to_unique(RenderDeviceHandle<Tag> handle)
         {
-            using deleter_fn_t = void (RenderDevice::*)(RenderDeviceHandle<Tag>);
-            const auto deleter_fn = static_cast<deleter_fn_t>(&RenderDevice::destroy);
-            return UniqueDeviceResource<Tag>{handle, {this, deleter_fn}};
+            return {handle, this};
         }
 
         void destroy(RenderPassHandle render_pass_handle);

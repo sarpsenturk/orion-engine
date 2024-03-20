@@ -1,14 +1,19 @@
 #include "orion-renderer/render_window.h"
 
+#include "orion-renderer/config.h"
 #include "orion-renderer/shader.h"
 
-#include "orion-renderer/config.h"
-
+#include "orion-renderapi/defs.h"
+#include "orion-renderapi/handles.h"
 #include "orion-renderapi/render_device.h"
 
 #include "orion-core/window.h"
 
+#include "orion-math/vector/vector.h"
+
 #include <algorithm>
+#include <utility>
+#include <vector>
 
 namespace orion
 {

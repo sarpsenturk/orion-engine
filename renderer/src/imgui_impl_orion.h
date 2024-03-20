@@ -36,3 +36,4 @@ void ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitDesc& desc);
 void ImGui_ImplOrion_Shutdow();
 void ImGui_ImplOrion_NewFrame(orion::frame_index_t frame_index);
 void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* cmd_list);
+bool ImGui_ImpOrion_Is_Initialized();
