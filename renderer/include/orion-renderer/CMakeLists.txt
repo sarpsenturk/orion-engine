@@ -7,6 +7,7 @@ target_sources(
         colors.h
         frame.h
         quad_renderer.h
+        render_window.h
         renderer.h
         shader.h
 )

@@ -3,6 +3,7 @@
 #include "orion-renderer/config.h"
 #include "orion-renderer/frame.h"
 #include "orion-renderer/quad_renderer.h"
+#include "orion-renderer/render_window.h"
 #include "orion-renderer/shader.h"
 
 #include "orion-renderapi/render_backend.h"
@@ -26,22 +27,14 @@ namespace orion
     const char* default_backend_module(Platform platform = current_platform);
 
     struct RendererDesc {
-        Window* window;
         const char* backend_module = default_backend_module();
         SelectPhysicalDeviceFn device_select_fn = nullptr;
         Vector2_u render_size;
-        bool init_imgui;
     };
 
     // Forward declare
     class Scene;
     class Window;
-
-    class ImGuiContext
-    {
-    public:
-        ~ImGuiContext();
-    };
 
     class Renderer
     {
@@ -60,12 +53,11 @@ namespace orion
 
         void begin();
         void end();
-        void imgui_begin();
-        void imgui_end();
         void render(QuadRenderer& quad_renderer);
         void draw_test_triangle();
 
-        void present(const Window& window);
+        RenderWindow create_render_window(Window& window);
+        void present(RenderWindow& render_window);
 
     private:
         struct FrameData {
@@ -73,46 +65,25 @@ namespace orion
             ImageViewHandle render_image_view;
             FramebufferHandle render_target;
             std::unique_ptr<CommandList> command_list;
-            std::unique_ptr<CommandList> present_command;
             FenceHandle fence;
             SemaphoreHandle render_semaphore;
-            SemaphoreHandle present_semaphore;
-            FenceHandle present_fence;
-            DescriptorHandle present_descriptor;
         };
-
-        static constexpr auto swapchain_image_count = frames_in_flight;
-        static constexpr auto swapchain_image_format = Format::B8G8R8A8_Srgb;
 
         static spdlog::logger* logger();
 
         [[nodiscard]] std::unique_ptr<RenderBackend> create_render_backend() const;
         [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(SelectPhysicalDeviceFn device_select_fn) const;
-        [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(const Window* window) const;
-        [[nodiscard]] std::vector<ImageViewHandle> create_swapchain_image_views() const;
-        [[nodiscard]] std::vector<FramebufferHandle> create_swapchain_framebuffers(const Vector2_u& size) const;
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator() const;
         [[nodiscard]] RenderPassHandle create_render_pass() const;
         [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
         [[nodiscard]] PipelineHandle create_triangle_pipeline() const;
-        [[nodiscard]] DescriptorLayoutHandle create_present_descriptor_layout() const;
-        [[nodiscard]] PipelineLayoutHandle create_present_pipeline_layout() const;
-        [[nodiscard]] SamplerHandle create_present_sampler() const;
-        [[nodiscard]] RenderPassHandle create_present_pass() const;
-        [[nodiscard]] PipelineHandle create_present_pipeline() const;
         [[nodiscard]] FrameData create_frame_data() const;
-        [[nodiscard]] std::unique_ptr<ImGuiContext> create_imgui_context(Window* window);
 
         Module backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
 
         RenderPassHandle render_pass_;
-        RenderPassHandle present_pass_;
-
-        std::unique_ptr<Swapchain> swapchain_;
-        std::vector<ImageViewHandle> swapchain_image_views_;
-        std::vector<FramebufferHandle> swapchain_framebuffers_;
 
         std::unique_ptr<CommandAllocator> command_allocator_;
 
@@ -126,17 +97,9 @@ namespace orion
         ShaderEffect triangle_shader_effect_;
         PipelineHandle triangle_pipeline_;
 
-        DescriptorLayoutHandle present_descriptor_layout_;
-        PipelineLayoutHandle present_pipeline_layout_;
-        SamplerHandle present_sampler_;
-        ShaderEffect present_shader_effect_;
-        PipelineHandle present_pipeline_;
-
         PerFrameData<FrameData> frames_;
         frame_index_t current_frame_index_ = 0;
         frame_index_t previous_frame_index_ = -1;
         void advance_frame();
-
-        std::unique_ptr<ImGuiContext> imgui_;
     };
 } // namespace orion
