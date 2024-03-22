@@ -140,9 +140,9 @@ namespace orion
         frame.command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
     }
 
-    RenderWindow Renderer::create_render_window(Window& window)
+    RenderWindow Renderer::create_render_window(Window& window, bool vsync)
     {
-        return {device(), &window, command_allocator_.get()};
+        return {device(), &window, vsync, command_allocator_.get()};
     }
 
     void Renderer::present(RenderWindow& render_window)

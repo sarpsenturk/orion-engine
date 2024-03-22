@@ -483,6 +483,7 @@ namespace orion
         Format image_format = default_swapchain_format;
         Vector2_u image_size = {};
         ImageUsageFlags image_usage = ImageUsageFlags::ColorAttachment;
+        bool vsync = true;
     };
 
     struct SamplerDesc {

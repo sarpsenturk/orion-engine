@@ -17,10 +17,10 @@
 
 namespace orion
 {
-    RenderWindow::RenderWindow(RenderDevice* device, Window* window, CommandAllocator* command_allocator)
+    RenderWindow::RenderWindow(RenderDevice* device, Window* window, bool vsync, CommandAllocator* command_allocator)
         : device_(device)
         , window_(window)
-        , swapchain_(device->create_swapchain(*window, swapchain_desc()))
+        , swapchain_(device->create_swapchain(*window, swapchain_desc(window->size(), vsync)))
         , present_pass_(create_render_pass())
         , image_views_(create_image_views())
         , framebuffers_(create_framebuffers())
@@ -84,13 +84,14 @@ namespace orion
         swapchain_->present({{frame.semaphore.get()}});
     }
 
-    SwapchainDesc RenderWindow::swapchain_desc() const noexcept
+    SwapchainDesc RenderWindow::swapchain_desc(const Vector2_u& size, bool vsync) noexcept
     {
         return {
             .image_count = frames_in_flight,
             .image_format = Format::B8G8R8A8_Srgb,
-            .image_size = window_->size(),
+            .image_size = size,
             .image_usage = ImageUsageFlags::ColorAttachment,
+            .vsync = vsync,
         };
     }
 

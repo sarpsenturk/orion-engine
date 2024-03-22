@@ -7,6 +7,8 @@
 #include "orion-renderapi/render_command.h"
 #include "orion-renderapi/swapchain.h"
 
+#include "orion-math/vector/vector2.h"
+
 #include <vector>
 
 namespace orion
@@ -24,7 +26,7 @@ namespace orion
     class RenderWindow
     {
     public:
-        RenderWindow(RenderDevice* device, Window* window, CommandAllocator* command_allocator);
+        RenderWindow(RenderDevice* device, Window* window, bool vsync, CommandAllocator* command_allocator);
 
         void present(const PresentDesc& desc);
 
@@ -36,7 +38,8 @@ namespace orion
             UniqueSemaphore semaphore;
         };
 
-        [[nodiscard]] SwapchainDesc swapchain_desc() const noexcept;
+        [[nodiscard]] static SwapchainDesc swapchain_desc(const Vector2_u& size, bool vsync) noexcept;
+
         [[nodiscard]] UniqueRenderPass create_render_pass() const;
         [[nodiscard]] std::vector<UniqueImageView> create_image_views() const;
         [[nodiscard]] std::vector<UniqueFramebuffer> create_framebuffers() const;

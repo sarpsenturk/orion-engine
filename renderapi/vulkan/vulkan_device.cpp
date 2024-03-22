@@ -227,7 +227,7 @@ namespace orion::vulkan
             .format = to_vulkan_type(desc.image_format),
             .extent = to_vulkan_extent(desc.image_size),
             .usage = to_vulkan_type(desc.image_usage),
-            .present_mode = VK_PRESENT_MODE_FIFO_KHR, // TODO: Allow present mode to be changed
+            .present_mode = desc.vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR,
         });
 
         return std::make_unique<VulkanSwapchain>(this, unique(surface, instance_), unique(swapchain, vk_device()));

@@ -57,7 +57,7 @@ namespace orion
         void render(QuadRenderer& quad_renderer);
         void draw_test_triangle();
 
-        RenderWindow create_render_window(Window& window);
+        RenderWindow create_render_window(Window& window, bool vsync);
         void present(RenderWindow& render_window);
 
         ImGuiContext imgui_init(Window& window);
