@@ -55,7 +55,6 @@ namespace orion
         void begin();
         void end();
         void render(QuadRenderer& quad_renderer);
-        void draw_test_triangle();
 
         RenderWindow create_render_window(Window& window, bool vsync);
         void present(RenderWindow& render_window);
@@ -80,8 +79,6 @@ namespace orion
         [[nodiscard]] std::unique_ptr<RenderDevice> create_render_device(SelectPhysicalDeviceFn device_select_fn) const;
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator() const;
         [[nodiscard]] RenderPassHandle create_render_pass() const;
-        [[nodiscard]] PipelineLayoutHandle create_triangle_pipeline_layout() const;
-        [[nodiscard]] PipelineHandle create_triangle_pipeline() const;
         [[nodiscard]] FrameData create_frame_data() const;
 
         Module backend_module_;
@@ -97,10 +94,6 @@ namespace orion
         Vector2_u render_size_;
         Viewport viewport_;
         Scissor scissor_;
-
-        PipelineLayoutHandle triangle_pipeline_layout_;
-        ShaderEffect triangle_shader_effect_;
-        PipelineHandle triangle_pipeline_;
 
         PerFrameData<FrameData> frames_;
         frame_index_t current_frame_index_ = 0;

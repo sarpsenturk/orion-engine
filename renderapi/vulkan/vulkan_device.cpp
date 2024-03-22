@@ -815,6 +815,7 @@ namespace orion::vulkan
 
     void VulkanDevice::destroy_flush_api()
     {
+        resource_manager_.destroy_flush();
     }
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)

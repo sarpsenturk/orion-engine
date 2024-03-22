@@ -48,9 +48,6 @@ namespace orion
         , render_size_(desc.render_size)
         , viewport_(Vector2_f{}, vector_cast<float>(render_size_), {0.f, 1.f})
         , scissor_({}, render_size_)
-        , triangle_pipeline_layout_(create_triangle_pipeline_layout())
-        , triangle_shader_effect_(shader_manager_.load_shader_effect("triangle"))
-        , triangle_pipeline_(create_triangle_pipeline())
         , frames_([this] { return create_frame_data(); })
     {
     }
@@ -72,8 +69,10 @@ namespace orion
         // Wait for frame to finish
         device()->wait_for_fence(frame.fence);
 
-        // Flush all destroyed resources in previous frame
-        device()->destroy_flush();
+        // Flush all destroyed resources every frames_in_flight frames
+        if (current_frame_index_ == 0) {
+            device()->destroy_flush();
+        }
 
         // Reset command list
         frame.command_list->reset();
@@ -127,17 +126,6 @@ namespace orion
         auto* command_list = frames_.get(current_frame_index_).command_list.get();
 
         quad_renderer.flush(command_list, current_frame_index_);
-    }
-
-    void Renderer::draw_test_triangle()
-    {
-        auto& frame = frames_.get(current_frame_index_);
-
-        // Bind the triangle pipeline
-        frame.command_list->bind_pipeline({.pipeline = triangle_pipeline_, .bind_point = PipelineBindPoint::Graphics});
-
-        // Make draw call
-        frame.command_list->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
     }
 
     RenderWindow Renderer::create_render_window(Window& window, bool vsync)
@@ -274,32 +262,6 @@ namespace orion
             }},
             .input_attachments = {},
             .bind_point = PipelineBindPoint::Graphics,
-        });
-    }
-
-    PipelineLayoutHandle Renderer::create_triangle_pipeline_layout() const
-    {
-        return device()->create_pipeline_layout({.descriptors = {}, .push_constants = {}});
-    }
-
-    PipelineHandle Renderer::create_triangle_pipeline() const
-    {
-        return device()->create_graphics_pipeline({
-            .shaders = triangle_shader_effect_.shader_stages(),
-            .vertex_bindings = {},
-            .pipeline_layout = triangle_pipeline_layout_,
-            .color_blend = {
-                .attachments = {{
-                    BlendAttachmentDesc{
-                        .enable_blend = true,
-                        .src_blend = BlendFactor::One,
-                        .dst_blend = BlendFactor::Zero,
-                        .blend_op = BlendOp::Add,
-                        .color_component_flags = ColorComponentFlags::All,
-                    },
-                }},
-            },
-            .render_pass = render_pass_,
         });
     }
 

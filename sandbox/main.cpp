@@ -31,8 +31,6 @@ private:
 
     void render_scene()
     {
-        renderer_.draw_test_triangle();
-
         quad_renderer_.begin();
         quad_renderer_.add({.position = {-0.75f, 0.f, 0.f}, .color = orion::colors::cyan});
         quad_renderer_.add({.position = {0.75f, 0.f, 0.f}, .color = orion::colors::green});
