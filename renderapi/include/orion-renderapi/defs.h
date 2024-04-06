@@ -40,8 +40,17 @@ namespace orion
         R8_Unorm,
         B8G8R8A8_Srgb,
         R8G8B8A8_Unorm,
+        R32_Uint,
+        R32_Int,
+        R32_Float,
+        R32G32_Uint,
+        R32G32_Int,
         R32G32_Float,
+        R32G32B32_Uint,
+        R32G32B32_Int,
         R32G32B32_Float,
+        R32G32B32A32_Uint,
+        R32G32B32A32_Int,
         R32G32B32A32_Float,
     };
 
@@ -53,14 +62,32 @@ namespace orion
             case Format::B8G8R8A8_Srgb:
             case Format::R8G8B8A8_Unorm:
                 return sizeof(uint8_t) * 4;
-            case Format::R32G32_Float:
-                return sizeof(float) * 2;
-            case Format::R32G32B32_Float:
-                return sizeof(float) * 3;
-            case Format::R32G32B32A32_Float:
-                return sizeof(float) * 4;
             case Format::R8_Unorm:
                 return sizeof(std::uint8_t);
+            case Format::R32_Uint:
+                return sizeof(std::uint32_t);
+            case Format::R32_Int:
+                return sizeof(std::int32_t);
+            case Format::R32_Float:
+                return sizeof(float_t);
+            case Format::R32G32_Uint:
+                return sizeof(std::uint32_t) * 2;
+            case Format::R32G32_Int:
+                return sizeof(std::int32_t) * 2;
+            case Format::R32G32_Float:
+                return sizeof(float) * 2;
+            case Format::R32G32B32_Uint:
+                return sizeof(std::uint32_t) * 3;
+            case Format::R32G32B32_Int:
+                return sizeof(std::int32_t) * 3;
+            case Format::R32G32B32_Float:
+                return sizeof(float) * 3;
+            case Format::R32G32B32A32_Uint:
+                return sizeof(std::uint32_t) * 4;
+            case Format::R32G32B32A32_Int:
+                return sizeof(std::int32_t) * 4;
+            case Format::R32G32B32A32_Float:
+                return sizeof(float) * 4;
         }
         return UINT32_MAX;
     }
@@ -88,7 +115,8 @@ namespace orion
 
     ORION_BITFLAG(ShaderStageFlags, std::uint8_t){
         Vertex = 0x1,
-        Pixel = 0x2};
+        Pixel = 0x2,
+    };
 
     enum class PrimitiveTopology {
         TriangleList

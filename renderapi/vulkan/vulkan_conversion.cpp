@@ -52,10 +52,28 @@ namespace orion::vulkan
                 return VK_FORMAT_R8_UNORM;
             case Format::B8G8R8A8_Srgb:
                 return VK_FORMAT_B8G8R8A8_SRGB;
+            case Format::R32_Uint:
+                return VK_FORMAT_R32_UINT;
+            case Format::R32_Int:
+                return VK_FORMAT_R32_SINT;
+            case Format::R32_Float:
+                return VK_FORMAT_R32_SFLOAT;
+            case Format::R32G32_Uint:
+                return VK_FORMAT_R32G32_UINT;
+            case Format::R32G32_Int:
+                return VK_FORMAT_R32G32_SINT;
             case Format::R32G32_Float:
                 return VK_FORMAT_R32G32_SFLOAT;
+            case Format::R32G32B32_Uint:
+                return VK_FORMAT_R32G32B32_UINT;
+            case Format::R32G32B32_Int:
+                return VK_FORMAT_R32G32B32_SINT;
             case Format::R32G32B32_Float:
                 return VK_FORMAT_R32G32B32_SFLOAT;
+            case Format::R32G32B32A32_Uint:
+                return VK_FORMAT_R32G32B32A32_UINT;
+            case Format::R32G32B32A32_Int:
+                return VK_FORMAT_R32G32B32A32_SINT;
             case Format::R32G32B32A32_Float:
                 return VK_FORMAT_R32G32B32A32_SFLOAT;
             case Format::R8G8B8A8_Unorm:
