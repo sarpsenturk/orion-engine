@@ -123,9 +123,7 @@ namespace orion
 
     void Renderer::render(QuadRenderer& quad_renderer)
     {
-        auto* command_list = frames_.get(current_frame_index_).command_list.get();
-
-        quad_renderer.flush(command_list, current_frame_index_);
+        quad_renderer.flush(current_context());
     }
 
     RenderWindow Renderer::create_render_window(Window& window, bool vsync)
@@ -301,5 +299,10 @@ namespace orion
     {
         previous_frame_index_ = current_frame_index_;
         current_frame_index_ = (current_frame_index_ + frame_index_t{1}) % frames_in_flight;
+    }
+
+    RenderContext Renderer::current_context() const
+    {
+        return {frames_.get(current_frame_index_).command_list.get(), current_frame_index_};
     }
 } // namespace orion

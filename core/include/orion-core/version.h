@@ -10,7 +10,7 @@ namespace orion
         std::uint8_t patch;
     };
 
-    inline constexpr auto k_current_version = Version{ORION_VERSION_MAJOR, ORION_VERSION_MAJOR, ORION_VERSION_PATCH};
+    inline constexpr auto engine_version = Version{ORION_VERSION_MAJOR, ORION_VERSION_MAJOR, ORION_VERSION_PATCH};
 
     inline auto format_as(const Version& version)
     {

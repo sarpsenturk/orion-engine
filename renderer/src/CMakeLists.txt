@@ -6,6 +6,7 @@ target_sources(
         imgui.cpp
         imgui_impl_orion.h imgui_impl_orion.cpp
         quad_renderer.cpp
+        render_context.cpp
         render_window.cpp
         renderer.cpp
         shader.cpp

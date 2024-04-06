@@ -99,5 +99,7 @@ namespace orion
         frame_index_t current_frame_index_ = 0;
         frame_index_t previous_frame_index_ = -1;
         void advance_frame();
+
+        RenderContext current_context() const;
     };
 } // namespace orion

@@ -335,7 +335,7 @@ namespace orion::vulkan
     UniqueVkInstance VulkanBackend::create_instance() const noexcept
     {
         try {
-            const auto vulkan_version = to_vulkan_version(k_current_version);
+            const auto vulkan_version = to_vulkan_version(engine_version);
             const auto application_info = VkApplicationInfo{
                 .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
                 .pNext = nullptr,

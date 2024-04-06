@@ -8,6 +8,7 @@ target_sources(
         frame.h
         imgui.h
         quad_renderer.h
+        render_context.h
         render_window.h
         renderer.h
         shader.h

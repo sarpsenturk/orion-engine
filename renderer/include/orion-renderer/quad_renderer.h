@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion-renderer/frame.h"
+#include "orion-renderer/render_context.h"
 
 #include "orion-renderapi/buffer.h"
 #include "orion-renderapi/defs.h"
@@ -33,7 +34,7 @@ namespace orion
 
         void begin();
         void add(const QuadData& quad);
-        void flush(CommandList* command_list, frame_index_t frame_index);
+        void flush(const RenderContext& render_context);
 
         [[nodiscard]] std::size_t quad_count() const noexcept { return quads_.size(); }
         [[nodiscard]] std::size_t vertex_count() const noexcept { return quads_.size() * quad_vertex_count; }

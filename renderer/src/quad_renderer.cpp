@@ -27,14 +27,15 @@ namespace orion
         quads_.push_back(quad);
     }
 
-    void QuadRenderer::flush(CommandList* command_list, frame_index_t frame_index)
+    void QuadRenderer::flush(const RenderContext& render_context)
     {
-        auto& frame = frames_.get(frame_index);
+        auto& frame = frames_.get(render_context.frame_index());
         auto& buffer = frame.quad_buffer;
 
         buffer.upload_grow(std::as_bytes(std::span{quads_}));
         device_->write_descriptor(frame.descriptor, frame.quad_buffer.descriptor_binding(0));
 
+        auto* command_list = render_context.command_list();
         command_list->bind_pipeline({.pipeline = pipeline_, .bind_point = PipelineBindPoint::Graphics});
         const auto descriptor = frame.descriptor;
         command_list->bind_descriptor({.bind_point = PipelineBindPoint::Graphics, .pipeline_layout = pipeline_layout_, .index = 0, .descriptor = descriptor});
