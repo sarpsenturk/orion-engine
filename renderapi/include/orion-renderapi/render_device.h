@@ -85,7 +85,9 @@ namespace orion
         void destroy_flush();
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
+        [[nodiscard]] void* map(ImageHandle image_handle);
         void unmap(GPUBufferHandle buffer_handle);
+        void unmap(ImageHandle image_handle);
 
         void wait_for_fence(FenceHandle fence_handle);
         void wait_for_fences(std::span<const FenceHandle> fence_handles);
@@ -140,7 +142,9 @@ namespace orion
         virtual void destroy_flush_api() = 0;
 
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
+        [[nodiscard]] virtual void* map_api(ImageHandle image_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;
+        virtual void unmap_api(ImageHandle image_handle) = 0;
 
         virtual void wait_for_fences_api(std::span<const FenceHandle> fence_handles) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;

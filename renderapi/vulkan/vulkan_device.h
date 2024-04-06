@@ -91,6 +91,8 @@ namespace orion::vulkan
         void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) override;
 
         void submit_api(const SubmitDesc& desc, FenceHandle signal_fence) override;
+        void* map_api(ImageHandle image_handle) override;
+        void unmap_api(ImageHandle image_handle) override;
 
         VkInstance instance_;
         VkPhysicalDevice physical_device_;

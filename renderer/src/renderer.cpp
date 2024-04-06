@@ -271,6 +271,7 @@ namespace orion
             .size = vec3(render_size_, 1u),
             .tiling = ImageTiling::Optimal,
             .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage | ImageUsageFlags::TransferSrc,
+            .host_visible = false,
         });
         auto image_view = device()->create_image_view({
             .image = image,

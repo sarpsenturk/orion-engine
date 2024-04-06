@@ -202,9 +202,19 @@ namespace orion
         return map_api(buffer_handle);
     }
 
+    void* RenderDevice::map(ImageHandle image_handle)
+    {
+        return map_api(image_handle);
+    }
+
     void RenderDevice::unmap(GPUBufferHandle buffer_handle)
     {
         return unmap_api(buffer_handle);
+    }
+
+    void RenderDevice::unmap(ImageHandle image_handle)
+    {
+        return unmap_api(image_handle);
     }
 
     void RenderDevice::wait_for_fence(FenceHandle fence_handle)

@@ -313,6 +313,7 @@ namespace orion
         Vector3_u size;
         ImageTiling tiling;
         ImageUsageFlags usage;
+        bool host_visible;
     };
 
     struct ImageViewDesc {
@@ -372,7 +373,7 @@ namespace orion
             return offset;
         }
 
-        std::vector<VertexAttributeDesc> attributes_;
+        static_vector<VertexAttributeDesc, max_attribute_count> attributes_;
         InputRate input_rate_;
         std::uint32_t stride_;
     };

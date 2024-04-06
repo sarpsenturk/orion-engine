@@ -18,6 +18,16 @@
 
 namespace orion::vulkan
 {
+    namespace
+    {
+        void* map_allocation(VmaAllocator allocator, VmaAllocation allocation)
+        {
+            void* ptr;
+            vk_result_check(vmaMapMemory(allocator, allocation, &ptr));
+            return ptr;
+        }
+    } // namespace
+
     VulkanDevice::VulkanDevice(spdlog::logger* logger, VkInstance instance, VkPhysicalDevice physical_device, UniqueVkDevice device, VulkanQueues queues)
         : RenderDevice(logger)
         , instance_(instance)
@@ -657,7 +667,13 @@ namespace orion::vulkan
                 .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             };
             const auto allocation_info = VmaAllocationCreateInfo{
+                .flags = desc.host_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
                 .usage = VMA_MEMORY_USAGE_AUTO,
+                .requiredFlags = 0,
+                .preferredFlags = 0,
+                .pool = VK_NULL_HANDLE,
+                .pUserData = nullptr,
+                .priority = 0.f,
             };
 
             vk_result_check(vmaCreateImage(vma_allocator(), &image_info, &allocation_info, &image, &allocation, nullptr));
@@ -820,16 +836,22 @@ namespace orion::vulkan
 
     void* VulkanDevice::map_api(GPUBufferHandle buffer_handle)
     {
-        void* ptr = nullptr;
-        VmaAllocation allocation = resource_manager_.find(buffer_handle).allocation;
-        vk_result_check(vmaMapMemory(vma_allocator_.get(), allocation, &ptr));
-        SPDLOG_LOGGER_TRACE(logger(), "Mapped VmaAllocation {} at memory address {}", fmt::ptr(allocation), fmt::ptr(ptr));
-        return ptr;
+        return map_allocation(vma_allocator(), resource_manager_.find(buffer_handle).allocation);
+    }
+
+    void* VulkanDevice::map_api(ImageHandle image_handle)
+    {
+        return map_allocation(vma_allocator(), resource_manager_.find(image_handle).allocation);
     }
 
     void VulkanDevice::unmap_api(GPUBufferHandle buffer_handle)
     {
-        vmaUnmapMemory(vma_allocator_.get(), resource_manager_.find(buffer_handle).allocation);
+        vmaUnmapMemory(vma_allocator(), resource_manager_.find(buffer_handle).allocation);
+    }
+
+    void VulkanDevice::unmap_api(ImageHandle image_handle)
+    {
+        vmaUnmapMemory(vma_allocator(), resource_manager_.find(image_handle).allocation);
     }
 
     void VulkanDevice::wait_for_fences_api(std::span<const FenceHandle> fence_handles)
