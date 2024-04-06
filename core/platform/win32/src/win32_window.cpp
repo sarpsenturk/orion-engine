@@ -107,18 +107,18 @@ namespace orion
 
             // Create the window
             HWND hwnd = CreateWindowEx(
-                0,                               // Optional window styles
-                wnd_class_name,                  // Window class
+                0,                        // Optional window styles
+                wnd_class_name,           // Window class
                 window_desc.name.c_str(), // Window name
-                window_style,                    // Window style
-                position.x(),                    // Window position x
-                position.y(),                    // Window position y
-                size.x(),                        // Window width
-                size.y(),                        // Window height
-                nullptr,                         // Parent window
-                nullptr,                         // Menu
-                hinstance,                       // Instance handle
-                this_ptr                         // Application data, ptr to Window
+                window_style,             // Window style
+                position.x(),             // Window position x
+                position.y(),             // Window position y
+                size.x(),                 // Window width
+                size.y(),                 // Window height
+                nullptr,                  // Parent window
+                nullptr,                  // Menu
+                hinstance,                // Instance handle
+                this_ptr                  // Application data, ptr to Window
             );
 
             if (!hwnd) {
@@ -136,21 +136,17 @@ namespace orion
 
         void destroy_window(PlatformWindow* platform_window)
         {
-            if (platform_window) {
-                HWND hwnd = platform_window->hwnd();
-                DestroyWindow(hwnd);
-                SPDLOG_LOGGER_TRACE(win32::logger(), "Destroyed HWND {}", fmt::ptr(hwnd));
-            }
+            HWND hwnd = platform_window->hwnd();
+            DestroyWindow(hwnd);
+            SPDLOG_LOGGER_TRACE(win32::logger(), "Destroyed HWND {}", fmt::ptr(hwnd));
         }
 
         void update_window(PlatformWindow* platform_window)
         {
-            if (platform_window) {
-                MSG msg{};
-                while (PeekMessage(&msg, platform_window->hwnd(), 0, 0, PM_REMOVE)) {
-                    TranslateMessage(&msg);
-                    DispatchMessage(&msg);
-                }
+            MSG msg{};
+            while (PeekMessage(&msg, platform_window->hwnd(), 0, 0, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
             }
         }
 
