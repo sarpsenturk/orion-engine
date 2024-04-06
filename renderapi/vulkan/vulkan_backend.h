@@ -22,6 +22,7 @@ namespace orion::vulkan
         // Private API overrides
         std::vector<PhysicalDeviceDesc> enumerate_physical_devices_api() override;
         std::unique_ptr<RenderDevice> create_device_api(std::uint32_t physical_device_index) override;
+        std::unique_ptr<ShaderReflector> create_shader_reflector_api() override;
 
         // Internal helpers
         static constexpr auto debug_message_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |

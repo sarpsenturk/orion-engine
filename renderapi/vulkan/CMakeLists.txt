@@ -15,6 +15,7 @@ add_library(
         vulkan_device.h vulkan_device.cpp
         vulkan_headers.h
         vulkan_platform.h ${vulkan_platform_impl}
+        vulkan_reflection.h vulkan_reflection.cpp
         vulkan_resource.h vulkan_resource.cpp
         vulkan_swapchain.h vulkan_swapchain.cpp
         vulkan_synchronization.h vulkan_synchronization.cpp
@@ -27,6 +28,7 @@ target_compile_definitions(${ORION_VULKAN_MODULE} PRIVATE ORION_RENDER_BACKEND_E
 # Find vulkan dependency
 find_package(Vulkan REQUIRED)
 find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
+find_package(unofficial-spirv-reflect CONFIG REQUIRED)
 
 
 # Link with interface
@@ -36,6 +38,7 @@ target_link_libraries(
         orion::renderapi
         Vulkan::Vulkan
         unofficial::vulkan-memory-allocator::vulkan-memory-allocator
+        unofficial::spirv-reflect::spirv-reflect
 )
 
 # Precompiled headers

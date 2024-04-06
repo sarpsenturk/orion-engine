@@ -6,5 +6,6 @@ target_sources(
         render_backend.cpp
         render_command.cpp
         render_device.cpp
+        shader_reflection.cpp
         swapchain.cpp
 )

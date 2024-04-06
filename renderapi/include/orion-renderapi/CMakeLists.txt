@@ -10,5 +10,6 @@ target_sources(
         render_backend.h
         render_command.h
         render_device.h
+        shader_reflection.h
         swapchain.h
 )

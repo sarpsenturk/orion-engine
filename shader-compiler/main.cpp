@@ -70,7 +70,7 @@ int main(int argc, const char* argv[])
         }
 
         if (!output_good) {
-            std::cerr << "Failed to create_write output\n";
+            std::cerr << "Failed to write output\n";
             return 1;
         }
 
@@ -82,4 +82,5 @@ int main(int argc, const char* argv[])
     catch (...) {
         std::cerr << "Unknown exception throw\n";
     }
+    return -1;
 }

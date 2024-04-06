@@ -151,7 +151,8 @@ namespace orion
         TransferSrc = 0x8,
         TransferDst = 0x10,
         StorageBuffer = 0x20,
-        Transfer = TransferSrc | TransferDst};
+        Transfer = TransferSrc | TransferDst,
+    };
 
     struct Viewport {
         Vector2_f position;
@@ -268,7 +269,8 @@ namespace orion
         DepthStencilAttachment = 0x8,
         InputAttachment = 0x10,
         SampledImage = 0x20,
-        Transfer = TransferSrc | TransferDst};
+        Transfer = TransferSrc | TransferDst,
+    };
 
     enum class ImageViewType {
         View1D,
@@ -452,7 +454,8 @@ namespace orion
         G = 0x2u,
         B = 0x4u,
         A = 0x8u,
-        All = R | G | B | A};
+        All = R | G | B | A,
+    };
 
     struct BlendAttachmentDesc {
         bool enable_blend;

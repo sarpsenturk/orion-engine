@@ -34,7 +34,8 @@
       "description": "Default Vulkan renderapi backend",
       "dependencies": [
         "vulkan",
-        "vulkan-memory-allocator"
+        "vulkan-memory-allocator",
+        "spirv-reflect"
       ]
     }
   }

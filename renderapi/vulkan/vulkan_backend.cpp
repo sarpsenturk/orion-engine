@@ -3,6 +3,7 @@
 #include "vulkan_conversion.h"
 #include "vulkan_device.h"
 #include "vulkan_platform.h"
+#include "vulkan_reflection.h"
 #include "vulkan_types.h"
 
 #include "orion-core/version.h"
@@ -302,6 +303,11 @@ namespace orion::vulkan
                                               physical_device,
                                               unique(device),
                                               vulkan_queues);
+    }
+
+    std::unique_ptr<ShaderReflector> VulkanBackend::create_shader_reflector_api()
+    {
+        return std::make_unique<VulkanShaderReflector>();
     }
 
     VkBool32 VulkanBackend::debug_message_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
