@@ -2,7 +2,10 @@
 option(ORION_CORE_TEST "Build tests for orion-core" ${ORION_DEVELOPER_MODE})
 
 # Module specific dependencies
-find_package(spdlog REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+
+add_compile_definitions(SPDLOG_FMT_EXTERNAL)
 
 # Create core library
 add_library(orion-core "")
@@ -17,6 +20,7 @@ target_include_directories(orion-core PUBLIC include/)
 target_link_libraries(
         orion-core 
         PUBLIC
+        fmt::fmt
         spdlog::spdlog
         orion::utils
         orion::math
