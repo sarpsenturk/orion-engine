@@ -33,7 +33,7 @@ namespace orion
     private:
         struct FrameData {
             std::unique_ptr<CommandList> command_list;
-            UniqueDescriptor descriptor;
+            DescriptorHandle descriptor;
             UniqueFence fence;
             UniqueSemaphore semaphore;
         };
@@ -45,6 +45,7 @@ namespace orion
         [[nodiscard]] std::vector<UniqueFramebuffer> create_framebuffers() const;
         [[nodiscard]] UniqueDescriptorLayout create_descriptor_layout() const;
         [[nodiscard]] UniquePipelineLayout create_pipeline_layout() const;
+        [[nodiscard]] UniqueDescriptorPool create_descriptor_pool() const;
         [[nodiscard]] UniquePipeline create_pipeline() const;
         [[nodiscard]] UniqueSampler create_sampler() const;
         [[nodiscard]] FrameData create_frame_data(CommandAllocator* command_allocator) const;
@@ -57,6 +58,7 @@ namespace orion
         std::vector<UniqueFramebuffer> framebuffers_;
         UniqueDescriptorLayout descriptor_layout_;
         UniquePipelineLayout pipeline_layout_;
+        UniqueDescriptorPool descriptor_pool_;
         UniquePipeline pipeline_;
         UniqueSampler sampler_;
         PerFrameData<FrameData> frames_;

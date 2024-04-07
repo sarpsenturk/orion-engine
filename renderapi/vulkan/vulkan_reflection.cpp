@@ -94,17 +94,17 @@ namespace orion::vulkan
             return shader_builtin_unknown;
         }
 
-        BindingType map_spv_descriptor_type(SpvReflectDescriptorType type)
+        DescriptorType map_spv_descriptor_type(SpvReflectDescriptorType type)
         {
             switch (type) {
                 case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
-                    return BindingType::Sampler;
+                    return DescriptorType::Sampler;
                 case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                    return BindingType::SampledImage;
+                    return DescriptorType::SampledImage;
                 case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                    return BindingType::ConstantBuffer;
+                    return DescriptorType::ConstantBuffer;
                 case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                    return BindingType::StorageBuffer;
+                    return DescriptorType::StorageBuffer;
                 default:
                     break;
             }

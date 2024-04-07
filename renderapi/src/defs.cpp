@@ -21,13 +21,13 @@ namespace orion
         });
     }
 
-    BindingType get_binding_type(GPUBufferUsageFlags buffer_usage)
+    DescriptorType get_binding_type(GPUBufferUsageFlags buffer_usage)
     {
         if (!!(buffer_usage & GPUBufferUsageFlags::ConstantBuffer)) {
-            return BindingType::ConstantBuffer;
+            return DescriptorType::ConstantBuffer;
         }
         if (!!(buffer_usage & GPUBufferUsageFlags::StorageBuffer)) {
-            return BindingType::StorageBuffer;
+            return DescriptorType::StorageBuffer;
         }
         ORION_ASSERT(!"Buffer usage not valid for descriptor binding");
         return {};

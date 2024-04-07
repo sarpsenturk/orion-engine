@@ -51,9 +51,16 @@ namespace orion
         return handle;
     }
 
-    DescriptorHandle RenderDevice::create_descriptor(DescriptorLayoutHandle descriptor_layout_handle)
+    DescriptorPoolHandle RenderDevice::create_descriptor_pool(const DescriptorPoolDesc& desc)
     {
-        auto handle = create_descriptor_api(descriptor_layout_handle);
+        auto handle = create_descriptor_pool_api(desc);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created descriptor pool with handle {}", handle);
+        return handle;
+    }
+
+    DescriptorHandle RenderDevice::create_descriptor(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle)
+    {
+        auto handle = create_descriptor_api(descriptor_layout_handle, descriptor_pool_handle);
         SPDLOG_LOGGER_DEBUG(logger(), "Created descriptor with handle {}", handle);
         return handle;
     }
@@ -136,6 +143,12 @@ namespace orion
     {
         destroy_api(descriptor_layout_handle);
         SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor layout {}", descriptor_layout_handle);
+    }
+
+    void RenderDevice::destroy(DescriptorPoolHandle descriptor_pool_handle)
+    {
+        destroy_api(descriptor_pool_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed descriptor pool {}", descriptor_pool_handle);
     }
 
     void RenderDevice::destroy(DescriptorHandle descriptor_handle)
@@ -235,6 +248,11 @@ namespace orion
     void RenderDevice::wait_idle()
     {
         wait_idle_api();
+    }
+
+    void RenderDevice::reset_descriptor_pool(DescriptorPoolHandle descriptor_pool_handle)
+    {
+        reset_descriptor_pool_api(descriptor_pool_handle);
     }
 
     void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings)

@@ -33,7 +33,8 @@ namespace orion
         [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
         [[nodiscard]] DescriptorLayoutHandle create_descriptor_layout(const DescriptorLayoutDesc& desc);
-        [[nodiscard]] DescriptorHandle create_descriptor(DescriptorLayoutHandle descriptor_layout_handle);
+        [[nodiscard]] DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
+        [[nodiscard]] DescriptorHandle create_descriptor(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle);
         [[nodiscard]] PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
         [[nodiscard]] PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
@@ -47,7 +48,8 @@ namespace orion
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
         [[nodiscard]] ShaderModuleHandle create(ShaderModuleHandle_tag, const ShaderModuleDesc& desc) { return create_shader_module(desc); }
         [[nodiscard]] DescriptorLayoutHandle create(DescriptorLayoutHandle_tag, const DescriptorLayoutDesc& desc) { return create_descriptor_layout(desc); }
-        [[nodiscard]] DescriptorHandle create(DescriptorHandle_tag, DescriptorLayoutHandle descriptor_layout_handle) { return create_descriptor(descriptor_layout_handle); }
+        [[nodiscard]] DescriptorPoolHandle create(DescriptorPoolHandle_tag, const DescriptorPoolDesc& desc) { return create_descriptor_pool(desc); }
+        [[nodiscard]] DescriptorHandle create(DescriptorHandle_tag, DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle) { return create_descriptor(descriptor_layout_handle, descriptor_pool_handle); }
         [[nodiscard]] PipelineLayoutHandle create(PipelineLayoutHandle_tag, const PipelineLayoutDesc& desc) { return create_pipeline_layout(desc); }
         [[nodiscard]] PipelineHandle create(PipelineHandle_tag, const GraphicsPipelineDesc& desc) { return create_graphics_pipeline(desc); }
         [[nodiscard]] GPUBufferHandle create(GPUBufferHandle_tag, const GPUBufferDesc& desc) { return create_buffer(desc); }
@@ -73,6 +75,7 @@ namespace orion
         void destroy(FramebufferHandle framebuffer_handle);
         void destroy(ShaderModuleHandle shader_module_handle);
         void destroy(DescriptorLayoutHandle descriptor_layout_handle);
+        void destroy(DescriptorPoolHandle descriptor_pool_handle);
         void destroy(DescriptorHandle descriptor_handle);
         void destroy(PipelineLayoutHandle pipeline_layout_handle);
         void destroy(PipelineHandle pipeline_handle);
@@ -93,6 +96,8 @@ namespace orion
         void wait_for_fences(std::span<const FenceHandle> fence_handles);
         void wait_queue_idle(CommandQueueType queue_type);
         void wait_idle();
+
+        void reset_descriptor_pool(DescriptorPoolHandle descriptor_pool_handle);
 
         void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings);
         void write_descriptor(DescriptorHandle descriptor_handle, const DescriptorBinding& binding);
@@ -115,7 +120,8 @@ namespace orion
         [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;
         [[nodiscard]] virtual DescriptorLayoutHandle create_descriptor_layout_api(const DescriptorLayoutDesc& desc) = 0;
-        [[nodiscard]] virtual DescriptorHandle create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle) = 0;
+        [[nodiscard]] virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
+        [[nodiscard]] virtual DescriptorHandle create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle) = 0;
         [[nodiscard]] virtual PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) = 0;
         [[nodiscard]] virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
         [[nodiscard]] virtual GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) = 0;
@@ -129,6 +135,7 @@ namespace orion
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
         virtual void destroy_api(DescriptorLayoutHandle descriptor_layout_handle) = 0;
+        virtual void destroy_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
         virtual void destroy_api(DescriptorHandle descriptor_handle) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout_handle) = 0;
         virtual void destroy_api(PipelineHandle graphics_pipeline_handle) = 0;
@@ -149,6 +156,8 @@ namespace orion
         virtual void wait_for_fences_api(std::span<const FenceHandle> fence_handles) = 0;
         virtual void wait_queue_idle_api(CommandQueueType queue_type) = 0;
         virtual void wait_idle_api() = 0;
+
+        virtual void reset_descriptor_pool_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
 
         virtual void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) = 0;
 

@@ -38,7 +38,6 @@ namespace orion::vulkan
 
     private:
         [[nodiscard]] UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const;
-        [[nodiscard]] UniqueVkDescriptorPool create_descriptor_pool() const;
         [[nodiscard]] UniqueVkPipelineLayout create_empty_pipeline_layout() const;
 
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
@@ -47,7 +46,6 @@ namespace orion::vulkan
         [[nodiscard]] std::vector<std::uint32_t> get_unique_queue_families(const std::vector<CommandQueueType>& queue_types) const;
 
         [[nodiscard]] VkDescriptorSetLayout create_vk_descriptor_set_layout(const DescriptorLayoutDesc& desc) const;
-        [[nodiscard]] VkDescriptorSet create_vk_descriptor_set(VkDescriptorSetLayout descriptor_set_layout) const;
 
         // Interface Overrides
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
@@ -56,7 +54,8 @@ namespace orion::vulkan
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         DescriptorLayoutHandle create_descriptor_layout_api(const DescriptorLayoutDesc& desc) override;
-        DescriptorHandle create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle) override;
+        DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
+        DescriptorHandle create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle) override;
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& push_constant) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         GPUBufferHandle create_buffer_api(const GPUBufferDesc& desc) override;
@@ -70,6 +69,7 @@ namespace orion::vulkan
         void destroy_api(FramebufferHandle framebuffer_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(DescriptorLayoutHandle descriptor_layout_handle) override;
+        void destroy_api(DescriptorPoolHandle descriptor_pool_handle) override;
         void destroy_api(DescriptorHandle descriptor_handle) override;
         void destroy_api(PipelineLayoutHandle pipeline_layout_handle) override;
         void destroy_api(PipelineHandle graphics_pipeline_handle) override;
@@ -88,6 +88,8 @@ namespace orion::vulkan
         void wait_queue_idle_api(CommandQueueType queue_type) override;
         void wait_idle_api() override;
 
+        void reset_descriptor_pool_api(DescriptorPoolHandle descriptor_pool_handle) override;
+
         void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) override;
 
         void submit_api(const SubmitDesc& desc, FenceHandle signal_fence) override;
@@ -100,7 +102,6 @@ namespace orion::vulkan
         VulkanQueues queues_;
         UniqueVmaAllocator vma_allocator_;
 
-        UniqueVkDescriptorPool descriptor_pool_;
         UniqueVkPipelineLayout empty_pipeline_layout_;
         VulkanResourceManager resource_manager_;
     };

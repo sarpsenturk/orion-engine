@@ -5,6 +5,7 @@
 
 #include "orion-renderapi/buffer.h"
 #include "orion-renderapi/defs.h"
+#include "orion-renderapi/device_resource.h"
 #include "orion-renderapi/handles.h"
 
 #include "orion-math/vector/vector3.h"
@@ -48,13 +49,16 @@ namespace orion
         [[nodiscard]] DescriptorLayoutHandle create_descriptor_layout() const;
         [[nodiscard]] PipelineLayoutHandle create_pipeline_layout() const;
         [[nodiscard]] PipelineHandle create_pipeline(ShaderManager* shader_manager, RenderPassHandle render_pass) const;
+        [[nodiscard]] DescriptorPoolHandle create_descriptor_pool() const;
+        [[nodiscard]] FrameData create_frame_data() const;
 
         RenderDevice* device_;
         std::vector<QuadData> quads_;
 
-        DescriptorLayoutHandle descriptor_layout_;
-        PipelineLayoutHandle pipeline_layout_;
-        PipelineHandle pipeline_;
+        UniqueDescriptorLayout descriptor_layout_;
+        UniquePipelineLayout pipeline_layout_;
+        UniquePipeline pipeline_;
+        UniqueDescriptorPool descriptor_pool_;
 
         PerFrameData<FrameData> frames_;
     };

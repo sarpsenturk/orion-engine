@@ -20,6 +20,10 @@ namespace orion
     {
         device->destroy(descriptor_layout_handle);
     }
+    void orion::device_destroy(RenderDevice* device, DescriptorPoolHandle descriptor_pool_handle)
+    {
+        device->destroy(descriptor_pool_handle);
+    }
     void orion::device_destroy(RenderDevice* device, DescriptorHandle descriptor_handle)
     {
         device->destroy(descriptor_handle);

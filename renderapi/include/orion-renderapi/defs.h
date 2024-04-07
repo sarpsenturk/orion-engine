@@ -176,17 +176,32 @@ namespace orion
         Any
     };
 
-    enum class BindingType : std::uint8_t {
+    enum class DescriptorType : std::uint8_t {
         ConstantBuffer,
         StorageBuffer,
         SampledImage,
         Sampler
     };
 
-    BindingType get_binding_type(GPUBufferUsageFlags buffer_usage);
+    DescriptorType get_binding_type(GPUBufferUsageFlags buffer_usage);
+
+    ORION_BITFLAG(DescriptorPoolFlags, std::uint8_t){
+        FreeDescriptors = 0x1,
+    };
+
+    struct DescriptorPoolSize {
+        DescriptorType type;
+        std::uint32_t count;
+    };
+
+    struct DescriptorPoolDesc {
+        std::uint32_t max_descriptors;
+        DescriptorPoolFlags flags;
+        std::span<const DescriptorPoolSize> sizes;
+    };
 
     struct DescriptorBindingDesc {
-        BindingType type;
+        DescriptorType type;
         ShaderStageFlags shader_stages;
         std::uint32_t count;
 
@@ -222,7 +237,7 @@ namespace orion
 
     struct DescriptorBinding {
         std::uint32_t binding;
-        BindingType binding_type;
+        DescriptorType binding_type;
         DescriptorBindingValue binding_value;
     };
 

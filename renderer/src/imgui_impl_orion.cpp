@@ -303,8 +303,9 @@ namespace
         orion::UniqueImageView font_image_view;
         orion::UniqueSampler font_sampler;
 
+        orion::UniqueDescriptorPool descriptor_pool;
         orion::UniqueDescriptorLayout descriptor_layout;
-        orion::UniqueDescriptor descriptor;
+        orion::DescriptorHandle descriptor;
     };
 
     ImGuiRendererData* imgui_get_renderer_data()
@@ -318,17 +319,34 @@ namespace
             .bindings = {
                 {
                     orion::DescriptorBindingDesc{
-                        .type = orion::BindingType::SampledImage,
+                        .type = orion::DescriptorType::SampledImage,
                         .shader_stages = orion::ShaderStageFlags::Pixel,
                         .count = 1,
                     },
                     orion::DescriptorBindingDesc{
-                        .type = orion::BindingType::Sampler,
+                        .type = orion::DescriptorType::Sampler,
                         .shader_stages = orion::ShaderStageFlags::Pixel,
                         .count = 1,
                     },
                 },
             },
+        });
+    }
+
+    orion::UniqueDescriptorPool imgui_create_descriptor_pool(orion::RenderDevice* device)
+    {
+        return device->make_unique<orion::DescriptorPoolHandle_tag>(orion::DescriptorPoolDesc{
+            .max_descriptors = 1,
+            .sizes = {{
+                orion::DescriptorPoolSize{
+                    .type = orion::DescriptorType::Sampler,
+                    .count = 1,
+                },
+                orion::DescriptorPoolSize{
+                    .type = orion::DescriptorType::SampledImage,
+                    .count = 1,
+                },
+            }},
         });
     }
 
@@ -501,20 +519,21 @@ namespace
         });
     }
 
-    orion::UniqueDescriptor imgui_create_font_descriptor(
+    orion::DescriptorHandle imgui_create_font_descriptor(
         orion::RenderDevice* device,
         orion::DescriptorLayoutHandle descriptor_layout,
+        orion::DescriptorPoolHandle descriptor_pool,
         orion::ImageViewHandle font_image_view,
         orion::SamplerHandle font_sampler)
     {
         // Create descriptor
-        const auto descriptor = device->create_descriptor(descriptor_layout);
+        const auto descriptor = device->create_descriptor(descriptor_layout, descriptor_pool);
 
         // Update descriptor
         const auto descriptor_bindings = std::array{
             orion::DescriptorBinding{
                 .binding = 0,
-                .binding_type = orion::BindingType::SampledImage,
+                .binding_type = orion::DescriptorType::SampledImage,
                 .binding_value = orion::ImageBindingDesc{
                     .image_view_handle = font_image_view,
                     .image_layout = orion::ImageLayout::ShaderReadOnly,
@@ -522,14 +541,14 @@ namespace
             },
             orion::DescriptorBinding{
                 .binding = 1,
-                .binding_type = orion::BindingType::Sampler,
+                .binding_type = orion::DescriptorType::Sampler,
                 .binding_value = orion::ImageBindingDesc{
                     .sampler_handle = font_sampler,
                 },
             },
         };
         device->write_descriptor(descriptor, descriptor_bindings);
-        return device->to_unique(descriptor);
+        return descriptor;
     }
 
     void imgui_init_renderer(const ImGui_ImplOrion_InitDesc& init_desc)
@@ -579,9 +598,12 @@ namespace
 
         renderer_data->font_sampler = imgui_create_font_sampler(device);
 
+        renderer_data->descriptor_pool = imgui_create_descriptor_pool(device);
+
         renderer_data->descriptor = imgui_create_font_descriptor(
             device,
             renderer_data->descriptor_layout.get(),
+            renderer_data->descriptor_pool.get(),
             renderer_data->font_image_view.get(),
             renderer_data->font_sampler.get());
 
@@ -732,7 +754,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::CommandList* c
                 .bind_point = orion::PipelineBindPoint::Graphics,
                 .pipeline_layout = renderer_data->pipeline_layout.get(),
                 .index = 0,
-                .descriptor = renderer_data->descriptor.get(),
+                .descriptor = renderer_data->descriptor,
             });
 
             cmd_list->draw_indexed({

@@ -22,7 +22,8 @@ namespace orion::vulkan
     VkFrontFace to_vulkan_type(FrontFace front_face);
     VkBufferUsageFlags to_vulkan_type(GPUBufferUsageFlags buffer_usage);
     VkViewport to_vulkan_type(const Viewport& viewport);
-    VkDescriptorType to_vulkan_type(BindingType descriptor_type);
+    VkDescriptorPoolCreateFlags to_vulkan_type(DescriptorPoolFlags flags);
+    VkDescriptorType to_vulkan_type(DescriptorType descriptor_type);
     VkImageType to_vulkan_type(ImageType image_type);
     VkImageTiling to_vulkan_type(ImageTiling image_tiling);
     VkImageUsageFlags to_vulkan_type(ImageUsageFlags image_usage_flags);

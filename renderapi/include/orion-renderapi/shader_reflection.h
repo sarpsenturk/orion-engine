@@ -21,7 +21,7 @@ namespace orion
 
     struct ShaderReflectionDescriptorBinding {
         std::string name;
-        BindingType type;
+        DescriptorType type;
         std::uint32_t count;
     };
 

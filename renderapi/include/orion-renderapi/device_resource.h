@@ -14,6 +14,7 @@ namespace orion
     void device_destroy(RenderDevice* device, FramebufferHandle framebuffer_handle);
     void device_destroy(RenderDevice* device, ShaderModuleHandle shader_module_handle);
     void device_destroy(RenderDevice* device, DescriptorLayoutHandle descriptor_layout_handle);
+    void device_destroy(RenderDevice* device, DescriptorPoolHandle descriptor_pool_handle);
     void device_destroy(RenderDevice* device, DescriptorHandle descriptor_handle);
     void device_destroy(RenderDevice* device, PipelineLayoutHandle pipeline_layout_handle);
     void device_destroy(RenderDevice* device, PipelineHandle pipeline_handle);
@@ -84,6 +85,7 @@ namespace orion
     using UniqueShaderModule = UniqueDeviceHandle<ShaderModuleHandle_tag>;
     using UniquePipelineLayout = UniqueDeviceHandle<PipelineLayoutHandle_tag>;
     using UniqueDescriptorLayout = UniqueDeviceHandle<DescriptorLayoutHandle_tag>;
+    using UniqueDescriptorPool = UniqueDeviceHandle<DescriptorPoolHandle_tag>;
     using UniqueDescriptor = UniqueDeviceHandle<DescriptorHandle_tag>;
     using UniquePipeline = UniqueDeviceHandle<PipelineHandle_tag>;
     using UniqueGPUBuffer = UniqueDeviceHandle<GPUBufferHandle_tag>;

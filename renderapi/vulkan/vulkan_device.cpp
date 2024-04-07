@@ -35,7 +35,6 @@ namespace orion::vulkan
         , device_(std::move(device))
         , queues_(queues)
         , vma_allocator_(create_vma_allocator(instance_, physical_device_))
-        , descriptor_pool_(create_descriptor_pool())
         , empty_pipeline_layout_(create_empty_pipeline_layout())
         , resource_manager_(vk_device(), vma_allocator())
     {
@@ -57,52 +56,6 @@ namespace orion::vulkan
         VmaAllocator allocator = VK_NULL_HANDLE;
         vk_result_check(vmaCreateAllocator(&allocator_info, &allocator));
         return unique(allocator);
-    }
-
-    UniqueVkDescriptorPool VulkanDevice::create_descriptor_pool() const
-    {
-        // TODO: Come up with a better solution to descriptor pools
-        //  Descriptor pool per descriptor layout?
-
-        constexpr auto sampler_count = 1000u;
-        constexpr auto combined_image_sampler_count = 1000u;
-        constexpr auto sampled_image_count = 1000u;
-        constexpr auto storage_image_count = 1000u;
-        constexpr auto uniform_texel_buffer_count = 1000u;
-        constexpr auto storage_texel_buffer_count = 1000u;
-        constexpr auto uniform_buffer_count = 1000u;
-        constexpr auto storage_buffer_count = 1000u;
-        constexpr auto uniform_buffer_dynamic_count = 1000u;
-        constexpr auto storage_buffer_dynamic_count = 1000u;
-        constexpr auto input_attachment_count = 1000u;
-        constexpr auto pool_sizes = std::array{
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLER, sampler_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, combined_image_sampler_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, sampled_image_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, storage_image_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, uniform_texel_buffer_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, storage_texel_buffer_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniform_buffer_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, storage_buffer_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, uniform_buffer_dynamic_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, storage_buffer_dynamic_count},
-            VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, input_attachment_count},
-        };
-
-        constexpr auto max_sets = 1000u;
-        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-        {
-            const auto info = VkDescriptorPoolCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-                .maxSets = max_sets,
-                .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
-                .pPoolSizes = pool_sizes.data(),
-            };
-            vk_result_check(vkCreateDescriptorPool(vk_device(), &info, alloc_callbacks(), &descriptor_pool));
-        }
-        return unique(descriptor_pool, vk_device());
     }
 
     UniqueVkPipelineLayout VulkanDevice::create_empty_pipeline_layout() const
@@ -191,23 +144,6 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorSetLayout {}", fmt::ptr(descriptor_set_layout));
         }
         return descriptor_set_layout;
-    }
-
-    VkDescriptorSet VulkanDevice::create_vk_descriptor_set(VkDescriptorSetLayout descriptor_set_layout) const
-    {
-        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        {
-            const auto info = VkDescriptorSetAllocateInfo{
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                .pNext = nullptr,
-                .descriptorPool = descriptor_pool_.get(),
-                .descriptorSetCount = 1,
-                .pSetLayouts = &descriptor_set_layout,
-            };
-            vk_result_check(vkAllocateDescriptorSets(vk_device(), &info, &descriptor_set));
-            SPDLOG_LOGGER_TRACE(logger(), "Allocated VkDescriptorSet {}", fmt::ptr(descriptor_set));
-        }
-        return descriptor_set;
     }
 
     std::unique_ptr<CommandAllocator> VulkanDevice::create_command_allocator_api(const CommandAllocatorDesc& desc)
@@ -371,12 +307,51 @@ namespace orion::vulkan
         return handle;
     }
 
-    DescriptorHandle VulkanDevice::create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle)
+    DescriptorPoolHandle VulkanDevice::create_descriptor_pool_api(const DescriptorPoolDesc& desc)
+    {
+        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        {
+            std::vector<VkDescriptorPoolSize> pool_sizes(desc.sizes.size());
+            std::ranges::transform(desc.sizes, pool_sizes.begin(), [](const DescriptorPoolSize& pool_size) {
+                return VkDescriptorPoolSize{
+                    .type = to_vulkan_type(pool_size.type),
+                    .descriptorCount = pool_size.count,
+                };
+            });
+            const auto info = VkDescriptorPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = to_vulkan_type(desc.flags),
+                .maxSets = desc.max_descriptors,
+                .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
+                .pPoolSizes = pool_sizes.data(),
+            };
+            vk_result_check(vkCreateDescriptorPool(vk_device(), &info, alloc_callbacks(), &descriptor_pool));
+            SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorPool {}", fmt::ptr(descriptor_pool));
+        }
+        auto handle = DescriptorPoolHandle::generate();
+        resource_manager_.add(handle, descriptor_pool);
+        return handle;
+    }
+
+    DescriptorHandle VulkanDevice::create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle)
     {
         VkDescriptorSetLayout layout = resource_manager_.find(descriptor_layout_handle);
-        VkDescriptorSet descriptor_set = create_vk_descriptor_set(layout);
+        VkDescriptorPool descriptor_pool = resource_manager_.find(descriptor_pool_handle);
+        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+        {
+            const auto info = VkDescriptorSetAllocateInfo{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                .pNext = nullptr,
+                .descriptorPool = descriptor_pool,
+                .descriptorSetCount = 1,
+                .pSetLayouts = &layout,
+            };
+            vk_result_check(vkAllocateDescriptorSets(vk_device(), &info, &descriptor_set));
+            SPDLOG_LOGGER_TRACE(logger(), "Allocated VkDescriptorSet {}", fmt::ptr(descriptor_set));
+        }
         const auto handle = DescriptorHandle::generate();
-        resource_manager_.add(handle, descriptor_set, descriptor_pool_.get());
+        resource_manager_.add(handle, descriptor_set, descriptor_pool);
         return handle;
     }
 
@@ -784,6 +759,11 @@ namespace orion::vulkan
         resource_manager_.remove(descriptor_layout_handle);
     }
 
+    void VulkanDevice::destroy_api(DescriptorPoolHandle descriptor_pool_handle)
+    {
+        resource_manager_.remove(descriptor_pool_handle);
+    }
+
     void VulkanDevice::destroy_api(DescriptorHandle descriptor_handle)
     {
         resource_manager_.remove(descriptor_handle);
@@ -869,6 +849,12 @@ namespace orion::vulkan
     void VulkanDevice::wait_idle_api()
     {
         vk_result_check(vkDeviceWaitIdle(vk_device()));
+    }
+
+    void VulkanDevice::reset_descriptor_pool_api(DescriptorPoolHandle descriptor_pool_handle)
+    {
+        VkDescriptorPool descriptor_pool = resource_manager_.find(descriptor_pool_handle);
+        vk_result_check(vkResetDescriptorPool(vk_device(), descriptor_pool, 0));
     }
 
     void VulkanDevice::write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings)

@@ -230,16 +230,24 @@ namespace orion::vulkan
         };
     }
 
-    VkDescriptorType to_vulkan_type(BindingType descriptor_type)
+    VkDescriptorPoolCreateFlags vulkan::to_vulkan_type(DescriptorPoolFlags flags)
+    {
+        const static auto conversion_map = std::unordered_map{
+            std::make_pair(DescriptorPoolFlags::FreeDescriptors, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        };
+        return convert_with_map(flags, conversion_map, "Descriptor pool flag not handled in to_vulkan_type()");
+    }
+
+    VkDescriptorType to_vulkan_type(DescriptorType descriptor_type)
     {
         switch (descriptor_type) {
-            case BindingType::ConstantBuffer:
+            case DescriptorType::ConstantBuffer:
                 return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            case BindingType::StorageBuffer:
+            case DescriptorType::StorageBuffer:
                 return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            case BindingType::SampledImage:
+            case DescriptorType::SampledImage:
                 return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            case BindingType::Sampler:
+            case DescriptorType::Sampler:
                 return VK_DESCRIPTOR_TYPE_SAMPLER;
         }
         ORION_ASSERT(!"Descriptor type not handled in to_vulkan_type() or is invalid");

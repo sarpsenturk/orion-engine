@@ -26,6 +26,7 @@ namespace orion
         , framebuffers_(create_framebuffers())
         , descriptor_layout_(create_descriptor_layout())
         , pipeline_layout_(create_pipeline_layout())
+        , descriptor_pool_(create_descriptor_pool())
         , pipeline_(create_pipeline())
         , sampler_(create_sampler())
         , frames_([this, command_allocator]() { return create_frame_data(command_allocator); })
@@ -50,7 +51,7 @@ namespace orion
             .image_view_handle = desc.source_image,
             .image_layout = desc.source_image_layout,
         };
-        device_->write_descriptor(frame.descriptor.get(), DescriptorBinding{.binding = 0, .binding_type = BindingType::SampledImage, .binding_value = image_binding});
+        device_->write_descriptor(frame.descriptor, DescriptorBinding{.binding = 0, .binding_type = DescriptorType::SampledImage, .binding_value = image_binding});
 
         command_list->begin();
         command_list->begin_render_pass({
@@ -64,7 +65,7 @@ namespace orion
             .bind_point = PipelineBindPoint::Graphics,
             .pipeline_layout = pipeline_layout_.get(),
             .index = 0,
-            .descriptor = frame.descriptor.get(),
+            .descriptor = frame.descriptor,
         });
         command_list->set_viewports(Viewport{.position = {}, .size = vector_cast<float>(present_size), .depth = {0.f, 1.f}});
         command_list->set_scissors(Scissor{.offset = {}, .size = present_size});
@@ -143,12 +144,12 @@ namespace orion
         return device_->make_unique<DescriptorLayoutHandle_tag>(DescriptorLayoutDesc{
             .bindings = {{
                 DescriptorBindingDesc{
-                    .type = BindingType::SampledImage,
+                    .type = DescriptorType::SampledImage,
                     .shader_stages = ShaderStageFlags::Pixel,
                     .count = 1,
                 },
                 DescriptorBindingDesc{
-                    .type = BindingType::Sampler,
+                    .type = DescriptorType::Sampler,
                     .shader_stages = ShaderStageFlags::Pixel,
                     .count = 1,
                 },
@@ -160,6 +161,23 @@ namespace orion
     {
         return device_->make_unique<PipelineLayoutHandle_tag>(PipelineLayoutDesc{
             .descriptors = {{descriptor_layout_.get()}},
+        });
+    }
+
+    UniqueDescriptorPool RenderWindow::create_descriptor_pool() const
+    {
+        return device_->make_unique<DescriptorPoolHandle_tag>(DescriptorPoolDesc{
+            .max_descriptors = frames_in_flight,
+            .sizes = {{
+                DescriptorPoolSize{
+                    .type = DescriptorType::SampledImage,
+                    .count = frames_in_flight,
+                },
+                DescriptorPoolSize{
+                    .type = DescriptorType::Sampler,
+                    .count = frames_in_flight,
+                },
+            }},
         });
     }
 
@@ -203,11 +221,11 @@ namespace orion
 
     RenderWindow::FrameData RenderWindow::create_frame_data(CommandAllocator* command_allocator) const
     {
-        auto descriptor = device_->make_unique<DescriptorHandle_tag>(descriptor_layout_.get());
-        device_->write_descriptor(descriptor.get(), DescriptorBinding{.binding = 1, .binding_type = BindingType::Sampler, .binding_value = ImageBindingDesc{.sampler_handle = sampler_.get()}});
+        auto descriptor = device_->create_descriptor(descriptor_layout_.get(), descriptor_pool_.get());
+        device_->write_descriptor(descriptor, DescriptorBinding{.binding = 1, .binding_type = DescriptorType::Sampler, .binding_value = ImageBindingDesc{.sampler_handle = sampler_.get()}});
         return {
             .command_list = command_allocator->create_command_list(),
-            .descriptor = std::move(descriptor),
+            .descriptor = descriptor,
             .fence = device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = true}),
             .semaphore = device_->make_unique<SemaphoreHandle_tag>(),
         };
