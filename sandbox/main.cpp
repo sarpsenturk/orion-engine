@@ -32,16 +32,18 @@ private:
     void render_scene()
     {
         quad_renderer_.begin();
-        quad_renderer_.add({.position = {-0.75f, 0.f, 0.f}, .color = orion::colors::cyan});
-        quad_renderer_.add({.position = {0.75f, 0.f, 0.f}, .color = orion::colors::green});
+        quad_renderer_.add({.position = {0.f, 0.f, 0.f}, .rotation = orion::to_radians(rotation_), .scale = orion::vec2(scale_, scale_), .color = orion::colors::cyan});
         renderer_.render(quad_renderer_);
     }
 
     void render_gui()
     {
-        renderer_.imgui_new_frame();
         ImGui::ShowDemoWindow();
-        renderer_.imgui_render();
+
+        ImGui::Begin("Quads");
+        ImGui::DragFloat("Rotation", rotation_.value_ptr());
+        ImGui::DragFloat("Scale", &scale_);
+        ImGui::End();
     }
 
     void on_user_render() override
@@ -54,7 +56,9 @@ private:
 
         render_scene();
 
+        renderer_.imgui_new_frame();
         render_gui();
+        renderer_.imgui_render();
 
         renderer_.end();
 
@@ -66,6 +70,9 @@ private:
     orion::RenderWindow render_window_;
     orion::QuadRenderer quad_renderer_;
     orion::ImGuiContext imgui_;
+
+    orion::Degree_f rotation_ = orion::degrees(0.f);
+    float scale_ = 1.f;
 };
 
 ORION_MAIN(args)

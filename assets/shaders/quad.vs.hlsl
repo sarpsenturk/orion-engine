@@ -1,6 +1,6 @@
 
 struct QuadData {
-    float3 position;
+    row_major float4x4 transform;
     float4 color;
 };
 
@@ -28,8 +28,7 @@ VSOutput vs_main(uint vertex_id : SV_VertexID)
 
     VSOutput output;
     float3 position = vertex_positions[vertex_index];
-    position += quad_data.position;
-    output.position = float4(position, 1.0f);
+    output.position = mul(float4(position, 1.0f), quad_data.transform);
     output.color = quad_data.color;
     return output;
 }

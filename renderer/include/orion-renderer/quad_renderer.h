@@ -8,6 +8,8 @@
 #include "orion-renderapi/device_resource.h"
 #include "orion-renderapi/handles.h"
 
+#include "orion-math/angles.h"
+#include "orion-math/matrix/matrix4.h"
 #include "orion-math/vector/vector3.h"
 #include "orion-math/vector/vector4.h"
 
@@ -17,7 +19,13 @@ namespace orion
 {
     struct QuadData {
         Vector3_f position;
-        char pad0;
+        Radian_f rotation = radians(0.f);
+        Vector2_f scale = {1.f, 1.f};
+        Vector4_f color;
+    };
+
+    struct QuadGPUData {
+        Matrix4_f transform;
         Vector4_f color;
     };
 
@@ -53,7 +61,7 @@ namespace orion
         [[nodiscard]] FrameData create_frame_data() const;
 
         RenderDevice* device_;
-        std::vector<QuadData> quads_;
+        std::vector<QuadGPUData> quads_;
 
         UniqueDescriptorLayout descriptor_layout_;
         UniquePipelineLayout pipeline_layout_;

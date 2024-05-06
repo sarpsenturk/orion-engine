@@ -4,6 +4,8 @@
 
 #include "orion-renderapi/render_device.h"
 
+#include "orion-math/matrix/transformation.h"
+
 #include <span>
 
 namespace orion
@@ -25,7 +27,9 @@ namespace orion
 
     void QuadRenderer::add(const QuadData& quad)
     {
-        quads_.push_back(quad);
+        quads_.emplace_back(
+            Matrix4_f::identity() * translation(quad.position) * rotation_z(quad.rotation) * scaling(vec3(quad.scale, 1.f)),
+            quad.color);
     }
 
     void QuadRenderer::flush(const RenderContext& render_context)
