@@ -120,6 +120,9 @@ namespace orion
 
         [[nodiscard]] constexpr value_type value() const noexcept { return value_; }
 
+        [[nodiscard]] constexpr value_type* value_ptr() noexcept { return &value_; }
+        [[nodiscard]] constexpr value_type* value_ptr() const noexcept { return &value_; }
+
     private:
         value_type value_;
     };
