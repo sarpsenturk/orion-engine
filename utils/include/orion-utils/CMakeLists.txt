@@ -11,6 +11,7 @@ target_sources(
         compiler.h
         concepts.h
         expected.h
+        finally.h
         hash.h
         minmax.h
         overload.h

@@ -4,17 +4,10 @@
 
 namespace orion
 {
-    template<typename T, typename E>
-    using expected = tl::expected<T, E>;
-
-    template<typename E>
-    using unexpected = tl::unexpected<E>;
-
-    template<typename E>
-    using bad_expected_access = tl::bad_expected_access<E>;
-
+    using tl::bad_expected_access;
+    using tl::expected;
+    using tl::make_unexpected;
     using tl::unexpect;
     using tl::unexpect_t;
-
-    using tl::make_unexpected;
+    using tl::unexpected;
 } // namespace orion
