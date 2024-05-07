@@ -62,4 +62,9 @@ namespace orion
     [[nodiscard]] File* stdinput();
     [[nodiscard]] File* stdoutput();
     [[nodiscard]] File* stderror();
+
+    namespace fs
+    {
+        [[nodiscard]] bool exists(const FilePath& path);
+    }
 } // namespace orion

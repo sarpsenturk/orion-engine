@@ -132,4 +132,12 @@ namespace orion
         static auto file = File(stderr);
         return &file;
     }
+
+    namespace fs
+    {
+        bool exists(const FilePath& path)
+        {
+            return std::filesystem::exists(path.string());
+        }
+    } // namespace fs
 } // namespace orion
