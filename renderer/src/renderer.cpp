@@ -89,7 +89,7 @@ namespace orion
                 .offset = {0, 0},
                 .size = render_size_,
             },
-            .clear_color = colors::magenta,
+            .clear_color = colors::cyan,
         });
 
         // Set the viewports

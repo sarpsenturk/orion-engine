@@ -39,9 +39,8 @@ private:
             .rotation = orion::to_radians(rotation_),
             .scale = orion::vec2(scale_, scale_),
             .color = quad_color,
-            .texture_index = use_texture_ ? quad_texture_ : orion::textures::white,
+            .texture_index = orion::textures::missing,
         });
-        quad_renderer_.add({.position = {.5f, 0.f, 0.f}, .color = quad_color});
         renderer_.render(quad_renderer_);
     }
 

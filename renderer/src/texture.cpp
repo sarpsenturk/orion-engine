@@ -43,8 +43,25 @@ namespace orion
         , default_sampler_(create_default_sampler())
     {
         // Create 1x1 missing texture
-        const auto magenta = std::array{std::uint8_t{0xFF}, std::uint8_t{0x00}, std::uint8_t{0xFF}, std::uint8_t{0xFF}};
-        const auto& missing = textures_.emplace_back(make_texture(magenta.data(), {.width = 1, .height = 1, .channels = 4}));
+        const auto missing_data = std::array{
+            std::uint8_t{0x00},
+            std::uint8_t{0x00},
+            std::uint8_t{0x00},
+            std::uint8_t{0xFF},
+            std::uint8_t{0xFC},
+            std::uint8_t{0x00},
+            std::uint8_t{0xFF},
+            std::uint8_t{0xFF},
+            std::uint8_t{0xFC},
+            std::uint8_t{0x00},
+            std::uint8_t{0xFF},
+            std::uint8_t{0xFF},
+            std::uint8_t{0x00},
+            std::uint8_t{0x00},
+            std::uint8_t{0x00},
+            std::uint8_t{0xFF},
+        };
+        const auto& missing = textures_.emplace_back(make_texture(missing_data.data(), {.width = 2, .height = 2, .channels = 4}));
         // Set all textures to missing initially
         {
             std::vector<ImageDescriptorDesc> image_writes(max_textures);
@@ -166,7 +183,7 @@ namespace orion
     UniqueSampler TextureManager::create_default_sampler() const
     {
         return device_->make_unique<SamplerHandle_tag>(SamplerDesc{
-            .filter = Filter::Linear,
+            .filter = Filter::Nearest,
             .address_mode_u = AddressMode::Repeat,
             .address_mode_v = AddressMode::Repeat,
             .address_mode_w = AddressMode::Repeat,
