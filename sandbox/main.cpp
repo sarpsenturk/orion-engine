@@ -19,7 +19,7 @@ public:
         , render_window_(renderer_.create_render_window(window_, false))
         , quad_renderer_(renderer_.create_quad_renderer())
         , imgui_(renderer_.imgui_init(window_))
-        , quad_texture_(renderer_.texture_loader().load_from_file("D:\\Projects\\orion-engine\\assets\\textures\\uv-checker.png").value())
+        , quad_texture_(renderer_.texture_loader().load_from_file(ORION_TEXTURE_DIR "/uv-checker.png").value())
         , quad_texture_index_(renderer_.texture_array().add(quad_texture_))
     {
         // Close app on callback
