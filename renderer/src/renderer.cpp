@@ -15,6 +15,7 @@
 #include "orion-scene/scene.h"
 
 #include <algorithm>
+#include <array>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
     #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
@@ -24,6 +25,17 @@
 
 namespace orion
 {
+    namespace
+    {
+        const auto white_texture_data = std::array{std::uint8_t{0xFF}, std::uint8_t{0xFF}, std::uint8_t{0xFF}, std::uint8_t{0xFF}};
+
+        const auto missing_texture_data = std::array{
+            std::uint8_t{0x00}, std::uint8_t{0x00}, std::uint8_t{0x00}, std::uint8_t{0xFF},
+            std::uint8_t{0xFC}, std::uint8_t{0x00}, std::uint8_t{0xFF}, std::uint8_t{0xFF},
+            std::uint8_t{0xFC}, std::uint8_t{0x00}, std::uint8_t{0xFF}, std::uint8_t{0xFF},
+            std::uint8_t{0x00}, std::uint8_t{0x00}, std::uint8_t{0x00}, std::uint8_t{0xFF}};
+    } // namespace
+
     const char* default_backend_module(Platform platform)
     {
         switch (platform) {
@@ -45,12 +57,17 @@ namespace orion
         , render_pass_(create_render_pass())
         , command_allocator_(create_command_allocator())
         , shader_manager_(device())
-        , texture_manager_(device())
+        , texture_loader_(device())
+        , missing_texture_(texture_loader_.load_from_memory({.data = missing_texture_data.data(), .width = 2, .height = 2, .channels = 4}).value())
+        , white_texture_(texture_loader_.load_from_memory({.data = white_texture_data.data(), .width = 1, .height = 1, .channels = 4}).value())
+        , texture_array_(device())
         , render_size_(desc.render_size)
         , viewport_(Vector2_f{}, vector_cast<float>(render_size_), {0.f, 1.f})
         , scissor_({}, render_size_)
         , frames_([this] { return create_frame_data(); })
     {
+        texture_array_.set_all(missing_texture_);
+        texture_array_.add(white_texture_);
     }
 
     Renderer::~Renderer()
@@ -60,7 +77,7 @@ namespace orion
 
     QuadRenderer Renderer::create_quad_renderer()
     {
-        return QuadRenderer{{.device = device(), .shader_manager = &shader_manager_, .render_pass = render_pass_, .texture_manager = &texture_manager_}};
+        return QuadRenderer{{.device = device(), .shader_manager = &shader_manager_, .render_pass = render_pass_, .texture_manager = &texture_array_}};
     }
 
     void Renderer::begin()

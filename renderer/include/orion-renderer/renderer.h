@@ -52,7 +52,9 @@ namespace orion
         [[nodiscard]] auto* device() const noexcept { return render_device_.get(); }
 
         [[nodiscard]] auto& shader_manager() { return shader_manager_; }
-        [[nodiscard]] auto& texture_manager() { return texture_manager_; }
+
+        [[nodiscard]] auto& texture_loader() { return texture_loader_; }
+        [[nodiscard]] auto& texture_array() { return texture_array_; }
 
         [[nodiscard]] QuadRenderer create_quad_renderer();
 
@@ -94,7 +96,11 @@ namespace orion
         std::unique_ptr<CommandAllocator> command_allocator_;
 
         ShaderManager shader_manager_;
-        TextureManager texture_manager_;
+
+        TextureLoader texture_loader_;
+        Texture missing_texture_;
+        Texture white_texture_;
+        TextureArray texture_array_;
 
         Vector2_u render_size_;
         Viewport viewport_;

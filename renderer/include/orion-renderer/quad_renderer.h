@@ -35,7 +35,7 @@ namespace orion
         RenderDevice* device;
         ShaderManager* shader_manager;
         RenderPassHandle render_pass;
-        TextureManager* texture_manager;
+        TextureArray* texture_manager;
     };
 
     class QuadRenderer
@@ -65,7 +65,7 @@ namespace orion
         [[nodiscard]] FrameData create_frame_data() const;
 
         RenderDevice* device_;
-        TextureManager* texture_manager_;
+        TextureArray* texture_manager_;
         std::vector<QuadData> quads_;
 
         UniqueDescriptorLayout descriptor_layout_;

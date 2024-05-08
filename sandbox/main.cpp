@@ -19,7 +19,8 @@ public:
         , render_window_(renderer_.create_render_window(window_, false))
         , quad_renderer_(renderer_.create_quad_renderer())
         , imgui_(renderer_.imgui_init(window_))
-        , quad_texture_(renderer_.texture_manager().load_from_file("D:\\Projects\\orion-engine\\assets\\textures\\uv-checker.png").value().index)
+        , quad_texture_(renderer_.texture_loader().load_from_file("D:\\Projects\\orion-engine\\assets\\textures\\uv-checker.png").value())
+        , quad_texture_index_(renderer_.texture_array().add(quad_texture_))
     {
         // Close app on callback
         window_.on_close().subscribe(ORION_EXIT_APP_FN);
@@ -39,7 +40,7 @@ private:
             .rotation = orion::to_radians(rotation_),
             .scale = orion::vec2(scale_, scale_),
             .color = quad_color,
-            .texture_index = orion::textures::missing,
+            .texture_index = use_texture_ ? quad_texture_index_ : orion::textures::white,
         });
         renderer_.render(quad_renderer_);
     }
@@ -80,7 +81,8 @@ private:
     orion::RenderWindow render_window_;
     orion::QuadRenderer quad_renderer_;
     orion::ImGuiContext imgui_;
-    orion::texture_index_t quad_texture_;
+    orion::Texture quad_texture_;
+    orion::texture_index_t quad_texture_index_;
 
     orion::Degree_f rotation_ = orion::degrees(0.f);
     float scale_ = 1.f;
