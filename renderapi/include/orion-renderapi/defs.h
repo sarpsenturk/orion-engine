@@ -12,7 +12,6 @@
 #include <cstdint>
 #include <span>
 #include <string>
-#include <variant>
 
 namespace orion
 {
@@ -116,6 +115,7 @@ namespace orion
     ORION_BITFLAG(ShaderStageFlags, std::uint8_t){
         Vertex = 0x1,
         Pixel = 0x2,
+        All = Vertex | Pixel,
     };
 
     enum class PrimitiveTopology {
@@ -222,34 +222,27 @@ namespace orion
         std::size_t offset = 0ull;
     };
 
-    struct BufferBindingDesc {
+    struct BufferDescriptorDesc {
         GPUBufferHandle buffer_handle = GPUBufferHandle::invalid();
         BufferRegion region;
     };
 
-    struct ImageBindingDesc {
+    struct ImageDescriptorDesc {
         ImageViewHandle image_view_handle = ImageViewHandle::invalid();
         ImageLayout image_layout = ImageLayout::Undefined;
         SamplerHandle sampler_handle = SamplerHandle::invalid();
     };
 
-    using DescriptorBindingValue = std::variant<BufferBindingDesc, ImageBindingDesc>;
-
-    struct DescriptorBinding {
+    // Issues:
+    //  Usage of span leads to ugly looking API calls.
+    //  However this may be unavoidable.
+    struct DescriptorWrite {
         std::uint32_t binding;
-        DescriptorType binding_type;
-        DescriptorBindingValue binding_value;
+        DescriptorType descriptor_type;
+        std::uint32_t array_start = 0;
+        std::span<const BufferDescriptorDesc> buffers;
+        std::span<const ImageDescriptorDesc> images;
     };
-
-    [[nodiscard]] constexpr bool is_buffer_binding(const DescriptorBinding& binding)
-    {
-        return std::holds_alternative<BufferBindingDesc>(binding.binding_value);
-    }
-
-    [[nodiscard]] constexpr bool is_image_binding(const DescriptorBinding& binding)
-    {
-        return std::holds_alternative<ImageBindingDesc>(binding.binding_value);
-    }
 
     struct PushConstantDesc {
         std::uint32_t size;

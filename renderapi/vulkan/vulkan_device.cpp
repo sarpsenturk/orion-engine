@@ -857,62 +857,59 @@ namespace orion::vulkan
         vk_result_check(vkResetDescriptorPool(vk_device(), descriptor_pool, 0));
     }
 
-    void VulkanDevice::write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings)
+    void VulkanDevice::write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> writes)
     {
-        // Find destination descriptor set
         VkDescriptorSet descriptor_set = resource_manager_.find(descriptor_handle);
+        ORION_ASSERT(descriptor_set != VK_NULL_HANDLE);
 
-        // Reserve space for buffer writes
-        std::vector<VkDescriptorBufferInfo> buffer_descriptors;
-        buffer_descriptors.reserve(std::ranges::count_if(bindings, is_buffer_binding));
-        auto make_buffer_binding = [&](const BufferBindingDesc* buffer) -> VkDescriptorBufferInfo* {
-            if (!buffer) {
-                return nullptr;
-            }
-            buffer_descriptors.push_back({
-                .buffer = resource_manager_.find(buffer->buffer_handle).buffer,
-                .offset = buffer->region.offset,
-                .range = buffer->region.size,
-            });
-            return &(buffer_descriptors.back());
+        struct VulkanDescriptorWriteInfo {
+            std::vector<VkDescriptorImageInfo> images;
+            std::vector<VkDescriptorBufferInfo> buffers;
         };
 
-        // Reserve space for image writes
-        // Samplers are also stored in VkDescriptorImageInfo structs
-        std::vector<VkDescriptorImageInfo> image_descriptors;
-        image_descriptors.reserve(std::ranges::count_if(bindings, is_image_binding));
-        auto make_image_binding = [&](const ImageBindingDesc* image) -> VkDescriptorImageInfo* {
-            if (!image) {
-                return nullptr;
-            }
-            image_descriptors.push_back({
-                .sampler = resource_manager_.find(image->sampler_handle),
-                .imageView = resource_manager_.find(image->image_view_handle),
-                .imageLayout = to_vulkan_type(image->image_layout),
-            });
-            return &(image_descriptors.back());
+        auto to_vk_image_info = [this](const ImageDescriptorDesc& image_descriptor) {
+            return VkDescriptorImageInfo{
+                .sampler = resource_manager_.find(image_descriptor.sampler_handle),
+                .imageView = resource_manager_.find(image_descriptor.image_view_handle),
+                .imageLayout = to_vulkan_type(image_descriptor.image_layout),
+            };
+        };
+        auto to_vk_buffer_info = [this](const BufferDescriptorDesc& buffer_descriptor) {
+            return VkDescriptorBufferInfo{
+                .buffer = resource_manager_.find(buffer_descriptor.buffer_handle).buffer,
+                .offset = buffer_descriptor.region.offset,
+                .range = buffer_descriptor.region.size,
+            };
         };
 
-        // Reserve space for all writes
-        std::vector<VkWriteDescriptorSet> writes;
-        writes.reserve(bindings.size());
-        auto make_descriptor_write = [&](const DescriptorBinding& binding) {
-            writes.push_back({
+        std::vector<VkWriteDescriptorSet> vk_writes(writes.size());
+        std::vector<VulkanDescriptorWriteInfo> vk_write_infos(writes.size());
+        for (int i = 0; i < writes.size(); ++i) {
+            vk_writes[i] = {
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext = nullptr,
                 .dstSet = descriptor_set,
-                .dstBinding = binding.binding,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = to_vulkan_type(binding.binding_type),
-                .pImageInfo = make_image_binding(std::get_if<ImageBindingDesc>(&binding.binding_value)),
-                .pBufferInfo = make_buffer_binding(std::get_if<BufferBindingDesc>(&binding.binding_value)),
-                .pTexelBufferView = nullptr,
-            });
-        };
+                .dstBinding = writes[i].binding,
+                .dstArrayElement = writes[i].array_start,
+                .descriptorType = to_vulkan_type(writes[i].descriptor_type),
+            };
 
-        std::ranges::for_each(bindings, make_descriptor_write);
-        vkUpdateDescriptorSets(vk_device(), static_cast<uint32_t>(writes.size()), writes.data(), 0u, nullptr);
+            if (!writes[i].buffers.empty()) {
+                vk_write_infos[i].buffers.resize(writes[i].buffers.size());
+                std::ranges::transform(writes[i].buffers, vk_write_infos[i].buffers.begin(), to_vk_buffer_info);
+                vk_writes[i].descriptorCount = static_cast<std::uint32_t>(writes[i].buffers.size());
+                vk_writes[i].pBufferInfo = vk_write_infos[i].buffers.data();
+            } else if (!writes[i].images.empty()) {
+                vk_write_infos[i].images.resize(writes[i].images.size());
+                std::ranges::transform(writes[i].images, vk_write_infos[i].images.begin(), to_vk_image_info);
+                vk_writes[i].descriptorCount = static_cast<std::uint32_t>(writes[i].images.size());
+                vk_writes[i].pImageInfo = vk_write_infos[i].images.data();
+            } else {
+                unreachable();
+            }
+        }
+
+        vkUpdateDescriptorSets(vk_device(), vk_writes.size(), vk_writes.data(), 0u, nullptr);
     }
 
     void VulkanDevice::submit_api(const SubmitDesc& desc, FenceHandle signal_fence)

@@ -30,9 +30,6 @@ namespace orion
 
         [[nodiscard]] bool is_empty() const noexcept { return desc_.size == 0; }
 
-        [[nodiscard]] BufferBindingDesc descriptor_value(BufferRegion region = {}) const;
-        [[nodiscard]] DescriptorBinding descriptor_binding(std::uint32_t binding, const BufferRegion& region = {}) const;
-
     protected:
         void recreate(const GPUBufferDesc& desc);
 

@@ -255,14 +255,14 @@ namespace orion
         reset_descriptor_pool_api(descriptor_pool_handle);
     }
 
-    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings)
+    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> writes)
     {
-        write_descriptor_api(descriptor_handle, bindings);
+        write_descriptor_api(descriptor_handle, writes);
     }
 
-    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, const DescriptorBinding& binding)
+    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, const DescriptorWrite& write)
     {
-        write_descriptor_api(descriptor_handle, {{binding}});
+        write_descriptor_api(descriptor_handle, {{write}});
     }
 
     void RenderDevice::submit(const SubmitDesc& desc, FenceHandle signal_fence)
@@ -272,8 +272,7 @@ namespace orion
 
     void RenderDevice::submit_immediate(const SubmitDesc& desc)
     {
-        static const auto immediate_fence = create_fence({.start_finished = false});
-        submit(desc, immediate_fence);
-        wait_for_fence(immediate_fence);
+        submit(desc, FenceHandle::invalid());
+        wait_queue_idle(desc.queue_type);
     }
 } // namespace orion

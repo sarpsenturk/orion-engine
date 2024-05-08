@@ -99,8 +99,8 @@ namespace orion
 
         void reset_descriptor_pool(DescriptorPoolHandle descriptor_pool_handle);
 
-        void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings);
-        void write_descriptor(DescriptorHandle descriptor_handle, const DescriptorBinding& binding);
+        void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> writes);
+        void write_descriptor(DescriptorHandle descriptor_handle, const DescriptorWrite& write);
 
         void submit(const SubmitDesc& desc, FenceHandle signal_fence);
         void submit_immediate(const SubmitDesc& desc);
@@ -159,7 +159,7 @@ namespace orion
 
         virtual void reset_descriptor_pool_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
 
-        virtual void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) = 0;
+        virtual void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> bindings) = 0;
 
         virtual void submit_api(const SubmitDesc& desc, FenceHandle signal_fence) = 0;
 

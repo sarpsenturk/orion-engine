@@ -530,24 +530,28 @@ namespace
         const auto descriptor = device->create_descriptor(descriptor_layout, descriptor_pool);
 
         // Update descriptor
-        const auto descriptor_bindings = std::array{
-            orion::DescriptorBinding{
-                .binding = 0,
-                .binding_type = orion::DescriptorType::SampledImage,
-                .binding_value = orion::ImageBindingDesc{
-                    .image_view_handle = font_image_view,
-                    .image_layout = orion::ImageLayout::ShaderReadOnly,
-                },
-            },
-            orion::DescriptorBinding{
-                .binding = 1,
-                .binding_type = orion::DescriptorType::Sampler,
-                .binding_value = orion::ImageBindingDesc{
-                    .sampler_handle = font_sampler,
-                },
-            },
-        };
-        device->write_descriptor(descriptor, descriptor_bindings);
+        device->write_descriptor(descriptor,
+                                 {{
+                                     orion::DescriptorWrite{
+                                         .binding = 0,
+                                         .descriptor_type = orion::DescriptorType::SampledImage,
+                                         .images = {{
+                                             orion::ImageDescriptorDesc{
+                                                 .image_view_handle = font_image_view,
+                                                 .image_layout = orion::ImageLayout::ShaderReadOnly,
+                                             },
+                                         }},
+                                     },
+                                     orion::DescriptorWrite{
+                                         .binding = 1,
+                                         .descriptor_type = orion::DescriptorType::Sampler,
+                                         .images = {{
+                                             orion::ImageDescriptorDesc{
+                                                 .sampler_handle = font_sampler,
+                                             },
+                                         }},
+                                     },
+                                 }});
         return descriptor;
     }
 

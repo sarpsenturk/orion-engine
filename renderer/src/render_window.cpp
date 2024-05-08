@@ -47,11 +47,11 @@ namespace orion
         command_list->reset();
 
         // Update descriptor
-        const auto image_binding = ImageBindingDesc{
+        const auto image_binding = ImageDescriptorDesc{
             .image_view_handle = desc.source_image,
             .image_layout = desc.source_image_layout,
         };
-        device_->write_descriptor(frame.descriptor, DescriptorBinding{.binding = 0, .binding_type = DescriptorType::SampledImage, .binding_value = image_binding});
+        device_->write_descriptor(frame.descriptor, DescriptorWrite{.binding = 0, .descriptor_type = DescriptorType::SampledImage, .images = {{image_binding}}});
 
         command_list->begin();
         command_list->begin_render_pass({
@@ -222,7 +222,7 @@ namespace orion
     RenderWindow::FrameData RenderWindow::create_frame_data(CommandAllocator* command_allocator) const
     {
         auto descriptor = device_->create_descriptor(descriptor_layout_.get(), descriptor_pool_.get());
-        device_->write_descriptor(descriptor, DescriptorBinding{.binding = 1, .binding_type = DescriptorType::Sampler, .binding_value = ImageBindingDesc{.sampler_handle = sampler_.get()}});
+        device_->write_descriptor(descriptor, DescriptorWrite{.binding = 1, .descriptor_type = DescriptorType::Sampler, .images = {{ImageDescriptorDesc{.sampler_handle = sampler_.get()}}}});
         return {
             .command_list = command_allocator->create_command_list(),
             .descriptor = descriptor,

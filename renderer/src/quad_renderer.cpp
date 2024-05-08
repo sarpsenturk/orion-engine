@@ -38,7 +38,19 @@ namespace orion
         auto& buffer = frame.quad_buffer;
 
         buffer.upload_grow(std::as_bytes(std::span{quads_}));
-        device_->write_descriptor(frame.descriptor, frame.quad_buffer.descriptor_binding(0));
+        device_->write_descriptor(frame.descriptor, DescriptorWrite{
+                                                        .binding = 0,
+                                                        .descriptor_type = DescriptorType::StorageBuffer,
+                                                        .buffers = {{
+                                                            BufferDescriptorDesc{
+                                                                .buffer_handle = buffer.handle(),
+                                                                .region = {
+                                                                    .size = buffer.size(),
+                                                                    .offset = 0,
+                                                                },
+                                                            },
+                                                        }},
+                                                    });
 
         auto* command_list = render_context.command_list();
         command_list->bind_pipeline({.pipeline = pipeline_.get(), .bind_point = PipelineBindPoint::Graphics});

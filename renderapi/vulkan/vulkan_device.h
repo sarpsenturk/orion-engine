@@ -90,7 +90,7 @@ namespace orion::vulkan
 
         void reset_descriptor_pool_api(DescriptorPoolHandle descriptor_pool_handle) override;
 
-        void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorBinding> bindings) override;
+        void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> writes) override;
 
         void submit_api(const SubmitDesc& desc, FenceHandle signal_fence) override;
         void* map_api(ImageHandle image_handle) override;
