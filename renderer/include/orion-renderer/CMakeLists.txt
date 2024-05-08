@@ -12,4 +12,5 @@ target_sources(
         render_window.h
         renderer.h
         shader.h
+        texture.h
 )

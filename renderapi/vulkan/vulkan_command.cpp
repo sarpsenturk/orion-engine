@@ -118,14 +118,15 @@ namespace orion::vulkan
         VkPipelineLayout layout = resource_manager_->find(cmd_bind_descriptor.pipeline_layout);
         VkDescriptorSet descriptor_set = resource_manager_->find(cmd_bind_descriptor.descriptor);
         vkCmdBindDescriptorSets(
-            command_buffer_.get(),
-            to_vulkan_type(cmd_bind_descriptor.bind_point),
-            layout,
-            0,
-            1,
-            &descriptor_set,
-            0,
-            nullptr);
+            command_buffer_.get(),                          // command buffer
+            to_vulkan_type(cmd_bind_descriptor.bind_point), // pipeline bind point
+            layout,                                         // pipeline layout
+            cmd_bind_descriptor.index,                      // first set
+            1,                                              // set count
+            &descriptor_set,                                // descriptor set
+            0,                                              // offset count
+            nullptr                                         // offsets
+        );
     }
 
     void VulkanCommandList::begin_render_pass_api(const CmdBeginRenderPass& cmd_begin_render_pass)

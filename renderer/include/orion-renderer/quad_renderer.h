@@ -2,6 +2,7 @@
 
 #include "orion-renderer/frame.h"
 #include "orion-renderer/render_context.h"
+#include "orion-renderer/texture.h"
 
 #include "orion-renderapi/buffer.h"
 #include "orion-renderapi/defs.h"
@@ -18,15 +19,11 @@
 namespace orion
 {
     struct QuadData {
-        Vector3_f position;
+        Vector3_f position = {0.f, 0.f, 0.f};
         Radian_f rotation = radians(0.f);
         Vector2_f scale = {1.f, 1.f};
-        Vector4_f color;
-    };
-
-    struct QuadGPUData {
-        Matrix4_f transform;
-        Vector4_f color;
+        Vector4_f color = {1.f, 1.f, 1.f, 1.f};
+        texture_index_t texture_index = textures::white;
     };
 
     // Forward declare
@@ -34,24 +31,31 @@ namespace orion
     class ShaderManager;
     class CommandList;
 
+    struct QuadRendererDesc {
+        RenderDevice* device;
+        ShaderManager* shader_manager;
+        RenderPassHandle render_pass;
+        TextureManager* texture_manager;
+    };
+
     class QuadRenderer
     {
     public:
         static constexpr auto quad_vertex_count = 6;
 
-        QuadRenderer(RenderDevice* device, ShaderManager* shader_manager, RenderPassHandle render_pass);
+        QuadRenderer(const QuadRendererDesc& desc);
 
         void begin();
         void add(const QuadData& quad);
         void flush(const RenderContext& render_context);
-
-        [[nodiscard]] std::size_t quad_count() const noexcept { return quads_.size(); }
-        [[nodiscard]] std::size_t vertex_count() const noexcept { return quads_.size() * quad_vertex_count; }
+        //
+        //        [[nodiscard]] std::size_t quad_count() const noexcept { return quads_.size(); }
+        //        [[nodiscard]] std::size_t vertex_count() const noexcept { return quads_.size() * quad_vertex_count; }
 
     private:
         struct FrameData {
             MappedGPUBuffer quad_buffer;
-            DescriptorHandle descriptor;
+            DescriptorHandle buffer_descriptor;
         };
 
         [[nodiscard]] DescriptorLayoutHandle create_descriptor_layout() const;
@@ -61,7 +65,8 @@ namespace orion
         [[nodiscard]] FrameData create_frame_data() const;
 
         RenderDevice* device_;
-        std::vector<QuadGPUData> quads_;
+        TextureManager* texture_manager_;
+        std::vector<QuadData> quads_;
 
         UniqueDescriptorLayout descriptor_layout_;
         UniquePipelineLayout pipeline_layout_;

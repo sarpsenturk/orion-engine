@@ -4,6 +4,7 @@
 
 #include <orion-renderer/colors.h>
 #include <orion-renderer/renderer.h>
+#include <orion-renderer/texture.h>
 
 #include <orion-math/vector/vector3.h>
 
@@ -18,6 +19,7 @@ public:
         , render_window_(renderer_.create_render_window(window_, false))
         , quad_renderer_(renderer_.create_quad_renderer())
         , imgui_(renderer_.imgui_init(window_))
+        , quad_texture_(renderer_.texture_manager().load_from_file("D:\\Projects\\orion-engine\\assets\\textures\\uv-checker.png").value().index)
     {
         // Close app on callback
         window_.on_close().subscribe(ORION_EXIT_APP_FN);
@@ -32,7 +34,14 @@ private:
     void render_scene()
     {
         quad_renderer_.begin();
-        quad_renderer_.add({.position = {0.f, 0.f, 0.f}, .rotation = orion::to_radians(rotation_), .scale = orion::vec2(scale_, scale_), .color = orion::colors::cyan});
+        quad_renderer_.add({
+            .position = {0.f, 0.f, 0.f},
+            .rotation = orion::to_radians(rotation_),
+            .scale = orion::vec2(scale_, scale_),
+            .color = quad_color,
+            .texture_index = use_texture_ ? quad_texture_ : orion::textures::white,
+        });
+        quad_renderer_.add({.position = {.5f, 0.f, 0.f}, .color = quad_color});
         renderer_.render(quad_renderer_);
     }
 
@@ -43,6 +52,8 @@ private:
         ImGui::Begin("Quads");
         ImGui::DragFloat("Rotation", rotation_.value_ptr());
         ImGui::DragFloat("Scale", &scale_);
+        ImGui::Checkbox("Use texture?", &use_texture_);
+        ImGui::ColorEdit4("Color", quad_color.data());
         ImGui::End();
     }
 
@@ -70,9 +81,12 @@ private:
     orion::RenderWindow render_window_;
     orion::QuadRenderer quad_renderer_;
     orion::ImGuiContext imgui_;
+    orion::texture_index_t quad_texture_;
 
     orion::Degree_f rotation_ = orion::degrees(0.f);
     float scale_ = 1.f;
+    bool use_texture_ = false;
+    orion::Color quad_color = orion::colors::white;
 };
 
 ORION_MAIN(args)

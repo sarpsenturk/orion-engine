@@ -45,6 +45,7 @@ namespace orion
         , render_pass_(create_render_pass())
         , command_allocator_(create_command_allocator())
         , shader_manager_(device())
+        , texture_manager_(device())
         , render_size_(desc.render_size)
         , viewport_(Vector2_f{}, vector_cast<float>(render_size_), {0.f, 1.f})
         , scissor_({}, render_size_)
@@ -59,7 +60,7 @@ namespace orion
 
     QuadRenderer Renderer::create_quad_renderer()
     {
-        return {device(), &shader_manager_, render_pass_};
+        return QuadRenderer{{.device = device(), .shader_manager = &shader_manager_, .render_pass = render_pass_, .texture_manager = &texture_manager_}};
     }
 
     void Renderer::begin()

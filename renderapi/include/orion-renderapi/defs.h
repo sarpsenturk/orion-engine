@@ -224,7 +224,7 @@ namespace orion
 
     struct BufferDescriptorDesc {
         GPUBufferHandle buffer_handle = GPUBufferHandle::invalid();
-        BufferRegion region;
+        BufferRegion region = {};
     };
 
     struct ImageDescriptorDesc {

@@ -10,4 +10,6 @@ target_sources(
         render_window.cpp
         renderer.cpp
         shader.cpp
+        stb_image.h stb_image.cpp
+        texture.cpp
 )

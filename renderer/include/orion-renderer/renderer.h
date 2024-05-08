@@ -6,6 +6,7 @@
 #include "orion-renderer/quad_renderer.h"
 #include "orion-renderer/render_window.h"
 #include "orion-renderer/shader.h"
+#include "orion-renderer/texture.h"
 
 #include "orion-renderapi/render_backend.h"
 #include "orion-renderapi/render_device.h"
@@ -50,6 +51,9 @@ namespace orion
         [[nodiscard]] auto* backend() const noexcept { return render_backend_.get(); }
         [[nodiscard]] auto* device() const noexcept { return render_device_.get(); }
 
+        [[nodiscard]] auto& shader_manager() { return shader_manager_; }
+        [[nodiscard]] auto& texture_manager() { return texture_manager_; }
+
         [[nodiscard]] QuadRenderer create_quad_renderer();
 
         void begin();
@@ -90,6 +94,7 @@ namespace orion
         std::unique_ptr<CommandAllocator> command_allocator_;
 
         ShaderManager shader_manager_;
+        TextureManager texture_manager_;
 
         Vector2_u render_size_;
         Viewport viewport_;
