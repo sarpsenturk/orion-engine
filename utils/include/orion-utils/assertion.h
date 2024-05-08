@@ -31,3 +31,19 @@
     #define ORION_EXPECTS(condition) ((void)0)
     #define ORION_ENSURES(condition) ((void)0)
 #endif
+
+namespace orion
+{
+#ifdef __cpp_lib_unreachable
+    using std::unreachable
+#else
+    [[noreturn]] inline void unreachable()
+    {
+    #if defined(_MSC_VER) && !defined(__clang__)
+        __assume(false);
+    #else
+        __builtin_unreachable();
+    #endif
+    }
+#endif
+} // namespace orion
