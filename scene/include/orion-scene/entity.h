@@ -48,8 +48,11 @@ namespace orion
             return registry_->get<Component>(entity_id_);
         }
 
-        [[nodiscard]] auto& transform() noexcept { return get_component<TransformComponent>(); }
-        [[nodiscard]] auto& transform() const noexcept { return get_component<TransformComponent>(); }
+        [[nodiscard]] auto& tag() { return get_component<TagComponent>(); }
+        [[nodiscard]] auto& tag() const { return get_component<TagComponent>(); }
+
+        [[nodiscard]] auto& transform() { return get_component<TransformComponent>(); }
+        [[nodiscard]] auto& transform() const { return get_component<TransformComponent>(); }
 
     private:
         entt::entity entity_id_;
