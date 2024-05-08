@@ -515,12 +515,15 @@ namespace orion
         std::span<const std::byte> byte_code;
     };
 
-    inline constexpr auto default_swapchain_image_count = 2;
-    inline constexpr auto default_swapchain_format = Format::B8G8R8A8_Srgb;
+    namespace defaults
+    {
+        inline constexpr auto swapchain_image_count = 2;
+        inline constexpr auto swapchain_format = Format::B8G8R8A8_Srgb;
+    } // namespace defaults
 
     struct SwapchainDesc {
-        std::uint32_t image_count = default_swapchain_image_count;
-        Format image_format = default_swapchain_format;
+        std::uint32_t image_count = defaults::swapchain_image_count;
+        Format image_format = defaults::swapchain_format;
         Vector2_u image_size = {};
         ImageUsageFlags image_usage = ImageUsageFlags::ColorAttachment;
         bool vsync = true;

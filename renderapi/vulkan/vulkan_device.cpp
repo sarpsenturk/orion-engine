@@ -909,7 +909,13 @@ namespace orion::vulkan
             }
         }
 
-        vkUpdateDescriptorSets(vk_device(), vk_writes.size(), vk_writes.data(), 0u, nullptr);
+        vkUpdateDescriptorSets(
+            vk_device(),                             // device
+            static_cast<uint32_t>(vk_writes.size()), // VkWriteDescriptorSet count
+            vk_writes.data(),                        // VkWriteDescriptorSet pointer
+            0u,                                      // VkCopyDescriptorSet count
+            nullptr                                  // VkCopyDescriptorSet pointer
+        );
     }
 
     void VulkanDevice::submit_api(const SubmitDesc& desc, FenceHandle signal_fence)

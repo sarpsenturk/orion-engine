@@ -14,7 +14,7 @@ class SandboxApp final : public orion::Application
 {
 public:
     SandboxApp()
-        : window_({.name = "Sandbox App", .size = orion::default_window_size})
+        : window_({.name = "Sandbox App"})
         , renderer_({.device_select_fn = orion::device_select_discrete, .render_size = {800, 600}})
         , render_window_(renderer_.create_render_window(window_, false))
         , quad_renderer_(renderer_.create_quad_renderer())
