@@ -4,5 +4,6 @@ target_sources(
         FILE_SET public_headers
         FILES
         colors.h
+        mesh.h
         renderer.h
 )

@@ -66,10 +66,13 @@ namespace orion
         : render_backend_module_(load_backend_module(desc.backend))
         , render_backend_(create_render_backend(render_backend_module_))
         , render_device_(create_render_device(render_backend_.get()))
+        , command_allocator_(render_device_->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = false}))
+        , mesh_builder_(render_device_.get(), command_allocator_.get())
     {
         SPDLOG_LOGGER_INFO(logger(), "Renderer initialized");
-        SPDLOG_LOGGER_TRACE(logger(), "backend module: {}", render_backend_module_.filename());
-        SPDLOG_LOGGER_TRACE(logger(), "render backend: {}", fmt::ptr(render_backend_));
-        SPDLOG_LOGGER_TRACE(logger(), "render device: {}", fmt::ptr(render_device_));
+        SPDLOG_LOGGER_INFO(logger(), "Render Backend Info:");
+        SPDLOG_LOGGER_INFO(logger(), "- backend module: {}", render_backend_module_.filename());
+        SPDLOG_LOGGER_TRACE(logger(), "- render backend: {}", fmt::ptr(render_backend_));
+        SPDLOG_LOGGER_TRACE(logger(), "- render device: {}", fmt::ptr(render_device_));
     }
 } // namespace orion

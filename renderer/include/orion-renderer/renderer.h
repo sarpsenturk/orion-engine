@@ -1,9 +1,12 @@
 #pragma once
 
+#include "orion-renderer/mesh.h"
+
 #include "orion-core/dyn_lib.h"
 #include "orion-core/platform.h"
 
 #include "orion-renderapi/render_backend.h"
+#include "orion-renderapi/render_command.h"
 #include "orion-renderapi/render_device.h"
 
 #include "orion-math/vector/vector2.h"
@@ -20,9 +23,14 @@ namespace orion
     public:
         explicit Renderer(const RendererDesc& desc);
 
+        [[nodiscard]] auto& mesh_builder() { return mesh_builder_; }
+
     private:
         Module render_backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+        std::unique_ptr<CommandAllocator> command_allocator_;
+
+        MeshBuilder mesh_builder_;
     };
 } // namespace orion
