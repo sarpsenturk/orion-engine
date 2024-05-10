@@ -176,6 +176,20 @@ namespace orion::vulkan
             scissors.data());
     }
 
+    void VulkanCommandList::copy_buffer_api(const CmdCopyBuffer& cmd_copy_buffer)
+    {
+        VkBuffer src = resource_manager_->find(cmd_copy_buffer.src).buffer;
+        ORION_EXPECTS(src != VK_NULL_HANDLE);
+        VkBuffer dst = resource_manager_->find(cmd_copy_buffer.dst).buffer;
+
+        const auto region = VkBufferCopy{
+            .srcOffset = cmd_copy_buffer.src_offset,
+            .dstOffset = cmd_copy_buffer.dst_offset,
+            .size = cmd_copy_buffer.size,
+        };
+        vkCmdCopyBuffer(vk_command_buffer(), src, dst, 1u, &region);
+    }
+
     void VulkanCommandList::copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image)
     {
         VkBuffer src_buffer = resource_manager_->find(cmd_copy_buffer_to_image.src_buffer).buffer;

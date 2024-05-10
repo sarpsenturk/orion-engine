@@ -63,6 +63,14 @@ namespace orion
         std::span<const Scissor> scissors;
     };
 
+    struct CmdCopyBuffer {
+        GPUBufferHandle src;
+        GPUBufferHandle dst;
+        std::size_t src_offset;
+        std::size_t dst_offset;
+        std::size_t size;
+    };
+
     struct CmdCopyBufferToImage {
         GPUBufferHandle src_buffer;
         ImageHandle dst_image;
@@ -108,6 +116,7 @@ namespace orion
         void set_viewports(const Viewport& viewport);
         void set_scissors(const CmdSetScissors& cmd_set_scissors);
         void set_scissors(const Scissor& scissor);
+        void copy_buffer(const CmdCopyBuffer& cmd_copy_buffer);
         void copy_buffer_to_image(const CmdCopyBufferToImage& cmd_copy_buffer_to_image);
         void push_constants(const CmdPushConstants& cmd_push_constants);
         void transition_barrier(const CmdTransitionBarrier& cmd_transition_barrier);
@@ -132,6 +141,7 @@ namespace orion
         virtual void end_render_pass_api() = 0;
         virtual void set_viewports_api(const CmdSetViewports& cmd_set_viewports) = 0;
         virtual void set_scissors_api(const CmdSetScissors& cmd_set_scissors) = 0;
+        virtual void copy_buffer_api(const CmdCopyBuffer& cmd_copy_buffer) = 0;
         virtual void copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image) = 0;
         virtual void push_constants_api(const CmdPushConstants& cmd_push_constants) = 0;
         virtual void transition_barrier_api(const CmdTransitionBarrier& cmd_transition_barrier) = 0;

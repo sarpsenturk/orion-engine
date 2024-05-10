@@ -32,6 +32,7 @@ namespace orion::vulkan
         void set_viewports_api(const CmdSetViewports& cmd_set_viewports) override;
         void set_scissors_api(const CmdSetScissors& cmd_set_scissors) override;
         void push_constants_api(const CmdPushConstants& cmd_push_constants) override;
+        void copy_buffer_api(const CmdCopyBuffer& cmd_copy_buffer) override;
         void copy_buffer_to_image_api(const CmdCopyBufferToImage& cmd_copy_buffer_to_image) override;
         void transition_barrier_api(const CmdTransitionBarrier& cmd_transition_barrier) override;
 
