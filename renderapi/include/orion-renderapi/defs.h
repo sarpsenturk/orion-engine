@@ -32,7 +32,10 @@ namespace orion
         std::string name;
     };
 
-    using SelectPhysicalDeviceFn = physical_device_index_t (*)(std::span<const PhysicalDeviceDesc>);
+    constexpr bool is_discrete_gpu(const PhysicalDeviceDesc& device) noexcept
+    {
+        return device.type == PhysicalDeviceType::Discrete;
+    }
 
     enum class Format : std::uint32_t {
         Undefined,

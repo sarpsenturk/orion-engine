@@ -25,9 +25,7 @@ endfunction()
 
 set(orion_shader_sources
         imgui.vs.hlsl imgui.ps.hlsl
-        triangle.vs.hlsl triangle.ps.hlsl
         present.vs.hlsl present.ps.hlsl
-        quad.vs.hlsl quad.ps.hlsl
 )
 
 set(orion_spirv_binaries "")

@@ -21,7 +21,6 @@
 #include "orion-renderapi/render_device.h"
 
 #include "orion-renderer/config.h"
-#include "orion-renderer/shader.h"
 
 namespace
 {
