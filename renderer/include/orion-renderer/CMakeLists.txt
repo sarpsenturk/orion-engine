@@ -5,6 +5,7 @@ target_sources(
         FILES
         colors.h
         effect.h
+        material.h
         mesh.h
         renderer.h
 )

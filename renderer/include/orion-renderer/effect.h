@@ -17,6 +17,10 @@ namespace orion
     public:
         Effect(UniqueRenderPass render_pass, std::vector<UniqueDescriptorLayout> descriptor_layouts, UniquePipelineLayout pipeline_layout, UniquePipeline pipeline);
 
+        [[nodiscard]] auto& descriptor_layouts() const { return descriptor_layouts_; }
+        [[nodiscard]] PipelineLayoutHandle pipeline_layout() const { return pipeline_layout_.get(); }
+        [[nodiscard]] PipelineHandle pipeline() const { return pipeline_.get(); }
+
     private:
         UniqueRenderPass render_pass_;
         std::vector<UniqueDescriptorLayout> descriptor_layouts_;

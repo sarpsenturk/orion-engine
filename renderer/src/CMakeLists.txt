@@ -2,6 +2,7 @@
 target_sources(
         orion-renderer PRIVATE
         effect.cpp
+        material.cpp
         mesh.cpp
         renderer.cpp
 )
