@@ -1,0 +1,46 @@
+{
+  "version": 0,
+  "passes": [
+    {
+      "shaders": {
+        "vertex": "object.vs",
+        "pixel": "object.ps"
+      },
+      "inputAssembly": {
+        "topology": "TriangleList"
+      },
+      "rasterization": {
+        "fillMode": "solid",
+        "cullMode": "back",
+        "frontFace": "ClockWise"
+      },
+      "colorBlend": {
+        "logicOpEnable": false,
+        "logicOp": "NoOp",
+        "attachments": [
+          {
+            "blendEnable": true,
+            "srcBlend": "one",
+            "dstBlend": "zero",
+            "blendOp": "add",
+            "srcBlendAlpha": "one",
+            "dstBlendAlpha": "zero",
+            "blendOpAlpha": "add",
+            "colorComponentFlags": "test"
+          }
+        ],
+        "blendConstants": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "renderTargets": [
+        {
+          "format": "B8G8R8A8_Srgb"
+        }
+      ]
+    }
+  ]
+}

@@ -24,6 +24,7 @@ public:
         : window_({.name = "Sandbox App"})
         , renderer_({.render_size = window_.size()})
         , quad_mesh_(renderer_.mesh_builder().create_mesh(vertices, indices))
+        , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/default.ofx"), {.shader_base_path = "assets/shaders/spirv"}))
     {
         // Close app on callback
         window_.on_close().subscribe(ORION_EXIT_APP_FN);
@@ -45,6 +46,7 @@ private:
     orion::Window window_;
     orion::Renderer renderer_;
     orion::Mesh quad_mesh_;
+    orion::Effect effect_;
 };
 
 ORION_MAIN(args)

@@ -25,6 +25,7 @@ endfunction()
 
 set(orion_shader_sources
         imgui.vs.hlsl imgui.ps.hlsl
+        object.vs.hlsl object.ps.hlsl
         present.vs.hlsl present.ps.hlsl
 )
 

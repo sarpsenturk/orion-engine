@@ -42,12 +42,13 @@ namespace orion
 
         [[nodiscard]] std::size_t size() const;
 
-        std::size_t read(std::span<std::byte> outbytes);
+        std::size_t read(std::span<std::byte> outbytes) const;
         std::size_t write(std::span<const std::byte> inbytes);
 
         void flush();
 
-        std::vector<std::byte> read_all();
+        std::vector<std::byte> read_all() const;
+        std::string read_all_str() const;
 
     private:
         FilePtr file_;

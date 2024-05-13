@@ -14,6 +14,7 @@ target_include_directories(orion-renderer PUBLIC include/)
 
 # Find dependencies
 find_package(imgui CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # Create user imgui config file
 set(imgui_config_file ${CMAKE_BINARY_DIR}/include/imconfig.h)
@@ -30,6 +31,8 @@ target_link_libraries(
         orion::renderapi
         orion::scene
         imgui::imgui
+        PRIVATE
+        nlohmann_json::nlohmann_json
 )
 
 # Add dependencies to custom targets

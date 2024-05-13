@@ -21,7 +21,8 @@
         "docking-experimental"
       ]
     },
-    "cli11"
+    "cli11",
+    "nlohmann-json"
   ],
   "features": {
     "tests": {

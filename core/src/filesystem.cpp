@@ -71,7 +71,7 @@ namespace orion
         return std::filesystem::file_size(path_.c_str());
     }
 
-    std::size_t File::read(std::span<std::byte> outbytes)
+    std::size_t File::read(std::span<std::byte> outbytes) const
     {
         return std::fread(outbytes.data(), sizeof(std::byte), outbytes.size(), file_.get());
     }
@@ -88,11 +88,18 @@ namespace orion
         }
     }
 
-    std::vector<std::byte> File::read_all()
+    std::vector<std::byte> File::read_all() const
     {
         std::vector<std::byte> bytes(size());
         read(bytes);
         return bytes;
+    }
+
+    std::string File::read_all_str() const
+    {
+        std::string string(size(), ' ');
+        read(std::as_writable_bytes(std::span{string}));
+        return string;
     }
 
     File input_file(FilePath path)

@@ -68,6 +68,8 @@ namespace orion
         , render_device_(create_render_device(render_backend_.get()))
         , command_allocator_(render_device_->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = false}))
         , mesh_builder_(render_device_.get(), command_allocator_.get())
+        , shader_reflector_(render_backend_->create_shader_reflector())
+        , effect_compiler_(render_device_.get(), shader_reflector_.get())
     {
         SPDLOG_LOGGER_INFO(logger(), "Renderer initialized");
         SPDLOG_LOGGER_INFO(logger(), "Render Backend Info:");
