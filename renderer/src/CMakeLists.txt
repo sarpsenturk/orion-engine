@@ -5,5 +5,6 @@ target_sources(
         material.cpp
         mesh.cpp
         render_target.cpp
+        render_window.cpp
         renderer.cpp
 )

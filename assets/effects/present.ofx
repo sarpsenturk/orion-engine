@@ -3,8 +3,8 @@
   "passes": [
     {
       "shaders": {
-        "vertex": "object.vs",
-        "pixel": "object.ps"
+        "vertex": "present.vs",
+        "pixel": "present.ps"
       },
       "inputAssembly": {
         "topology": "TriangleList"

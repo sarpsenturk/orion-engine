@@ -5,6 +5,7 @@
 #include "orion-renderer/material.h"
 #include "orion-renderer/mesh.h"
 #include "orion-renderer/render_target.h"
+#include "orion-renderer/render_window.h"
 
 #include "orion-core/dyn_lib.h"
 #include "orion-core/platform.h"
@@ -13,6 +14,7 @@
 #include "orion-renderapi/render_command.h"
 #include "orion-renderapi/render_device.h"
 #include "orion-renderapi/shader_reflection.h"
+#include "orion-renderapi/swapchain.h"
 
 #include "orion-math/vector/vector2.h"
 
@@ -32,12 +34,15 @@ namespace orion
 
     struct FrameInFlight {
         std::unique_ptr<CommandAllocator> command_allocator;
-        std::unique_ptr<CommandList> command_list;
 
+        std::unique_ptr<CommandList> render_command;
         FenceHandle render_fence;
         SemaphoreHandle render_semaphore;
-
         RenderTarget render_target;
+
+        std::unique_ptr<CommandList> present_command;
+        FenceHandle present_fence;
+        SemaphoreHandle present_semaphore;
     };
 
     class Renderer
@@ -50,6 +55,11 @@ namespace orion
 
         void draw(RenderObj obj);
         void render();
+
+        void present_to(const RenderTarget& render_target);
+        void present(RenderWindow& render_window);
+
+        RenderWindow create_render_window(const Window& window);
 
         [[nodiscard]] frame_index_t current_frame_index() const noexcept { return current_frame_index_; }
         [[nodiscard]] frame_index_t previous_frame_index() const noexcept { return previous_frame_index_; }
@@ -70,6 +80,8 @@ namespace orion
         EffectCompiler effect_compiler_;
 
         Vector2_u render_size_;
+
+        Effect present_effect_;
 
         static_vector<FrameInFlight, frames_in_flight> frames_in_flight_;
         frame_index_t current_frame_index_ = 0;
