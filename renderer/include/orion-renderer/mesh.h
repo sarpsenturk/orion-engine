@@ -13,14 +13,16 @@ namespace orion
     class Mesh
     {
     public:
-        Mesh(UniqueGPUBuffer vertex_buffer, UniqueGPUBuffer index_buffer);
+        Mesh(UniqueGPUBuffer vertex_buffer, UniqueGPUBuffer index_buffer, std::uint32_t index_count);
 
         [[nodiscard]] GPUBufferHandle vertex_buffer() const noexcept { return vertex_buffer_.get(); }
         [[nodiscard]] GPUBufferHandle index_buffer() const noexcept { return index_buffer_.get(); }
+        [[nodiscard]] std::uint32_t index_count() const noexcept { return index_count_; }
 
     private:
         UniqueGPUBuffer vertex_buffer_;
         UniqueGPUBuffer index_buffer_;
+        std::uint32_t index_count_;
     };
 
     struct Vertex {

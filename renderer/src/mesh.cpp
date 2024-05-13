@@ -23,9 +23,10 @@ namespace orion
         }
     } // namespace
 
-    Mesh::Mesh(UniqueGPUBuffer vertex_buffer, UniqueGPUBuffer index_buffer)
+    Mesh::Mesh(UniqueGPUBuffer vertex_buffer, UniqueGPUBuffer index_buffer, std::uint32_t index_count)
         : vertex_buffer_(std::move(vertex_buffer))
         , index_buffer_(std::move(index_buffer))
+        , index_count_(index_count)
     {
     }
 
@@ -86,6 +87,6 @@ namespace orion
         SPDLOG_LOGGER_TRACE(logger(), "Data copied to GPU.");
         SPDLOG_LOGGER_DEBUG(logger(), "Mesh created.");
 
-        return Mesh{std::move(vertex_buffer), std::move(index_buffer)};
+        return Mesh{std::move(vertex_buffer), std::move(index_buffer), static_cast<std::uint32_t>(indices.size())};
     }
 } // namespace orion
