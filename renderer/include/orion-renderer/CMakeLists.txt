@@ -7,5 +7,6 @@ target_sources(
         effect.h
         material.h
         mesh.h
+        render_target.h
         renderer.h
 )

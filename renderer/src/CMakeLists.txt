@@ -4,5 +4,6 @@ target_sources(
         effect.cpp
         material.cpp
         mesh.cpp
+        render_target.cpp
         renderer.cpp
 )
