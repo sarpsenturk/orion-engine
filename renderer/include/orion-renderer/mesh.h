@@ -26,7 +26,7 @@ namespace orion
     };
 
     struct Vertex {
-        alignas(16) Vector3_f position;
+        Vector3_f position;
     };
 
     using vertex_index_t = std::uint32_t;
