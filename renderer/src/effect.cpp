@@ -11,6 +11,8 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -226,11 +228,11 @@ namespace orion
 
         const auto vs_binary = binary_input_file(desc.shader_base_path / pass.shaders.vertex).read_all();
         const auto vs_module = device_->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{vs_binary});
-        const auto vs_reflection = shader_reflector_->reflect(vs_binary).value();
+        auto vs_reflection = shader_reflector_->reflect(vs_binary).value();
 
         const auto ps_binary = binary_input_file(desc.shader_base_path / pass.shaders.pixel).read_all();
         const auto ps_module = device_->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{ps_binary});
-        const auto ps_reflection = shader_reflector_->reflect(ps_binary).value();
+        auto ps_reflection = shader_reflector_->reflect(ps_binary).value();
 
         const auto shader_stages = std::array{
             ShaderStageDesc{
@@ -258,9 +260,28 @@ namespace orion
             vertex_bindings.emplace_back(vertex_attrs, InputRate::Vertex);
         }
 
-        // TODO: Get descriptors from shader reflection
+        std::set<ShaderReflectionDescriptorSet> descriptors_sets;
+        descriptors_sets.insert(std::make_move_iterator(vs_reflection.descriptors.begin()), std::make_move_iterator(vs_reflection.descriptors.end()));
+        descriptors_sets.insert(std::make_move_iterator(ps_reflection.descriptors.begin()), std::make_move_iterator(ps_reflection.descriptors.end()));
+
+        std::vector<UniqueDescriptorLayout> descriptor_layouts(descriptors_sets.size());
+        std::ranges::transform(descriptors_sets, descriptor_layouts.begin(), [this](const auto& descriptor) {
+            std::vector<DescriptorBindingDesc> bindings(descriptor.bindings.size());
+            std::ranges::transform(descriptor.bindings, bindings.begin(), [](const auto& binding) {
+                return DescriptorBindingDesc{
+                    .type = binding.type,
+                    .shader_stages = ShaderStageFlags::All, // TODO: Get this from reflection too
+                    .count = binding.count,
+                };
+            });
+            return device_->make_unique<DescriptorLayoutHandle_tag>(DescriptorLayoutDesc{bindings});
+        });
+
+        std::vector<DescriptorLayoutHandle> descriptor_layouts_view(descriptor_layouts.size());
+        std::ranges::transform(descriptor_layouts, descriptor_layouts_view.begin(), [](const auto& layout) { return layout.get(); });
+
         auto pipeline_layout = device_->make_unique<PipelineLayoutHandle_tag>(PipelineLayoutDesc{
-            .descriptors = {},
+            .descriptors = descriptor_layouts_view,
             .push_constants = {},
         });
 
@@ -316,6 +337,6 @@ namespace orion
             render_pass.get(),
         });
 
-        return Effect{std::move(render_pass), {}, std::move(pipeline_layout), std::move(pipeline)};
+        return Effect{std::move(render_pass), std::move(descriptor_layouts), std::move(pipeline_layout), std::move(pipeline)};
     }
 } // namespace orion

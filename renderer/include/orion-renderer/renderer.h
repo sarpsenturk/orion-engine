@@ -40,6 +40,8 @@ namespace orion
         SemaphoreHandle render_semaphore;
         RenderTarget render_target;
 
+        DescriptorHandle render_output_descriptor;
+
         std::unique_ptr<CommandList> present_command;
         FenceHandle present_fence;
         SemaphoreHandle present_semaphore;
@@ -75,6 +77,8 @@ namespace orion
         std::unique_ptr<RenderDevice> render_device_;
         std::unique_ptr<CommandAllocator> command_allocator_;
 
+        DescriptorPoolHandle descriptor_pool_;
+
         MeshBuilder mesh_builder_;
         std::unique_ptr<ShaderReflector> shader_reflector_;
         EffectCompiler effect_compiler_;
@@ -82,6 +86,7 @@ namespace orion
         Vector2_u render_size_;
 
         Effect present_effect_;
+        SamplerHandle present_sampler_;
 
         static_vector<FrameInFlight, frames_in_flight> frames_in_flight_;
         frame_index_t current_frame_index_ = 0;

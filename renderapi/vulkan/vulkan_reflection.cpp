@@ -143,6 +143,7 @@ namespace orion::vulkan
             std::vector<ShaderReflectionDescriptorBinding> bindings(descriptor_set->binding_count);
             std::transform(descriptor_set->bindings, descriptor_set->bindings + descriptor_set->binding_count, bindings.begin(), [](const SpvReflectDescriptorBinding* binding) {
                 return ShaderReflectionDescriptorBinding{
+                    .binding = binding->binding,
                     .name = binding->name,
                     .type = map_spv_descriptor_type(binding->descriptor_type),
                     .count = binding->count,
@@ -151,11 +152,12 @@ namespace orion::vulkan
             return bindings;
         }
 
-        std::vector<ShaderReflectionDescriptor> map_descriptor_sets(const std::vector<SpvReflectDescriptorSet*>& descriptor_sets)
+        std::vector<ShaderReflectionDescriptorSet> map_descriptor_sets(const std::vector<SpvReflectDescriptorSet*>& descriptor_sets)
         {
-            std::vector<ShaderReflectionDescriptor> result(descriptor_sets.size());
+            std::vector<ShaderReflectionDescriptorSet> result(descriptor_sets.size());
             std::ranges::transform(descriptor_sets, result.begin(), [](const SpvReflectDescriptorSet* descriptor_set) {
-                return ShaderReflectionDescriptor{
+                return ShaderReflectionDescriptorSet{
+                    .set = descriptor_set->set,
                     .bindings = map_descriptor_bindings(descriptor_set),
                 };
             });

@@ -23,13 +23,17 @@ namespace orion
     };
 
     struct ShaderReflectionDescriptorBinding {
+        std::uint32_t binding;
         std::string name;
         DescriptorType type;
         std::uint32_t count;
     };
 
-    struct ShaderReflectionDescriptor {
+    struct ShaderReflectionDescriptorSet {
+        std::uint32_t set;
         std::vector<ShaderReflectionDescriptorBinding> bindings;
+
+        friend bool operator<(const ShaderReflectionDescriptorSet& lhs, const ShaderReflectionDescriptorSet& rhs);
     };
 
     struct ShaderReflectionPushConstant {
@@ -40,7 +44,7 @@ namespace orion
         std::string entry_point;
         ShaderStageFlags stage;
         std::vector<ShaderReflectionInputVariable> input_variables;
-        std::vector<ShaderReflectionDescriptor> descriptors;
+        std::vector<ShaderReflectionDescriptorSet> descriptors;
         std::vector<ShaderReflectionPushConstant> push_constants;
     };
 

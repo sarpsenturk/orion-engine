@@ -3,7 +3,12 @@ struct PsInput {
     float2 uv : TEXCOORD;
 };
 
+[[vk::binding(0, 0)]]
+Texture2D _renderOutput;
+[[vk::binding(1, 0)]]
+SamplerState _presentSampler;
+
 float4 ps_main(PsInput input) : SV_Target
 {
-    return float4(input.uv, 0.0, 1.0);
+    return _renderOutput.Sample(_presentSampler, input.uv);
 }

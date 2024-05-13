@@ -17,6 +17,7 @@ namespace orion
     public:
         RenderTarget(RenderTargetImage image, UniqueImageView image_view, UniqueRenderPass render_pass, UniqueFramebuffer framebuffer);
 
+        [[nodiscard]] ImageViewHandle image_view() const noexcept { return image_view_.get(); }
         [[nodiscard]] FramebufferHandle framebuffer() const noexcept { return framebuffer_.get(); }
         [[nodiscard]] RenderPassHandle render_pass() const noexcept { return render_pass_.get(); }
 

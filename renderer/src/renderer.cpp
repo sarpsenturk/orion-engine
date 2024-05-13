@@ -7,6 +7,7 @@
 #include "orion-core/window.h"
 
 #include <algorithm>
+#include <array>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
     #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
@@ -65,48 +66,106 @@ namespace orion
             throw std::runtime_error{"no supported GPU found"};
         }
 
-        FrameInFlight create_frame(RenderDevice* device, const Vector2_u& render_size)
+        DescriptorPoolHandle create_descriptor_pool(RenderDevice* device)
         {
-            auto command_allocator = device->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = false});
-            auto render_command = command_allocator->create_command_list();
-            auto present_command = command_allocator->create_command_list();
+            return device->create_descriptor_pool({
+                .max_descriptors = 16,
+                .flags = DescriptorPoolFlags::FreeDescriptors,
+                .sizes = {{
+                    DescriptorPoolSize{
+                        .type = DescriptorType::Sampler,
+                        .count = frames_in_flight,
+                    },
+                    DescriptorPoolSize{
+                        .type = DescriptorType::SampledImage,
+                        .count = frames_in_flight,
+                    },
+                }},
+            });
+        }
+
+        SamplerHandle create_present_sampler(RenderDevice* device)
+        {
+            return device->create_sampler({
+                .filter = Filter::Nearest,
+                .address_mode_u = AddressMode::Border,
+                .address_mode_v = AddressMode::Border,
+                .address_mode_w = AddressMode::Border,
+                .mip_load_bias = 0.f,
+                .max_anisotropy = 1.f,
+                .compare_func = CompareFunc::Always,
+                .min_lod = 0.f,
+                .max_lod = 0.f,
+            });
+        }
+
+        void init_present_descriptor(RenderDevice* device, DescriptorHandle present_descriptor, ImageViewHandle render_image, SamplerHandle sampler)
+        {
+            const auto render_output_image = ImageDescriptorDesc{
+                .image_view_handle = render_image,
+                .image_layout = ImageLayout::ShaderReadOnly,
+            };
+            const auto render_output_sampler = ImageDescriptorDesc{
+                .sampler_handle = sampler,
+            };
+            const auto descriptor_writes = std::array{
+                DescriptorWrite{
+                    .binding = 0,
+                    .descriptor_type = DescriptorType::SampledImage,
+                    .images = {&render_output_image, 1},
+                },
+                DescriptorWrite{
+                    .binding = 1,
+                    .descriptor_type = DescriptorType::Sampler,
+                    .images = {&render_output_sampler, 1},
+                },
+            };
+            device->write_descriptor(present_descriptor, descriptor_writes);
+        }
+
+        struct FrameInFlightDesc {
+            Vector2_u render_size;
+            DescriptorPoolHandle descriptor_pool;
+            DescriptorLayoutHandle present_descriptor_layout;
+            SamplerHandle present_sampler;
+        };
+
+        FrameInFlight create_frame(RenderDevice* device, const FrameInFlightDesc& desc)
+        {
             const auto render_target_desc = RenderTargetDesc{
-                .size = render_size,
+                .size = desc.render_size,
                 .image_usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage,
                 .initial_layout = ImageLayout::Undefined,
                 .final_layout = ImageLayout::ShaderReadOnly,
             };
+            auto render_target = create_render_target(device, render_target_desc);
+
+            auto render_output_descriptor = device->create_descriptor(desc.present_descriptor_layout, desc.descriptor_pool);
+            init_present_descriptor(device, render_output_descriptor, render_target.image_view(), desc.present_sampler);
+
+            auto command_allocator = device->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = false});
+            auto render_command = command_allocator->create_command_list();
+            auto present_command = command_allocator->create_command_list();
             return FrameInFlight{
                 .command_allocator = std::move(command_allocator),
                 .render_command = std::move(render_command),
                 .render_fence = device->create_fence({.start_finished = false}),
                 .render_semaphore = device->create_semaphore(),
-                .render_target = create_render_target(device, render_target_desc),
+                .render_target = std::move(render_target),
+                .render_output_descriptor = render_output_descriptor,
                 .present_command = std::move(present_command),
                 .present_fence = device->create_fence({.start_finished = true}),
                 .present_semaphore = device->create_semaphore(),
             };
         }
 
-        static_vector<FrameInFlight, frames_in_flight> create_frames_in_flight(RenderDevice* device, const Vector2_u& render_size)
+        static_vector<FrameInFlight, frames_in_flight> create_frames_in_flight(RenderDevice* device, const FrameInFlightDesc& desc)
         {
             static_vector<FrameInFlight, frames_in_flight> frames;
             for (int i = 0; i < frames_in_flight; ++i) {
-                frames.push_back(create_frame(device, render_size));
+                frames.push_back(create_frame(device, desc));
             }
             return frames;
-        }
-
-        std::unique_ptr<Swapchain> create_swapchain(RenderDevice* device, Window* window)
-        {
-            const auto desc = SwapchainDesc{
-                .image_count = frames_in_flight,
-                .image_format = Format::B8G8R8A8_Srgb,
-                .image_size = window->size(),
-                .image_usage = ImageUsageFlags::ColorAttachment,
-                .vsync = true,
-            };
-            return device->create_swapchain(*window, desc);
         }
     } // namespace
 
@@ -115,12 +174,14 @@ namespace orion
         , render_backend_(create_render_backend(render_backend_module_))
         , render_device_(create_render_device(render_backend_.get()))
         , command_allocator_(render_device_->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = false}))
+        , descriptor_pool_(create_descriptor_pool(render_device_.get()))
         , mesh_builder_(render_device_.get(), command_allocator_.get())
         , shader_reflector_(render_backend_->create_shader_reflector())
         , effect_compiler_(render_device_.get(), shader_reflector_.get())
         , render_size_(desc.render_size)
-        , frames_in_flight_(create_frames_in_flight(render_device_.get(), desc.render_size))
-        , present_effect_(effect_compiler_.compile_file(input_file("assets/effects/present_to.ofx"), {.shader_base_path = render_backend_->shader_base_path()}))
+        , present_effect_(effect_compiler_.compile_file(input_file("assets/effects/present.ofx"), {.shader_base_path = render_backend_->shader_base_path()}))
+        , present_sampler_(create_present_sampler(render_device_.get()))
+        , frames_in_flight_(create_frames_in_flight(render_device_.get(), {desc.render_size, descriptor_pool_, present_effect_.descriptor_layouts()[0].get(), present_sampler_}))
     {
         SPDLOG_LOGGER_INFO(logger(), "Renderer initialized");
         SPDLOG_LOGGER_INFO(logger(), "Render Backend Info:");
@@ -226,6 +287,12 @@ namespace orion
             },
         });
         present_command->bind_pipeline({.pipeline = present_effect_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+        present_command->bind_descriptor({
+            .bind_point = PipelineBindPoint::Graphics,
+            .pipeline_layout = present_effect_.pipeline_layout(),
+            .index = 0,
+            .descriptor = frame.render_output_descriptor,
+        });
         present_command->set_viewports(Viewport{
             .position = {0.f, 0.f},
             .size = vector_cast<float>(render_size_),

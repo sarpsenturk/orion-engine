@@ -10,4 +10,14 @@ namespace orion
     {
         return reflect_api(shader_code);
     }
+
+    bool operator<(const ShaderReflectionDescriptorBinding& lhs, const ShaderReflectionDescriptorBinding& rhs)
+    {
+        return lhs.type == rhs.type && lhs.count == rhs.count;
+    }
+
+    bool operator<(const ShaderReflectionDescriptorSet& lhs, const ShaderReflectionDescriptorSet& rhs)
+    {
+        return lhs.set < rhs.set;
+    }
 } // namespace orion
