@@ -79,7 +79,7 @@ namespace orion
             case VK_TIMEOUT:
                 return "A wait operation has not completed in the specified time";
             case VK_SUBOPTIMAL_KHR:
-                return "A swapchain no longer matches the surface properties exactly, but can still be used to present to the surface successfully";
+                return "A swapchain no longer matches the surface properties exactly, but can still be used to present_to to the surface successfully";
             case VK_ERROR_OUT_OF_HOST_MEMORY:
                 return "Host memory allocation failed.";
             case VK_ERROR_OUT_OF_DEVICE_MEMORY:
@@ -87,7 +87,7 @@ namespace orion
             case VK_ERROR_INITIALIZATION_FAILED:
                 return "Initialization of an object could not be completed for implementation-specific reasons.";
             case VK_ERROR_LAYER_NOT_PRESENT:
-                return "A requested layer is not present or could not be loaded.";
+                return "A requested layer is not present_to or could not be loaded.";
             case VK_ERROR_EXTENSION_NOT_PRESENT:
                 return "A requested extension is not supported.";
             case VK_ERROR_INCOMPATIBLE_DRIVER:

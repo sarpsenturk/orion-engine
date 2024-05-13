@@ -87,11 +87,11 @@ namespace orion::vulkan
         {
             switch (builtin) {
                 case SpvBuiltInVertexIndex:
-                    return shader_builtin_vertex_index;
+                    return shader_builtins::vertex_index;
                 default:
                     break;
             }
-            return shader_builtin_unknown;
+            return shader_builtins::unknown;
         }
 
         DescriptorType map_spv_descriptor_type(SpvReflectDescriptorType type)

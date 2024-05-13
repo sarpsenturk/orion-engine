@@ -26,12 +26,14 @@ namespace orion
     NLOHMANN_JSON_SERIALIZE_ENUM(
         PrimitiveTopology,
         {
+            {PrimitiveTopology::TriangleList, nullptr},
             {PrimitiveTopology::TriangleList, "TriangleList"},
         });
 
     NLOHMANN_JSON_SERIALIZE_ENUM(
         FillMode,
         {
+            {FillMode::Solid, nullptr},
             {FillMode::Solid, "solid"},
             {FillMode::Wireframe, "wireframe"},
         });
@@ -39,6 +41,8 @@ namespace orion
     NLOHMANN_JSON_SERIALIZE_ENUM(
         CullMode,
         {
+            {CullMode::None, nullptr},
+            {CullMode::None, "none"},
             {CullMode::Back, "back"},
             {CullMode::Front, "front"},
             {CullMode::FrontAndBack, "both"},
@@ -47,13 +51,15 @@ namespace orion
     NLOHMANN_JSON_SERIALIZE_ENUM(
         FrontFace,
         {
-            {FrontFace::CounterClockWise, "CounterClockWise"},
+            {FrontFace::ClockWise, nullptr},
             {FrontFace::ClockWise, "ClockWise"},
+            {FrontFace::CounterClockWise, "CounterClockWise"},
         });
 
     NLOHMANN_JSON_SERIALIZE_ENUM(
         BlendFactor,
         {
+            {BlendFactor::One, nullptr},
             {BlendFactor::Zero, "Zero"},
             {BlendFactor::One, "One"},
             {BlendFactor::SrcColor, "SrcColor"},
@@ -69,6 +75,7 @@ namespace orion
     NLOHMANN_JSON_SERIALIZE_ENUM(
         BlendOp,
         {
+            {BlendOp::Add, nullptr},
             {BlendOp::Add, "Add"},
             {BlendOp::Subtract, "Subtract"},
             {BlendOp::ReverseSubtract, "ReverseSubtract"},
@@ -79,6 +86,7 @@ namespace orion
     NLOHMANN_JSON_SERIALIZE_ENUM(
         LogicOp,
         {
+            {LogicOp::NoOp, nullptr},
             {LogicOp::NoOp, "NoOp"},
             {LogicOp::Clear, "Clear"},
             {LogicOp::And, "And"},
@@ -99,6 +107,7 @@ namespace orion
     NLOHMANN_JSON_SERIALIZE_ENUM(
         Format,
         {
+            {Format::Undefined, nullptr},
             {Format::Undefined, "Undefined"},
             {Format::R8_Unorm, "R8_Unorm"},
             {Format::B8G8R8A8_Srgb, "B8G8R8A8_Srgb"},
@@ -236,17 +245,18 @@ namespace orion
             },
         };
 
-        std::vector<VertexAttributeDesc> vertex_attrs(vs_reflection.input_variables.size());
-        std::ranges::transform(vs_reflection.input_variables, vertex_attrs.begin(), [](const auto& var) {
-            return VertexAttributeDesc{
-                .name = var.name.c_str(),
-                .format = var.format,
-            };
-        });
+        std::vector<VertexAttributeDesc> vertex_attrs;
+        for (const auto& var : vs_reflection.input_variables) {
+            if (var.builtin) {
+                continue;
+            }
+            vertex_attrs.emplace_back(var.name.c_str(), var.format);
+        }
 
-        const auto vertex_bindings = std::array{
-            VertexBinding{vertex_attrs, InputRate::Vertex},
-        };
+        std::vector<VertexBinding> vertex_bindings;
+        if (!vertex_attrs.empty()) {
+            vertex_bindings.emplace_back(vertex_attrs, InputRate::Vertex);
+        }
 
         // TODO: Get descriptors from shader reflection
         auto pipeline_layout = device_->make_unique<PipelineLayoutHandle_tag>(PipelineLayoutDesc{

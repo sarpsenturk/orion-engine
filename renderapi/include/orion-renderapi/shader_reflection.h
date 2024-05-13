@@ -10,8 +10,11 @@
 
 namespace orion
 {
-    inline constexpr auto shader_builtin_unknown = "BuiltInUnknown";
-    inline constexpr auto shader_builtin_vertex_index = "BuiltInVertexIndex";
+    namespace shader_builtins
+    {
+        inline constexpr auto unknown = "BuiltInUnknown";
+        inline constexpr auto vertex_index = "BuiltInVertexIndex";
+    } // namespace shader_builtins
 
     struct ShaderReflectionInputVariable {
         std::string name;

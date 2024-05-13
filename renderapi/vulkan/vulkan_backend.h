@@ -1,6 +1,9 @@
 #pragma once
 
 #include "orion-renderapi/render_backend.h"
+
+#include "orion-assets/config.h"
+
 #include "vulkan_headers.h"
 #include "vulkan_types.h"
 
@@ -15,6 +18,7 @@ namespace orion::vulkan
 
         // Public API overrides
         [[nodiscard]] const char* name() const noexcept override { return "Vulkan 1.0"; }
+        [[nodiscard]] const char* shader_base_path() const noexcept override { return ORION_SPIRV_DIR; }
 
         [[nodiscard]] auto instance() const noexcept { return instance_.get(); }
 
