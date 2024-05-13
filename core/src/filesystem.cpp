@@ -12,7 +12,7 @@ namespace orion
             std::FILE* file = std::fopen(path, mode);
             if (file == nullptr) {
                 // TODO: Log file open failed
-                throw std::system_error{errno, std::generic_category()};
+                throw std::system_error{errno, std::generic_category(), path};
             }
             return file;
         }
