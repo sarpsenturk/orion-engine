@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <span>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
     #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
@@ -82,6 +83,64 @@ namespace orion
                     },
                 }},
             });
+        }
+
+        DescriptorLayoutHandle create_frame_descriptor_layout(RenderDevice* device)
+        {
+            const auto bindings = std::array{
+                DescriptorBindingDesc{
+                    .type = DescriptorType::ConstantBuffer,
+                    .shader_stages = ShaderStageFlags::All,
+                    .count = 1,
+                },
+            };
+            return device->create_descriptor_layout({bindings});
+        }
+
+        DescriptorLayoutHandle create_material_descriptor_layout(RenderDevice* device)
+        {
+            const auto bindings = std::array{
+                DescriptorBindingDesc{
+                    .type = DescriptorType::ConstantBuffer,
+                    .shader_stages = ShaderStageFlags::All,
+                    .count = 1,
+                },
+            };
+            return device->create_descriptor_layout({bindings});
+        }
+
+        DescriptorLayoutHandle create_object_descriptor_layout(RenderDevice* device)
+        {
+            const auto bindings = std::array{
+                DescriptorBindingDesc{
+                    .type = DescriptorType::ConstantBuffer,
+                    .shader_stages = ShaderStageFlags::All,
+                    .count = 1,
+                },
+            };
+            return device->create_descriptor_layout({bindings});
+        }
+
+        DescriptorLayoutHandle create_present_descriptor_layout(RenderDevice* device)
+        {
+            const auto bindings = std::array{
+                DescriptorBindingDesc{
+                    .type = DescriptorType::SampledImage,
+                    .shader_stages = ShaderStageFlags::Pixel,
+                    .count = 1,
+                },
+                DescriptorBindingDesc{
+                    .type = DescriptorType::Sampler,
+                    .shader_stages = ShaderStageFlags::Pixel,
+                    .count = 1,
+                },
+            };
+            return device->create_descriptor_layout({bindings});
+        }
+
+        PipelineLayoutHandle create_present_pipeline_layout(RenderDevice* device, DescriptorLayoutHandle descriptor_layout)
+        {
+            return device->create_pipeline_layout({.descriptors = {&descriptor_layout, 1}});
         }
 
         SamplerHandle create_present_sampler(RenderDevice* device)
@@ -177,11 +236,17 @@ namespace orion
         , descriptor_pool_(create_descriptor_pool(render_device_.get()))
         , mesh_builder_(render_device_.get(), command_allocator_.get())
         , shader_reflector_(render_backend_->create_shader_reflector())
-        , effect_compiler_(render_device_.get(), shader_reflector_.get())
+        , frame_descriptor_layout_(create_frame_descriptor_layout(render_device_.get()))
+        , material_descriptor_layout_(create_material_descriptor_layout(render_device_.get()))
+        , object_descriptor_layout_(create_object_descriptor_layout(render_device_.get()))
+        , pipeline_layout_(render_device_->create_pipeline_layout({.descriptors = {{frame_descriptor_layout_, material_descriptor_layout_, object_descriptor_layout_}}}))
+        , effect_compiler_(render_device_.get(), shader_reflector_.get(), pipeline_layout_)
         , render_size_(desc.render_size)
-        , present_effect_(effect_compiler_.compile_file(input_file("assets/effects/present.ofx"), {.shader_base_path = render_backend_->shader_base_path()}))
+        , present_descriptor_layout_(create_present_descriptor_layout(render_device_.get()))
+        , present_pipeline_layout_(create_present_pipeline_layout(render_device_.get(), present_descriptor_layout_))
+        , present_effect_(EffectCompiler{render_device_.get(), shader_reflector_.get(), present_pipeline_layout_}.compile_file(input_file("assets/effects/present.ofx"), {.shader_base_path = render_backend_->shader_base_path()}))
         , present_sampler_(create_present_sampler(render_device_.get()))
-        , frames_in_flight_(create_frames_in_flight(render_device_.get(), {desc.render_size, descriptor_pool_, present_effect_.descriptor_layouts()[0].get(), present_sampler_}))
+        , frames_in_flight_(create_frames_in_flight(render_device_.get(), {desc.render_size, descriptor_pool_, present_descriptor_layout_, present_sampler_}))
     {
         SPDLOG_LOGGER_INFO(logger(), "Renderer initialized");
         SPDLOG_LOGGER_INFO(logger(), "Render Backend Info:");
@@ -289,7 +354,7 @@ namespace orion
         present_command->bind_pipeline({.pipeline = present_effect_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
         present_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
-            .pipeline_layout = present_effect_.pipeline_layout(),
+            .pipeline_layout = present_pipeline_layout_,
             .index = 0,
             .descriptor = frame.render_output_descriptor,
         });

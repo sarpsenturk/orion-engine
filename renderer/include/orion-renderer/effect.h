@@ -15,16 +15,12 @@ namespace orion
     class Effect
     {
     public:
-        Effect(UniqueRenderPass render_pass, std::vector<UniqueDescriptorLayout> descriptor_layouts, UniquePipelineLayout pipeline_layout, UniquePipeline pipeline);
+        Effect(UniqueRenderPass render_pass, UniquePipeline pipeline);
 
-        [[nodiscard]] auto& descriptor_layouts() const { return descriptor_layouts_; }
-        [[nodiscard]] PipelineLayoutHandle pipeline_layout() const { return pipeline_layout_.get(); }
         [[nodiscard]] PipelineHandle pipeline() const { return pipeline_.get(); }
 
     private:
         UniqueRenderPass render_pass_;
-        std::vector<UniqueDescriptorLayout> descriptor_layouts_;
-        UniquePipelineLayout pipeline_layout_;
         UniquePipeline pipeline_;
     };
 
@@ -35,12 +31,13 @@ namespace orion
     class EffectCompiler
     {
     public:
-        EffectCompiler(RenderDevice* device, ShaderReflector* shader_reflector);
+        EffectCompiler(RenderDevice* device, ShaderReflector* shader_reflector, PipelineLayoutHandle pipeline_layout);
 
         Effect compile_file(const File& file, const EffectCompileDesc& desc);
 
     private:
         RenderDevice* device_;
         ShaderReflector* shader_reflector_;
+        PipelineLayoutHandle pipeline_layout_;
     };
 } // namespace orion

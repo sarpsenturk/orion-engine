@@ -81,10 +81,17 @@ namespace orion
 
         MeshBuilder mesh_builder_;
         std::unique_ptr<ShaderReflector> shader_reflector_;
+
+        DescriptorLayoutHandle frame_descriptor_layout_;
+        DescriptorLayoutHandle material_descriptor_layout_;
+        DescriptorLayoutHandle object_descriptor_layout_;
+        PipelineLayoutHandle pipeline_layout_;
         EffectCompiler effect_compiler_;
 
         Vector2_u render_size_;
 
+        DescriptorLayoutHandle present_descriptor_layout_;
+        PipelineLayoutHandle present_pipeline_layout_;
         Effect present_effect_;
         SamplerHandle present_sampler_;
 

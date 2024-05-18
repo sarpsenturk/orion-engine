@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -195,17 +194,16 @@ namespace orion
         NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EffectJSON, version, passes);
     } // namespace
 
-    Effect::Effect(UniqueRenderPass render_pass, std::vector<UniqueDescriptorLayout> descriptor_layouts, UniquePipelineLayout pipeline_layout, UniquePipeline pipeline)
+    Effect::Effect(UniqueRenderPass render_pass, UniquePipeline pipeline)
         : render_pass_(std::move(render_pass))
-        , descriptor_layouts_(std::move(descriptor_layouts))
-        , pipeline_layout_(std::move(pipeline_layout))
         , pipeline_(std::move(pipeline))
     {
     }
 
-    EffectCompiler::EffectCompiler(RenderDevice* device, ShaderReflector* shader_reflector)
+    EffectCompiler::EffectCompiler(RenderDevice* device, ShaderReflector* shader_reflector, PipelineLayoutHandle pipeline_layout)
         : device_(device)
         , shader_reflector_(shader_reflector)
+        , pipeline_layout_(pipeline_layout)
     {
     }
 
@@ -260,31 +258,6 @@ namespace orion
             vertex_bindings.emplace_back(vertex_attrs, InputRate::Vertex);
         }
 
-        std::set<ShaderReflectionDescriptorSet> descriptors_sets;
-        descriptors_sets.insert(std::make_move_iterator(vs_reflection.descriptors.begin()), std::make_move_iterator(vs_reflection.descriptors.end()));
-        descriptors_sets.insert(std::make_move_iterator(ps_reflection.descriptors.begin()), std::make_move_iterator(ps_reflection.descriptors.end()));
-
-        std::vector<UniqueDescriptorLayout> descriptor_layouts(descriptors_sets.size());
-        std::ranges::transform(descriptors_sets, descriptor_layouts.begin(), [this](const auto& descriptor) {
-            std::vector<DescriptorBindingDesc> bindings(descriptor.bindings.size());
-            std::ranges::transform(descriptor.bindings, bindings.begin(), [](const auto& binding) {
-                return DescriptorBindingDesc{
-                    .type = binding.type,
-                    .shader_stages = ShaderStageFlags::All, // TODO: Get this from reflection too
-                    .count = binding.count,
-                };
-            });
-            return device_->make_unique<DescriptorLayoutHandle_tag>(DescriptorLayoutDesc{bindings});
-        });
-
-        std::vector<DescriptorLayoutHandle> descriptor_layouts_view(descriptor_layouts.size());
-        std::ranges::transform(descriptor_layouts, descriptor_layouts_view.begin(), [](const auto& layout) { return layout.get(); });
-
-        auto pipeline_layout = device_->make_unique<PipelineLayoutHandle_tag>(PipelineLayoutDesc{
-            .descriptors = descriptor_layouts_view,
-            .push_constants = {},
-        });
-
         const auto input_assembly = InputAssemblyDesc{
             .topology = pass.inputAssembly.topology,
         };
@@ -330,13 +303,13 @@ namespace orion
         auto pipeline = device_->make_unique<PipelineHandle_tag>(GraphicsPipelineDesc{
             shader_stages,
             vertex_bindings,
-            pipeline_layout.get(),
+            pipeline_layout_,
             input_assembly,
             rasterization,
             color_blend,
             render_pass.get(),
         });
 
-        return Effect{std::move(render_pass), std::move(descriptor_layouts), std::move(pipeline_layout), std::move(pipeline)};
+        return Effect{std::move(render_pass), std::move(pipeline)};
     }
 } // namespace orion
