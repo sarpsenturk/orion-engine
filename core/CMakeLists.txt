@@ -24,6 +24,7 @@ target_link_libraries(
         spdlog::spdlog
         orion::utils
         orion::math
+        orion::platform
 )
 
 # Precompiled headers
@@ -35,7 +36,6 @@ target_sources(orion-core PUBLIC FILE_SET public_headers TYPE HEADERS)
 # Add sources
 add_subdirectory(include/orion-core)
 add_subdirectory(src)
-add_subdirectory(platform)
 
 # Enable/disable tests
 if (ORION_CORE_TEST AND ORION_TEST)

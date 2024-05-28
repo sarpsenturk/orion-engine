@@ -22,7 +22,7 @@ public:
     static constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
 
     SandboxApp()
-        : window_({.name = "Sandbox App"})
+        : window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = orion::defaults::window_size})
         , renderer_({.render_size = window_.size()})
         , quad_mesh_(renderer_.mesh_builder().create_mesh(vertices, indices))
         , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/default.ofx"), {.shader_base_path = "assets/shaders/spirv"}))
@@ -31,31 +31,27 @@ public:
         , current_mat_(&blue_mat_)
         , render_window_(renderer_.create_render_window(window_))
     {
-        // Close app on callback
-        window_.on_close().subscribe(ORION_EXIT_APP_FN);
     }
 
 private:
     void on_user_update([[maybe_unused]] orion::FrameTime delta_time) override
     {
-        window_.poll_events();
-
-        if (window_.keyboard().key_down(orion::KeyCode::Enter)) {
-            SPDLOG_LOGGER_DEBUG(logger(), "Change mat");
-            if (current_mat_ == &blue_mat_) {
-                current_mat_ = &green_mat_;
-            } else {
-                current_mat_ = &blue_mat_;
+        static int value = 0;
+        orion::WindowEvent event;
+        while ((event = window_.poll_event())) {
+            if (event.get_if<orion::WindowClose>()) {
+                exit_application();
+                continue;
+            }
+            if (event.get_if<orion::WindowMove>()) {
+                SPDLOG_LOGGER_INFO(logger(), "{}", value++);
+                continue;
             }
         }
     }
 
     void on_user_render() override
     {
-        if (window_.is_minimized()) {
-            return;
-        }
-
         renderer_.draw({&quad_mesh_, current_mat_});
         renderer_.render();
         renderer_.present(render_window_);

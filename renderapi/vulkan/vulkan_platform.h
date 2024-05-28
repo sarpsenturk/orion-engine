@@ -4,7 +4,7 @@
 #include "vulkan_types.h"
 
 #include "orion-core/window.h"
-#include "orion-core/platform.h"
+#include "orion-platform/platform.h"
 
 #include <exception>
 

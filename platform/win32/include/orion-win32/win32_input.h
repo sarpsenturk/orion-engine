@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion-core/input.h"
+#include "orion-platform/input.h"
 #include "win32_platform.h"
 
 namespace orion

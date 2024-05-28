@@ -2,6 +2,12 @@
 
 #include <cstdint>
 
+// Forward declare
+namespace spdlog
+{
+    class logger;
+}
+
 namespace orion
 {
     enum class Platform {
@@ -43,4 +49,6 @@ namespace orion
     // Implemented in platform files
 
     extern ProcessorFeatureSet get_processor_features();
+
+    spdlog::logger* platform_logger();
 } // namespace orion

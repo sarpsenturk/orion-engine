@@ -4,14 +4,12 @@ target_sources(
         FILE_SET public_headers
         FILES
         clock.h
-        dyn_lib.h
         event.h
         exception.h
         filesystem.h
         handle.h
-        input.h
         log.h
-        platform.h
+        module.h
         version.h
         window.h
 )

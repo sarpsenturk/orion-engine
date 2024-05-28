@@ -17,8 +17,8 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
                 .pNext = nullptr,
                 .flags = 0,
-                .hinstance = platform_window->hinstance(),
-                .hwnd = platform_window->hwnd(),
+                .hinstance = platform_window->hinstance,
+                .hwnd = platform_window->hwnd,
             };
             vk_result_check(vkCreateWin32SurfaceKHR(instance, &info, alloc_callbacks(), &surface));
         }

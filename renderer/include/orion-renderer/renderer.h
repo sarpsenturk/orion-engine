@@ -8,8 +8,8 @@
 #include "orion-renderer/render_target.h"
 #include "orion-renderer/render_window.h"
 
-#include "orion-core/dyn_lib.h"
-#include "orion-core/platform.h"
+#include "orion-core/module.h"
+#include "orion-platform/platform.h"
 
 #include "orion-renderapi/render_backend.h"
 #include "orion-renderapi/render_command.h"

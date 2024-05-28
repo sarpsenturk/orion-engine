@@ -76,6 +76,7 @@ endif ()
 # Add sources for submodules
 add_subdirectory(utils)
 add_subdirectory(math)
+add_subdirectory(platform)
 add_subdirectory(core)
 add_subdirectory(shader-compiler)
 add_subdirectory(assets)

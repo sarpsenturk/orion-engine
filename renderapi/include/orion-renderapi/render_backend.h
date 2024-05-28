@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion-core/dyn_lib.h"
+#include "orion-core/module.h"
 #include "orion-renderapi/defs.h"
 #include "orion-renderapi/render_device.h"
 #include "orion-renderapi/shader_reflection.h"
