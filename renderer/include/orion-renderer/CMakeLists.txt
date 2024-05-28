@@ -10,4 +10,5 @@ target_sources(
         render_target.h
         render_window.h
         renderer.h
+        render_context.h
 )

@@ -6,6 +6,8 @@
 
 #include <orion-math/vector/vector3.h>
 
+#include <spdlog/spdlog.h>
+
 #include <array>
 
 class SandboxApp final : public orion::Application
@@ -24,7 +26,9 @@ public:
         , renderer_({.render_size = window_.size()})
         , quad_mesh_(renderer_.mesh_builder().create_mesh(vertices, indices))
         , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/default.ofx"), {.shader_base_path = "assets/shaders/spirv"}))
-        , material_(&effect_)
+        , blue_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::blue}))
+        , green_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::lime}))
+        , current_mat_(&blue_mat_)
         , render_window_(renderer_.create_render_window(window_))
     {
         // Close app on callback
@@ -35,6 +39,15 @@ private:
     void on_user_update([[maybe_unused]] orion::FrameTime delta_time) override
     {
         window_.poll_events();
+
+        if (window_.keyboard().key_down(orion::KeyCode::Enter)) {
+            SPDLOG_LOGGER_DEBUG(logger(), "Change mat");
+            if (current_mat_ == &blue_mat_) {
+                current_mat_ = &green_mat_;
+            } else {
+                current_mat_ = &blue_mat_;
+            }
+        }
     }
 
     void on_user_render() override
@@ -43,7 +56,7 @@ private:
             return;
         }
 
-        renderer_.draw({&quad_mesh_, &material_});
+        renderer_.draw({&quad_mesh_, current_mat_});
         renderer_.render();
         renderer_.present(render_window_);
     }
@@ -52,7 +65,9 @@ private:
     orion::Renderer renderer_;
     orion::Mesh quad_mesh_;
     orion::Effect effect_;
-    orion::Material material_;
+    orion::Material blue_mat_;
+    orion::Material green_mat_;
+    orion::Material* current_mat_;
     orion::RenderWindow render_window_;
 };
 

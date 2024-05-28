@@ -33,18 +33,16 @@ namespace orion
     inline constexpr auto vertex_index_type = IndexType::Uint32;
 
     // Forward declare
-    class RenderDevice;
-    class CommandAllocator;
+    class RenderContext;
 
     class MeshBuilder
     {
     public:
-        MeshBuilder(RenderDevice* device, CommandAllocator* command_allocator);
+        explicit MeshBuilder(RenderContext* render_context);
 
         Mesh create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
 
     private:
-        RenderDevice* device_;
-        CommandAllocator* command_allocator_;
+        RenderContext* render_context_;
     };
 } // namespace orion

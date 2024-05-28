@@ -1,6 +1,7 @@
 #include "orion-renderer/mesh.h"
 
-#include "orion-renderapi/render_command.h"
+#include "orion-renderer/render_context.h"
+
 #include "orion-renderapi/render_device.h"
 
 #include <cstring>
@@ -30,9 +31,8 @@ namespace orion
     {
     }
 
-    MeshBuilder::MeshBuilder(RenderDevice* device, CommandAllocator* command_allocator)
-        : device_(device)
-        , command_allocator_(command_allocator)
+    MeshBuilder::MeshBuilder(RenderContext* render_context)
+        : render_context_(render_context)
     {
     }
 
@@ -40,24 +40,10 @@ namespace orion
     {
         SPDLOG_LOGGER_TRACE(logger(), "Creating mesh...");
 
-        // Create staging buffer
-        const auto staging_buffer_size = vertices.size_bytes() + indices.size_bytes();
-        auto staging = device_->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
-            .size = staging_buffer_size,
-            .usage = GPUBufferUsageFlags::TransferSrc,
-            .host_visible = true,
-        });
-        SPDLOG_LOGGER_TRACE(logger(), "Created staging buffer with size: {} bytes...", staging_buffer_size);
-
-        // Upload vertex & index data to staging buffer
-        void* dst = device_->map(staging.get());
-        std::memcpy(dst, vertices.data(), vertices.size_bytes());
-        std::memcpy(static_cast<char*>(dst) + vertices.size_bytes(), indices.data(), indices.size_bytes());
-        device_->unmap(staging.get());
-        SPDLOG_LOGGER_TRACE(logger(), "Vertex & index data uploaded to staging buffer...");
+        auto* device = render_context_->device();
 
         // Create vertex buffer
-        auto vertex_buffer = device_->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
+        auto vertex_buffer = device->create_buffer({
             .size = vertices.size_bytes(),
             .usage = GPUBufferUsageFlags::VertexBuffer | GPUBufferUsageFlags::TransferDst,
             .host_visible = false,
@@ -65,28 +51,25 @@ namespace orion
         SPDLOG_LOGGER_TRACE(logger(), "Created vertex buffer with size: {} bytes", vertices.size_bytes());
 
         // Create index buffer
-        auto index_buffer = device_->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
+        auto index_buffer = device->create_buffer({
             .size = indices.size_bytes(),
             .usage = GPUBufferUsageFlags::IndexBuffer | GPUBufferUsageFlags::TransferDst,
             .host_visible = false,
         });
         SPDLOG_LOGGER_TRACE(logger(), "Created index buffer with size: {} bytes", indices.size_bytes());
 
-        // Create copy command buffer
-        auto command_list = command_allocator_->create_command_list();
-        SPDLOG_LOGGER_TRACE(logger(), "Copying vertex & index data to GPU...");
-
-        // Record copy commands
-        command_list->begin();
-        command_list->copy_buffer({.src = staging.get(), .dst = vertex_buffer.get(), .src_offset = 0, .dst_offset = 0, .size = vertices.size_bytes()});
-        command_list->copy_buffer({.src = staging.get(), .dst = index_buffer.get(), .src_offset = vertices.size_bytes(), .dst_offset = 0, .size = indices.size_bytes()});
-        command_list->end();
-
-        // Submit and wait for copy
-        device_->submit_immediate({.queue_type = CommandQueueType::Graphics, .command_lists = {{command_list.get()}}});
+        render_context_->copy_buffer_staging({{
+            CopyBufferStaging{
+                .bytes = std::as_bytes(vertices),
+                .dst = vertex_buffer,
+            },
+            CopyBufferStaging{
+                .bytes = std::as_bytes(indices),
+                .dst = index_buffer,
+            },
+        }});
         SPDLOG_LOGGER_TRACE(logger(), "Data copied to GPU.");
         SPDLOG_LOGGER_DEBUG(logger(), "Mesh created.");
-
-        return Mesh{std::move(vertex_buffer), std::move(index_buffer), static_cast<std::uint32_t>(indices.size())};
+        return Mesh{device->to_unique(vertex_buffer), device->to_unique(index_buffer), static_cast<std::uint32_t>(indices.size())};
     }
 } // namespace orion
