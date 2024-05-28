@@ -21,6 +21,11 @@ namespace orion::vulkan
         VmaAllocation allocation;
     };
 
+    struct VulkanDescriptorPool {
+        VkDescriptorPool descriptor_pool;
+        VkDescriptorPoolCreateFlags flags;
+    };
+
     class VulkanResourceManager
     {
     public:
@@ -33,8 +38,8 @@ namespace orion::vulkan
         void add(FramebufferHandle handle, VkFramebuffer framebuffer);
         void add(ShaderModuleHandle handle, VkShaderModule shader_module);
         void add(DescriptorLayoutHandle handle, VkDescriptorSetLayout descriptor_set_layout);
-        void add(DescriptorPoolHandle handle, VkDescriptorPool descriptor_pool);
-        void add(DescriptorHandle handle, VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool);
+        void add(DescriptorPoolHandle handle, VkDescriptorPool descriptor_pool, VkDescriptorPoolCreateFlags flags);
+        void add(DescriptorHandle handle, VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool, bool free_descriptor_set);
         void add(PipelineLayoutHandle handle, VkPipelineLayout pipeline_layout);
         void add(PipelineHandle handle, VkPipeline pipeline);
         void add(GPUBufferHandle handle, VkBuffer buffer, VmaAllocation allocation);
@@ -72,7 +77,7 @@ namespace orion::vulkan
         [[nodiscard]] VkFramebuffer find(FramebufferHandle handle) const noexcept;
         [[nodiscard]] VkShaderModule find(ShaderModuleHandle handle) const noexcept;
         [[nodiscard]] VkDescriptorSetLayout find(DescriptorLayoutHandle handle) const noexcept;
-        [[nodiscard]] VkDescriptorPool find(DescriptorPoolHandle handle) const noexcept;
+        [[nodiscard]] VulkanDescriptorPool find(DescriptorPoolHandle handle) const noexcept;
         [[nodiscard]] VkDescriptorSet find(DescriptorHandle handle) const noexcept;
         [[nodiscard]] VkPipelineLayout find(PipelineLayoutHandle handle) const noexcept;
         [[nodiscard]] VkPipeline find(PipelineHandle handle) const noexcept;
@@ -87,7 +92,7 @@ namespace orion::vulkan
         [[nodiscard]] std::vector<VkFramebuffer> find(std::span<const FramebufferHandle> handles) const;
         [[nodiscard]] std::vector<VkShaderModule> find(std::span<const ShaderModuleHandle> handles) const;
         [[nodiscard]] std::vector<VkDescriptorSetLayout> find(std::span<const DescriptorLayoutHandle> handles) const;
-        [[nodiscard]] std::vector<VkDescriptorPool> find(std::span<const DescriptorPoolHandle> handles) const;
+        [[nodiscard]] std::vector<VulkanDescriptorPool> find(std::span<const DescriptorPoolHandle> handles) const;
         [[nodiscard]] std::vector<VkDescriptorSet> find(std::span<const DescriptorHandle> handles) const;
         [[nodiscard]] std::vector<VkPipelineLayout> find(std::span<const PipelineLayoutHandle> handles) const;
         [[nodiscard]] std::vector<VkPipeline> find(std::span<const PipelineHandle> handles) const;

@@ -137,7 +137,9 @@ namespace orion::vulkan
 
     struct DescriptorPoolDeleter {
         using pointer = VkDescriptorPool;
+
         VkDevice device = VK_NULL_HANDLE;
+        VkDescriptorPoolCreateFlags flags = 0;
 
         void operator()(VkDescriptorPool descriptor_pool) const;
     };
@@ -147,6 +149,7 @@ namespace orion::vulkan
 
         VkDevice device = VK_NULL_HANDLE;
         VkDescriptorPool pool = VK_NULL_HANDLE;
+        bool free_descriptor_set = false;
 
         void operator()(VkDescriptorSet descriptor_set) const;
     };
@@ -217,8 +220,8 @@ namespace orion::vulkan
     UniqueVkSemaphore unique(VkSemaphore semaphore, VkDevice device);
     UniqueVkFence unique(VkFence fence, VkDevice device);
     UniqueVkDescriptorSetLayout unique(VkDescriptorSetLayout descriptor_set_layout, VkDevice device);
-    UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device);
-    UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool);
+    UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device, VkDescriptorPoolCreateFlags flags);
+    UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool, bool free_descriptor_set);
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation);
     UniqueVkImage unique(VkImage image, VmaAllocator allocator, VmaAllocation allocation);
     UniqueVkSampler unique(VkSampler sampler, VkDevice device);

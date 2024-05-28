@@ -119,7 +119,9 @@ namespace orion::vulkan
     {
         ORION_EXPECTS(device != VK_NULL_HANDLE);
         ORION_EXPECTS(pool != VK_NULL_HANDLE);
-        vkFreeDescriptorSets(device, pool, 1, &descriptor_set);
+        if (free_descriptor_set) {
+            vkFreeDescriptorSets(device, pool, 1, &descriptor_set);
+        }
     }
 
     void BufferDeleter::operator()(VkBuffer buffer) const
@@ -227,14 +229,14 @@ namespace orion::vulkan
         return UniqueVkDescriptorSetLayout{descriptor_set_layout, DescriptorSetLayoutDeleter{device}};
     }
 
-    UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device)
+    UniqueVkDescriptorPool unique(VkDescriptorPool descriptor_pool, VkDevice device, VkDescriptorPoolCreateFlags flags)
     {
-        return UniqueVkDescriptorPool{descriptor_pool, DescriptorPoolDeleter{device}};
+        return UniqueVkDescriptorPool{descriptor_pool, DescriptorPoolDeleter{device, flags}};
     }
 
-    UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool)
+    UniqueVkDescriptorSet unique(VkDescriptorSet descriptor_set, VkDevice device, VkDescriptorPool descriptor_pool, bool free_descriptor_set)
     {
-        return UniqueVkDescriptorSet{descriptor_set, DescriptorSetDeleter{device, descriptor_pool}};
+        return UniqueVkDescriptorSet{descriptor_set, DescriptorSetDeleter{device, descriptor_pool, free_descriptor_set}};
     }
 
     UniqueVkBuffer unique(VkBuffer buffer, VmaAllocator allocator, VmaAllocation allocation)

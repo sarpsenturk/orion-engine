@@ -310,6 +310,7 @@ namespace orion::vulkan
     DescriptorPoolHandle VulkanDevice::create_descriptor_pool_api(const DescriptorPoolDesc& desc)
     {
         VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        const auto flags = to_vulkan_type(desc.flags);
         {
             std::vector<VkDescriptorPoolSize> pool_sizes(desc.sizes.size());
             std::ranges::transform(desc.sizes, pool_sizes.begin(), [](const DescriptorPoolSize& pool_size) {
@@ -321,7 +322,7 @@ namespace orion::vulkan
             const auto info = VkDescriptorPoolCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                 .pNext = nullptr,
-                .flags = to_vulkan_type(desc.flags),
+                .flags = flags,
                 .maxSets = desc.max_descriptors,
                 .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
                 .pPoolSizes = pool_sizes.data(),
@@ -330,20 +331,20 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorPool {}", fmt::ptr(descriptor_pool));
         }
         auto handle = DescriptorPoolHandle::generate();
-        resource_manager_.add(handle, descriptor_pool);
+        resource_manager_.add(handle, descriptor_pool, flags);
         return handle;
     }
 
     DescriptorHandle VulkanDevice::create_descriptor_api(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle)
     {
         VkDescriptorSetLayout layout = resource_manager_.find(descriptor_layout_handle);
-        VkDescriptorPool descriptor_pool = resource_manager_.find(descriptor_pool_handle);
+        const auto descriptor_pool = resource_manager_.find(descriptor_pool_handle);
         VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
         {
             const auto info = VkDescriptorSetAllocateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
                 .pNext = nullptr,
-                .descriptorPool = descriptor_pool,
+                .descriptorPool = descriptor_pool.descriptor_pool,
                 .descriptorSetCount = 1,
                 .pSetLayouts = &layout,
             };
@@ -351,7 +352,7 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Allocated VkDescriptorSet {}", fmt::ptr(descriptor_set));
         }
         const auto handle = DescriptorHandle::generate();
-        resource_manager_.add(handle, descriptor_set, descriptor_pool);
+        resource_manager_.add(handle, descriptor_set, descriptor_pool.descriptor_pool, (descriptor_pool.flags & VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT));
         return handle;
     }
 
@@ -853,7 +854,7 @@ namespace orion::vulkan
 
     void VulkanDevice::reset_descriptor_pool_api(DescriptorPoolHandle descriptor_pool_handle)
     {
-        VkDescriptorPool descriptor_pool = resource_manager_.find(descriptor_pool_handle);
+        VkDescriptorPool descriptor_pool = resource_manager_.find(descriptor_pool_handle).descriptor_pool;
         vk_result_check(vkResetDescriptorPool(vk_device(), descriptor_pool, 0));
     }
 

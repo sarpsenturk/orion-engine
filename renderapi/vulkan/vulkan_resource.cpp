@@ -49,15 +49,14 @@ namespace orion::vulkan
         descriptor_set_layouts_.insert(std::make_pair(handle, unique(descriptor_set_layout, device_)));
     }
 
-    void VulkanResourceManager::add(DescriptorPoolHandle handle, VkDescriptorPool descriptor_pool)
+    void VulkanResourceManager::add(DescriptorPoolHandle handle, VkDescriptorPool descriptor_pool, VkDescriptorPoolCreateFlags flags)
     {
-        descriptor_pools_.insert(std::make_pair(handle, unique(descriptor_pool, device_)));
+        descriptor_pools_.insert(std::make_pair(handle, unique(descriptor_pool, device_, flags)));
     }
 
-    void VulkanResourceManager::add(DescriptorHandle handle, VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool)
+    void VulkanResourceManager::add(DescriptorHandle handle, VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool, bool free_descriptor_set)
     {
-        // TODO: Don't call vkFreeDescriptorSets() if descriptor_pool wasn't created with VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
-        descriptor_sets_.insert(std::make_pair(handle, unique(descriptor_set, device_, descriptor_pool)));
+        descriptor_sets_.insert(std::make_pair(handle, unique(descriptor_set, device_, descriptor_pool, free_descriptor_set)));
     }
 
     void VulkanResourceManager::add(PipelineLayoutHandle handle, VkPipelineLayout pipeline_layout)
@@ -215,12 +214,12 @@ namespace orion::vulkan
         return VK_NULL_HANDLE;
     }
 
-    VkDescriptorPool VulkanResourceManager::find(DescriptorPoolHandle handle) const noexcept
+    VulkanDescriptorPool VulkanResourceManager::find(DescriptorPoolHandle handle) const noexcept
     {
         if (auto iter = descriptor_pools_.find(handle); iter != descriptor_pools_.end()) {
-            return iter->second.get();
+            return {.descriptor_pool = iter->second.get(), .flags = iter->second.get_deleter().flags};
         }
-        return VK_NULL_HANDLE;
+        return {.descriptor_pool = VK_NULL_HANDLE, .flags = 0};
     }
 
     VkDescriptorSet VulkanResourceManager::find(DescriptorHandle handle) const noexcept
@@ -321,9 +320,9 @@ namespace orion::vulkan
         return descriptor_layouts;
     }
 
-    std::vector<VkDescriptorPool> VulkanResourceManager::find(std::span<const DescriptorPoolHandle> handles) const
+    std::vector<VulkanDescriptorPool> VulkanResourceManager::find(std::span<const DescriptorPoolHandle> handles) const
     {
-        std::vector<VkDescriptorPool> descriptor_pools(handles.size());
+        std::vector<VulkanDescriptorPool> descriptor_pools(handles.size());
         std::ranges::transform(handles, descriptor_pools.begin(), [this](auto handle) { return find(handle); });
         return descriptor_pools;
     }
