@@ -3,6 +3,7 @@
 
 #include "orion-platform/platform.h"
 
+#include "orion-utils/assertion.h"
 #include "orion-utils/type.h"
 
 #include <spdlog/spdlog.h>
@@ -11,6 +12,12 @@
 
 namespace orion
 {
+    void PlatformWindow::exitsizemove()
+    {
+        resize_event = std::monostate{};
+        move_event = std::monostate{};
+    }
+
     namespace platform
     {
         // Forward declare window procedure
@@ -33,6 +40,55 @@ namespace orion
                     SPDLOG_LOGGER_TRACE(platform_logger(), "Registered WNDCLASS {}", class_name);
                     registered = true;
                 }
+            }
+
+            std::uint8_t resize_type(WPARAM wparam) noexcept
+            {
+                switch (wparam) {
+                    case SIZE_RESTORED:
+                        return 0;
+                    case SIZE_MINIMIZED:
+                        return window_minimized;
+                    case SIZE_MAXIMIZED:
+                        return window_maximized;
+                }
+                unreachable();
+            }
+
+            MousePosition mouse_position(LPARAM lparam) noexcept
+            {
+                return {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+            }
+
+            MouseButton get_x_button(WPARAM wparam) noexcept
+            {
+                const auto button = GET_XBUTTON_WPARAM(wparam);
+                const auto offset = button - XBUTTON1;
+                return static_cast<MouseButton>(to_underlying(MouseButton::X1) + offset);
+            }
+
+            MouseButton get_mouse_button(UINT msg, WPARAM wparam) noexcept
+            {
+                switch (msg) {
+                    case WM_LBUTTONDOWN:
+                    case WM_LBUTTONUP:
+                        return MouseButton::Left;
+                    case WM_MBUTTONDOWN:
+                    case WM_MBUTTONUP:
+                        return MouseButton::Middle;
+                    case WM_RBUTTONDOWN:
+                    case WM_RBUTTONUP:
+                        return MouseButton::Right;
+                    case WM_XBUTTONDOWN:
+                    case WM_XBUTTONUP:
+                        return get_x_button(wparam);
+                }
+                unreachable();
+            }
+
+            int wheel_delta(WPARAM wparam) noexcept
+            {
+                return GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA;
             }
         } // namespace
 
@@ -101,14 +157,15 @@ namespace orion
 
         WindowEvent poll_event_window(PlatformWindow* platform_window)
         {
-            if (platform_window) {
-                platform_window->event = std::monostate{};
-                MSG msg{};
-                if (PeekMessage(&msg, platform_window->hwnd, 0, 0, PM_REMOVE)) {
-                    TranslateMessage(&msg);
-                    DispatchMessage(&msg);
-                }
-                return platform_window->event;
+            MSG msg{};
+            if (PeekMessage(&msg, platform_window->hwnd, 0, 0, PM_REMOVE)) {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+            if (!platform_window->events.empty()) {
+                auto event = std::move(platform_window->events.front());
+                platform_window->events.pop();
+                return event;
             }
             return {};
         }
@@ -132,16 +189,61 @@ namespace orion
 
             switch (msg) {
                 case WM_CLOSE:
-                    window->event = WindowClose{};
+                    window->events.push({WindowClose{}});
                     return 0;
                 case WM_DESTROY:
                     PostQuitMessage(0);
                     return 0;
                 case WM_SIZE:
-                    window->event = WindowResize{.size = {LOWORD(lparam), HIWORD(lparam)}};
+                    window->resize_event = WindowResize{.size = {LOWORD(lparam), HIWORD(lparam)}};
                     return 0;
                 case WM_MOVE:
-                    window->event = WindowMove{.position = {LOWORD(lparam), HIWORD(lparam)}};
+                    window->move_event = WindowMove{.position = {LOWORD(lparam), HIWORD(lparam)}};
+                    return 0;
+                case WM_EXITSIZEMOVE:
+                    if (window->resize_event) {
+                        window->events.push(std::move(window->resize_event));
+                    }
+                    if (window->move_event) {
+                        window->events.push(std::move(window->move_event));
+                    }
+                    window->exitsizemove();
+                    return 0;
+                case WM_ACTIVATE:
+                    if (wparam == WA_ACTIVE || wparam == WA_CLICKACTIVE) {
+                        window->events.push({WindowActivate{}});
+                    } else if (wparam == WA_INACTIVE) {
+                        window->events.push({WindowDeactivate{}});
+                    }
+                    return 0;
+                case WM_KEYDOWN:
+                    // 30th bit is set if key was down previously
+                    if (lparam & (1ull << 30)) {
+                        window->events.push({KeyRepeat{.key = win32_vk_to_keycode(wparam)}});
+                    } else {
+                        window->events.push({KeyDown{.key = win32_vk_to_keycode(wparam)}});
+                    }
+                    return 0;
+                case WM_KEYUP:
+                    window->events.push({KeyUp{.key = win32_vk_to_keycode(wparam)}});
+                    return 0;
+                case WM_LBUTTONDOWN:
+                case WM_MBUTTONDOWN:
+                case WM_RBUTTONDOWN:
+                case WM_XBUTTONDOWN:
+                    window->events.push({MouseButtonDown{.button = get_mouse_button(msg, wparam), .position = mouse_position(lparam)}});
+                    return 0;
+                case WM_LBUTTONUP:
+                case WM_MBUTTONUP:
+                case WM_RBUTTONUP:
+                case WM_XBUTTONUP:
+                    window->events.push({MouseButtonUp{.button = get_mouse_button(msg, wparam), .position = mouse_position(lparam)}});
+                    return 0;
+                case WM_MOUSEMOVE:
+                    window->events.push({MouseMove{.position = mouse_position(lparam)}});
+                    return 0;
+                case WM_MOUSEWHEEL:
+                    window->events.push({MouseScroll{.delta = wheel_delta(wparam), .position = mouse_position(lparam)}});
                     return 0;
                 default:
                     break;

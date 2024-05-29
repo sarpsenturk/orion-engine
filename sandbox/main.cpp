@@ -34,17 +34,28 @@ public:
     }
 
 private:
+    void change_material()
+    {
+        if (current_mat_ == &blue_mat_) {
+            current_mat_ = &green_mat_;
+        } else {
+            current_mat_ = &blue_mat_;
+        }
+    }
+
     void on_user_update([[maybe_unused]] orion::FrameTime delta_time) override
     {
-        static int value = 0;
         orion::WindowEvent event;
         while ((event = window_.poll_event())) {
+            SPDLOG_LOGGER_INFO(logger(), "{}", event);
             if (event.get_if<orion::WindowClose>()) {
                 exit_application();
                 continue;
             }
-            if (event.get_if<orion::WindowMove>()) {
-                SPDLOG_LOGGER_INFO(logger(), "{}", value++);
+            if (const auto* keydown = event.get_if<orion::KeyDown>()) {
+                if (keydown->key == orion::KeyCode::Enter) {
+                    change_material();
+                }
                 continue;
             }
         }
@@ -52,6 +63,10 @@ private:
 
     void on_user_render() override
     {
+        if (window_.is_minimized()) {
+            return;
+        }
+
         renderer_.draw({&quad_mesh_, current_mat_});
         renderer_.render();
         renderer_.present(render_window_);

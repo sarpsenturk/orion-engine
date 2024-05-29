@@ -2,7 +2,7 @@
 
 #include "orion-platform/window.h"
 
-#include <memory>
+#include <cstdint>
 #include <string>
 
 namespace spdlog
@@ -17,6 +17,7 @@ namespace orion
         inline constexpr auto window_position = WindowPosition{0, 0};
         inline constexpr auto window_size = WindowSize{800, 600};
     } // namespace defaults
+
     class Window
     {
     public:
@@ -30,8 +31,17 @@ namespace orion
         [[nodiscard]] auto& size() const noexcept { return size_; }
         [[nodiscard]] auto aspect_ratio() const noexcept { return static_cast<float>(size_.x()) / size_.y(); }
 
+        [[nodiscard]] bool is_maximized() const noexcept;
+        [[nodiscard]] bool is_minimized() const noexcept;
+        [[nodiscard]] bool has_focus() const noexcept;
+
     private:
         static spdlog::logger* logger();
+
+        void on_resize(const WindowResize* resize);
+        void on_move(const WindowMove* move);
+        void on_activate();
+        void on_deactivate();
 
         PlatformWindowPtr platform_window_;
 
@@ -39,5 +49,11 @@ namespace orion
         std::string name_;
         WindowPosition position_;
         WindowSize size_;
+
+        // Window state is packed into an integer
+        //  bit 0: Maximized
+        //  bit 1: Minimized
+        //  bit 2: Focused
+        std::uint8_t state_ = 0x00;
     };
 } // namespace orion

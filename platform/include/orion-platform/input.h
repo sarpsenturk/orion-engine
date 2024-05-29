@@ -163,7 +163,6 @@ namespace orion
         X2,
         Max
     };
-    inline constexpr auto max_mouse_button = static_cast<std::size_t>(MouseButton::Max);
 
     using MousePosition = Vector2_i;
 

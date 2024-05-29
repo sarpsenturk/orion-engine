@@ -110,7 +110,7 @@ namespace orion
         return "Unknown";
     }
 
-    const char* orion::format_as(MouseButton mouse_button)
+    const char* format_as(MouseButton mouse_button)
     {
         switch (mouse_button) {
             case MouseButton::Left:
@@ -126,7 +126,6 @@ namespace orion
             case MouseButton::Max:
                 break;
         }
-        ORION_ASSERT(!"Invalid or unhandled mouse button");
-        return "INVALID";
+        unreachable();
     }
 } // namespace orion

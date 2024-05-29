@@ -1,7 +1,10 @@
 #pragma once
 
+#include "orion-platform/input.h"
+
 #include "orion-math/vector/vector2.h"
 
+#include <cstdint>
 #include <string>
 #include <variant>
 
@@ -24,18 +27,69 @@ namespace orion
     struct WindowClose {
     };
 
+    inline constexpr std::uint8_t window_maximized = 0x1;
+    inline constexpr std::uint8_t window_minimized = 0x2;
+    inline constexpr std::uint8_t window_focused = 0x4;
+
     struct WindowResize {
         WindowSize size;
+        std::uint8_t type;
     };
 
     struct WindowMove {
         WindowPosition position;
     };
 
+    struct WindowActivate {
+    };
+
+    struct WindowDeactivate {
+    };
+
+    struct KeyDown {
+        KeyCode key;
+    };
+
+    struct KeyUp {
+        KeyCode key;
+    };
+
+    struct KeyRepeat {
+        KeyCode key;
+    };
+
+    struct MouseButtonDown {
+        MouseButton button;
+        MousePosition position;
+    };
+
+    struct MouseButtonUp {
+        MouseButton button;
+        MousePosition position;
+    };
+
+    struct MouseMove {
+        MousePosition position;
+    };
+
+    struct MouseScroll {
+        int delta;
+        MousePosition position;
+    };
+
     using WindowEventData = std::variant<std::monostate,
                                          WindowClose,
                                          WindowResize,
-                                         WindowMove>;
+                                         WindowMove,
+                                         WindowActivate,
+                                         WindowDeactivate,
+                                         KeyDown,
+                                         KeyUp,
+                                         KeyRepeat,
+                                         MouseButtonDown,
+                                         MouseButtonUp,
+                                         MouseMove,
+                                         MouseScroll>;
 
     struct WindowEvent {
         WindowEventData data = std::monostate{};
@@ -61,6 +115,20 @@ namespace orion
             return std::get_if<Expected>(&data);
         }
     };
+
+    std::string format_as(const WindowClose& event);
+    std::string format_as(const WindowResize& event);
+    std::string format_as(const WindowMove& event);
+    std::string format_as(const WindowActivate& event);
+    std::string format_as(const WindowDeactivate& event);
+    std::string format_as(const KeyDown& event);
+    std::string format_as(const KeyUp& event);
+    std::string format_as(const KeyRepeat& event);
+    std::string format_as(const MouseButtonDown& event);
+    std::string format_as(const MouseButtonUp& event);
+    std::string format_as(const MouseMove& event);
+    std::string format_as(const MouseScroll& event);
+    std::string format_as(const WindowEvent& event);
 
     namespace platform
     {
