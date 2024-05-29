@@ -47,7 +47,6 @@ private:
     {
         orion::WindowEvent event;
         while ((event = window_.poll_event())) {
-            SPDLOG_LOGGER_INFO(logger(), "{}", event);
             if (event.get_if<orion::WindowClose>()) {
                 exit_application();
                 continue;
@@ -67,8 +66,8 @@ private:
             return;
         }
 
-        renderer_.draw({&quad_mesh_, current_mat_});
-        renderer_.render();
+        renderer_.draw({&quad_mesh_, current_mat_, &transform});
+        renderer_.render(camera);
         renderer_.present(render_window_);
     }
 
@@ -79,6 +78,8 @@ private:
     orion::Material blue_mat_;
     orion::Material green_mat_;
     orion::Material* current_mat_;
+    orion::Matrix4_f transform = orion::Matrix4_f::identity();
+    orion::Matrix4_f camera = orion::Matrix4_f::identity();
     orion::RenderWindow render_window_;
 };
 

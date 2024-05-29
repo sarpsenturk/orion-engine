@@ -1,4 +1,9 @@
 
+[[vk::binding(0, 0)]]
+cbuffer Scene {
+    row_major float4x4 _viewProjection;
+};
+
 struct VsInput {
     float3 position: POSITION;
 };

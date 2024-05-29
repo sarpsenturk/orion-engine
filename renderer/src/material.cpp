@@ -46,7 +46,11 @@ namespace orion
     {
         const auto buffer_size = sizeof(MaterialData);
         auto* device = context_->device();
-        auto constant_buffer = device->create_buffer({.size = buffer_size, .usage = GPUBufferUsageFlags::ConstantBuffer, .host_visible = true});
+        auto constant_buffer = device->create_buffer({
+            .size = buffer_size,
+            .usage = GPUBufferUsageFlags::ConstantBuffer | GPUBufferUsageFlags::TransferDst,
+            .host_visible = true,
+        });
 
         // Upload material data to GPU
         {

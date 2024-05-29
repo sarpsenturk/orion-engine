@@ -17,6 +17,7 @@
 #include "orion-renderapi/shader_reflection.h"
 #include "orion-renderapi/swapchain.h"
 
+#include "orion-math/matrix/matrix4.h"
 #include "orion-math/vector/vector2.h"
 
 #include "orion-utils/static_vector.h"
@@ -31,12 +32,20 @@ namespace orion
     struct RenderObj {
         const Mesh* mesh;
         const Material* material;
+        const Matrix4_f* transform;
     };
 
-    enum class DescriptorIndex : std::uint32_t {
-        Frame,
-        Material,
-        Object
+    inline constexpr std::uint32_t descriptor_index_frame = 0;
+    inline constexpr std::uint32_t descriptor_index_material = 1;
+    inline constexpr std::uint32_t descriptor_index_object = 2;
+
+    struct RenderCommand {
+        std::uint64_t key;
+
+        std::uint16_t material() const noexcept;
+        std::uint16_t mesh() const noexcept;
+
+        constexpr auto operator<=>(const RenderCommand&) const noexcept = default;
     };
 
     class Renderer
@@ -48,8 +57,8 @@ namespace orion
         [[nodiscard]] auto& effect_compiler() { return effect_compiler_; }
         [[nodiscard]] auto& material_builder() { return material_builder_; }
 
-        void draw(RenderObj obj);
-        void render();
+        void draw(const RenderObj& obj);
+        void render(const Matrix4_f& view_projection);
 
         void present_to(const RenderTarget& render_target);
         void present(RenderWindow& render_window);
@@ -57,8 +66,6 @@ namespace orion
         RenderWindow create_render_window(const Window& window);
 
     private:
-        void bind_descriptor(CommandList* command_list, DescriptorIndex index, DescriptorHandle descriptor);
-
         Module render_backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
@@ -82,6 +89,20 @@ namespace orion
         MeshBuilder mesh_builder_;
         MaterialBuilder material_builder_;
 
-        std::vector<RenderObj> objects_;
+        std::uint16_t add_material(const Material* material);
+        std::uint16_t add_mesh(const Mesh* mesh);
+        std::size_t add_transform(const Matrix4_f* transform);
+
+        void clear_scene();
+
+        void bind_view(CommandList* command_list, const Matrix4_f& view_projection);
+        void bind_material(CommandList* command_list, std::uint16_t index);
+        void bind_mesh(CommandList* command_list, std::uint16_t index);
+        void bind_transform(CommandList* command_list, std::size_t index);
+
+        std::vector<RenderCommand> commands_;
+        std::vector<const Material*> materials_;
+        std::vector<const Mesh*> meshes_;
+        std::vector<const Matrix4_f*> transforms_;
     };
 } // namespace orion

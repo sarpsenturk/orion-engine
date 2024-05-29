@@ -68,7 +68,6 @@ namespace orion
             throw std::runtime_error{"no supported GPU found"};
         }
 
-
         DescriptorLayoutHandle create_frame_descriptor_layout(RenderDevice* device)
         {
             const auto bindings = std::array{
@@ -143,6 +142,16 @@ namespace orion
         }
     } // namespace
 
+    std::uint16_t RenderCommand::material() const noexcept
+    {
+        return static_cast<std::uint16_t>(key >> 48);
+    }
+
+    std::uint16_t RenderCommand::mesh() const noexcept
+    {
+        return static_cast<std::uint16_t>((key >> 32) & 0xFFFF);
+    }
+
     Renderer::Renderer(const RendererDesc& desc)
         : render_backend_module_(load_backend_module(desc.backend))
         , render_backend_(create_render_backend(render_backend_module_))
@@ -158,7 +167,7 @@ namespace orion
         , present_pipeline_layout_(create_present_pipeline_layout(render_device_.get(), present_descriptor_layout_))
         , present_effect_(EffectCompiler{render_device_.get(), shader_reflector_.get(), present_pipeline_layout_}.compile_file(input_file("assets/effects/present.ofx"), {.shader_base_path = render_backend_->shader_base_path()}))
         , present_sampler_(create_present_sampler(render_device_.get()))
-        , render_context_(render_device_.get(), {desc.render_size, present_descriptor_layout_, present_sampler_})
+        , render_context_(render_device_.get(), {desc.render_size, frame_descriptor_layout_, present_descriptor_layout_, present_sampler_})
         , mesh_builder_(&render_context_)
         , material_builder_(&render_context_, material_descriptor_layout_)
     {
@@ -169,12 +178,16 @@ namespace orion
         SPDLOG_LOGGER_TRACE(logger(), "- render device: {}", fmt::ptr(render_device_));
     }
 
-    void Renderer::draw(RenderObj obj)
+    void Renderer::draw(const RenderObj& obj)
     {
-        objects_.push_back(obj);
+        const auto material = add_material(obj.material);
+        const auto mesh = add_mesh(obj.mesh);
+        add_transform(obj.transform);
+        const auto key = (std::uint64_t{material} << 48ull) | (std::uint64_t{mesh} << 32ull);
+        commands_.push_back({key});
     }
 
-    void Renderer::render()
+    void Renderer::render(const Matrix4_f& view_projection)
     {
         auto& frame = render_context_.current_frame();
 
@@ -212,27 +225,34 @@ namespace orion
             .size = render_size_,
         });
 
-        // TODO: Sort objects based on materials
-        for (const auto& obj : objects_) {
-            const auto* material = obj.material;
-            const auto* effect = material->effect();
+        bind_view(render_command, view_projection);
 
-            render_command->bind_pipeline({.pipeline = effect->pipeline(), .bind_point = PipelineBindPoint::Graphics});
-            bind_descriptor(render_command, DescriptorIndex::Material, material->descriptor());
+        std::sort(commands_.begin(), commands_.end());
 
-            const auto* mesh = obj.mesh;
-            render_command->bind_vertex_buffer({.vertex_buffer = mesh->vertex_buffer(), .offset = 0});
-            render_command->bind_index_buffer({.index_buffer = mesh->index_buffer(), .offset = 0, .index_type = vertex_index_type});
+        std::uint16_t material = UINT16_MAX;
+        std::uint16_t mesh = UINT16_MAX;
+        for (std::size_t object = 0; auto command : commands_) {
+            if (const auto index = command.material(); index != material) {
+                material = index;
+                bind_material(render_command, material);
+            }
+
+            if (const auto index = command.mesh(); index != mesh) {
+                mesh = index;
+                bind_mesh(render_command, mesh);
+            }
+
+            bind_transform(render_command, object++);
 
             render_command->draw_indexed({
-                .index_count = mesh->index_count(),
+                .index_count = meshes_[mesh]->index_count(),
                 .instance_count = 1,
                 .first_index = 0,
                 .vertex_offset = 0,
                 .first_instance = 0,
             });
         }
-        objects_.clear();
+        clear_scene();
 
         render_command->end_render_pass();
         render_command->end();
@@ -310,13 +330,82 @@ namespace orion
         return ::orion::create_render_window(render_device_.get(), &window);
     }
 
-    void Renderer::bind_descriptor(CommandList* command_list, DescriptorIndex index, DescriptorHandle descriptor)
+    std::uint16_t Renderer::add_material(const Material* material)
     {
+        if (const auto iter = std::ranges::find(materials_, material); iter != materials_.end()) {
+            return static_cast<std::uint16_t>(std::distance(materials_.begin(), iter));
+        }
+        if (materials_.size() >= UINT16_MAX) {
+            throw std::runtime_error{"can't have a scene with more than UINT16_MAX materials"};
+        }
+        const auto id = static_cast<std::uint16_t>(materials_.size());
+        materials_.push_back(material);
+        return id;
+    }
+
+    std::uint16_t Renderer::add_mesh(const Mesh* mesh)
+    {
+        if (const auto iter = std::ranges::find(meshes_, mesh); iter != meshes_.end()) {
+            return static_cast<std::uint16_t>(std::distance(meshes_.begin(), iter));
+        }
+        if (materials_.size() >= UINT16_MAX) {
+            throw std::runtime_error{"can't have a scene with more than UINT16_MAX meshes"};
+        }
+        const auto id = static_cast<std::uint16_t>(meshes_.size());
+        meshes_.push_back(mesh);
+        return id;
+    }
+
+    std::size_t Renderer::add_transform(const Matrix4_f* transform)
+    {
+        const auto id = transforms_.size();
+        transforms_.push_back(transform);
+        return id;
+    }
+
+    void Renderer::clear_scene()
+    {
+        commands_.clear();
+        materials_.clear();
+        meshes_.clear();
+        transforms_.clear();
+    }
+
+    void Renderer::bind_view(CommandList* command_list, const Matrix4_f& view_projection)
+    {
+        const auto cbuffer = render_context_.frame_cbuffer();
+        void* dst = render_device_->map(cbuffer);
+        std::memcpy(dst, &view_projection, sizeof(view_projection));
+        render_device_->unmap(cbuffer);
         command_list->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
             .pipeline_layout = pipeline_layout_,
-            .index = to_underlying(index),
-            .descriptor = descriptor,
+            .index = descriptor_index_frame,
+            .descriptor = render_context_.frame_descriptor(),
         });
+    }
+
+    void Renderer::bind_material(CommandList* command_list, std::uint16_t index)
+    {
+        const auto* material = materials_[index];
+        const auto* effect = material->effect();
+        command_list->bind_pipeline({.pipeline = effect->pipeline(), .bind_point = PipelineBindPoint::Graphics});
+        command_list->bind_descriptor({
+            .bind_point = PipelineBindPoint::Graphics,
+            .pipeline_layout = pipeline_layout_,
+            .index = descriptor_index_material,
+            .descriptor = material->descriptor(),
+        });
+    }
+
+    void Renderer::bind_mesh(CommandList* command_list, std::uint16_t index)
+    {
+        const auto* mesh = meshes_[index];
+        command_list->bind_vertex_buffer({.vertex_buffer = mesh->vertex_buffer(), .offset = 0});
+        command_list->bind_index_buffer({.index_buffer = mesh->index_buffer(), .offset = 0, .index_type = vertex_index_type});
+    }
+
+    void Renderer::bind_transform(CommandList* command_list, std::size_t object)
+    {
     }
 } // namespace orion

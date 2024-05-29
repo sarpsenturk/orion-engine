@@ -8,6 +8,7 @@
 
 #include "orion-utils/static_vector.h"
 
+#include "orion-math/matrix/matrix4.h"
 #include "orion-math/vector/vector2.h"
 
 #include <cstddef>
@@ -18,6 +19,7 @@ namespace orion
 {
     struct FrameInFlight {
         std::unique_ptr<CommandAllocator> command_allocator;
+        DescriptorPoolHandle descriptor_pool;
 
         std::unique_ptr<CommandList> render_command;
         FenceHandle render_fence;
@@ -31,10 +33,14 @@ namespace orion
         SemaphoreHandle present_semaphore;
 
         GPUBufferHandle staging_buffer;
+
+        GPUBufferHandle frame_cbuffer;
+        DescriptorHandle frame_descriptor;
     };
 
     struct FrameInFlightDesc {
         Vector2_u render_size;
+        DescriptorLayoutHandle frame_descriptor_layout;
         DescriptorLayoutHandle present_descriptor_layout;
         SamplerHandle present_sampler;
     };
@@ -67,6 +73,9 @@ namespace orion
 
         void copy_buffer_staging(const CopyBufferStaging& copy);
         void copy_buffer_staging(std::span<const CopyBufferStaging> copies);
+
+        GPUBufferHandle frame_cbuffer() const noexcept { return current_frame().frame_cbuffer; }
+        DescriptorHandle frame_descriptor() const noexcept { return current_frame().frame_descriptor; }
 
     private:
         RenderDevice* device_;

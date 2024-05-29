@@ -1,5 +1,7 @@
 #include "orion-renderer/render_context.h"
 
+#include "orion-renderer/types.h"
+
 #include "orion-renderapi/render_device.h"
 
 #include <cstring>
@@ -13,8 +15,8 @@ namespace orion
         DescriptorPoolHandle create_descriptor_pool(RenderDevice* device)
         {
             return device->create_descriptor_pool({
-                .max_descriptors = 1,
-                .flags = DescriptorPoolFlags::FreeDescriptors,
+                .max_descriptors = 1 + frames_in_flight,
+                .flags = {},
                 .sizes = {{
                     DescriptorPoolSize{
                         .type = DescriptorType::Sampler,
@@ -23,6 +25,10 @@ namespace orion
                     DescriptorPoolSize{
                         .type = DescriptorType::SampledImage,
                         .count = 1,
+                    },
+                    DescriptorPoolSize{
+                        .type = DescriptorType::ConstantBuffer,
+                        .count = frames_in_flight,
                     },
                 }},
             });
@@ -52,6 +58,26 @@ namespace orion
             device->write_descriptor(present_descriptor, descriptor_writes);
         }
 
+        DescriptorHandle create_frame_descriptor(RenderDevice* device, DescriptorLayoutHandle layout, DescriptorPoolHandle descriptor_pool, GPUBufferHandle cbuffer)
+        {
+            const auto descriptor = device->create_descriptor(layout, descriptor_pool);
+            const auto buffer_write = BufferDescriptorDesc{
+                .buffer_handle = cbuffer,
+                .region = {
+                    .size = sizeof(CBufferScene),
+                    .offset = 0,
+                },
+            };
+            const auto write = DescriptorWrite{
+                .binding = 0,
+                .descriptor_type = DescriptorType::ConstantBuffer,
+                .array_start = 0,
+                .buffers = {&buffer_write, 1},
+            };
+            device->write_descriptor(descriptor, write);
+            return descriptor;
+        }
+
         FrameInFlight create_frame(RenderDevice* device, const FrameInFlightDesc& desc)
         {
             const auto render_target_desc = RenderTargetDesc{
@@ -71,8 +97,13 @@ namespace orion
             auto present_command = command_allocator->create_command_list();
 
             auto staging_buffer = device->create_buffer({.size = staging_buffer_size, .usage = GPUBufferUsageFlags::TransferSrc, .host_visible = true});
+
+            auto frame_cbuffer = device->create_buffer({.size = sizeof(CBufferScene), .usage = GPUBufferUsageFlags::ConstantBuffer, .host_visible = true});
+            auto frame_descriptor = create_frame_descriptor(device, desc.frame_descriptor_layout, descriptor_pool, frame_cbuffer);
+
             return FrameInFlight{
                 .command_allocator = std::move(command_allocator),
+                .descriptor_pool = descriptor_pool,
                 .render_command = std::move(render_command),
                 .render_fence = device->create_fence({.start_finished = false}),
                 .render_semaphore = device->create_semaphore(),
@@ -82,6 +113,8 @@ namespace orion
                 .present_fence = device->create_fence({.start_finished = true}),
                 .present_semaphore = device->create_semaphore(),
                 .staging_buffer = staging_buffer,
+                .frame_cbuffer = frame_cbuffer,
+                .frame_descriptor = frame_descriptor,
             };
         }
 
