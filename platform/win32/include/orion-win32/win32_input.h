@@ -5,5 +5,6 @@
 
 namespace orion
 {
-    KeyCode win32_vk_to_keycode(WPARAM wparam);
+    KeyCode win32_vk_to_keycode(WPARAM vk);
+    int keycode_to_win32_vk(KeyCode keycode);
 }

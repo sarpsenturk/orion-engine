@@ -2,11 +2,8 @@
 
 #include "orion-math/vector/vector2.h"
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
-#include <string>
 
 namespace orion
 {
@@ -128,31 +125,6 @@ namespace orion
         UpArrow,
         RightArrow,
         DownArrow,
-
-        Max
-    };
-
-    constexpr bool is_numeric_key(KeyCode keycode) noexcept
-    {
-        return (keycode >= KeyCode::Alpha0) && (keycode <= KeyCode::Alpha9);
-    }
-    constexpr bool is_char_key(KeyCode keycode) noexcept
-    {
-        return (keycode >= KeyCode::KeyA) && (keycode <= KeyCode::KeyZ);
-    }
-    constexpr bool is_numpad_key(KeyCode keycode) noexcept
-    {
-        return (keycode >= KeyCode::Num0) && (keycode <= KeyCode::Num9);
-    }
-    constexpr bool is_fn_key(KeyCode keycode) noexcept
-    {
-        return (keycode >= KeyCode::F1) && (keycode < KeyCode::FMax);
-    }
-
-    enum class KeyState : std::uint8_t {
-        Up,
-        Down,
-        Repeated
     };
 
     enum class MouseButton {
@@ -161,11 +133,10 @@ namespace orion
         Middle,
         X1,
         X2,
-        Max
     };
 
     using MousePosition = Vector2_i;
 
-    std::string format_as(KeyCode key_code);
+    const char* format_as(KeyCode key_code);
     const char* format_as(MouseButton mouse_button);
 } // namespace orion
