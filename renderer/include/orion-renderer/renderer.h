@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion-renderer/camera.h"
 #include "orion-renderer/config.h"
 #include "orion-renderer/effect.h"
 #include "orion-renderer/material.h"
@@ -58,7 +59,7 @@ namespace orion
         [[nodiscard]] auto& material_builder() { return material_builder_; }
 
         void draw(const RenderObj& obj);
-        void render(const Matrix4_f& view_projection);
+        void render(const Camera& camera);
 
         void present_to(const RenderTarget& render_target);
         void present(RenderWindow& render_window);

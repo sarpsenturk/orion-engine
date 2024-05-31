@@ -199,6 +199,24 @@ namespace
         EXPECT_EQ(lhs - rhs, expected);
     }
 
+    TEST(Vector, PlusEq)
+    {
+        auto lhs = orion::Vector{1, 2, 3};
+        const auto rhs = orion::Vector{4, 5, 6};
+        lhs += rhs;
+        const auto expected = orion::Vector{5, 7, 9};
+        EXPECT_EQ(lhs, expected);
+    }
+
+    TEST(Vector, MinusEq)
+    {
+        auto lhs = orion::Vector{1, 2, 3};
+        const auto rhs = orion::Vector{4, 5, 6};
+        lhs -= rhs;
+        const auto expected = orion::Vector{-3, -3, -3};
+        EXPECT_EQ(lhs, expected);
+    }
+
     TEST(Vector, DotProduct)
     {
         const auto lhs = orion::Vector{1, 2, 3};

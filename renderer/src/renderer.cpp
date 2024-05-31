@@ -187,7 +187,7 @@ namespace orion
         commands_.push_back({key});
     }
 
-    void Renderer::render(const Matrix4_f& view_projection)
+    void Renderer::render(const Camera& camera)
     {
         auto& frame = render_context_.current_frame();
 
@@ -225,7 +225,7 @@ namespace orion
             .size = render_size_,
         });
 
-        bind_view(render_command, view_projection);
+        bind_view(render_command, camera.view_projection());
 
         std::sort(commands_.begin(), commands_.end());
 

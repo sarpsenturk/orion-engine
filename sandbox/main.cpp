@@ -2,9 +2,8 @@
 
 #include <orion-core/window.h>
 
+#include <orion-renderer/camera.h>
 #include <orion-renderer/renderer.h>
-
-#include <orion-math/vector/vector3.h>
 
 #include <spdlog/spdlog.h>
 
@@ -30,6 +29,7 @@ public:
         , green_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::lime}))
         , current_mat_(&blue_mat_)
         , render_window_(renderer_.create_render_window(window_))
+        , camera_controller_(&camera_, orion::degrees(45.f), window_.aspect_ratio(), {0, 0, 5})
     {
     }
 
@@ -54,6 +54,22 @@ private:
             if (const auto* keydown = event.get_if<orion::KeyDown>()) {
                 if (keydown->key == orion::KeyCode::Enter) {
                     change_material();
+                } else if (keydown->key == orion::KeyCode::KeyW) {
+                    camera_controller_.translate(camera_controller_.forward());
+                } else if (keydown->key == orion::KeyCode::KeyS) {
+                    camera_controller_.translate(-camera_controller_.forward());
+                } else if (keydown->key == orion::KeyCode::KeyA) {
+                    camera_controller_.translate(-camera_controller_.right());
+                } else if (keydown->key == orion::KeyCode::KeyD) {
+                    camera_controller_.translate(camera_controller_.right());
+                } else if (keydown->key == orion::KeyCode::LeftArrow) {
+                    camera_controller_.set_yaw(camera_controller_.yaw() - orion::degrees(15.f));
+                } else if (keydown->key == orion::KeyCode::RightArrow) {
+                    camera_controller_.set_yaw(camera_controller_.yaw() + orion::degrees(15.f));
+                } else if (keydown->key == orion::KeyCode::UpArrow) {
+                    camera_controller_.set_pitch(camera_controller_.pitch() + orion::degrees(15.f));
+                } else if (keydown->key == orion::KeyCode::DownArrow) {
+                    camera_controller_.set_pitch(camera_controller_.pitch() - orion::degrees(15.f));
                 }
                 continue;
             }
@@ -67,7 +83,7 @@ private:
         }
 
         renderer_.draw({&quad_mesh_, current_mat_, &transform});
-        renderer_.render(camera);
+        renderer_.render(camera_);
         renderer_.present(render_window_);
     }
 
@@ -79,8 +95,9 @@ private:
     orion::Material green_mat_;
     orion::Material* current_mat_;
     orion::Matrix4_f transform = orion::Matrix4_f::identity();
-    orion::Matrix4_f camera = orion::Matrix4_f::identity();
     orion::RenderWindow render_window_;
+    orion::Camera camera_;
+    orion::CameraController camera_controller_;
 };
 
 ORION_MAIN(args)

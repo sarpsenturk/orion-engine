@@ -1,7 +1,7 @@
 
 [[vk::binding(0, 0)]]
 cbuffer Scene {
-    row_major float4x4 _viewProjection;
+    float4x4 _viewProjection;
 };
 
 struct VsInput {
@@ -15,6 +15,6 @@ struct VsOutput {
 VsOutput vs_main(VsInput input)
 {
     VsOutput output;
-    output.position = float4(input.position, 1.0);
+    output.position = mul(_viewProjection, float4(input.position, 1.0));
     return output;
 }
