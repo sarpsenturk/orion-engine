@@ -12,10 +12,10 @@ namespace orion
         auto projection = Matrix4_t<T>::identity();
         projection(0, 0) = T{2} / (right - left);
         projection(1, 1) = T{2} / (top - bottom);
-        projection(2, 2) = -T{2} / (far - near);
+        projection(2, 2) = -T{1} / (far - near);
         projection(3, 0) = -(right + left) / (right - left);
         projection(3, 1) = -(top + bottom) / (top - bottom);
-        projection(3, 2) = -(far + near) / (far - near);
+        projection(3, 2) = -near / (far - near);
         return projection;
     }
 
@@ -25,10 +25,10 @@ namespace orion
         auto projection = Matrix4_t<T>::identity();
         projection(0, 0) = T{2} / (right - left);
         projection(1, 1) = T{2} / (top - bottom);
-        projection(2, 2) = T{2} / (far - near);
+        projection(2, 2) = T{1} / (far - near);
         projection(3, 0) = -(right + left) / (right - left);
         projection(3, 1) = -(top + bottom) / (top - bottom);
-        projection(3, 2) = -(far + near) / (far - near);
+        projection(3, 2) = -near / (far - near);
         return projection;
     }
 

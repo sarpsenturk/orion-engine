@@ -72,7 +72,7 @@ namespace orion
         }
 
         template<std::convertible_to<T> T1, typename TagOther>
-        constexpr explicit Angle(const Angle<T1, TagOther>& other) noexcept
+        constexpr explicit(false) Angle(const Angle<T1, TagOther>& other) noexcept
             : value_(static_cast<T>(convert_angle<TagOther, Tag>(other.value())))
         {
         }

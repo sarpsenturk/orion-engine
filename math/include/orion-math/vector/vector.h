@@ -32,7 +32,7 @@
 
 namespace orion
 {
-    template<Arithmetic T, std::size_t N>
+    template<typename T, std::size_t N>
     struct Vector {
     public:
         using value_type = T;
@@ -162,6 +162,18 @@ namespace orion
             Vector result;
             std::ranges::transform(lhs, rhs, result.begin(), Minus{});
             return result;
+        }
+
+        friend constexpr Vector& operator+=(Vector& lhs, const Vector& rhs) noexcept
+        {
+            std::ranges::transform(lhs, rhs, lhs.begin(), Plus{});
+            return lhs;
+        }
+
+        friend constexpr Vector& operator-=(Vector& lhs, const Vector& rhs) noexcept
+        {
+            std::ranges::transform(lhs, rhs, lhs.begin(), Minus{});
+            return lhs;
         }
 
         storage components_;
