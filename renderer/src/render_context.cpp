@@ -147,21 +147,19 @@ namespace orion
 
     void RenderContext::copy_buffer_staging(std::span<const CopyBufferStaging> copies)
     {
-        // TODO: Persistent mapping could be a better option here
-        void* base = device_->map(staging_buffer());
-        for (std::size_t offset = 0; const auto& copy : copies) {
-            std::memcpy(static_cast<char*>(base) + offset, copy.bytes.data(), copy.bytes.size_bytes());
-            offset += copy.bytes.size_bytes();
-        }
-        device_->unmap(staging_buffer());
-
         auto command_list = command_allocator()->create_command_list();
         command_list->begin();
         const auto src_buffer = staging_buffer();
+        // TODO: Persistent mapping could be a better option here
+        void* base = device_->map(staging_buffer());
+        // TODO: Assert size of copies is less than staging_buffer_size
+        //  or copy staging_buffer_size bytes at a time
         for (std::size_t offset = 0; const auto& copy : copies) {
+            std::memcpy(static_cast<char*>(base) + offset, copy.bytes.data(), copy.bytes.size_bytes());
             command_list->copy_buffer({.src = src_buffer, .dst = copy.dst, .src_offset = offset, .dst_offset = copy.dst_offset, .size = copy.bytes.size_bytes()});
             offset += copy.bytes.size_bytes();
         }
+        device_->unmap(staging_buffer());
         command_list->end();
         device_->submit_immediate({.queue_type = CommandQueueType::Graphics, .command_lists = {{command_list.get()}}});
     }
