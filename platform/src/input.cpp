@@ -1,7 +1,69 @@
 #include "orion-platform/input.h"
 
+#include "orion-utils/assertion.h"
+
 namespace orion
 {
+    void Keyboard::set(KeyCode key)
+    {
+        ORION_ASSERT(key != KeyCode::Unknown);
+        keys_.set(static_cast<std::size_t>(key));
+    }
+
+    void Keyboard::clear(KeyCode key)
+    {
+        ORION_ASSERT(key != KeyCode::Unknown);
+        keys_.reset(static_cast<std::size_t>(key));
+    }
+
+    bool Keyboard::is_down(KeyCode key) const
+    {
+        ORION_ASSERT(key != KeyCode::Unknown);
+        return keys_.test(static_cast<std::size_t>(key));
+    }
+
+    bool Keyboard::any() const noexcept
+    {
+        return keys_.any();
+    }
+
+    bool Keyboard::none() const noexcept
+    {
+        return keys_.none();
+    }
+
+    void Mouse::set(MouseButton button)
+    {
+        ORION_ASSERT(button != MouseButton::Unknown);
+        buttons_ |= (1u << static_cast<std::uint8_t>(button));
+    }
+
+    void Mouse::clear(MouseButton button)
+    {
+        ORION_ASSERT(button != MouseButton::Unknown);
+        buttons_ &= ~(1u << static_cast<std::uint8_t>(button));
+    }
+
+    bool Mouse::is_down(MouseButton button) const
+    {
+        return (buttons_ & (1u << static_cast<std::uint8_t>(button))) != 0;
+    }
+
+    bool Mouse::any() const noexcept
+    {
+        return buttons_ != 0;
+    }
+
+    bool Mouse::none() const noexcept
+    {
+        return buttons_ == 0;
+    }
+
+    void Mouse::set_position(MousePosition position)
+    {
+        position_ = position;
+    }
+
     const char* format_as(KeyCode keycode)
     {
         switch (keycode) {

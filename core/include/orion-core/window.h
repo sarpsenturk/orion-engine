@@ -35,13 +35,22 @@ namespace orion
         [[nodiscard]] bool is_minimized() const noexcept;
         [[nodiscard]] bool has_focus() const noexcept;
 
+        [[nodiscard]] auto& keyboard() const { return keyboard_; }
+        [[nodiscard]] auto& mouse() const { return mouse_; }
+
     private:
         static spdlog::logger* logger();
 
+        void on_event(const WindowEvent& event);
         void on_resize(const WindowResize* resize);
         void on_move(const WindowMove* move);
         void on_activate();
         void on_deactivate();
+        void on_keydown(const KeyDown* keydown);
+        void on_keyup(const KeyUp* keyup);
+        void on_mousedown(const MouseButtonDown* mousedown);
+        void on_mouseup(const MouseButtonUp* mouseup);
+        void on_mousemove(const MouseMove* mousemove);
 
         PlatformWindowPtr platform_window_;
 
@@ -55,5 +64,9 @@ namespace orion
         //  bit 1: Minimized
         //  bit 2: Focused
         std::uint8_t state_ = 0x00;
+
+        // Input devices which can be queried after events are polled
+        Keyboard keyboard_;
+        Mouse mouse_;
     };
 } // namespace orion

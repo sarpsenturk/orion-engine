@@ -2,6 +2,7 @@
 
 #include "orion-math/vector/vector2.h"
 
+#include <bitset>
 #include <cstddef>
 #include <cstdint>
 
@@ -127,7 +128,25 @@ namespace orion
         DownArrow,
     };
 
+    class Keyboard
+    {
+    public:
+        void set(KeyCode key);
+        void clear(KeyCode key);
+
+        [[nodiscard]] bool is_down(KeyCode key) const;
+
+        [[nodiscard]] bool any() const noexcept;
+        [[nodiscard]] bool none() const noexcept;
+
+    private:
+        // std::bitset seems to use std::size_t for internal storage
+        // on all major compilers meaning it will use 24 bytes / 192 bits even if we request 177
+        std::bitset<192> keys_;
+    };
+
     enum class MouseButton {
+        Unknown = -1,
         Left,
         Right,
         Middle,
@@ -136,6 +155,25 @@ namespace orion
     };
 
     using MousePosition = Vector2_i;
+
+    class Mouse
+    {
+    public:
+        void set(MouseButton button);
+        void clear(MouseButton button);
+
+        [[nodiscard]] bool is_down(MouseButton button) const;
+
+        [[nodiscard]] bool any() const noexcept;
+        [[nodiscard]] bool none() const noexcept;
+
+        void set_position(MousePosition position);
+        [[nodiscard]] auto& position() const { return position_; }
+
+    private:
+        MousePosition position_;
+        std::uint8_t buttons_ = 0;
+    };
 
     const char* format_as(KeyCode key_code);
     const char* format_as(MouseButton mouse_button);

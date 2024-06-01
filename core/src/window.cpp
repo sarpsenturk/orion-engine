@@ -23,6 +23,12 @@ namespace orion
     WindowEvent Window::poll_event()
     {
         auto event = platform::poll_event_window(platform_window_.get());
+        on_event(event);
+        return event;
+    }
+
+    void Window::on_event(const WindowEvent& event)
+    {
         if (const auto* resize = event.get_if<WindowResize>()) {
             on_resize(resize);
         } else if (const auto* move = event.get_if<WindowMove>()) {
@@ -31,8 +37,17 @@ namespace orion
             on_activate();
         } else if (event.get_if<WindowDeactivate>()) {
             on_deactivate();
+        } else if (const auto* keydown = event.get_if<KeyDown>()) {
+            on_keydown(keydown);
+        } else if (const auto* keyup = event.get_if<KeyUp>()) {
+            on_keyup(keyup);
+        } else if (const auto* mousedown = event.get_if<MouseButtonDown>()) {
+            on_mousedown(mousedown);
+        } else if (const auto* mouseup = event.get_if<MouseButtonUp>()) {
+            on_mouseup(mouseup);
+        } else if (const auto* mousemove = event.get_if<MouseMove>()) {
+            on_mousemove(mousemove);
         }
-        return event;
     }
 
     bool Window::is_maximized() const noexcept
@@ -76,5 +91,30 @@ namespace orion
     void Window::on_deactivate()
     {
         state_ &= ~(window_focused);
+    }
+
+    void Window::on_keydown(const KeyDown* keydown)
+    {
+        keyboard_.set(keydown->key);
+    }
+
+    void Window::on_keyup(const KeyUp* keyup)
+    {
+        keyboard_.clear(keyup->key);
+    }
+
+    void Window::on_mousedown(const MouseButtonDown* mousedown)
+    {
+        mouse_.set(mousedown->button);
+    }
+
+    void Window::on_mouseup(const MouseButtonUp* mouseup)
+    {
+        mouse_.clear(mouseup->button);
+    }
+
+    void Window::on_mousemove(const MouseMove* mousemove)
+    {
+        mouse_.set_position(mousemove->position);
     }
 } // namespace orion
