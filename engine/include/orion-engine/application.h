@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion-core/clock.h"
+#include "orion-core/frametime.h"
 
 #include <memory>
 

@@ -7,6 +7,7 @@ target_sources(
         event.h
         exception.h
         filesystem.h
+        frametime.h
         handle.h
         log.h
         module.h

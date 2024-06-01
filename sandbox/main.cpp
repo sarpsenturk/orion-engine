@@ -54,25 +54,40 @@ private:
             if (const auto* keydown = event.get_if<orion::KeyDown>()) {
                 if (keydown->key == orion::KeyCode::Enter) {
                     change_material();
-                } else if (keydown->key == orion::KeyCode::KeyW) {
-                    camera_controller_.translate(camera_controller_.forward());
-                } else if (keydown->key == orion::KeyCode::KeyS) {
-                    camera_controller_.translate(-camera_controller_.forward());
-                } else if (keydown->key == orion::KeyCode::KeyA) {
-                    camera_controller_.translate(-camera_controller_.right());
-                } else if (keydown->key == orion::KeyCode::KeyD) {
-                    camera_controller_.translate(camera_controller_.right());
-                } else if (keydown->key == orion::KeyCode::LeftArrow) {
-                    camera_controller_.set_yaw(camera_controller_.yaw() - orion::degrees(15.f));
-                } else if (keydown->key == orion::KeyCode::RightArrow) {
-                    camera_controller_.set_yaw(camera_controller_.yaw() + orion::degrees(15.f));
-                } else if (keydown->key == orion::KeyCode::UpArrow) {
-                    camera_controller_.set_pitch(camera_controller_.pitch() + orion::degrees(15.f));
-                } else if (keydown->key == orion::KeyCode::DownArrow) {
-                    camera_controller_.set_pitch(camera_controller_.pitch() - orion::degrees(15.f));
                 }
                 continue;
             }
+        }
+
+        if (window_.keyboard().is_down(orion::KeyCode::KeyW)) {
+            camera_controller_.translate(camera_controller_.forward() * camera_speed_ * delta_time);
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::KeyS)) {
+            camera_controller_.translate(-camera_controller_.forward() * camera_speed_ * delta_time);
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::KeyD)) {
+            camera_controller_.translate(camera_controller_.right() * camera_speed_ * delta_time);
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::KeyA)) {
+            camera_controller_.translate(-camera_controller_.right() * camera_speed_ * delta_time);
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::Control)) {
+            camera_controller_.translate(orion::vec3(0.f, -1.f, 0.f) * camera_speed_ * delta_time);
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::Shift)) {
+            camera_controller_.translate(orion::vec3(0.f, 1.f, 0.f) * camera_speed_ * delta_time);
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::RightArrow)) {
+            camera_controller_.set_yaw(camera_controller_.yaw() + orion::degrees(45.f) * delta_time.count());
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::LeftArrow)) {
+            camera_controller_.set_yaw(camera_controller_.yaw() - orion::degrees(45.f) * delta_time.count());
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::UpArrow)) {
+            camera_controller_.set_pitch(camera_controller_.pitch() + orion::degrees(45.f) * delta_time.count());
+        }
+        if (window_.keyboard().is_down(orion::KeyCode::DownArrow)) {
+            camera_controller_.set_pitch(camera_controller_.pitch() - orion::degrees(45.f) * delta_time.count());
         }
     }
 
@@ -98,6 +113,7 @@ private:
     orion::RenderWindow render_window_;
     orion::Camera camera_;
     orion::CameraController camera_controller_;
+    float camera_speed_ = 2.f;
 };
 
 ORION_MAIN(args)

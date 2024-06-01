@@ -5,5 +5,4 @@
 namespace orion
 {
     using Clock = platform::HighResolutionClock;
-    using FrameTime = typename Clock::duration;
 } // namespace orion
