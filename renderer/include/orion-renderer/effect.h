@@ -24,16 +24,12 @@ namespace orion
         UniquePipeline pipeline_;
     };
 
-    struct EffectCompileDesc {
-        FilePath shader_base_path;
-    };
-
     class EffectCompiler
     {
     public:
         EffectCompiler(RenderDevice* device, ShaderReflector* shader_reflector, PipelineLayoutHandle pipeline_layout);
 
-        Effect compile_file(const File& file, const EffectCompileDesc& desc);
+        Effect compile_file(const File& file);
 
     private:
         RenderDevice* device_;

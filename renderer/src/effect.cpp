@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <array>
-#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
@@ -207,7 +206,7 @@ namespace orion
     {
     }
 
-    Effect EffectCompiler::compile_file(const File& file, const EffectCompileDesc& desc)
+    Effect EffectCompiler::compile_file(const File& file)
     {
         SPDLOG_LOGGER_TRACE(logger(), "Creating effect...");
         const auto file_contents = file.read_all_str();
@@ -224,11 +223,12 @@ namespace orion
 
         const auto pass = effect.passes[0];
 
-        const auto vs_binary = binary_input_file(desc.shader_base_path / pass.shaders.vertex).read_all();
+        const auto shader_base_path = FilePath{device_->shader_base_path()};
+        const auto vs_binary = binary_input_file(shader_base_path / pass.shaders.vertex).read_all();
         const auto vs_module = device_->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{vs_binary});
         auto vs_reflection = shader_reflector_->reflect(vs_binary).value();
 
-        const auto ps_binary = binary_input_file(desc.shader_base_path / pass.shaders.pixel).read_all();
+        const auto ps_binary = binary_input_file(shader_base_path / pass.shaders.pixel).read_all();
         const auto ps_module = device_->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{ps_binary});
         auto ps_reflection = shader_reflector_->reflect(ps_binary).value();
 

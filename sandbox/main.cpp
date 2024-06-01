@@ -24,7 +24,7 @@ public:
         : window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = orion::defaults::window_size})
         , renderer_({.render_size = window_.size()})
         , quad_mesh_(renderer_.mesh_builder().create_mesh(vertices, indices))
-        , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/default.ofx"), {.shader_base_path = "assets/shaders/spirv"}))
+        , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/default.ofx")))
         , blue_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::blue}))
         , green_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::lime}))
         , current_mat_(&blue_mat_)

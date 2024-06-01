@@ -26,6 +26,7 @@ namespace orion
         virtual ~RenderDevice() = default;
 
         [[nodiscard]] virtual ShaderObjectType shader_object_type() const noexcept = 0;
+        [[nodiscard]] virtual const char* shader_base_path() const noexcept = 0;
 
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator(const CommandAllocatorDesc& desc);
         [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(const Window& window, const SwapchainDesc& desc);

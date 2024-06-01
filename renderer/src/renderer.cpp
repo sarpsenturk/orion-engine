@@ -165,7 +165,7 @@ namespace orion
         , render_size_(desc.render_size)
         , present_descriptor_layout_(create_present_descriptor_layout(render_device_.get()))
         , present_pipeline_layout_(create_present_pipeline_layout(render_device_.get(), present_descriptor_layout_))
-        , present_effect_(EffectCompiler{render_device_.get(), shader_reflector_.get(), present_pipeline_layout_}.compile_file(input_file("assets/effects/present.ofx"), {.shader_base_path = render_backend_->shader_base_path()}))
+        , present_effect_(EffectCompiler{render_device_.get(), shader_reflector_.get(), present_pipeline_layout_}.compile_file(input_file("assets/effects/present.ofx")))
         , present_sampler_(create_present_sampler(render_device_.get()))
         , render_context_(render_device_.get(), {desc.render_size, frame_descriptor_layout_, present_descriptor_layout_, present_sampler_})
         , mesh_builder_(&render_context_)

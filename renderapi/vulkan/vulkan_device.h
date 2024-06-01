@@ -8,6 +8,8 @@
 #include "vulkan_synchronization.h"
 #include "vulkan_types.h"
 
+#include "orion-assets/config.h"
+
 #include <vector>
 
 namespace orion::vulkan
@@ -21,6 +23,7 @@ namespace orion::vulkan
         [[nodiscard]] auto vma_allocator() const noexcept { return vma_allocator_.get(); }
 
         [[nodiscard]] ShaderObjectType shader_object_type() const noexcept override { return ShaderObjectType::SpirV; }
+        [[nodiscard]] const char* shader_base_path() const noexcept override { return ORION_SPIRV_DIR; }
 
         [[nodiscard]] VkQueue graphics_queue() const noexcept { return queues_.graphics.queue; }
         [[nodiscard]] VkQueue transfer_queue() const noexcept { return queues_.transfer.queue; }
