@@ -40,15 +40,6 @@ namespace orion
     inline constexpr std::uint32_t descriptor_index_material = 1;
     inline constexpr std::uint32_t descriptor_index_object = 2;
 
-    struct RenderCommand {
-        std::uint64_t key;
-
-        std::uint16_t material() const noexcept;
-        std::uint16_t mesh() const noexcept;
-
-        constexpr auto operator<=>(const RenderCommand&) const noexcept = default;
-    };
-
     class Renderer
     {
     public:
@@ -90,20 +81,6 @@ namespace orion
         MeshBuilder mesh_builder_;
         MaterialBuilder material_builder_;
 
-        std::uint16_t add_material(const Material* material);
-        std::uint16_t add_mesh(const Mesh* mesh);
-        std::size_t add_transform(const Matrix4_f* transform);
-
-        void clear_scene();
-
-        void bind_view(CommandList* command_list, const Matrix4_f& view_projection);
-        void bind_material(CommandList* command_list, std::uint16_t index);
-        void bind_mesh(CommandList* command_list, std::uint16_t index);
-        void bind_transform(CommandList* command_list, std::size_t index);
-
-        std::vector<RenderCommand> commands_;
-        std::vector<const Material*> materials_;
-        std::vector<const Mesh*> meshes_;
-        std::vector<const Matrix4_f*> transforms_;
+        std::vector<RenderObj> objects_;
     };
 } // namespace orion

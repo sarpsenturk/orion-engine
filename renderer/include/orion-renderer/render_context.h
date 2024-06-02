@@ -36,12 +36,16 @@ namespace orion
 
         GPUBufferHandle frame_cbuffer;
         DescriptorHandle frame_descriptor;
+
+        GPUBufferHandle object_buffer;
+        DescriptorHandle object_descriptor;
     };
 
     struct FrameInFlightDesc {
         Vector2_u render_size;
         DescriptorLayoutHandle frame_descriptor_layout;
         DescriptorLayoutHandle present_descriptor_layout;
+        DescriptorLayoutHandle object_descriptor_layout;
         SamplerHandle present_sampler;
     };
 
@@ -76,6 +80,9 @@ namespace orion
 
         GPUBufferHandle frame_cbuffer() const noexcept { return current_frame().frame_cbuffer; }
         DescriptorHandle frame_descriptor() const noexcept { return current_frame().frame_descriptor; }
+
+        GPUBufferHandle object_buffer() const noexcept { return current_frame().object_buffer; }
+        DescriptorHandle object_descriptor() const noexcept { return current_frame().object_descriptor; }
 
     private:
         RenderDevice* device_;

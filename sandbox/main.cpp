@@ -5,6 +5,8 @@
 #include <orion-renderer/camera.h>
 #include <orion-renderer/renderer.h>
 
+#include <orion-math/matrix/transformation.h>
+
 #include <spdlog/spdlog.h>
 
 #include <array>
@@ -54,6 +56,8 @@ private:
             if (const auto* keydown = event.get_if<orion::KeyDown>()) {
                 if (keydown->key == orion::KeyCode::Enter) {
                     change_material();
+                } else if (keydown->key == orion::KeyCode::Escape) {
+                    exit_application();
                 }
                 continue;
             }
@@ -89,6 +93,8 @@ private:
         if (window_.keyboard().is_down(orion::KeyCode::DownArrow)) {
             camera_controller_.set_pitch(camera_controller_.pitch() - orion::degrees(45.f) * delta_time.count());
         }
+
+        transform = transform * orion::rotation_z(orion::degrees(-15.f) * delta_time.count());
     }
 
     void on_user_render() override

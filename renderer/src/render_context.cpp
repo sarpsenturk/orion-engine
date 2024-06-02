@@ -11,11 +11,12 @@ namespace orion
     namespace
     {
         constexpr auto staging_buffer_size = 64 * 1024;
+        constexpr auto object_buffer_size = sizeof(RenderObjBuffer) * 1000;
 
         DescriptorPoolHandle create_descriptor_pool(RenderDevice* device)
         {
             return device->create_descriptor_pool({
-                .max_descriptors = 1 + frames_in_flight,
+                .max_descriptors = 1 + frames_in_flight * 2,
                 .flags = {},
                 .sizes = {{
                     DescriptorPoolSize{
@@ -28,6 +29,10 @@ namespace orion
                     },
                     DescriptorPoolSize{
                         .type = DescriptorType::ConstantBuffer,
+                        .count = frames_in_flight,
+                    },
+                    DescriptorPoolSize{
+                        .type = DescriptorType::StorageBuffer,
                         .count = frames_in_flight,
                     },
                 }},
@@ -64,13 +69,33 @@ namespace orion
             const auto buffer_write = BufferDescriptorDesc{
                 .buffer_handle = cbuffer,
                 .region = {
-                    .size = sizeof(CBufferScene),
+                    .size = sizeof(SceneCBuffer),
                     .offset = 0,
                 },
             };
             const auto write = DescriptorWrite{
                 .binding = 0,
                 .descriptor_type = DescriptorType::ConstantBuffer,
+                .array_start = 0,
+                .buffers = {&buffer_write, 1},
+            };
+            device->write_descriptor(descriptor, write);
+            return descriptor;
+        }
+
+        DescriptorHandle create_object_descriptor(RenderDevice* device, DescriptorLayoutHandle layout, DescriptorPoolHandle descriptor_pool, GPUBufferHandle buffer)
+        {
+            const auto descriptor = device->create_descriptor(layout, descriptor_pool);
+            const auto buffer_write = BufferDescriptorDesc{
+                .buffer_handle = buffer,
+                .region = {
+                    .size = object_buffer_size,
+                    .offset = 0,
+                },
+            };
+            const auto write = DescriptorWrite{
+                .binding = 0,
+                .descriptor_type = DescriptorType::StorageBuffer,
                 .array_start = 0,
                 .buffers = {&buffer_write, 1},
             };
@@ -98,8 +123,11 @@ namespace orion
 
             auto staging_buffer = device->create_buffer({.size = staging_buffer_size, .usage = GPUBufferUsageFlags::TransferSrc, .host_visible = true});
 
-            auto frame_cbuffer = device->create_buffer({.size = sizeof(CBufferScene), .usage = GPUBufferUsageFlags::ConstantBuffer, .host_visible = true});
+            auto frame_cbuffer = device->create_buffer({.size = sizeof(SceneCBuffer), .usage = GPUBufferUsageFlags::ConstantBuffer, .host_visible = true});
             auto frame_descriptor = create_frame_descriptor(device, desc.frame_descriptor_layout, descriptor_pool, frame_cbuffer);
+
+            auto object_buffer = device->create_buffer({.size = object_buffer_size, .usage = GPUBufferUsageFlags::StorageBuffer, .host_visible = true});
+            auto object_descriptor = create_object_descriptor(device, desc.object_descriptor_layout, descriptor_pool, object_buffer);
 
             return FrameInFlight{
                 .command_allocator = std::move(command_allocator),
@@ -115,6 +143,8 @@ namespace orion
                 .staging_buffer = staging_buffer,
                 .frame_cbuffer = frame_cbuffer,
                 .frame_descriptor = frame_descriptor,
+                .object_buffer = object_buffer,
+                .object_descriptor = object_descriptor,
             };
         }
 

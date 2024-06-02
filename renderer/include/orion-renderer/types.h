@@ -4,7 +4,11 @@
 
 namespace orion
 {
-    struct CBufferScene {
+    struct SceneCBuffer {
         Matrix4_f view_projection;
+    };
+
+    struct RenderObjBuffer {
+        Matrix4_f transform;
     };
 } // namespace orion
