@@ -61,7 +61,7 @@ namespace orion
         {
             handle_type old = std::exchange(handle_, new_handle);
             if (old.is_valid()) {
-                device_destroy(device_, handle_);
+                device_destroy(device_, old);
             }
         }
 
