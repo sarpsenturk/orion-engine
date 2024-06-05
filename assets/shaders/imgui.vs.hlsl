@@ -10,17 +10,19 @@ struct VsOutput {
     float4 color : COLOR;
 };
 
-struct SceneConstants {
-    row_major float4x4 projection;
+struct Constants {
+    float2 scale;
+    float2 translation;
 };
 
 [[vk::push_constant]]
-SceneConstants scene_data;
+Constants _constants;
 
 VsOutput vs_main(VsInput input)
 {
     VsOutput output;
-    output.position = mul(float4(input.position, -.5f, 1.f), scene_data.projection);
+    output.position = float4(input.position * _constants.scale + _constants.translation, 0.1, 1.0);
+    output.position.y *= -1;
     output.uv = input.uv;
     output.color = input.color;
     return output;

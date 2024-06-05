@@ -10,6 +10,7 @@
 
 #include "orion-math/matrix/matrix4.h"
 #include "orion-math/vector/vector2.h"
+#include "orion-math/vector/vector3.h"
 
 #include <cstddef>
 #include <memory>
@@ -55,6 +56,15 @@ namespace orion
         std::size_t dst_offset = 0ull;
     };
 
+    struct CopyImageStaging {
+        std::span<const std::byte> bytes;
+        ImageHandle dst;
+        ImageLayout dst_initial_layout;
+        ImageLayout dst_final_layout;
+        std::size_t dst_offset = 0ull;
+        Vector3_u dst_size;
+    };
+
     // Forward declare
     class RenderDevice;
 
@@ -73,10 +83,13 @@ namespace orion
 
         RenderDevice* device() const noexcept { return device_; }
         CommandAllocator* command_allocator() const noexcept { return current_frame().command_allocator.get(); }
+        CommandList* render_command() const noexcept { return current_frame().render_command.get(); }
         GPUBufferHandle staging_buffer() const noexcept { return current_frame().staging_buffer; }
 
         void copy_buffer_staging(const CopyBufferStaging& copy);
         void copy_buffer_staging(std::span<const CopyBufferStaging> copies);
+
+        void copy_image_staging(const CopyImageStaging& copy);
 
         GPUBufferHandle frame_cbuffer() const noexcept { return current_frame().frame_cbuffer; }
         DescriptorHandle frame_descriptor() const noexcept { return current_frame().frame_descriptor; }

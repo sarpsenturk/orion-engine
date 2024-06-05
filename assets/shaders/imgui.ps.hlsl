@@ -4,11 +4,11 @@ struct PsInput {
 };
 
 [[vk::binding(0)]]
-Texture2D font_texture : register(t0);
+Texture2D _FontTexture : register(t0);
 [[vk::binding(1)]]
-SamplerState font_sampler : register(s0);
+SamplerState _FontSampler : register(s0);
 
 float4 ps_main(PsInput input) : SV_Target
 {
-    return font_texture.Sample(font_sampler, input.uv) * input.color;
+    return _FontTexture.Sample(_FontSampler, input.uv) * input.color;
 }

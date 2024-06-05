@@ -9,6 +9,8 @@
 
 #include "orion-utils/type.h"
 
+#include "imgui_impl_orion.h"
+
 #include <algorithm>
 #include <array>
 
@@ -97,7 +99,7 @@ namespace orion
         {
             const auto bindings = std::array{
                 DescriptorBindingDesc{
-                    .type = DescriptorType::ConstantBuffer,
+                    .type = DescriptorType::StorageBuffer,
                     .shader_stages = ShaderStageFlags::All,
                     .count = 1,
                 },
@@ -263,6 +265,14 @@ namespace orion
         }
         objects_.clear();
 
+        if (imgui_) {
+            ImGui_ImplOrion_NewFrame();
+            ImGui::NewFrame();
+            imgui_->on_draw();
+            ImGui::Render();
+            ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData());
+        }
+
         render_command->end_render_pass();
         render_command->end();
 
@@ -337,5 +347,14 @@ namespace orion
     RenderWindow Renderer::create_render_window(const Window& window)
     {
         return ::orion::create_render_window(render_device_.get(), &window);
+    }
+
+    void Renderer::imgui_init()
+    {
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        auto& io = ImGui::GetIO();
+        io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard;
+        ImGui_ImplOrion_Init({render_device_.get(), &render_context_, render_size_});
     }
 } // namespace orion

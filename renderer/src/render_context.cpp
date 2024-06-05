@@ -6,11 +6,17 @@
 
 #include <cstring>
 
+// TODO:
+//  staging buffer copies should be done via a function which can handle
+//  copying of data larger than the staging buffer by dividing copies.
+//  Currently attempting to stage any data larger than staging_buffer_size
+//  will simply fail.
+
 namespace orion
 {
     namespace
     {
-        constexpr auto staging_buffer_size = 64 * 1024;
+        constexpr auto staging_buffer_size = 1024 * 1024;
         constexpr auto object_buffer_size = sizeof(RenderObjBuffer) * 1000;
 
         DescriptorPoolHandle create_descriptor_pool(RenderDevice* device)
@@ -192,5 +198,30 @@ namespace orion
         device_->unmap(staging_buffer());
         command_list->end();
         device_->submit_immediate({.queue_type = CommandQueueType::Graphics, .command_lists = {{command_list.get()}}});
+    }
+
+    void RenderContext::copy_image_staging(const CopyImageStaging& copy)
+    {
+        auto cmd_list = command_allocator()->create_command_list();
+        cmd_list->begin();
+        cmd_list->transition_barrier({.image = copy.dst, .old_layout = copy.dst_initial_layout, .new_layout = ImageLayout::TransferDst});
+        const auto staging = staging_buffer();
+        // Upload image data to staging buffer
+        {
+            void* dst = device_->map(staging);
+            std::memcpy(dst, copy.bytes.data(), copy.bytes.size_bytes());
+            device_->unmap(staging);
+        }
+        cmd_list->copy_buffer_to_image({
+            .src_buffer = staging,
+            .dst_image = copy.dst,
+            .dst_layout = ImageLayout::TransferDst,
+            .buffer_offset = 0,
+            .image_offset = 0,
+            .dst_size = copy.dst_size,
+        });
+        cmd_list->transition_barrier({.image = copy.dst, .old_layout = ImageLayout::TransferDst, .new_layout = copy.dst_final_layout});
+        cmd_list->end();
+        device_->submit_immediate({.queue_type = CommandQueueType::Graphics, .command_lists = {{cmd_list.get()}}});
     }
 } // namespace orion

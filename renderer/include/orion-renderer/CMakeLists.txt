@@ -6,6 +6,7 @@ target_sources(
         camera.h
         colors.h
         effect.h
+        imgui.h
         material.h
         mesh.h
         render_target.h

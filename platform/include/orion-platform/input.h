@@ -141,7 +141,8 @@ namespace orion
 
     private:
         // std::bitset seems to use std::size_t for internal storage
-        // on all major compilers meaning it will use 24 bytes / 192 bits even if we request 177
+        // on all major compilers meaning it will use 24 bytes / 192 bits
+        // even if we request 177, which is the max KeyCode value
         std::bitset<192> keys_;
     };
 

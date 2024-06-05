@@ -9,7 +9,19 @@
 
 #include <spdlog/spdlog.h>
 
+#include <imgui.h>
+
 #include <array>
+
+class SandboxImGui final : public orion::ImGuiLayer
+{
+    using ImGuiLayer::ImGuiLayer;
+
+    void on_user_draw() override
+    {
+        ImGui::ShowDemoWindow();
+    }
+};
 
 class SandboxApp final : public orion::Application
 {
@@ -32,6 +44,7 @@ public:
         , current_mat_(&blue_mat_)
         , render_window_(renderer_.create_render_window(window_))
         , camera_controller_(&camera_, orion::degrees(45.f), window_.aspect_ratio(), {0, 0, 5})
+        , imgui_(renderer_.create_imgui_layer<SandboxImGui>())
     {
     }
 
@@ -53,6 +66,7 @@ private:
                 exit_application();
                 continue;
             }
+            imgui_->on_event(event);
             if (const auto* keydown = event.get_if<orion::KeyDown>()) {
                 if (keydown->key == orion::KeyCode::Enter) {
                     change_material();
@@ -120,6 +134,7 @@ private:
     orion::Camera camera_;
     orion::CameraController camera_controller_;
     float camera_speed_ = 2.f;
+    std::unique_ptr<orion::ImGuiLayer> imgui_;
 };
 
 ORION_MAIN(args)

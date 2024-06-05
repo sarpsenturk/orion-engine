@@ -3,6 +3,7 @@
 #include "orion-renderer/camera.h"
 #include "orion-renderer/config.h"
 #include "orion-renderer/effect.h"
+#include "orion-renderer/imgui.h"
 #include "orion-renderer/material.h"
 #include "orion-renderer/mesh.h"
 #include "orion-renderer/render_context.h"
@@ -57,7 +58,18 @@ namespace orion
 
         RenderWindow create_render_window(const Window& window);
 
+        template<typename ImGuiLayerT>
+        std::unique_ptr<ImGuiLayerT> create_imgui_layer()
+        {
+            imgui_init();
+            auto layer = std::make_unique<ImGuiLayerT>();
+            imgui_ = layer.get();
+            return layer;
+        }
+
     private:
+        void imgui_init();
+
         Module render_backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
@@ -82,5 +94,7 @@ namespace orion
         MaterialBuilder material_builder_;
 
         std::vector<RenderObj> objects_;
+
+        ImGuiLayer* imgui_;
     };
 } // namespace orion
