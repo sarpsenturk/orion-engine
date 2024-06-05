@@ -38,7 +38,7 @@ namespace orion
     };
 
     struct RenderObj {
-        const Mesh* mesh;
+        mesh_id_t mesh;
         material_id_t material;
         const Matrix4_f* transform;
     };
@@ -57,7 +57,6 @@ namespace orion
     public:
         explicit Renderer(const RendererDesc& desc);
 
-        [[nodiscard]] auto& mesh_builder() { return mesh_builder_; }
         [[nodiscard]] auto& effect_compiler() { return effect_compiler_; }
 
         void draw(const RenderObj& obj);
@@ -77,9 +76,11 @@ namespace orion
             return layer;
         }
 
+        std::pair<mesh_id_t, Mesh*> create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
         std::pair<material_id_t, Material*> create_material(const Effect* effect, const MaterialData& data);
         std::pair<texture_id_t, Texture*> create_texture(TextureInfo info, std::span<const std::byte> bytes);
 
+        [[nodiscard]] Mesh* find_mesh(mesh_id_t mesh_id);
         [[nodiscard]] Texture* find_texture(texture_id_t texture_id);
         [[nodiscard]] Material* find_material(material_id_t material_id);
 
@@ -106,7 +107,8 @@ namespace orion
         SamplerHandle present_sampler_;
 
         RenderContext render_context_;
-        MeshBuilder mesh_builder_;
+
+        std::vector<std::pair<mesh_id_t, Mesh>> meshes_;
 
         DescriptorPoolHandle material_descriptor_pool_;
         std::vector<std::pair<material_id_t, Material>> materials_;

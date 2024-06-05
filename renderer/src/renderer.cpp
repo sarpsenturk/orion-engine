@@ -206,7 +206,6 @@ namespace orion
         , present_effect_(EffectCompiler{render_device_.get(), shader_reflector_.get(), present_pipeline_layout_}.compile_file(input_file("assets/effects/present.ofx")))
         , present_sampler_(create_present_sampler(render_device_.get()))
         , render_context_(render_device_.get(), {desc.render_size, frame_descriptor_layout_, present_descriptor_layout_, object_descriptor_layout_, present_sampler_})
-        , mesh_builder_(&render_context_)
         , material_descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
     {
         create_default_textures();
@@ -298,7 +297,7 @@ namespace orion
                 .descriptor = material->descriptor(),
             });
 
-            const auto* mesh = obj.mesh;
+            const auto* mesh = find_mesh(obj.mesh);
             render_command->bind_vertex_buffer({.vertex_buffer = mesh->vertex_buffer(), .offset = 0});
             render_command->bind_index_buffer({.index_buffer = mesh->index_buffer(), .offset = 0, .index_type = vertex_index_type});
 
@@ -403,6 +402,49 @@ namespace orion
         auto& io = ImGui::GetIO();
         io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard;
         ImGui_ImplOrion_Init({render_device_.get(), &render_context_, render_size_});
+    }
+
+    std::pair<mesh_id_t, Mesh*> Renderer::create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices)
+    {
+        SPDLOG_LOGGER_TRACE(logger(), "Creating mesh...");
+        ORION_ASSERT(meshes_.size() < std::numeric_limits<mesh_id_t>::max());
+
+        // Create vertex buffer
+        auto vertex_buffer = render_device_->create_buffer({
+            .size = vertices.size_bytes(),
+            .usage = GPUBufferUsageFlags::VertexBuffer | GPUBufferUsageFlags::TransferDst,
+            .host_visible = false,
+        });
+        SPDLOG_LOGGER_TRACE(logger(), "Created vertex buffer with size: {} bytes", vertices.size_bytes());
+
+        // Create index buffer
+        auto index_buffer = render_device_->create_buffer({
+            .size = indices.size_bytes(),
+            .usage = GPUBufferUsageFlags::IndexBuffer | GPUBufferUsageFlags::TransferDst,
+            .host_visible = false,
+        });
+        SPDLOG_LOGGER_TRACE(logger(), "Created index buffer with size: {} bytes", indices.size_bytes());
+
+        render_context_.copy_buffer_staging({{
+            CopyBufferStaging{
+                .bytes = std::as_bytes(vertices),
+                .dst = vertex_buffer,
+            },
+            CopyBufferStaging{
+                .bytes = std::as_bytes(indices),
+                .dst = index_buffer,
+            },
+        }});
+        SPDLOG_LOGGER_TRACE(logger(), "Data copied to GPU.");
+        SPDLOG_LOGGER_DEBUG(logger(), "Mesh created.");
+
+        const auto id = static_cast<mesh_id_t>(meshes_.size());
+        auto& mesh = meshes_.emplace_back(std::piecewise_construct,
+                                          std::forward_as_tuple(id),
+                                          std::forward_as_tuple(render_device_->to_unique(vertex_buffer),
+                                                                render_device_->to_unique(index_buffer),
+                                                                static_cast<std::uint32_t>(indices.size())));
+        return std::make_pair(id, &mesh.second);
     }
 
     std::pair<material_id_t, Material*> Renderer::create_material(const Effect* effect, const MaterialData& data)
@@ -517,6 +559,14 @@ namespace orion
                                                                      render_device_->to_unique(sampler),
                                                                      info));
         return std::make_pair(id, &texture.second);
+    }
+
+    Mesh* Renderer::find_mesh(mesh_id_t mesh_id)
+    {
+        if (auto iter = std::ranges::find_if(meshes_, find_by_id(mesh_id)); iter != meshes_.end()) {
+            return &(iter->second);
+        }
+        return nullptr;
     }
 
     Texture* Renderer::find_texture(texture_id_t texture_id)

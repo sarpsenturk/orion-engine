@@ -37,7 +37,7 @@ public:
     SandboxApp()
         : window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = orion::defaults::window_size})
         , renderer_({.render_size = window_.size()})
-        , quad_mesh_(renderer_.mesh_builder().create_mesh(vertices, indices))
+        , quad_mesh_(renderer_.create_mesh(vertices, indices).first)
         , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/object.ofx")))
         , blue_mat_(renderer_.create_material(&effect_, {.color = orion::colors::blue}).first)
         , green_mat_(renderer_.create_material(&effect_, {.color = orion::colors::lime}).first)
@@ -117,14 +117,14 @@ private:
             return;
         }
 
-        renderer_.draw({&quad_mesh_, current_mat_, &transform});
+        renderer_.draw({quad_mesh_, current_mat_, &transform});
         renderer_.render(camera_);
         renderer_.present(render_window_);
     }
 
     orion::Window window_;
     orion::Renderer renderer_;
-    orion::Mesh quad_mesh_;
+    orion::mesh_id_t quad_mesh_;
     orion::Effect effect_;
     orion::material_id_t blue_mat_;
     orion::material_id_t green_mat_;

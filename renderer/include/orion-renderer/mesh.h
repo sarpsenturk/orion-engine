@@ -33,18 +33,4 @@ namespace orion
 
     using vertex_index_t = std::uint32_t;
     inline constexpr auto vertex_index_type = IndexType::Uint32;
-
-    // Forward declare
-    class RenderContext;
-
-    class MeshBuilder
-    {
-    public:
-        explicit MeshBuilder(RenderContext* render_context);
-
-        Mesh create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
-
-    private:
-        RenderContext* render_context_;
-    };
 } // namespace orion
