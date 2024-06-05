@@ -39,9 +39,9 @@ public:
         , renderer_({.render_size = window_.size()})
         , quad_mesh_(renderer_.mesh_builder().create_mesh(vertices, indices))
         , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/object.ofx")))
-        , blue_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::blue}))
-        , green_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::lime}))
-        , current_mat_(&blue_mat_)
+        , blue_mat_(renderer_.create_material(&effect_, {.color = orion::colors::blue}).first)
+        , green_mat_(renderer_.create_material(&effect_, {.color = orion::colors::lime}).first)
+        , current_mat_(blue_mat_)
         , render_window_(renderer_.create_render_window(window_))
         , camera_controller_(&camera_, orion::degrees(45.f), window_.aspect_ratio(), {0, 0, 5})
         , imgui_(renderer_.create_imgui_layer<SandboxImGui>())
@@ -51,10 +51,10 @@ public:
 private:
     void change_material()
     {
-        if (current_mat_ == &blue_mat_) {
-            current_mat_ = &green_mat_;
+        if (current_mat_ == blue_mat_) {
+            current_mat_ = green_mat_;
         } else {
-            current_mat_ = &blue_mat_;
+            current_mat_ = blue_mat_;
         }
     }
 
@@ -126,9 +126,9 @@ private:
     orion::Renderer renderer_;
     orion::Mesh quad_mesh_;
     orion::Effect effect_;
-    orion::Material blue_mat_;
-    orion::Material green_mat_;
-    orion::Material* current_mat_;
+    orion::material_id_t blue_mat_;
+    orion::material_id_t green_mat_;
+    orion::material_id_t current_mat_;
     orion::Matrix4_f transform = orion::Matrix4_f::identity();
     orion::RenderWindow render_window_;
     orion::Camera camera_;

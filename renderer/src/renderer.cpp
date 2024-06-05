@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <limits>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
@@ -93,6 +94,16 @@ namespace orion
                     .shader_stages = ShaderStageFlags::All,
                     .count = 1,
                 },
+                DescriptorBindingDesc{
+                    .type = DescriptorType::SampledImage,
+                    .shader_stages = ShaderStageFlags::Pixel,
+                    .count = 1,
+                },
+                DescriptorBindingDesc{
+                    .type = DescriptorType::Sampler,
+                    .shader_stages = ShaderStageFlags::Pixel,
+                    .count = 1,
+                },
             };
             return device->create_descriptor_layout({bindings});
         }
@@ -146,6 +157,33 @@ namespace orion
             });
         }
 
+        DescriptorPoolHandle create_material_descriptor_pool(RenderDevice* device)
+        {
+            // TODO: For more than 1 material we need a dynamic way to handle this.
+            //  We can't allocate a pool for UINT16_MAX descriptors with UINT16_MAX sizes each (I assume!??)
+            //  Probably a free list approach where we create descriptor pools with N max_descriptors & N count for each DescriptorPoolSize
+            //  and add them to a free list as materials are created would work.
+            const auto max_materials = 2;
+            return device->create_descriptor_pool({
+                .max_descriptors = max_materials,
+                .flags = {},
+                .sizes = {{
+                    DescriptorPoolSize{
+                        .type = DescriptorType::ConstantBuffer,
+                        .count = max_materials,
+                    },
+                    DescriptorPoolSize{
+                        .type = DescriptorType::SampledImage,
+                        .count = max_materials,
+                    },
+                    DescriptorPoolSize{
+                        .type = DescriptorType::Sampler,
+                        .count = max_materials,
+                    },
+                }},
+            });
+        }
+
         auto find_by_id(auto id)
         {
             return [id](const auto& pair) { return pair.first == id; };
@@ -169,7 +207,7 @@ namespace orion
         , present_sampler_(create_present_sampler(render_device_.get()))
         , render_context_(render_device_.get(), {desc.render_size, frame_descriptor_layout_, present_descriptor_layout_, object_descriptor_layout_, present_sampler_})
         , mesh_builder_(&render_context_)
-        , material_builder_(&render_context_, material_descriptor_layout_)
+        , material_descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
     {
         create_default_textures();
 
@@ -250,7 +288,7 @@ namespace orion
         });
 
         for (std::size_t index = 0; const auto& obj : objects_) {
-            const auto* material = obj.material;
+            const auto* material = find_material(obj.material);
             const auto* effect = material->effect();
             render_command->bind_pipeline({.pipeline = effect->pipeline(), .bind_point = PipelineBindPoint::Graphics});
             render_command->bind_descriptor({
@@ -367,6 +405,63 @@ namespace orion
         ImGui_ImplOrion_Init({render_device_.get(), &render_context_, render_size_});
     }
 
+    std::pair<material_id_t, Material*> Renderer::create_material(const Effect* effect, const MaterialData& data)
+    {
+        ORION_ASSERT(materials_.size() < std::numeric_limits<material_id_t>::max());
+
+        // Create constant buffer
+        const auto buffer_size = sizeof(MaterialData);
+        auto constant_buffer = render_device_->create_buffer({
+            .size = buffer_size,
+            .usage = GPUBufferUsageFlags::ConstantBuffer | GPUBufferUsageFlags::TransferDst,
+            .host_visible = true,
+        });
+
+        // Upload material data to GPU
+        {
+            const auto bytes = std::bit_cast<std::array<std::byte, sizeof(MaterialData)>>(data);
+            render_context_.copy_buffer_staging({.bytes = bytes, .dst = constant_buffer});
+        }
+
+        auto descriptor = render_device_->create_descriptor(material_descriptor_layout_, material_descriptor_pool_);
+        // Write buffer, texture & sampler to descriptor
+        {
+            const auto buffer_write = BufferDescriptorDesc{.buffer_handle = constant_buffer, .region = {.size = buffer_size, .offset = 0}};
+            const auto texture_write = ImageDescriptorDesc{.image_view_handle = textures_[0].second.image_view(), .image_layout = ImageLayout::ShaderReadOnly};
+            const auto sampler_write = ImageDescriptorDesc{.sampler_handle = textures_[0].second.sampler()};
+            const auto writes = std::array{
+                DescriptorWrite{
+                    .binding = 0,
+                    .descriptor_type = DescriptorType::ConstantBuffer,
+                    .array_start = 0,
+                    .buffers = {&buffer_write, 1},
+                },
+                DescriptorWrite{
+                    .binding = 1,
+                    .descriptor_type = DescriptorType::SampledImage,
+                    .array_start = 0,
+                    .images = {&texture_write, 1},
+                },
+                DescriptorWrite{
+                    .binding = 2,
+                    .descriptor_type = DescriptorType::Sampler,
+                    .array_start = 0,
+                    .images = {&sampler_write, 1},
+                },
+            };
+            render_device_->write_descriptor(descriptor, writes);
+        }
+
+        const auto id = static_cast<material_id_t>(materials_.size());
+        auto& material = materials_.emplace_back(std::piecewise_construct,
+                                                 std::forward_as_tuple(id),
+                                                 std::forward_as_tuple(effect,
+                                                                       render_device_->to_unique(constant_buffer),
+                                                                       render_device_->to_unique(descriptor),
+                                                                       data));
+        return std::make_pair(id, &material.second);
+    }
+
     std::pair<texture_id_t, Texture*> Renderer::create_texture(TextureInfo info, std::span<const std::byte> bytes)
     {
         ORION_ASSERT(textures_.size() < std::numeric_limits<texture_id_t>::max());
@@ -415,18 +510,26 @@ namespace orion
         }
 
         const auto id = static_cast<texture_id_t>(textures_.size());
-        textures_.emplace_back(std::piecewise_construct,
-                               std::forward_as_tuple(id),
-                               std::forward_as_tuple(render_device_->to_unique(image),
-                                                     render_device_->to_unique(image_view),
-                                                     render_device_->to_unique(sampler),
-                                                     info));
-        return std::make_pair(id, &(textures_.back().second));
+        auto& texture = textures_.emplace_back(std::piecewise_construct,
+                                               std::forward_as_tuple(id),
+                                               std::forward_as_tuple(render_device_->to_unique(image),
+                                                                     render_device_->to_unique(image_view),
+                                                                     render_device_->to_unique(sampler),
+                                                                     info));
+        return std::make_pair(id, &texture.second);
     }
 
-    Texture* Renderer::texture(texture_id_t texture_id)
+    Texture* Renderer::find_texture(texture_id_t texture_id)
     {
         if (auto iter = std::ranges::find_if(textures_, find_by_id(texture_id)); iter != textures_.end()) {
+            return &(iter->second);
+        }
+        return nullptr;
+    }
+
+    Material* Renderer::find_material(material_id_t material_id)
+    {
+        if (auto iter = std::ranges::find_if(materials_, find_by_id(material_id)); iter != materials_.end()) {
             return &(iter->second);
         }
         return nullptr;

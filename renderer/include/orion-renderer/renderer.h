@@ -10,6 +10,7 @@
 #include "orion-renderer/render_target.h"
 #include "orion-renderer/render_window.h"
 #include "orion-renderer/texture.h"
+#include "orion-renderer/types.h"
 
 #include "orion-core/module.h"
 #include "orion-platform/platform.h"
@@ -38,7 +39,7 @@ namespace orion
 
     struct RenderObj {
         const Mesh* mesh;
-        const Material* material;
+        material_id_t material;
         const Matrix4_f* transform;
     };
 
@@ -46,7 +47,6 @@ namespace orion
     inline constexpr std::uint32_t descriptor_index_material = 1;
     inline constexpr std::uint32_t descriptor_index_object = 2;
 
-    using texture_id_t = std::uint32_t;
     namespace textures
     {
         inline constexpr texture_id_t white = 0;
@@ -59,7 +59,6 @@ namespace orion
 
         [[nodiscard]] auto& mesh_builder() { return mesh_builder_; }
         [[nodiscard]] auto& effect_compiler() { return effect_compiler_; }
-        [[nodiscard]] auto& material_builder() { return material_builder_; }
 
         void draw(const RenderObj& obj);
         void render(const Camera& camera);
@@ -78,9 +77,11 @@ namespace orion
             return layer;
         }
 
+        std::pair<material_id_t, Material*> create_material(const Effect* effect, const MaterialData& data);
         std::pair<texture_id_t, Texture*> create_texture(TextureInfo info, std::span<const std::byte> bytes);
 
-        [[nodiscard]] Texture* texture(texture_id_t texture_id);
+        [[nodiscard]] Texture* find_texture(texture_id_t texture_id);
+        [[nodiscard]] Material* find_material(material_id_t material_id);
 
     private:
         void imgui_init();
@@ -106,7 +107,9 @@ namespace orion
 
         RenderContext render_context_;
         MeshBuilder mesh_builder_;
-        MaterialBuilder material_builder_;
+
+        DescriptorPoolHandle material_descriptor_pool_;
+        std::vector<std::pair<material_id_t, Material>> materials_;
 
         std::vector<std::pair<texture_id_t, Texture>> textures_;
         void create_default_textures();
