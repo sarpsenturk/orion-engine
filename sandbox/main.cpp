@@ -27,10 +27,10 @@ class SandboxApp final : public orion::Application
 {
 public:
     static constexpr auto vertices = std::array{
-        orion::Vertex{{-.5f, 0.5f, 1.f}},
-        orion::Vertex{{0.5f, 0.5f, 1.f}},
-        orion::Vertex{{0.5f, -.5f, 1.f}},
-        orion::Vertex{{-.5f, -.5f, 1.f}},
+        orion::Vertex{{-.5f, 0.5f, 1.f}, {0.f, 0.f}},
+        orion::Vertex{{0.5f, 0.5f, 1.f}, {1.f, 0.f}},
+        orion::Vertex{{0.5f, -.5f, 1.f}, {1.f, 1.f}},
+        orion::Vertex{{-.5f, -.5f, 1.f}, {0.f, 1.f}},
     };
     static constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
 
@@ -38,7 +38,7 @@ public:
         : window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = orion::defaults::window_size})
         , renderer_({.render_size = window_.size()})
         , quad_mesh_(renderer_.mesh_builder().create_mesh(vertices, indices))
-        , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/default.ofx")))
+        , effect_(renderer_.effect_compiler().compile_file(orion::input_file("assets/effects/object.ofx")))
         , blue_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::blue}))
         , green_mat_(renderer_.material_builder().create(&effect_, {.color = orion::colors::lime}))
         , current_mat_(&blue_mat_)

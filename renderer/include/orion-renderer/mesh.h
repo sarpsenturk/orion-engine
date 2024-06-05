@@ -3,6 +3,7 @@
 #include "orion-renderapi/defs.h"
 #include "orion-renderapi/device_resource.h"
 
+#include "orion-math/vector/vector2.h"
 #include "orion-math/vector/vector3.h"
 
 #include <cstdint>
@@ -27,6 +28,7 @@ namespace orion
 
     struct Vertex {
         Vector3_f position;
+        Vector2_f uv;
     };
 
     using vertex_index_t = std::uint32_t;

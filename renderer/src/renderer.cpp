@@ -7,12 +7,14 @@
 
 #include "orion-core/window.h"
 
+#include "orion-utils/assertion.h"
 #include "orion-utils/type.h"
 
 #include "imgui_impl_orion.h"
 
 #include <algorithm>
 #include <array>
+#include <limits>
 
 #ifndef ORION_RENDERER_LOG_LEVEL
     #define ORION_RENDERER_LOG_LEVEL SPDLOG_ACTIVE_LEVEL
@@ -136,12 +138,17 @@ namespace orion
                 .address_mode_u = AddressMode::Border,
                 .address_mode_v = AddressMode::Border,
                 .address_mode_w = AddressMode::Border,
-                .mip_load_bias = 0.f,
+                .mip_lod_bias = 0.f,
                 .max_anisotropy = 1.f,
                 .compare_func = CompareFunc::Always,
                 .min_lod = 0.f,
                 .max_lod = 0.f,
             });
+        }
+
+        auto find_by_id(auto id)
+        {
+            return [id](const auto& pair) { return pair.first == id; };
         }
     } // namespace
 
@@ -164,6 +171,8 @@ namespace orion
         , mesh_builder_(&render_context_)
         , material_builder_(&render_context_, material_descriptor_layout_)
     {
+        create_default_textures();
+
         SPDLOG_LOGGER_INFO(logger(), "Renderer initialized");
         SPDLOG_LOGGER_INFO(logger(), "Render Backend Info:");
         SPDLOG_LOGGER_INFO(logger(), "- backend module: {}", render_backend_module_.filename());
@@ -356,5 +365,91 @@ namespace orion
         auto& io = ImGui::GetIO();
         io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard;
         ImGui_ImplOrion_Init({render_device_.get(), &render_context_, render_size_});
+    }
+
+    std::pair<texture_id_t, Texture*> Renderer::create_texture(TextureInfo info, std::span<const std::byte> bytes)
+    {
+        ORION_ASSERT(textures_.size() < std::numeric_limits<texture_id_t>::max());
+
+        // Create image
+        auto image = render_device_->create_image({
+            .type = to_image_type(info.type),
+            .format = info.format,
+            .size = {info.width, info.height, 1},
+            .tiling = ImageTiling::Optimal,
+            .usage = ImageUsageFlags::SampledImage | (!info.host_visible ? ImageUsageFlags::TransferDst : ImageUsageFlags{}),
+            .host_visible = info.host_visible,
+        });
+
+        // Create image view
+        auto image_view = render_device_->create_image_view({
+            .image = image,
+            .type = to_image_view_type(info.type),
+            .format = info.format,
+        });
+
+        // Create sampler
+        auto sampler = render_device_->create_sampler({
+            .filter = info.filter,
+            .address_mode_u = info.u,
+            .address_mode_v = info.v,
+            .address_mode_w = info.w,
+            .mip_lod_bias = 0.f,   // TODO: Make this configurable
+            .max_anisotropy = 0.f, // TODO: Make this configurable
+            .compare_func = CompareFunc::Always,
+            .min_lod = 0.f, // TODO: Make this configurable
+            .max_lod = 0.f, // TODO: Make this configurable
+        });
+
+        if (info.host_visible) {
+            render_context_.memcpy(image, bytes);
+        } else {
+            render_context_.copy_image_staging({
+                .bytes = bytes,
+                .dst = image,
+                .dst_initial_layout = ImageLayout::Undefined,
+                .dst_final_layout = ImageLayout::ShaderReadOnly,
+                .dst_offset = 0,
+                .dst_size = {info.width, info.height, 1},
+            });
+        }
+
+        const auto id = static_cast<texture_id_t>(textures_.size());
+        textures_.emplace_back(std::piecewise_construct,
+                               std::forward_as_tuple(id),
+                               std::forward_as_tuple(render_device_->to_unique(image),
+                                                     render_device_->to_unique(image_view),
+                                                     render_device_->to_unique(sampler),
+                                                     info));
+        return std::make_pair(id, &(textures_.back().second));
+    }
+
+    Texture* Renderer::texture(texture_id_t texture_id)
+    {
+        if (auto iter = std::ranges::find_if(textures_, find_by_id(texture_id)); iter != textures_.end()) {
+            return &(iter->second);
+        }
+        return nullptr;
+    }
+
+    void Renderer::create_default_textures()
+    {
+        // Create 1x1 white texture
+        {
+            constexpr auto tex_white_info = TextureInfo{
+                .width = 1,
+                .height = 1,
+                .type = TextureType::Tex2D,
+                .format = Format::B8G8R8A8_Srgb,
+                .u = AddressMode::Repeat,
+                .v = AddressMode::Repeat,
+                .w = AddressMode::Repeat,
+                .filter = Filter::Linear,
+                .host_visible = false,
+            };
+            constexpr auto tex_white_dat = std::array{0xFFFFFFFF};
+            static_assert(sizeof(tex_white_dat) == 4);
+            create_texture(tex_white_info, std::as_bytes(std::span{tex_white_dat}));
+        }
     }
 } // namespace orion

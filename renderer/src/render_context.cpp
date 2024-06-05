@@ -224,4 +224,11 @@ namespace orion
         cmd_list->end();
         device_->submit_immediate({.queue_type = CommandQueueType::Graphics, .command_lists = {{cmd_list.get()}}});
     }
+
+    void RenderContext::memcpy(ImageHandle image, std::span<const std::byte> bytes, std::size_t offset)
+    {
+        void* dst = device_->map(image);
+        std::memcpy(dst, bytes.data(), bytes.size_bytes());
+        device_->unmap(image);
+    }
 } // namespace orion

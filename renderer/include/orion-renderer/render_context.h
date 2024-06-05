@@ -91,6 +91,8 @@ namespace orion
 
         void copy_image_staging(const CopyImageStaging& copy);
 
+        void memcpy(ImageHandle image, std::span<const std::byte> bytes, std::size_t offset = 0ull);
+
         GPUBufferHandle frame_cbuffer() const noexcept { return current_frame().frame_cbuffer; }
         DescriptorHandle frame_descriptor() const noexcept { return current_frame().frame_descriptor; }
 

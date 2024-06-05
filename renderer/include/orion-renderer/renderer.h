@@ -9,6 +9,7 @@
 #include "orion-renderer/render_context.h"
 #include "orion-renderer/render_target.h"
 #include "orion-renderer/render_window.h"
+#include "orion-renderer/texture.h"
 
 #include "orion-core/module.h"
 #include "orion-platform/platform.h"
@@ -23,6 +24,10 @@
 #include "orion-math/vector/vector2.h"
 
 #include "orion-utils/static_vector.h"
+
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 namespace orion
 {
@@ -40,6 +45,12 @@ namespace orion
     inline constexpr std::uint32_t descriptor_index_frame = 0;
     inline constexpr std::uint32_t descriptor_index_material = 1;
     inline constexpr std::uint32_t descriptor_index_object = 2;
+
+    using texture_id_t = std::uint32_t;
+    namespace textures
+    {
+        inline constexpr texture_id_t white = 0;
+    }
 
     class Renderer
     {
@@ -67,6 +78,10 @@ namespace orion
             return layer;
         }
 
+        std::pair<texture_id_t, Texture*> create_texture(TextureInfo info, std::span<const std::byte> bytes);
+
+        [[nodiscard]] Texture* texture(texture_id_t texture_id);
+
     private:
         void imgui_init();
 
@@ -92,6 +107,9 @@ namespace orion
         RenderContext render_context_;
         MeshBuilder mesh_builder_;
         MaterialBuilder material_builder_;
+
+        std::vector<std::pair<texture_id_t, Texture>> textures_;
+        void create_default_textures();
 
         std::vector<RenderObj> objects_;
 

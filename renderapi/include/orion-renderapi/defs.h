@@ -537,7 +537,7 @@ namespace orion
         AddressMode address_mode_u;
         AddressMode address_mode_v;
         AddressMode address_mode_w;
-        float mip_load_bias;
+        float mip_lod_bias;
         float max_anisotropy;
         CompareFunc compare_func;
         float min_lod;

@@ -192,7 +192,7 @@ namespace
             .address_mode_u = orion::AddressMode::Repeat,
             .address_mode_v = orion::AddressMode::Repeat,
             .address_mode_w = orion::AddressMode::Repeat,
-            .mip_load_bias = 0.f,
+            .mip_lod_bias = 0.f,
             .max_anisotropy = 1.f,
             .min_lod = -1000,
             .max_lod = 1000,

@@ -10,5 +10,6 @@ target_sources(
         render_target.cpp
         render_window.cpp
         renderer.cpp
+        texture.cpp
         render_context.cpp
 )

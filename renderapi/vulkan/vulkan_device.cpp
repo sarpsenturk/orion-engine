@@ -708,10 +708,10 @@ namespace orion::vulkan
                 .addressModeU = to_vulkan_type(desc.address_mode_u),
                 .addressModeV = to_vulkan_type(desc.address_mode_v),
                 .addressModeW = to_vulkan_type(desc.address_mode_w),
-                .mipLodBias = desc.mip_load_bias,
+                .mipLodBias = desc.mip_lod_bias,
                 .anisotropyEnable = VK_FALSE, // TODO: Make this customizable
                 .maxAnisotropy = desc.max_anisotropy,
-                .compareEnable = VK_TRUE,
+                .compareEnable = VK_FALSE,
                 .compareOp = to_vulkan_type(desc.compare_func),
                 .minLod = desc.min_lod,
                 .maxLod = desc.max_lod,
