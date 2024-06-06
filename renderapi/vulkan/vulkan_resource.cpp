@@ -317,6 +317,7 @@ namespace orion::vulkan
     {
         std::vector<VkDescriptorSetLayout> descriptor_layouts(handles.size());
         std::ranges::transform(handles, descriptor_layouts.begin(), [this](auto handle) { return find(handle); });
+        std::erase_if(descriptor_layouts, [](VkDescriptorSetLayout layout) { return layout == VK_NULL_HANDLE; });
         return descriptor_layouts;
     }
 

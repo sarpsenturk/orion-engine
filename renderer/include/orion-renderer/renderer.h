@@ -9,6 +9,7 @@
 #include "orion-renderer/render_context.h"
 #include "orion-renderer/render_target.h"
 #include "orion-renderer/render_window.h"
+#include "orion-renderer/shader.h"
 #include "orion-renderer/texture.h"
 #include "orion-renderer/types.h"
 
@@ -25,6 +26,8 @@
 #include "orion-math/vector/vector2.h"
 
 #include "orion-utils/static_vector.h"
+
+#include "orion-core/filesystem.h"
 
 #include <cstdint>
 #include <utility>
@@ -76,6 +79,7 @@ namespace orion
             return layer;
         }
 
+        ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
         std::pair<mesh_id_t, Mesh*> create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
         std::pair<material_id_t, Material*> create_material(const Effect* effect, const MaterialData& data);
         std::pair<texture_id_t, Texture*> create_texture(TextureInfo info, std::span<const std::byte> bytes);

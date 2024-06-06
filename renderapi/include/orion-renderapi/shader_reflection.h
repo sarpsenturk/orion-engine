@@ -28,11 +28,16 @@ namespace orion
         std::string name;
         DescriptorType type;
         std::uint32_t count;
+
+        // Bindings are equal if they are the same except for their names which are only for semantics
+        bool operator==(const ShaderReflectionDescriptorBinding& other) const noexcept;
     };
 
     struct ShaderReflectionDescriptorSet {
         std::uint32_t set;
         std::vector<ShaderReflectionDescriptorBinding> bindings;
+
+        bool operator==(const ShaderReflectionDescriptorSet&) const = default;
     };
 
     struct ShaderReflectionPushConstant {

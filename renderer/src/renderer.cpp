@@ -403,6 +403,12 @@ namespace orion
         ImGui_ImplOrion_Init({render_device_.get(), &render_context_, render_size_});
     }
 
+    ShaderEffect Renderer::create_shader_effect(const FilePath& vs_path, const FilePath& ps_path)
+    {
+        const auto base_path = FilePath{render_device_->shader_base_path()};
+        return ::orion::create_shader_effect(render_device_.get(), base_path / vs_path, base_path / ps_path);
+    }
+
     std::pair<mesh_id_t, Mesh*> Renderer::create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices)
     {
         SPDLOG_LOGGER_TRACE(logger(), "Creating mesh...");
