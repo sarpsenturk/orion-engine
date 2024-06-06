@@ -86,12 +86,11 @@ namespace orion
 
     private:
         void imgui_init();
+        void create_default_textures();
 
         Module render_backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
-
-        std::unique_ptr<ShaderReflector> shader_reflector_;
 
         DescriptorLayoutHandle frame_descriptor_layout_;
         DescriptorLayoutHandle material_descriptor_layout_;
@@ -108,13 +107,11 @@ namespace orion
 
         RenderContext render_context_;
 
-        std::vector<std::pair<mesh_id_t, Mesh>> meshes_;
-
         DescriptorPoolHandle material_descriptor_pool_;
-        std::vector<std::pair<material_id_t, Material>> materials_;
 
+        std::vector<std::pair<mesh_id_t, Mesh>> meshes_;
+        std::vector<std::pair<material_id_t, Material>> materials_;
         std::vector<std::pair<texture_id_t, Texture>> textures_;
-        void create_default_textures();
 
         std::vector<RenderObj> objects_;
 

@@ -23,6 +23,11 @@ namespace orion
         return swapchain;
     }
 
+    std::unique_ptr<ShaderReflector> RenderDevice::create_shader_reflector()
+    {
+        return create_shader_reflector_api();
+    }
+
     RenderPassHandle RenderDevice::create_render_pass(const RenderPassDesc& desc)
     {
         auto handle = create_render_pass_api(desc);

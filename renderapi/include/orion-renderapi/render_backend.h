@@ -3,7 +3,6 @@
 #include "orion-core/module.h"
 #include "orion-renderapi/defs.h"
 #include "orion-renderapi/render_device.h"
-#include "orion-renderapi/shader_reflection.h"
 
 #include <memory>
 #include <vector>
@@ -35,7 +34,6 @@ namespace orion
 
         [[nodiscard]] std::vector<PhysicalDeviceDesc> enumerate_physical_devices();
         [[nodiscard]] std::unique_ptr<RenderDevice> create_device(std::uint32_t physical_device_index);
-        [[nodiscard]] std::unique_ptr<ShaderReflector> create_shader_reflector();
 
         [[nodiscard]] auto logger() const noexcept { return logger_.get(); }
 
@@ -50,7 +48,6 @@ namespace orion
     private:
         [[nodiscard]] virtual std::vector<PhysicalDeviceDesc> enumerate_physical_devices_api() = 0;
         [[nodiscard]] virtual std::unique_ptr<RenderDevice> create_device_api(std::uint32_t physical_device_index) = 0;
-        [[nodiscard]] virtual std::unique_ptr<ShaderReflector> create_shader_reflector_api() = 0;
 
         std::shared_ptr<spdlog::logger> logger_;
     };

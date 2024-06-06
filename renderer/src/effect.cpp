@@ -199,9 +199,8 @@ namespace orion
     {
     }
 
-    EffectCompiler::EffectCompiler(RenderDevice* device, ShaderReflector* shader_reflector, PipelineLayoutHandle pipeline_layout)
+    EffectCompiler::EffectCompiler(RenderDevice* device, PipelineLayoutHandle pipeline_layout)
         : device_(device)
-        , shader_reflector_(shader_reflector)
         , pipeline_layout_(pipeline_layout)
     {
     }
@@ -226,11 +225,11 @@ namespace orion
         const auto shader_base_path = FilePath{device_->shader_base_path()};
         const auto vs_binary = binary_input_file(shader_base_path / pass.shaders.vertex).read_all();
         const auto vs_module = device_->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{vs_binary});
-        auto vs_reflection = shader_reflector_->reflect(vs_binary).value();
-
         const auto ps_binary = binary_input_file(shader_base_path / pass.shaders.pixel).read_all();
         const auto ps_module = device_->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{ps_binary});
-        auto ps_reflection = shader_reflector_->reflect(ps_binary).value();
+        auto shader_reflector = device_->create_shader_reflector();
+        auto vs_reflection = shader_reflector->reflect(vs_binary).value();
+        auto ps_reflection = shader_reflector->reflect(ps_binary).value();
 
         const auto shader_stages = std::array{
             ShaderStageDesc{

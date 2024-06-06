@@ -54,9 +54,4 @@ namespace orion
         auto device = create_device_api(physical_device_index);
         return device;
     }
-
-    std::unique_ptr<ShaderReflector> RenderBackend::create_shader_reflector()
-    {
-        return create_shader_reflector_api();
-    }
 } // namespace orion

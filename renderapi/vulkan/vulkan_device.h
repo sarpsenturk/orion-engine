@@ -41,7 +41,6 @@ namespace orion::vulkan
 
     private:
         [[nodiscard]] UniqueVmaAllocator create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const;
-        [[nodiscard]] UniqueVkPipelineLayout create_empty_pipeline_layout() const;
 
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
@@ -53,6 +52,7 @@ namespace orion::vulkan
         // Interface Overrides
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
         std::unique_ptr<Swapchain> create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
+        std::unique_ptr<ShaderReflector> create_shader_reflector_api() override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
@@ -104,8 +104,6 @@ namespace orion::vulkan
         UniqueVkDevice device_;
         VulkanQueues queues_;
         UniqueVmaAllocator vma_allocator_;
-
-        UniqueVkPipelineLayout empty_pipeline_layout_;
         VulkanResourceManager resource_manager_;
     };
 } // namespace orion::vulkan

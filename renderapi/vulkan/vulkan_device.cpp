@@ -3,6 +3,7 @@
 #include "vulkan_command.h"
 #include "vulkan_conversion.h"
 #include "vulkan_platform.h"
+#include "vulkan_reflection.h"
 #include "vulkan_swapchain.h"
 
 #include "orion-utils/assertion.h"
@@ -35,7 +36,6 @@ namespace orion::vulkan
         , device_(std::move(device))
         , queues_(queues)
         , vma_allocator_(create_vma_allocator(instance_, physical_device_))
-        , empty_pipeline_layout_(create_empty_pipeline_layout())
         , resource_manager_(vk_device(), vma_allocator())
     {
     }
@@ -56,24 +56,6 @@ namespace orion::vulkan
         VmaAllocator allocator = VK_NULL_HANDLE;
         vk_result_check(vmaCreateAllocator(&allocator_info, &allocator));
         return unique(allocator);
-    }
-
-    UniqueVkPipelineLayout VulkanDevice::create_empty_pipeline_layout() const
-    {
-        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-        {
-            const auto info = VkPipelineLayoutCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .setLayoutCount = 0,
-                .pSetLayouts = nullptr,
-                .pushConstantRangeCount = 0,
-                .pPushConstantRanges = nullptr,
-            };
-            vk_result_check(vkCreatePipelineLayout(vk_device(), &info, alloc_callbacks(), &pipeline_layout));
-        }
-        return unique(pipeline_layout, vk_device());
     }
 
     VkQueue VulkanDevice::get_queue(CommandQueueType queue_type) const
@@ -177,6 +159,11 @@ namespace orion::vulkan
         });
 
         return std::make_unique<VulkanSwapchain>(this, unique(surface, instance_), unique(swapchain, vk_device()));
+    }
+
+    std::unique_ptr<ShaderReflector> VulkanDevice::create_shader_reflector_api()
+    {
+        return std::make_unique<VulkanShaderReflector>();
     }
 
     RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
@@ -394,7 +381,7 @@ namespace orion::vulkan
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
         // Create pipeline layout
-        VkPipelineLayout pipeline_layout = desc.pipeline_layout.is_valid() ? resource_manager_.find(desc.pipeline_layout) : empty_pipeline_layout_.get();
+        VkPipelineLayout pipeline_layout = resource_manager_.find(desc.pipeline_layout);
         ORION_EXPECTS(pipeline_layout != VK_NULL_HANDLE);
 
         // Convert to VkPipelineShaderStageCreateInfo

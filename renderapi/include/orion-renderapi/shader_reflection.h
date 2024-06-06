@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace orion
 {
@@ -32,8 +33,6 @@ namespace orion
     struct ShaderReflectionDescriptorSet {
         std::uint32_t set;
         std::vector<ShaderReflectionDescriptorBinding> bindings;
-
-        friend bool operator<(const ShaderReflectionDescriptorSet& lhs, const ShaderReflectionDescriptorSet& rhs);
     };
 
     struct ShaderReflectionPushConstant {

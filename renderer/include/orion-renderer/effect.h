@@ -27,13 +27,12 @@ namespace orion
     class EffectCompiler
     {
     public:
-        EffectCompiler(RenderDevice* device, ShaderReflector* shader_reflector, PipelineLayoutHandle pipeline_layout);
+        EffectCompiler(RenderDevice* device, PipelineLayoutHandle pipeline_layout);
 
         Effect compile_file(const File& file);
 
     private:
         RenderDevice* device_;
-        ShaderReflector* shader_reflector_;
         PipelineLayoutHandle pipeline_layout_;
     };
 } // namespace orion
