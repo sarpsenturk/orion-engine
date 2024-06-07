@@ -290,8 +290,8 @@ namespace orion
             return AttachmentDesc{.format = render_target.format};
         });
         auto render_pass = device_->make_unique<RenderPassHandle_tag>(RenderPassDesc{
-            .color_attachments = color_attachments,
             .bind_point = PipelineBindPoint::Graphics,
+            .color_attachments = color_attachments,
         });
 
         auto pipeline = device_->make_unique<PipelineHandle_tag>(GraphicsPipelineDesc{

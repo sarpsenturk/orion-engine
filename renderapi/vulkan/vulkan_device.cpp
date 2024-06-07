@@ -170,10 +170,9 @@ namespace orion::vulkan
     {
         VkRenderPass render_pass = VK_NULL_HANDLE;
         {
-            std::vector<VkAttachmentDescription> attachments;
-            attachments.reserve(desc.attachment_count());
-            auto make_attachment = [&, index = 0u](const AttachmentDesc& attachment) mutable {
-                attachments.push_back({
+            std::vector<VkAttachmentDescription> vk_attachments_descriptions(desc.color_attachments.size());
+            std::ranges::transform(desc.color_attachments, vk_attachments_descriptions.begin(), [](const AttachmentDesc& attachment) {
+                return VkAttachmentDescription{
                     .flags = 0,
                     .format = to_vulkan_type(attachment.format),
                     .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -183,24 +182,22 @@ namespace orion::vulkan
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = to_vulkan_type(attachment.initial_layout),
                     .finalLayout = to_vulkan_type(attachment.final_layout),
-                });
+                };
+            });
+
+            std::vector<VkAttachmentReference> color_attachments(desc.color_attachments.size());
+            std::ranges::transform(desc.color_attachments, color_attachments.begin(), [index = 0u](const AttachmentDesc& attachment) mutable {
                 return VkAttachmentReference{
                     .attachment = index++,
                     .layout = to_vulkan_type(attachment.layout),
                 };
-            };
-
-            // Color attachments added first
-            std::vector<VkAttachmentReference> color_attachments(desc.color_attachments.size());
-            std::ranges::transform(desc.color_attachments, color_attachments.begin(), std::ref(make_attachment));
-            std::vector<VkAttachmentReference> input_attachments(desc.input_attachments.size());
-            std::ranges::transform(desc.input_attachments, input_attachments.begin(), std::ref(make_attachment));
+            });
 
             const auto subpass = VkSubpassDescription{
                 .flags = 0,
                 .pipelineBindPoint = to_vulkan_type(desc.bind_point),
-                .inputAttachmentCount = static_cast<uint32_t>(input_attachments.size()),
-                .pInputAttachments = input_attachments.data(),
+                .inputAttachmentCount = 0u,
+                .pInputAttachments = nullptr,
                 .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
                 .pColorAttachments = color_attachments.data(),
                 .pResolveAttachments = nullptr,
@@ -213,8 +210,8 @@ namespace orion::vulkan
                 .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .attachmentCount = static_cast<uint32_t>(attachments.size()),
-                .pAttachments = attachments.data(),
+                .attachmentCount = static_cast<uint32_t>(vk_attachments_descriptions.size()),
+                .pAttachments = vk_attachments_descriptions.data(),
                 .subpassCount = 1u,
                 .pSubpasses = &subpass,
                 .dependencyCount = 0,

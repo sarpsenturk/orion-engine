@@ -356,7 +356,7 @@ namespace orion
     };
 
     struct VertexAttributeDesc {
-        const char* name;
+        std::string name;
         Format format;
     };
 
@@ -402,14 +402,14 @@ namespace orion
     };
 
     struct BlendAttachmentDesc {
-        bool enable_blend;
-        BlendFactor src_blend;
-        BlendFactor dst_blend;
-        BlendOp blend_op;
-        BlendFactor src_blend_alpha;
-        BlendFactor dst_blend_alpha;
-        BlendOp blend_op_alpha;
-        ColorComponentFlags color_component_flags;
+        bool enable_blend = false;
+        BlendFactor src_blend = BlendFactor::Zero;
+        BlendFactor dst_blend = BlendFactor::Zero;
+        BlendOp blend_op = BlendOp::Add;
+        BlendFactor src_blend_alpha = BlendFactor::Zero;
+        BlendFactor dst_blend_alpha = BlendFactor::Zero;
+        BlendOp blend_op_alpha = BlendOp::Add;
+        ColorComponentFlags color_component_flags = ColorComponentFlags::All;
     };
 
     enum class LogicOp {
@@ -487,14 +487,8 @@ namespace orion
     };
 
     struct RenderPassDesc {
-        std::span<const AttachmentDesc> color_attachments;
-        std::span<const AttachmentDesc> input_attachments;
         PipelineBindPoint bind_point;
-
-        [[nodiscard]] auto attachment_count() const noexcept
-        {
-            return color_attachments.size() + input_attachments.size();
-        }
+        std::span<const AttachmentDesc> color_attachments;
     };
 
     struct Rect2D {

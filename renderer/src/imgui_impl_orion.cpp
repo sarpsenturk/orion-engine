@@ -73,12 +73,12 @@ namespace
     UniqueRenderPass ImGui_ImplOrion_Create_Renderpass(RenderDevice* device)
     {
         return device->make_unique<RenderPassHandle_tag>(RenderPassDesc{
+            .bind_point = orion::PipelineBindPoint::Graphics,
             .color_attachments = {{
                 AttachmentDesc{
                     .format = orion::Format::B8G8R8A8_Srgb,
                 },
             }},
-            .bind_point = orion::PipelineBindPoint::Graphics,
         });
     }
 
