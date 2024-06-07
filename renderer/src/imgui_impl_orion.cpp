@@ -108,7 +108,6 @@ namespace
             VertexAttributeDesc{.name = "TEXCOORD", .format = orion::Format::R32G32_Float},
             VertexAttributeDesc{.name = "COLOR", .format = orion::Format::R8G8B8A8_Unorm},
         };
-        const auto vertex_bindings = std::array{VertexBinding{vertex_attributes, orion::InputRate::Vertex}};
 
         const auto input_assembly = InputAssemblyDesc{
             .topology = orion::PrimitiveTopology::TriangleList,
@@ -138,7 +137,7 @@ namespace
 
         return device->make_unique<PipelineHandle_tag>(GraphicsPipelineDesc{
             shaders,
-            vertex_bindings,
+            vertex_attributes,
             pipeline_layout,
             input_assembly,
             rasterization,

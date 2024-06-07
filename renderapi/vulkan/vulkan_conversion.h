@@ -15,7 +15,6 @@ namespace orion::vulkan
     VkAttachmentStoreOp to_vulkan_type(AttachmentStoreOp store_op);
     VkImageLayout to_vulkan_type(ImageLayout image_layout);
     VkShaderStageFlags to_vulkan_type(ShaderStageFlags shader_stages);
-    VkVertexInputRate to_vulkan_type(InputRate input_rate);
     VkPrimitiveTopology to_vulkan_type(PrimitiveTopology topology);
     VkPolygonMode to_vulkan_type(FillMode fill_mode);
     VkCullModeFlags to_vulkan_type(CullMode cull_mode);

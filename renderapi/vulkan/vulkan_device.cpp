@@ -402,51 +402,42 @@ namespace orion::vulkan
             return vk_shader_stages;
         }();
 
-        // Convert to VkVertexInputBindingDescription
-        const auto vk_input_bindings = [&vertex_bindings = desc.vertex_bindings]() {
-            std::vector<VkVertexInputBindingDescription> vk_input_bindings;
-            vk_input_bindings.reserve(vertex_bindings.size());
-            for (std::uint32_t index = 0; const auto& binding : vertex_bindings) {
-                vk_input_bindings.push_back({
-                    .binding = index++,
-                    .stride = binding.stride(),
-                    .inputRate = to_vulkan_type(binding.input_rate()),
+        const auto vk_vertex_attributes = [attributes = desc.vertex_attributes]() {
+            std::vector<VkVertexInputAttributeDescription> vk_attributes(attributes.size());
+            std::ranges::transform(attributes, vk_attributes.begin(), [offset = 0u, location = 0u](const VertexAttributeDesc& attribute) mutable {
+                const auto attr_offset = offset;
+                offset += format_size(attribute.format);
+                return VkVertexInputAttributeDescription{
+                    .location = location++,
+                    .binding = 0,
+                    .format = to_vulkan_type(attribute.format),
+                    .offset = attr_offset,
+                };
+            });
+            return vk_attributes;
+        }();
+
+        const auto vk_vertex_binding = [stride = vertex_input_stride(desc.vertex_attributes)]() {
+            std::vector<VkVertexInputBindingDescription> vk_bindings;
+            if (stride != 0) {
+                vk_bindings.push_back({
+                    .binding = 0,
+                    .stride = stride,
+                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
                 });
             }
-            return vk_input_bindings;
+            return vk_bindings;
         }();
 
-        // Convert to VkVertexInputAttributeDescription
-        const auto vk_attribute_descriptions = [&vertex_bindings = desc.vertex_bindings]() {
-            std::vector<VkVertexInputAttributeDescription> vk_attribute_descriptions;
-            vk_attribute_descriptions.reserve(std::accumulate(vertex_bindings.begin(), vertex_bindings.end(), 0u, [](auto acc, const auto& binding) {
-                return acc + static_cast<std::uint32_t>(binding.attributes().size());
-            }));
-            for (std::uint32_t binding_index = 0; const auto& binding : vertex_bindings) {
-                for (std::uint32_t attr_index = 0; const auto& attribute : binding.attributes()) {
-                    vk_attribute_descriptions.push_back({
-                        .location = attr_index++,
-                        .binding = binding_index,
-                        .format = to_vulkan_type(attribute.format),
-                        .offset = attribute.offset,
-                    });
-                }
-                ++binding_index;
-            }
-            return vk_attribute_descriptions;
-        }();
-
-        // Create VkPipelineVertexInputStateCreateInfo
-        const auto vk_input_state = [&vk_input_bindings, &vk_attribute_descriptions]() {
-            return VkPipelineVertexInputStateCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-                .pNext = nullptr,
-                .vertexBindingDescriptionCount = static_cast<std::uint32_t>(vk_input_bindings.size()),
-                .pVertexBindingDescriptions = vk_input_bindings.data(),
-                .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vk_attribute_descriptions.size()),
-                .pVertexAttributeDescriptions = vk_attribute_descriptions.data(),
-            };
-        }();
+        const auto vk_input_state = VkPipelineVertexInputStateCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .vertexBindingDescriptionCount = static_cast<std::uint32_t>(vk_vertex_binding.size()),
+            .pVertexBindingDescriptions = vk_vertex_binding.data(),
+            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vk_vertex_attributes.size()),
+            .pVertexAttributeDescriptions = vk_vertex_attributes.data(),
+        };
 
         // Convert to VkPipelineInputAssemblyStateCreateInfo
         const auto vk_input_assembly = [input_assembly = desc.input_assembly]() {

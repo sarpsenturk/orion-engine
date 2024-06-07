@@ -45,7 +45,7 @@ namespace orion::vulkan
         return PhysicalDeviceType::Other;
     }
 
-    VkFormat vulkan::to_vulkan_type(Format format)
+    VkFormat to_vulkan_type(Format format)
     {
         switch (format) {
             case Format::R8_Unorm:
@@ -85,7 +85,7 @@ namespace orion::vulkan
         return VK_FORMAT_MAX_ENUM;
     }
 
-    VkAttachmentLoadOp vulkan::to_vulkan_type(AttachmentLoadOp load_op)
+    VkAttachmentLoadOp to_vulkan_type(AttachmentLoadOp load_op)
     {
         switch (load_op) {
             case AttachmentLoadOp::Load:
@@ -99,7 +99,7 @@ namespace orion::vulkan
         return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
     }
 
-    VkAttachmentStoreOp vulkan::to_vulkan_type(AttachmentStoreOp store_op)
+    VkAttachmentStoreOp to_vulkan_type(AttachmentStoreOp store_op)
     {
         switch (store_op) {
             case AttachmentStoreOp::Store:
@@ -111,7 +111,7 @@ namespace orion::vulkan
         return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
     }
 
-    VkImageLayout vulkan::to_vulkan_type(ImageLayout image_layout)
+    VkImageLayout to_vulkan_type(ImageLayout image_layout)
     {
         switch (image_layout) {
             case ImageLayout::Undefined:
@@ -133,7 +133,7 @@ namespace orion::vulkan
         return VK_IMAGE_LAYOUT_MAX_ENUM;
     }
 
-    VkShaderStageFlags vulkan::to_vulkan_type(ShaderStageFlags shader_stages)
+    VkShaderStageFlags to_vulkan_type(ShaderStageFlags shader_stages)
     {
         static const auto conversion_map = std::unordered_map{
             std::make_pair(ShaderStageFlags::Vertex, VK_SHADER_STAGE_VERTEX_BIT),
@@ -142,19 +142,7 @@ namespace orion::vulkan
         return convert_with_map(shader_stages, conversion_map, "Shader stage not handled in to_vulkan_type()");
     }
 
-    VkVertexInputRate vulkan::to_vulkan_type(InputRate input_rate)
-    {
-        switch (input_rate) {
-            case InputRate::Vertex:
-                return VK_VERTEX_INPUT_RATE_VERTEX;
-            case InputRate::Instance:
-                return VK_VERTEX_INPUT_RATE_INSTANCE;
-        }
-        ORION_ASSERT(!"Input rate not handled in to_vulkan_type() or is invalid");
-        return VK_VERTEX_INPUT_RATE_MAX_ENUM;
-    }
-
-    VkPrimitiveTopology vulkan::to_vulkan_type(PrimitiveTopology topology)
+    VkPrimitiveTopology to_vulkan_type(PrimitiveTopology topology)
     {
         switch (topology) {
             case PrimitiveTopology::TriangleList:
@@ -164,7 +152,7 @@ namespace orion::vulkan
         return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
     }
 
-    VkPolygonMode vulkan::to_vulkan_type(FillMode fill_mode)
+    VkPolygonMode to_vulkan_type(FillMode fill_mode)
     {
         switch (fill_mode) {
             case FillMode::Solid:
@@ -230,7 +218,7 @@ namespace orion::vulkan
         };
     }
 
-    VkDescriptorPoolCreateFlags vulkan::to_vulkan_type(DescriptorPoolFlags flags)
+    VkDescriptorPoolCreateFlags to_vulkan_type(DescriptorPoolFlags flags)
     {
         const static auto conversion_map = std::unordered_map{
             std::make_pair(DescriptorPoolFlags::FreeDescriptors, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),

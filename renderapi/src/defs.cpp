@@ -5,10 +5,16 @@
 
 #include <bit>
 #include <numeric>
-#include <unordered_map>
 
 namespace orion
 {
+    std::uint32_t vertex_input_stride(std::span<const VertexAttributeDesc> attributes)
+    {
+        return std::accumulate(attributes.begin(), attributes.end(), 0u, [](auto acc, const auto& attr) {
+            return acc + format_size(attr.format);
+        });
+    }
+
     std::size_t DescriptorBindingDesc::hash() const
     {
         return std::bit_cast<std::size_t>(*this);
@@ -19,18 +25,6 @@ namespace orion
         return std::accumulate(bindings.begin(), bindings.end(), 0ull, [](auto acc, const auto& binding) {
             return hash_combine(acc, binding.hash());
         });
-    }
-
-    DescriptorType get_binding_type(GPUBufferUsageFlags buffer_usage)
-    {
-        if (!!(buffer_usage & GPUBufferUsageFlags::ConstantBuffer)) {
-            return DescriptorType::ConstantBuffer;
-        }
-        if (!!(buffer_usage & GPUBufferUsageFlags::StorageBuffer)) {
-            return DescriptorType::StorageBuffer;
-        }
-        ORION_ASSERT(!"Buffer usage not valid for descriptor binding");
-        return {};
     }
 
     const char* format_as(PhysicalDeviceType type) noexcept
@@ -87,27 +81,5 @@ namespace orion
                 return "R8G8B8A8_Unorm";
         }
         return "Unknown format";
-    }
-
-    std::string format_as(ShaderStageFlags shader_stages)
-    {
-        static const auto string_map = std::unordered_map{
-            std::make_pair(ShaderStageFlags::Vertex, std::string{"Vertex |"}),
-            std::make_pair(ShaderStageFlags::Pixel, std::string{"Pixel |"}),
-        };
-
-        std::string result{};
-        while (!!shader_stages) {
-            for (const auto& [from, to] : string_map) {
-                if (!!(shader_stages & from)) {
-                    result += to;
-                    shader_stages ^= from;
-                    break;
-                }
-            }
-            ORION_ASSERT("Shader stage not handled in format_as()");
-            return "";
-        }
-        return result.substr(0, result.size() - 3);
     }
 } // namespace orion

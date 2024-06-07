@@ -7,7 +7,6 @@
 #include "orion-math/vector/vector4.h"
 
 #include "orion-utils/bitflag.h"
-#include "orion-utils/static_vector.h"
 
 #include <cstdint>
 #include <span>
@@ -142,11 +141,6 @@ namespace orion
         ClockWise
     };
 
-    enum class InputRate {
-        Vertex,
-        Instance
-    };
-
     ORION_BITFLAG(GPUBufferUsageFlags, std::uint8_t){
         VertexBuffer = 0x1,
         IndexBuffer = 0x2,
@@ -185,8 +179,6 @@ namespace orion
         SampledImage,
         Sampler
     };
-
-    DescriptorType get_binding_type(GPUBufferUsageFlags buffer_usage);
 
     ORION_BITFLAG(DescriptorPoolFlags, std::uint8_t){
         FreeDescriptors = 0x1,
@@ -330,12 +322,6 @@ namespace orion
         ImageLayout final_layout = ImageLayout::Undefined;
     };
 
-    struct ImageBarrierDesc {
-        ImageLayout old_layout;
-        ImageLayout new_layout;
-        ImageHandle image;
-    };
-
     struct GPUBufferDesc {
         std::size_t size = 0;
         GPUBufferUsageFlags usage = {};
@@ -372,62 +358,9 @@ namespace orion
     struct VertexAttributeDesc {
         const char* name;
         Format format;
-        std::uint32_t offset;
     };
 
-    inline constexpr VertexAttributeDesc vertex_attr(const char* name, Format format)
-    {
-        return {name, format};
-    }
-
-    class VertexBinding
-    {
-    public:
-        static constexpr auto max_attribute_count = 6;
-
-        constexpr VertexBinding(std::span<const VertexAttributeDesc> attributes, InputRate input_rate)
-            : attributes_(attributes.begin(), attributes.end())
-            , input_rate_(input_rate)
-            , stride_(calculate_stride_and_offsets())
-        {
-        }
-
-        constexpr VertexBinding(std::initializer_list<VertexAttributeDesc> attributes, InputRate input_rate)
-            : attributes_(attributes)
-            , input_rate_(input_rate)
-            , stride_(calculate_stride_and_offsets())
-        {
-        }
-
-        [[nodiscard]] constexpr auto attributes() const noexcept { return std::span{attributes_}; }
-        [[nodiscard]] constexpr auto input_rate() const noexcept { return input_rate_; }
-        [[nodiscard]] constexpr auto stride() const noexcept { return stride_; }
-
-    private:
-        constexpr std::uint32_t calculate_stride_and_offsets() noexcept
-        {
-            std::uint32_t offset = 0;
-            for (auto& attribute : attributes_) {
-                attribute.offset = offset;
-                offset += format_size(attribute.format);
-            }
-            return offset;
-        }
-
-        static_vector<VertexAttributeDesc, max_attribute_count> attributes_;
-        InputRate input_rate_;
-        std::uint32_t stride_;
-    };
-
-    inline constexpr VertexBinding vertex_binding_v(std::initializer_list<VertexAttributeDesc> attributes)
-    {
-        return {attributes, InputRate::Vertex};
-    }
-
-    inline constexpr VertexBinding vertex_binding_i(std::initializer_list<VertexAttributeDesc> attributes)
-    {
-        return {attributes, InputRate::Instance};
-    }
+    std::uint32_t vertex_input_stride(std::span<const VertexAttributeDesc> attributes);
 
     struct InputAssemblyDesc {
         PrimitiveTopology topology = PrimitiveTopology::TriangleList;
@@ -506,7 +439,7 @@ namespace orion
 
     struct GraphicsPipelineDesc {
         std::span<const ShaderStageDesc> shaders = {};
-        std::span<const VertexBinding> vertex_bindings = {};
+        std::span<const VertexAttributeDesc> vertex_attributes = {};
         PipelineLayoutHandle pipeline_layout = PipelineLayoutHandle::invalid();
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
@@ -586,5 +519,4 @@ namespace orion
 
     const char* format_as(PhysicalDeviceType type) noexcept;
     const char* format_as(Format format) noexcept;
-    std::string format_as(ShaderStageFlags shader_stages);
 } // namespace orion

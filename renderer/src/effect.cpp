@@ -252,11 +252,6 @@ namespace orion
             vertex_attrs.emplace_back(var.name.c_str(), var.format);
         }
 
-        std::vector<VertexBinding> vertex_bindings;
-        if (!vertex_attrs.empty()) {
-            vertex_bindings.emplace_back(vertex_attrs, InputRate::Vertex);
-        }
-
         const auto input_assembly = InputAssemblyDesc{
             .topology = pass.inputAssembly.topology,
         };
@@ -301,7 +296,7 @@ namespace orion
 
         auto pipeline = device_->make_unique<PipelineHandle_tag>(GraphicsPipelineDesc{
             shader_stages,
-            vertex_bindings,
+            vertex_attrs,
             pipeline_layout_,
             input_assembly,
             rasterization,
