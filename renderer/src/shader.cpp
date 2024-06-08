@@ -81,14 +81,29 @@ namespace orion
                 .push_constants = push_constant_size > 0 ? std::span{push_constant} : std::span<const PushConstantDesc>{},
             });
         }
+
+        std::vector<VertexAttributeDesc> get_vertex_attributes(const ShaderReflection& vertex_shader)
+        {
+            std::vector<VertexAttributeDesc> vertex_attributes;
+            vertex_attributes.reserve(vertex_shader.input_variables.size());
+            for (const auto& input_variable : vertex_shader.input_variables) {
+                if (input_variable.builtin) {
+                    continue;
+                }
+                vertex_attributes.emplace_back(input_variable.name, input_variable.format);
+            }
+            return vertex_attributes;
+        }
     } // namespace
 
     ShaderEffect::ShaderEffect(UniqueShaderModule vertex_shader,
                                UniqueShaderModule pixel_shader,
+                               std::vector<VertexAttributeDesc> vertex_attributes,
                                std::array<UniqueDescriptorLayout, 4> descriptor_layouts,
                                UniquePipelineLayout pipeline_layout)
         : vertex_shader_(std::move(vertex_shader))
         , pixel_shader_(std::move(pixel_shader))
+        , vertex_attributes_(std::move(vertex_attributes))
         , descriptor_layouts_(std::move(descriptor_layouts))
         , pipeline_layout_(std::move(pipeline_layout))
     {
@@ -127,7 +142,8 @@ namespace orion
         return {
             device->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{vs_binary}),
             device->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{ps_binary}),
-            {device->to_unique(descriptor_layouts[0]), device->to_unique(descriptor_layouts[1]), device->to_unique(descriptor_layouts[2]), device->to_unique(descriptor_layouts[2])},
+            get_vertex_attributes(shader_reflection[0]),
+            {device->to_unique(descriptor_layouts[0]), device->to_unique(descriptor_layouts[1]), device->to_unique(descriptor_layouts[2]), device->to_unique(descriptor_layouts[3])},
             create_pipeline_layout(device, descriptor_layouts, push_constant_size(shader_reflection)),
         };
     }
