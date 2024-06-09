@@ -74,74 +74,6 @@ namespace orion
             throw std::runtime_error{"no supported GPU found"};
         }
 
-        DescriptorLayoutHandle create_frame_descriptor_layout(RenderDevice* device)
-        {
-            const auto bindings = std::array{
-                DescriptorBindingDesc{
-                    .type = DescriptorType::ConstantBuffer,
-                    .shader_stages = ShaderStageFlags::All,
-                    .count = 1,
-                },
-            };
-            return device->create_descriptor_layout({bindings});
-        }
-
-        DescriptorLayoutHandle create_material_descriptor_layout(RenderDevice* device)
-        {
-            const auto bindings = std::array{
-                DescriptorBindingDesc{
-                    .type = DescriptorType::ConstantBuffer,
-                    .shader_stages = ShaderStageFlags::All,
-                    .count = 1,
-                },
-                DescriptorBindingDesc{
-                    .type = DescriptorType::SampledImage,
-                    .shader_stages = ShaderStageFlags::Pixel,
-                    .count = 1,
-                },
-                DescriptorBindingDesc{
-                    .type = DescriptorType::Sampler,
-                    .shader_stages = ShaderStageFlags::Pixel,
-                    .count = 1,
-                },
-            };
-            return device->create_descriptor_layout({bindings});
-        }
-
-        DescriptorLayoutHandle create_object_descriptor_layout(RenderDevice* device)
-        {
-            const auto bindings = std::array{
-                DescriptorBindingDesc{
-                    .type = DescriptorType::StorageBuffer,
-                    .shader_stages = ShaderStageFlags::All,
-                    .count = 1,
-                },
-            };
-            return device->create_descriptor_layout({bindings});
-        }
-
-        DescriptorLayoutHandle create_present_descriptor_layout(RenderDevice* device)
-        {
-            const auto bindings = std::array{
-                DescriptorBindingDesc{
-                    .type = DescriptorType::SampledImage,
-                    .shader_stages = ShaderStageFlags::Pixel,
-                    .count = 1,
-                },
-                DescriptorBindingDesc{
-                    .type = DescriptorType::Sampler,
-                    .shader_stages = ShaderStageFlags::Pixel,
-                    .count = 1,
-                },
-            };
-            return device->create_descriptor_layout({bindings});
-        }
-
-        PipelineLayoutHandle create_present_pipeline_layout(RenderDevice* device, DescriptorLayoutHandle descriptor_layout)
-        {
-            return device->create_pipeline_layout({.descriptors = {&descriptor_layout, 1}});
-        }
-
         SamplerHandle create_present_sampler(RenderDevice* device)
         {
             return device->create_sampler({
@@ -194,17 +126,14 @@ namespace orion
         : render_backend_module_(load_backend_module(desc.backend))
         , render_backend_(create_render_backend(render_backend_module_))
         , render_device_(create_render_device(render_backend_.get()))
-        , frame_descriptor_layout_(create_frame_descriptor_layout(render_device_.get()))
-        , material_descriptor_layout_(create_material_descriptor_layout(render_device_.get()))
-        , object_descriptor_layout_(create_object_descriptor_layout(render_device_.get()))
-        , pipeline_layout_(render_device_->create_pipeline_layout({.descriptors = {{frame_descriptor_layout_, material_descriptor_layout_, object_descriptor_layout_}}}))
-        , effect_compiler_(render_device_.get(), pipeline_layout_)
+        , object_effect_(create_shader_effect("object.vs", "object.ps"))
+        , object_pass_(create_shader_pass(&object_effect_))
+        , effect_compiler_(render_device_.get(), object_effect_.pipeline_layout())
         , render_size_(desc.render_size)
-        , present_descriptor_layout_(create_present_descriptor_layout(render_device_.get()))
-        , present_pipeline_layout_(create_present_pipeline_layout(render_device_.get(), present_descriptor_layout_))
-        , present_effect_(EffectCompiler{render_device_.get(), present_pipeline_layout_}.compile_file(input_file("assets/effects/present.ofx")))
+        , present_effect_(create_shader_effect("present.vs", "present.ps"))
+        , present_pass_(create_shader_pass(&present_effect_))
         , present_sampler_(create_present_sampler(render_device_.get()))
-        , render_context_(render_device_.get(), {desc.render_size, frame_descriptor_layout_, present_descriptor_layout_, object_descriptor_layout_, present_sampler_})
+        , render_context_(render_device_.get(), {desc.render_size, object_effect_.descriptor_layout(0), present_effect_.descriptor_layout(0), object_effect_.descriptor_layout(2), present_sampler_})
         , material_descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
     {
         create_default_textures();
@@ -273,14 +202,14 @@ namespace orion
         render_device_->unmap(cbuffer);
         render_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
-            .pipeline_layout = pipeline_layout_,
+            .pipeline_layout = object_effect_.pipeline_layout(),
             .index = descriptor_index_frame,
             .descriptor = render_context_.frame_descriptor(),
         });
 
         render_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
-            .pipeline_layout = pipeline_layout_,
+            .pipeline_layout = object_effect_.pipeline_layout(),
             .index = descriptor_index_object,
             .descriptor = render_context_.object_descriptor(),
         });
@@ -291,7 +220,7 @@ namespace orion
             render_command->bind_pipeline({.pipeline = effect->pipeline(), .bind_point = PipelineBindPoint::Graphics});
             render_command->bind_descriptor({
                 .bind_point = PipelineBindPoint::Graphics,
-                .pipeline_layout = pipeline_layout_,
+                .pipeline_layout = object_effect_.pipeline_layout(),
                 .index = descriptor_index_material,
                 .descriptor = material->descriptor(),
             });
@@ -350,10 +279,10 @@ namespace orion
                 .size = render_size_,
             },
         });
-        present_command->bind_pipeline({.pipeline = present_effect_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+        present_command->bind_pipeline({.pipeline = present_pass_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
         present_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
-            .pipeline_layout = present_pipeline_layout_,
+            .pipeline_layout = present_effect_.pipeline_layout(),
             .index = 0,
             .descriptor = frame.render_output_descriptor,
         });
@@ -407,6 +336,11 @@ namespace orion
     {
         const auto base_path = FilePath{render_device_->shader_base_path()};
         return ::orion::create_shader_effect(render_device_.get(), base_path / vs_path, base_path / ps_path);
+    }
+
+    ShaderPass Renderer::create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc)
+    {
+        return ::orion::create_shader_pass(render_device_.get(), effect, desc);
     }
 
     std::pair<mesh_id_t, Mesh*> Renderer::create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices)
@@ -470,7 +404,7 @@ namespace orion
             render_context_.copy_buffer_staging({.bytes = bytes, .dst = constant_buffer});
         }
 
-        auto descriptor = render_device_->create_descriptor(material_descriptor_layout_, material_descriptor_pool_);
+        auto descriptor = render_device_->create_descriptor(object_effect_.descriptor_layout(1), material_descriptor_pool_);
         // Write buffer, texture & sampler to descriptor
         {
             const auto buffer_write = BufferDescriptorDesc{.buffer_handle = constant_buffer, .region = {.size = buffer_size, .offset = 0}};

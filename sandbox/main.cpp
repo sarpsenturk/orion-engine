@@ -45,7 +45,6 @@ public:
         , render_window_(renderer_.create_render_window(window_))
         , camera_controller_(&camera_, orion::degrees(45.f), window_.aspect_ratio(), {0, 0, 5})
         , imgui_(renderer_.create_imgui_layer<SandboxImGui>())
-        , shader_effect_(renderer_.create_shader_effect("object.vs", "object.ps"))
     {
     }
 
@@ -136,7 +135,6 @@ private:
     orion::CameraController camera_controller_;
     float camera_speed_ = 2.f;
     std::unique_ptr<orion::ImGuiLayer> imgui_;
-    orion::ShaderEffect shader_effect_;
 };
 
 ORION_MAIN(args)

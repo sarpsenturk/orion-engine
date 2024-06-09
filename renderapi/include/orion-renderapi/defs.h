@@ -412,6 +412,37 @@ namespace orion
         ColorComponentFlags color_component_flags = ColorComponentFlags::All;
     };
 
+    inline constexpr auto blend_attachment_disabled() noexcept
+    {
+        return BlendAttachmentDesc{.enable_blend = false, .color_component_flags = ColorComponentFlags::All};
+    }
+
+    inline constexpr auto blend_attachment_additive() noexcept
+    {
+        return BlendAttachmentDesc{
+            .enable_blend = true,
+            .src_blend = BlendFactor::One,
+            .dst_blend = BlendFactor::DstAlpha,
+            .blend_op = BlendOp::Add,
+            .src_blend_alpha = BlendFactor::One,
+            .dst_blend_alpha = BlendFactor::Zero,
+            .blend_op_alpha = BlendOp::Add,
+        };
+    }
+
+    inline constexpr auto blend_attachment_alphablend()
+    {
+        return BlendAttachmentDesc{
+            .enable_blend = true,
+            .src_blend = BlendFactor::SrcAlpha,
+            .dst_blend = BlendFactor::InvertedSrcAlpha,
+            .blend_op = BlendOp::Add,
+            .src_blend_alpha = BlendFactor::One,
+            .dst_blend_alpha = BlendFactor::Zero,
+            .blend_op_alpha = BlendOp::Add,
+        };
+    }
+
     enum class LogicOp {
         NoOp,
         Clear,

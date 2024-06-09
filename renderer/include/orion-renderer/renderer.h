@@ -80,6 +80,7 @@ namespace orion
         }
 
         ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
+        ShaderPass create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc = {});
         std::pair<mesh_id_t, Mesh*> create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
         std::pair<material_id_t, Material*> create_material(const Effect* effect, const MaterialData& data);
         std::pair<texture_id_t, Texture*> create_texture(TextureInfo info, std::span<const std::byte> bytes);
@@ -96,17 +97,15 @@ namespace orion
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
 
-        DescriptorLayoutHandle frame_descriptor_layout_;
-        DescriptorLayoutHandle material_descriptor_layout_;
-        DescriptorLayoutHandle object_descriptor_layout_;
-        PipelineLayoutHandle pipeline_layout_;
+        ShaderEffect object_effect_;
+        ShaderPass object_pass_;
+
         EffectCompiler effect_compiler_;
 
         Vector2_u render_size_;
 
-        DescriptorLayoutHandle present_descriptor_layout_;
-        PipelineLayoutHandle present_pipeline_layout_;
-        Effect present_effect_;
+        ShaderEffect present_effect_;
+        ShaderPass present_pass_;
         SamplerHandle present_sampler_;
 
         RenderContext render_context_;

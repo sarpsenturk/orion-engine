@@ -35,8 +35,35 @@ namespace orion
         UniquePipelineLayout pipeline_layout_;
     };
 
+    class ShaderPass
+    {
+    public:
+        ShaderPass(const ShaderEffect* effect, UniqueRenderPass render_pass, UniquePipeline pipeline);
+
+        [[nodiscard]] const ShaderEffect* effect() const { return effect_; }
+        [[nodiscard]] PipelineHandle pipeline() const { return pipeline_.get(); }
+
+    private:
+        const ShaderEffect* effect_;
+        UniqueRenderPass render_pass_;
+        UniquePipeline pipeline_;
+    };
+
     // Forward declare
     class RenderDevice;
 
     ShaderEffect create_shader_effect(RenderDevice* device, const FilePath& vs_path, const FilePath& ps_path);
+
+    enum class ShaderPassBlend {
+        Disable,
+        Add,
+        Transparent,
+    };
+
+    struct ShaderPassDesc {
+        RasterizationDesc rasterization = {};
+        ShaderPassBlend blend = ShaderPassBlend::Disable;
+    };
+
+    ShaderPass create_shader_pass(RenderDevice* device, const ShaderEffect* effect, const ShaderPassDesc& desc);
 } // namespace orion
