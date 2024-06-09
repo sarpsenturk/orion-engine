@@ -2,7 +2,6 @@
 
 #include "orion-renderer/camera.h"
 #include "orion-renderer/config.h"
-#include "orion-renderer/effect.h"
 #include "orion-renderer/imgui.h"
 #include "orion-renderer/material.h"
 #include "orion-renderer/mesh.h"
@@ -60,8 +59,6 @@ namespace orion
     public:
         explicit Renderer(const RendererDesc& desc);
 
-        [[nodiscard]] auto& effect_compiler() { return effect_compiler_; }
-
         void draw(const RenderObj& obj);
         void render(const Camera& camera);
 
@@ -82,7 +79,7 @@ namespace orion
         ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
         ShaderPass create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc = {});
         std::pair<mesh_id_t, Mesh*> create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
-        std::pair<material_id_t, Material*> create_material(const Effect* effect, const MaterialData& data);
+        std::pair<material_id_t, Material*> create_material(const MaterialData& data);
         std::pair<texture_id_t, Texture*> create_texture(TextureInfo info, std::span<const std::byte> bytes);
 
         [[nodiscard]] Mesh* find_mesh(mesh_id_t mesh_id);
@@ -99,8 +96,6 @@ namespace orion
 
         ShaderEffect object_effect_;
         ShaderPass object_pass_;
-
-        EffectCompiler effect_compiler_;
 
         Vector2_u render_size_;
 

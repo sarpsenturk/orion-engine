@@ -5,7 +5,6 @@ target_sources(
         FILES
         camera.h
         colors.h
-        effect.h
         imgui.h
         material.h
         mesh.h

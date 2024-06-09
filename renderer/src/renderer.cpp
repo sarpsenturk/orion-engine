@@ -128,7 +128,6 @@ namespace orion
         , render_device_(create_render_device(render_backend_.get()))
         , object_effect_(create_shader_effect("object.vs", "object.ps"))
         , object_pass_(create_shader_pass(&object_effect_))
-        , effect_compiler_(render_device_.get(), object_effect_.pipeline_layout())
         , render_size_(desc.render_size)
         , present_effect_(create_shader_effect("present.vs", "present.ps"))
         , present_pass_(create_shader_pass(&present_effect_))
@@ -216,8 +215,7 @@ namespace orion
 
         for (std::size_t index = 0; const auto& obj : objects_) {
             const auto* material = find_material(obj.material);
-            const auto* effect = material->effect();
-            render_command->bind_pipeline({.pipeline = effect->pipeline(), .bind_point = PipelineBindPoint::Graphics});
+            render_command->bind_pipeline({.pipeline = object_pass_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
             render_command->bind_descriptor({
                 .bind_point = PipelineBindPoint::Graphics,
                 .pipeline_layout = object_effect_.pipeline_layout(),
@@ -386,7 +384,7 @@ namespace orion
         return std::make_pair(id, &mesh.second);
     }
 
-    std::pair<material_id_t, Material*> Renderer::create_material(const Effect* effect, const MaterialData& data)
+    std::pair<material_id_t, Material*> Renderer::create_material(const MaterialData& data)
     {
         ORION_ASSERT(materials_.size() < std::numeric_limits<material_id_t>::max());
 
@@ -436,8 +434,7 @@ namespace orion
         const auto id = static_cast<material_id_t>(materials_.size());
         auto& material = materials_.emplace_back(std::piecewise_construct,
                                                  std::forward_as_tuple(id),
-                                                 std::forward_as_tuple(effect,
-                                                                       render_device_->to_unique(constant_buffer),
+                                                 std::forward_as_tuple(render_device_->to_unique(constant_buffer),
                                                                        render_device_->to_unique(descriptor),
                                                                        data));
         return std::make_pair(id, &material.second);
