@@ -70,6 +70,14 @@ namespace orion
         return handle;
     }
 
+    DescriptorHandle RenderDevice::create_descriptor(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle, const DescriptorWrite& write)
+    {
+        auto handle = create_descriptor_api(descriptor_layout_handle, descriptor_pool_handle);
+        write_descriptor_api(handle, {&write, 1});
+        SPDLOG_LOGGER_DEBUG(logger(), "Created and updated descriptor with handle {}", handle);
+        return handle;
+    }
+
     PipelineLayoutHandle RenderDevice::create_pipeline_layout(const PipelineLayoutDesc& desc)
     {
         auto handle = create_pipeline_layout_api(desc);
