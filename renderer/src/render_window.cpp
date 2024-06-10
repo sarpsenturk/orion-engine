@@ -6,7 +6,7 @@
 
 namespace orion
 {
-    RenderWindow::RenderWindow(std::unique_ptr<Swapchain> swapchain, static_vector<RenderTarget, frames_in_flight> render_targets)
+    RenderWindow::RenderWindow(std::unique_ptr<Swapchain> swapchain, std::array<RenderTarget, frames_in_flight> render_targets)
         : swapchain_(std::move(swapchain))
         , render_targets_(std::move(render_targets))
     {
@@ -27,18 +27,16 @@ namespace orion
             .vsync = true, // TODO: make this configurable
         };
         auto swapchain = device->create_swapchain(*window, swapchain_desc);
-
-        static_vector<RenderTarget, frames_in_flight> render_targets;
-        for (int i = 0; i < frames_in_flight; ++i) {
+        auto make_render_target = [device, window, swapchain_ptr = swapchain.get()](frame_index_t frame_index) {
             const auto render_target_desc = RenderTargetDesc{
                 .size = window->size(),
                 .image_usage = ImageUsageFlags::ColorAttachment,
                 .initial_layout = ImageLayout::Undefined,
                 .final_layout = ImageLayout::PresentSrc,
             };
-            render_targets.push_back(create_render_target(device, swapchain->get_image(i), render_target_desc));
-        }
+            return create_render_target(device, swapchain_ptr->get_image(frame_index), render_target_desc);
+        };
 
-        return RenderWindow{std::move(swapchain), std::move(render_targets)};
+        return RenderWindow{std::move(swapchain), generate_per_frame(make_render_target)};
     }
 } // namespace orion

@@ -2,7 +2,7 @@
 
 #include "orion-assets/config.h"
 
-#include "orion-renderer/config.h"
+#include "orion-renderer/frame.h"
 #include "orion-renderer/render_context.h"
 
 #include "orion-renderapi/device_resource.h"
@@ -42,10 +42,10 @@ namespace
         UniqueRenderPass render_pass;
         UniquePipeline pipeline;
 
+        frame_index_t frame_index = 0;
         static_vector<ImGui_ImplOrion_Buffers, frames_in_flight> buffers;
-        RenderContext* render_context;
 
-        auto& get_buffers() { return buffers[render_context->current_frame_index()]; }
+        auto& get_buffers() { return buffers[frame_index]; }
     };
 
     struct ImGui_ImplOrion_Constants {
@@ -146,7 +146,7 @@ namespace
         });
     }
 
-    UniqueImage ImGui_ImplOrion_Create_FontImage(RenderDevice* device, RenderContext* context)
+    UniqueImage ImGui_ImplOrion_Create_FontImage(RenderDevice* device, TransferContext* transfer)
     {
         unsigned char* pixels;
         int width;
@@ -164,7 +164,7 @@ namespace
         });
 
         const auto upload_size = std::size_t{width * height * 4 * sizeof(char)};
-        context->copy_image_staging({
+        transfer->copy_image_staging({
             .bytes = std::span{reinterpret_cast<std::byte*>(pixels), upload_size}, // ugly but ok? https://github.com/Microsoft/GSL/issues/589
             .dst = image,
             .dst_initial_layout = orion::ImageLayout::Undefined,
@@ -503,7 +503,7 @@ void ImGui_ImplOrion_Init(const ImGui_ImplOrion_Desc& desc)
     io.BackendPlatformName = "imgui_impl_orion";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
 
-    backend_data->font_image = ImGui_ImplOrion_Create_FontImage(desc.device, desc.context);
+    backend_data->font_image = ImGui_ImplOrion_Create_FontImage(desc.device, desc.transfer);
     backend_data->font_image_view = ImGui_ImplOrion_Create_FontImageView(desc.device, backend_data->font_image.get());
     backend_data->font_sampler = ImGui_ImplOrion_Create_FontSampler(desc.device);
     backend_data->font_descriptor_layout = ImGui_ImplOrion_Create_FontDescriptorLayout(desc.device);
@@ -516,7 +516,6 @@ void ImGui_ImplOrion_Init(const ImGui_ImplOrion_Desc& desc)
     backend_data->pipeline_layout = ImGui_ImplOrion_Create_PipelineLayout(desc.device, backend_data->font_descriptor_layout.get());
     backend_data->render_pass = ImGui_ImplOrion_Create_Renderpass(desc.device);
     backend_data->pipeline = ImGui_ImplOrion_Create_Pipeline(desc.device, backend_data->pipeline_layout.get(), backend_data->render_pass.get());
-    backend_data->render_context = desc.context;
 
     io.DisplaySize.x = static_cast<float>(desc.display_size.x());
     io.DisplaySize.y = static_cast<float>(desc.display_size.y());
@@ -537,11 +536,13 @@ void ImGui_ImplOrion_Shutdown()
 
 void ImGui_ImplOrion_NewFrame()
 {
-    ORION_ASSERT(ImGui_ImplOrion_GetBackendData() != nullptr && "ImGui backend not initialized! Did you call ImGui_ImplOrion_Init()?");
+    auto* backend = ImGui_ImplOrion_GetBackendData();
+    ORION_ASSERT(backend != nullptr && "ImGui backend not initialized! Did you call ImGui_ImplOrion_Init()?");
     ImGui::GetIO().DeltaTime = 0.016f; // Fixed to 60fps TODO: change this?!
+    backend->frame_index = (backend->frame_index + 1) % frames_in_flight;
 }
 
-void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
+void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::RenderDevice* device, orion::CommandList* command_list)
 {
     // Don't render if minimized
     if (draw_data->DisplaySize.x <= 0.f || draw_data->DisplaySize.y <= 0.f) {
@@ -563,7 +564,6 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
         const auto ib_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 
         if (buffers.vertex_buffer_size < vb_size) {
-            auto* device = backend->render_context->device();
             buffers.vertex_buffer = device->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
                 .size = vb_size,
                 .usage = orion::GPUBufferUsageFlags::VertexBuffer,
@@ -572,7 +572,6 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
             buffers.vertex_buffer_size = vb_size;
         }
         if (buffers.index_buffer_size < ib_size) {
-            auto* device = backend->render_context->device();
             buffers.index_buffer = device->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
                 .size = ib_size,
                 .usage = orion::GPUBufferUsageFlags::IndexBuffer,
@@ -584,8 +583,8 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
 
     // Upload vertex and index data
     {
-        void* vtx_ptr = backend->render_context->device()->map(buffers.vertex_buffer.get());
-        void* idx_ptr = backend->render_context->device()->map(buffers.index_buffer.get());
+        void* vtx_ptr = device->map(buffers.vertex_buffer.get());
+        void* idx_ptr = device->map(buffers.index_buffer.get());
         for (auto* imgui_cmd_list : std::span{draw_data->CmdLists, static_cast<std::size_t>(draw_data->CmdListsCount)}) {
             const auto vertices = std::as_bytes(std::span{imgui_cmd_list->VtxBuffer});
             std::memcpy(vtx_ptr, vertices.data(), vertices.size_bytes());
@@ -594,23 +593,21 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
             std::memcpy(idx_ptr, indices.data(), indices.size_bytes());
             idx_ptr = static_cast<char*>(idx_ptr) + indices.size_bytes();
         }
-        backend->render_context->device()->unmap(buffers.vertex_buffer.get());
-        backend->render_context->device()->unmap(buffers.index_buffer.get());
+        device->unmap(buffers.vertex_buffer.get());
+        device->unmap(buffers.index_buffer.get());
     }
 
-    auto* render_command = backend->render_context->render_command();
-
     // Set pipeline
-    render_command->bind_pipeline({.pipeline = backend->pipeline.get(), .bind_point = orion::PipelineBindPoint::Graphics});
+    command_list->bind_pipeline({.pipeline = backend->pipeline.get(), .bind_point = orion::PipelineBindPoint::Graphics});
 
     // Bind vertex buffer
-    render_command->bind_vertex_buffer({.vertex_buffer = buffers.vertex_buffer.get(), .offset = 0});
+    command_list->bind_vertex_buffer({.vertex_buffer = buffers.vertex_buffer.get(), .offset = 0});
 
     // Bind index buffer
-    render_command->bind_index_buffer({.index_buffer = buffers.index_buffer.get(), .offset = 0, .index_type = orion::IndexType::Uint16});
+    command_list->bind_index_buffer({.index_buffer = buffers.index_buffer.get(), .offset = 0, .index_type = orion::IndexType::Uint16});
 
     // Bind font descriptor
-    render_command->bind_descriptor({
+    command_list->bind_descriptor({
         .bind_point = orion::PipelineBindPoint::Graphics,
         .pipeline_layout = backend->pipeline_layout.get(),
         .index = 0,
@@ -624,7 +621,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
         .scale = scale,
         .translation = translation,
     };
-    render_command->push_constants({
+    command_list->push_constants({
         .pipeline_layout = backend->pipeline_layout.get(),
         .shader_stages = orion::ShaderStageFlags::Vertex,
         .offset = 0,
@@ -633,7 +630,7 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
     });
 
     // Set viewport
-    render_command->set_viewports({
+    command_list->set_viewports({
         .position = {},
         .size = {draw_data->DisplaySize.x, draw_data->DisplaySize.y},
         .depth = {0.f, 1.f},
@@ -653,12 +650,12 @@ void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data)
                 continue;
 
             // Set scissor
-            render_command->set_scissors({
+            command_list->set_scissors({
                 .offset = {static_cast<int>(clip_min.x), static_cast<int>(clip_min.y)},
                 .size = {static_cast<uint32_t>(clip_max.x - clip_min.x), static_cast<uint32_t>(clip_max.y - clip_min.y)},
             });
 
-            render_command->draw_indexed({
+            command_list->draw_indexed({
                 .index_count = draw_cmd.ElemCount,
                 .instance_count = 1,
                 .first_index = global_idx_offset + draw_cmd.IdxOffset,

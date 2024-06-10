@@ -2,14 +2,6 @@
 
 // clang-format off
 
-#cmakedefine ORION_FRAMES_IN_FLIGHT @ORION_FRAMES_IN_FLIGHT@
-static_assert(ORION_FRAMES_IN_FLIGHT > 0);
-namespace orion
-{
-    using frame_index_t = std::int8_t;
-    inline constexpr auto frames_in_flight = frame_index_t{ORION_FRAMES_IN_FLIGHT};
-}
-
 #cmakedefine01 ORION_RENDERER_HEADLESS
 
 // clang-format on

@@ -19,7 +19,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 # Create user imgui config file
 set(imgui_config_file ${CMAKE_BINARY_DIR}/include/imconfig.h)
 configure_file(imconfig.h.in ${imgui_config_file})
-target_compile_definitions(orion-renderer PUBLIC IMGUI_USER_CONFIG="${imgui_config_file}")
+target_compile_definitions(orion-renderer PUBLIC IMGUI_USER_CONFIG="${imgui_config_file}" ORION_FRAMES_IN_FLIGHT=${ORION_FRAMES_IN_FLIGHT})
 
 # Link with dependencies
 target_link_libraries(

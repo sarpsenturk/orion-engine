@@ -70,14 +70,6 @@ namespace orion
         return handle;
     }
 
-    DescriptorHandle RenderDevice::create_descriptor(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle, const DescriptorWrite& write)
-    {
-        auto handle = create_descriptor_api(descriptor_layout_handle, descriptor_pool_handle);
-        write_descriptor_api(handle, {&write, 1});
-        SPDLOG_LOGGER_DEBUG(logger(), "Created and updated descriptor with handle {}", handle);
-        return handle;
-    }
-
     PipelineLayoutHandle RenderDevice::create_pipeline_layout(const PipelineLayoutDesc& desc)
     {
         auto handle = create_pipeline_layout_api(desc);
@@ -276,6 +268,46 @@ namespace orion
     void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, const DescriptorWrite& write)
     {
         write_descriptor_api(descriptor_handle, {{write}});
+    }
+
+    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, DescriptorType type, const BufferDescriptorDesc& buffer)
+    {
+        const auto write = DescriptorWrite{
+            .binding = binding,
+            .descriptor_type = type,
+            .array_start = 0,
+            .buffers = {&buffer, 1},
+        };
+        write_descriptor(descriptor_handle, write);
+    }
+
+    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, ImageViewHandle image_view_handle, ImageLayout layout)
+    {
+        const auto image_write = ImageDescriptorDesc{
+            .image_view_handle = image_view_handle,
+            .image_layout = layout,
+        };
+        const auto write = DescriptorWrite{
+            .binding = binding,
+            .descriptor_type = DescriptorType::SampledImage,
+            .array_start = 0,
+            .images = {&image_write, 1},
+        };
+        write_descriptor(descriptor_handle, write);
+    }
+
+    void RenderDevice::write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, SamplerHandle sampler)
+    {
+        const auto sampler_write = ImageDescriptorDesc{
+            .sampler_handle = sampler,
+        };
+        const auto write = DescriptorWrite{
+            .binding = binding,
+            .descriptor_type = DescriptorType::Sampler,
+            .array_start = 0,
+            .images = {&sampler_write, 1},
+        };
+        write_descriptor(descriptor_handle, write);
     }
 
     void RenderDevice::submit(const SubmitDesc& desc, FenceHandle signal_fence)

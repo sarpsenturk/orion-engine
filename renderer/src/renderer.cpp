@@ -1,6 +1,7 @@
 #include "orion-renderer/renderer.h"
 
 #include "orion-renderer/colors.h"
+#include "orion-renderer/frame.h"
 #include "orion-renderer/types.h"
 
 #include "orion-renderapi/config.h"
@@ -95,22 +96,21 @@ namespace orion
             //  We can't allocate a pool for UINT16_MAX descriptors with UINT16_MAX sizes each (I assume!??)
             //  Probably a free list approach where we create descriptor pools with N max_descriptors & N count for each DescriptorPoolSize
             //  and add them to a free list as materials are created would work.
-            const auto max_materials = 2;
             return device->create_descriptor_pool({
-                .max_descriptors = max_materials,
+                .max_descriptors = 16,
                 .flags = {},
                 .sizes = {{
                     DescriptorPoolSize{
                         .type = DescriptorType::ConstantBuffer,
-                        .count = max_materials,
+                        .count = 16,
                     },
                     DescriptorPoolSize{
                         .type = DescriptorType::SampledImage,
-                        .count = max_materials,
+                        .count = 16,
                     },
                     DescriptorPoolSize{
                         .type = DescriptorType::Sampler,
-                        .count = max_materials,
+                        .count = 16,
                     },
                 }},
             });
@@ -126,15 +126,27 @@ namespace orion
         : render_backend_module_(load_backend_module(desc.backend))
         , render_backend_(create_render_backend(render_backend_module_))
         , render_device_(create_render_device(render_backend_.get()))
+        , render_size_(desc.render_size)
         , object_effect_(create_shader_effect("object.vs", "object.ps"))
         , object_pass_(create_shader_pass(&object_effect_))
-        , render_size_(desc.render_size)
         , present_effect_(create_shader_effect("present.vs", "present.ps"))
         , present_pass_(create_shader_pass(&present_effect_))
+        , descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
+        , frame_data_(generate_per_frame(std::bind_front(std::mem_fn(&Renderer::create_frame_data), this)))
+        , scene_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(0), descriptor_pool_))
+        , object_data_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(2), descriptor_pool_))
+        , scene_cbuffer_(create_dynamic_buffer(render_device_.get(), sizeof(SceneCBuffer), GPUBufferUsageFlags::ConstantBuffer))
+        , object_buffer_(create_dynamic_buffer(render_device_.get(), sizeof(RenderObjGPUData) * max_render_objects, GPUBufferUsageFlags::StorageBuffer))
         , present_sampler_(create_present_sampler(render_device_.get()))
-        , render_context_(render_device_.get(), {desc.render_size, object_effect_.descriptor_layout(0), present_effect_.descriptor_layout(0), object_effect_.descriptor_layout(2), present_sampler_})
-        , material_descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
     {
+        for (frame_index_t index = 0; index < frames_in_flight; ++index) {
+            render_device_->write_descriptor(scene_descriptors_[index].get(), 0, DescriptorType::ConstantBuffer, scene_cbuffer_.descriptor_desc(index));
+            render_device_->write_descriptor(object_data_descriptors_[index].get(), 0, DescriptorType::StorageBuffer, object_buffer_.descriptor_desc(index));
+
+            const auto& frame_data = frame_data_[index];
+            render_device_->write_descriptor(frame_data.render_output_descriptor.get(), 0, frame_data.render_target.image_view(), ImageLayout::ShaderReadOnly);
+            render_device_->write_descriptor(frame_data.render_output_descriptor.get(), 1, present_sampler_);
+        }
         create_default_textures();
 
         SPDLOG_LOGGER_INFO(logger(), "Renderer initialized");
@@ -148,22 +160,18 @@ namespace orion
     {
         const auto object_index = objects_.size();
         objects_.push_back(obj);
-        void* dst = render_device_->map(render_context_.object_buffer());
-        const auto object_offset = object_index * sizeof(RenderObjBuffer);
-        dst = static_cast<char*>(dst) + object_offset;
-        // TODO: This is dangerous. If we change RenderObjBuffer but forget to memcpy the required bytes here
-        //  code will break.
-        std::memcpy(dst, obj.transform, sizeof(RenderObjBuffer));
-        render_device_->unmap(render_context_.object_buffer());
+
+        const auto obj_data = std::array{RenderObjGPUData{.transform = *obj.transform}};
+        object_buffer_.update(render_device_.get(), std::as_bytes(std::span{obj_data}), sizeof(RenderObjGPUData) * object_index);
     }
 
     void Renderer::render(const Camera& camera)
     {
-        auto& frame = render_context_.current_frame();
+        auto& frame = current_frame();
 
-        render_device_->wait_for_fence(frame.present_fence);
+        render_device_->wait_for_fence(frame.present_fence.get());
 
-        if (render_context_.current_frame_index() == 0) {
+        if (current_frame_index_ == 0) {
             render_device_->destroy_flush();
         }
 
@@ -195,22 +203,20 @@ namespace orion
             .size = render_size_,
         });
 
-        const auto cbuffer = render_context_.frame_cbuffer();
-        void* dst = render_device_->map(cbuffer);
-        std::memcpy(dst, &camera.view_projection(), sizeof(Matrix4_f));
-        render_device_->unmap(cbuffer);
+        const auto scene_data = std::array{SceneCBuffer{.view_projection = camera.view_projection()}};
+        scene_cbuffer_.update(render_device_.get(), std::as_bytes(std::span{scene_data}));
         render_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
             .pipeline_layout = object_effect_.pipeline_layout(),
             .index = descriptor_index_frame,
-            .descriptor = render_context_.frame_descriptor(),
+            .descriptor = scene_descriptors_[scene_cbuffer_.index()].get(),
         });
 
         render_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
             .pipeline_layout = object_effect_.pipeline_layout(),
             .index = descriptor_index_object,
-            .descriptor = render_context_.object_descriptor(),
+            .descriptor = object_data_descriptors_[object_buffer_.index()].get(),
         });
 
         for (std::size_t index = 0; const auto& obj : objects_) {
@@ -242,29 +248,29 @@ namespace orion
             ImGui::NewFrame();
             imgui_->on_draw();
             ImGui::Render();
-            ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData());
+            ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), render_device_.get(), render_command);
         }
 
         render_command->end_render_pass();
         render_command->end();
 
-        const auto render_semaphore = frame.render_semaphore;
+        const auto render_semaphore = frame.render_semaphore.get();
         const auto submit = SubmitDesc{
             .queue_type = CommandQueueType::Graphics,
             .command_lists = {&render_command, 1},
             .signal_semaphores = {&render_semaphore, 1},
         };
-        render_device_->submit(submit, frame.render_fence);
+        render_device_->submit(submit, frame.render_fence.get());
 
-        render_context_.advance_frame();
+        advance_frame();
     }
 
     void Renderer::present_to(const RenderTarget& render_target)
     {
-        auto& frame = render_context_.previous_frame();
+        auto& frame = previous_frame();
 
         // Wait for renderer to finish rendering
-        render_device_->wait_for_fence(frame.render_fence);
+        render_device_->wait_for_fence(frame.render_fence.get());
 
         auto* present_command = frame.present_command.get();
 
@@ -282,7 +288,7 @@ namespace orion
             .bind_point = PipelineBindPoint::Graphics,
             .pipeline_layout = present_effect_.pipeline_layout(),
             .index = 0,
-            .descriptor = frame.render_output_descriptor,
+            .descriptor = frame.render_output_descriptor.get(),
         });
         present_command->set_viewports(Viewport{
             .position = {0.f, 0.f},
@@ -298,21 +304,21 @@ namespace orion
         present_command->end_render_pass();
         present_command->end();
 
-        const auto render_semaphore = frame.render_semaphore;
-        const auto present_semaphore = frame.present_semaphore;
+        const auto render_semaphore = frame.render_semaphore.get();
+        const auto present_semaphore = frame.present_semaphore.get();
         const auto submit = SubmitDesc{
             .queue_type = CommandQueueType::Graphics,
             .wait_semaphores = {&render_semaphore, 1},
             .command_lists = {&present_command, 1},
             .signal_semaphores = {&present_semaphore, 1},
         };
-        render_device_->submit(submit, frame.present_fence);
+        render_device_->submit(submit, frame.present_fence.get());
     }
 
     void Renderer::present(RenderWindow& render_window)
     {
         present_to(render_window.acquire_render_target());
-        const auto present_semaphore = render_context_.previous_frame().present_semaphore;
+        const auto present_semaphore = previous_frame().present_semaphore.get();
         render_window.present({&present_semaphore, 1});
     }
 
@@ -321,13 +327,45 @@ namespace orion
         return ::orion::create_render_window(render_device_.get(), &window);
     }
 
+    Renderer::FrameData Renderer::create_frame_data(frame_index_t)
+    {
+        auto command_allocator = render_device_->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = false});
+        auto render_command = command_allocator->create_command_list();
+        auto present_command = command_allocator->create_command_list();
+
+        const auto render_target_desc = RenderTargetDesc{
+            .size = render_size_,
+            .image_usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage,
+            .initial_layout = ImageLayout::Undefined,
+            .final_layout = ImageLayout::ShaderReadOnly,
+        };
+
+        return {
+            .command_allocator = std::move(command_allocator),
+            .render_command = std::move(render_command),
+            .render_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = false}),
+            .render_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
+            .render_target = create_render_target(render_device_.get(), render_target_desc),
+            .render_output_descriptor = render_device_->make_unique<DescriptorHandle_tag>(present_effect_.descriptor_layout(0), descriptor_pool_),
+            .present_command = std::move(present_command),
+            .present_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = true}),
+            .present_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
+            .staging_buffer = render_device_->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
+                .size = staging_buffer_size,
+                .usage = GPUBufferUsageFlags::TransferSrc,
+                .host_visible = true,
+            }),
+        };
+    }
+
     void Renderer::imgui_init()
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         auto& io = ImGui::GetIO();
         io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard;
-        ImGui_ImplOrion_Init({render_device_.get(), &render_context_, render_size_});
+        auto transfer = transfer_context();
+        ImGui_ImplOrion_Init({render_device_.get(), &transfer, render_size_});
     }
 
     ShaderEffect Renderer::create_shader_effect(const FilePath& vs_path, const FilePath& ps_path)
@@ -362,7 +400,7 @@ namespace orion
         });
         SPDLOG_LOGGER_TRACE(logger(), "Created index buffer with size: {} bytes", indices.size_bytes());
 
-        render_context_.copy_buffer_staging({{
+        transfer_context().copy_buffer_staging({{
             CopyBufferStaging{
                 .bytes = std::as_bytes(vertices),
                 .dst = vertex_buffer,
@@ -399,10 +437,10 @@ namespace orion
         // Upload material data to GPU
         {
             const auto bytes = std::bit_cast<std::array<std::byte, sizeof(MaterialData)>>(data);
-            render_context_.copy_buffer_staging({.bytes = bytes, .dst = constant_buffer});
+            transfer_context().copy_buffer_staging({.bytes = bytes, .dst = constant_buffer});
         }
 
-        auto descriptor = render_device_->create_descriptor(object_effect_.descriptor_layout(1), material_descriptor_pool_);
+        auto descriptor = render_device_->create_descriptor(object_effect_.descriptor_layout(1), descriptor_pool_);
         // Write buffer, texture & sampler to descriptor
         {
             const auto buffer_write = BufferDescriptorDesc{.buffer_handle = constant_buffer, .region = {.size = buffer_size, .offset = 0}};
@@ -475,9 +513,9 @@ namespace orion
         });
 
         if (info.host_visible) {
-            render_context_.memcpy(image, bytes);
+            transfer_context().memcpy(image, bytes);
         } else {
-            render_context_.copy_image_staging({
+            transfer_context().copy_image_staging({
                 .bytes = bytes,
                 .dst = image,
                 .dst_initial_layout = ImageLayout::Undefined,
@@ -540,5 +578,17 @@ namespace orion
             static_assert(sizeof(tex_white_dat) == 4);
             create_texture(tex_white_info, std::as_bytes(std::span{tex_white_dat}));
         }
+    }
+
+    void Renderer::advance_frame()
+    {
+        previous_frame_index_ = current_frame_index_;
+        current_frame_index_ = (current_frame_index_ + 1) % frames_in_flight;
+    }
+
+    TransferContext Renderer::transfer_context()
+    {
+        auto& frame = current_frame();
+        return {render_device_.get(), frame.command_allocator.get(), frame.staging_buffer.get()};
     }
 } // namespace orion

@@ -3,7 +3,6 @@ target_sources(
         orion-renderapi PUBLIC
         FILE_SET public_headers
         FILES
-        buffer.h
         defs.h
         device_resource.h
         handles.h

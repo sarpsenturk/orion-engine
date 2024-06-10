@@ -9,17 +9,18 @@
 namespace orion
 {
     class RenderDevice;
-    class RenderContext;
+    class TransferContext;
+    class CommandList;
 } // namespace orion
 
 struct ImGui_ImplOrion_Desc {
     orion::RenderDevice* device;
-    orion::RenderContext* context;
+    orion::TransferContext* transfer;
     orion::Vector2_u display_size;
 };
 
 void ImGui_ImplOrion_Init(const ImGui_ImplOrion_Desc& desc);
 void ImGui_ImplOrion_Shutdown();
 void ImGui_ImplOrion_NewFrame();
-void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data);
+void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::RenderDevice* device, orion::CommandList* command_list);
 void ImGui_ImplOrion_OnEvent(const orion::WindowEvent& event);

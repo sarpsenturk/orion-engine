@@ -38,7 +38,6 @@ namespace orion
         [[nodiscard]] DescriptorLayoutHandle create_descriptor_layout(const DescriptorLayoutDesc& desc);
         [[nodiscard]] DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
         [[nodiscard]] DescriptorHandle create_descriptor(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle);
-        [[nodiscard]] DescriptorHandle create_descriptor(DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle, const DescriptorWrite& write);
         [[nodiscard]] PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
         [[nodiscard]] PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         [[nodiscard]] GPUBufferHandle create_buffer(const GPUBufferDesc& desc);
@@ -54,7 +53,6 @@ namespace orion
         [[nodiscard]] DescriptorLayoutHandle create(DescriptorLayoutHandle_tag, const DescriptorLayoutDesc& desc) { return create_descriptor_layout(desc); }
         [[nodiscard]] DescriptorPoolHandle create(DescriptorPoolHandle_tag, const DescriptorPoolDesc& desc) { return create_descriptor_pool(desc); }
         [[nodiscard]] DescriptorHandle create(DescriptorHandle_tag, DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle) { return create_descriptor(descriptor_layout_handle, descriptor_pool_handle); }
-        [[nodiscard]] DescriptorHandle create(DescriptorHandle_tag, DescriptorLayoutHandle descriptor_layout_handle, DescriptorPoolHandle descriptor_pool_handle, const DescriptorWrite& write) { return create_descriptor(descriptor_layout_handle, descriptor_pool_handle, write); }
         [[nodiscard]] PipelineLayoutHandle create(PipelineLayoutHandle_tag, const PipelineLayoutDesc& desc) { return create_pipeline_layout(desc); }
         [[nodiscard]] PipelineHandle create(PipelineHandle_tag, const GraphicsPipelineDesc& desc) { return create_graphics_pipeline(desc); }
         [[nodiscard]] GPUBufferHandle create(GPUBufferHandle_tag, const GPUBufferDesc& desc) { return create_buffer(desc); }
@@ -106,6 +104,9 @@ namespace orion
 
         void write_descriptor(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> writes);
         void write_descriptor(DescriptorHandle descriptor_handle, const DescriptorWrite& write);
+        void write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, DescriptorType type, const BufferDescriptorDesc& buffer);
+        void write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, ImageViewHandle image_view_handle, ImageLayout layout);
+        void write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, SamplerHandle sampler);
 
         void submit(const SubmitDesc& desc, FenceHandle signal_fence);
         void submit_immediate(const SubmitDesc& desc);

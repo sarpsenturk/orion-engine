@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion-renderer/buffer.h"
 #include "orion-renderer/camera.h"
 #include "orion-renderer/config.h"
 #include "orion-renderer/imgui.h"
@@ -78,6 +79,7 @@ namespace orion
 
         ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
         ShaderPass create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc = {});
+
         std::pair<mesh_id_t, Mesh*> create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
         std::pair<material_id_t, Material*> create_material(const MaterialData& data);
         std::pair<texture_id_t, Texture*> create_texture(TextureInfo info, std::span<const std::byte> bytes);
@@ -87,25 +89,60 @@ namespace orion
         [[nodiscard]] Material* find_material(material_id_t material_id);
 
     private:
+        struct FrameData {
+            std::unique_ptr<CommandAllocator> command_allocator;
+
+            std::unique_ptr<CommandList> render_command;
+            UniqueFence render_fence;
+            UniqueSemaphore render_semaphore;
+            RenderTarget render_target;
+            UniqueDescriptor render_output_descriptor;
+
+            std::unique_ptr<CommandList> present_command;
+            UniqueFence present_fence;
+            UniqueSemaphore present_semaphore;
+
+            UniqueGPUBuffer staging_buffer;
+        };
+
+        FrameData create_frame_data(frame_index_t frame_index);
+
         void imgui_init();
         void create_default_textures();
+
+        static constexpr std::size_t max_render_objects = 1000;
+        static constexpr std::size_t staging_buffer_size = 1024 * 1024;
 
         Module render_backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+        Vector2_u render_size_;
 
         ShaderEffect object_effect_;
         ShaderPass object_pass_;
 
-        Vector2_u render_size_;
-
         ShaderEffect present_effect_;
         ShaderPass present_pass_;
+
+        DescriptorPoolHandle descriptor_pool_;
+
+        PerFrame<FrameData> frame_data_;
+        frame_index_t current_frame_index_ = 0;
+        frame_index_t previous_frame_index_ = -1;
+
+        FrameData& current_frame() { return frame_data_[current_frame_index_]; }
+        FrameData& previous_frame() { return frame_data_[previous_frame_index_]; }
+        void advance_frame();
+
+        TransferContext transfer_context();
+
+        PerFrame<UniqueDescriptor> scene_descriptors_;
+        PerFrame<UniqueDescriptor> object_data_descriptors_;
+
+        DynamicGPUBuffer scene_cbuffer_;
+        DynamicGPUBuffer object_buffer_;
+
         SamplerHandle present_sampler_;
-
-        RenderContext render_context_;
-
-        DescriptorPoolHandle material_descriptor_pool_;
 
         std::vector<std::pair<mesh_id_t, Mesh>> meshes_;
         std::vector<std::pair<material_id_t, Material>> materials_;

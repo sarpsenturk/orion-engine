@@ -10,7 +10,7 @@ namespace orion
         Matrix4_f view_projection;
     };
 
-    struct RenderObjBuffer {
+    struct RenderObjGPUData {
         Matrix4_f transform;
     };
 

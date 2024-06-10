@@ -11,9 +11,6 @@ namespace orion
         Color color = colors::white;
     };
 
-    // Forward declare
-    class RenderContext;
-
     class Material
     {
     public:
