@@ -12,12 +12,7 @@ namespace orion
     {
     }
 
-    void RenderWindow::present(std::span<const SemaphoreHandle> wait_semaphores)
-    {
-        swapchain_->present(wait_semaphores);
-    }
-
-    RenderWindow create_render_window(RenderDevice* device, const Window* window)
+    RenderWindow RenderWindow::create(RenderDevice* device, const Window* window)
     {
         const auto swapchain_desc = SwapchainDesc{
             .image_count = frames_in_flight,
@@ -34,9 +29,14 @@ namespace orion
                 .initial_layout = ImageLayout::Undefined,
                 .final_layout = ImageLayout::PresentSrc,
             };
-            return create_render_target(device, swapchain_ptr->get_image(frame_index), render_target_desc);
+            return RenderTarget::create(device, swapchain_ptr->get_image(frame_index), render_target_desc);
         };
 
         return RenderWindow{std::move(swapchain), generate_per_frame(make_render_target)};
+    }
+
+    void RenderWindow::present(std::span<const SemaphoreHandle> wait_semaphores)
+    {
+        swapchain_->present(wait_semaphores);
     }
 } // namespace orion

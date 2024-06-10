@@ -135,8 +135,8 @@ namespace orion
         , frame_data_(generate_per_frame(std::bind_front(std::mem_fn(&Renderer::create_frame_data), this)))
         , scene_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(0), descriptor_pool_))
         , object_data_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(2), descriptor_pool_))
-        , scene_cbuffer_(create_dynamic_buffer(render_device_.get(), sizeof(SceneCBuffer), GPUBufferUsageFlags::ConstantBuffer))
-        , object_buffer_(create_dynamic_buffer(render_device_.get(), sizeof(RenderObjGPUData) * max_render_objects, GPUBufferUsageFlags::StorageBuffer))
+        , scene_cbuffer_(DynamicGPUBuffer::create(render_device_.get(), sizeof(SceneCBuffer), GPUBufferUsageFlags::ConstantBuffer))
+        , object_buffer_(DynamicGPUBuffer::create(render_device_.get(), sizeof(RenderObjGPUData) * max_render_objects, GPUBufferUsageFlags::StorageBuffer))
         , present_sampler_(create_present_sampler(render_device_.get()))
     {
         for (frame_index_t index = 0; index < frames_in_flight; ++index) {
@@ -324,7 +324,7 @@ namespace orion
 
     RenderWindow Renderer::create_render_window(const Window& window)
     {
-        return ::orion::create_render_window(render_device_.get(), &window);
+        return RenderWindow::create(render_device_.get(), &window);
     }
 
     Renderer::FrameData Renderer::create_frame_data(frame_index_t)
@@ -345,7 +345,7 @@ namespace orion
             .render_command = std::move(render_command),
             .render_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = false}),
             .render_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
-            .render_target = create_render_target(render_device_.get(), render_target_desc),
+            .render_target = RenderTarget::create(render_device_.get(), render_target_desc),
             .render_output_descriptor = render_device_->make_unique<DescriptorHandle_tag>(present_effect_.descriptor_layout(0), descriptor_pool_),
             .present_command = std::move(present_command),
             .present_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = true}),
@@ -371,12 +371,12 @@ namespace orion
     ShaderEffect Renderer::create_shader_effect(const FilePath& vs_path, const FilePath& ps_path)
     {
         const auto base_path = FilePath{render_device_->shader_base_path()};
-        return ::orion::create_shader_effect(render_device_.get(), base_path / vs_path, base_path / ps_path);
+        return ShaderEffect::create(render_device_.get(), base_path / vs_path, base_path / ps_path);
     }
 
     ShaderPass Renderer::create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc)
     {
-        return ::orion::create_shader_pass(render_device_.get(), effect, desc);
+        return ShaderPass::create(render_device_.get(), effect, desc);
     }
 
     std::pair<mesh_id_t, Mesh*> Renderer::create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices)

@@ -27,6 +27,17 @@ namespace orion
         };
     }
 
+    DynamicGPUBuffer DynamicGPUBuffer::create(RenderDevice* device, std::size_t size, GPUBufferUsageFlags usage)
+    {
+        const auto total_size = size * frames_in_flight;
+        auto buffer = device->create_buffer({
+            .size = total_size,
+            .usage = usage,
+            .host_visible = true, // TODO: Reconsider this
+        });
+        return {device->to_unique(buffer), size};
+    }
+
     void DynamicGPUBuffer::update(RenderDevice* device, std::span<const std::byte> bytes, std::size_t offset)
     {
         ORION_ASSERT(bytes.size_bytes() <= size_);
@@ -38,16 +49,5 @@ namespace orion
         dst = static_cast<char*>(dst) + frame_offset + offset;
         std::memcpy(dst, bytes.data(), bytes.size_bytes());
         device->unmap(buffer_.get());
-    }
-
-    DynamicGPUBuffer create_dynamic_buffer(RenderDevice* device, std::size_t size, GPUBufferUsageFlags usage)
-    {
-        const auto total_size = size * frames_in_flight;
-        auto buffer = device->create_buffer({
-            .size = total_size,
-            .usage = usage,
-            .host_visible = true, // TODO: Reconsider this
-        });
-        return {device->to_unique(buffer), size};
     }
 } // namespace orion

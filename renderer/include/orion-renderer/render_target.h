@@ -12,10 +12,23 @@ namespace orion
     using RenderTargetImage = std::variant<ImageHandle, UniqueImage>;
     ImageHandle get_image_handle(const RenderTargetImage& render_target_image);
 
+    struct RenderTargetDesc {
+        Vector2_u size;
+        ImageUsageFlags image_usage = ImageUsageFlags::ColorAttachment;
+        ImageLayout initial_layout = ImageLayout::Undefined;
+        ImageLayout final_layout = ImageLayout::General;
+    };
+
+    // Forward declare
+    class RenderDevice;
+
     class RenderTarget
     {
     public:
         RenderTarget(RenderTargetImage image, UniqueImageView image_view, UniqueRenderPass render_pass, UniqueFramebuffer framebuffer);
+
+        static RenderTarget create(RenderDevice* device, ImageHandle image, const RenderTargetDesc& desc);
+        static RenderTarget create(RenderDevice* device, const RenderTargetDesc& desc);
 
         [[nodiscard]] ImageViewHandle image_view() const noexcept { return image_view_.get(); }
         [[nodiscard]] FramebufferHandle framebuffer() const noexcept { return framebuffer_.get(); }
@@ -27,17 +40,4 @@ namespace orion
         UniqueRenderPass render_pass_;
         UniqueFramebuffer framebuffer_;
     };
-
-    struct RenderTargetDesc {
-        Vector2_u size;
-        ImageUsageFlags image_usage = ImageUsageFlags::ColorAttachment;
-        ImageLayout initial_layout = ImageLayout::Undefined;
-        ImageLayout final_layout = ImageLayout::General;
-    };
-
-    // Forward declare
-    class RenderDevice;
-
-    RenderTarget create_render_target(RenderDevice* device, ImageHandle image, const RenderTargetDesc& desc);
-    RenderTarget create_render_target(RenderDevice* device, const RenderTargetDesc& desc);
 } // namespace orion

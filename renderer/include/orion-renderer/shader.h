@@ -11,6 +11,9 @@
 
 namespace orion
 {
+    // Forward declare
+    class RenderDevice;
+
     class ShaderEffect
     {
     public:
@@ -19,6 +22,8 @@ namespace orion
                      std::vector<VertexAttributeDesc> vertex_attributes,
                      std::array<UniqueDescriptorLayout, 4> descriptor_layouts,
                      UniquePipelineLayout pipeline_layout);
+
+        static ShaderEffect create(RenderDevice* device, const FilePath& vs_path, const FilePath& ps_path);
 
         [[nodiscard]] ShaderModuleHandle vertex_shader() const { return vertex_shader_.get(); }
         [[nodiscard]] ShaderModuleHandle pixel_shader() const { return pixel_shader_.get(); }
@@ -35,25 +40,6 @@ namespace orion
         UniquePipelineLayout pipeline_layout_;
     };
 
-    class ShaderPass
-    {
-    public:
-        ShaderPass(const ShaderEffect* effect, UniqueRenderPass render_pass, UniquePipeline pipeline);
-
-        [[nodiscard]] const ShaderEffect* effect() const { return effect_; }
-        [[nodiscard]] PipelineHandle pipeline() const { return pipeline_.get(); }
-
-    private:
-        const ShaderEffect* effect_;
-        UniqueRenderPass render_pass_;
-        UniquePipeline pipeline_;
-    };
-
-    // Forward declare
-    class RenderDevice;
-
-    ShaderEffect create_shader_effect(RenderDevice* device, const FilePath& vs_path, const FilePath& ps_path);
-
     enum class ShaderPassBlend {
         Disable,
         Add,
@@ -65,5 +51,19 @@ namespace orion
         ShaderPassBlend blend = ShaderPassBlend::Disable;
     };
 
-    ShaderPass create_shader_pass(RenderDevice* device, const ShaderEffect* effect, const ShaderPassDesc& desc);
+    class ShaderPass
+    {
+    public:
+        ShaderPass(const ShaderEffect* effect, UniqueRenderPass render_pass, UniquePipeline pipeline);
+
+        static ShaderPass create(RenderDevice* device, const ShaderEffect* effect, const ShaderPassDesc& desc);
+
+        [[nodiscard]] const ShaderEffect* effect() const { return effect_; }
+        [[nodiscard]] PipelineHandle pipeline() const { return pipeline_.get(); }
+
+    private:
+        const ShaderEffect* effect_;
+        UniqueRenderPass render_pass_;
+        UniquePipeline pipeline_;
+    };
 } // namespace orion

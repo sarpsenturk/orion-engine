@@ -61,12 +61,12 @@ namespace orion
     {
     }
 
-    RenderTarget create_render_target(RenderDevice* device, ImageHandle image, const RenderTargetDesc& desc)
+    RenderTarget RenderTarget::create(RenderDevice* device, ImageHandle image, const RenderTargetDesc& desc)
     {
         return make_render_target(device, image, desc);
     }
 
-    RenderTarget create_render_target(RenderDevice* device, const RenderTargetDesc& desc)
+    RenderTarget RenderTarget::create(RenderDevice* device, const RenderTargetDesc& desc)
     {
         auto image = device->create_image({
             .type = ImageType::Image2D,
