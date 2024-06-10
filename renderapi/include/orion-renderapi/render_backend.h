@@ -1,7 +1,7 @@
 #pragma once
 
 #include "orion-core/module.h"
-#include "orion-renderapi/defs.h"
+#include "orion-renderapi/physical_device.h"
 #include "orion-renderapi/render_device.h"
 
 #include <memory>

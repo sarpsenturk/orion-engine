@@ -2,7 +2,8 @@
 
 #include "orion-renderer/config.h"
 
-#include "orion-renderapi/defs.h"
+#include "orion-renderapi/buffer.h"
+#include "orion-renderapi/descriptor.h"
 #include "orion-renderapi/device_resource.h"
 
 #include <cstddef>

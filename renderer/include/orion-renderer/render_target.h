@@ -1,7 +1,7 @@
 #pragma once
 
-#include "orion-renderapi/defs.h"
 #include "orion-renderapi/device_resource.h"
+#include "orion-renderapi/image.h"
 
 #include "orion-math/vector/vector2.h"
 

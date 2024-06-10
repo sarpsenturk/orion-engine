@@ -120,6 +120,11 @@ namespace orion
         {
             return [id](const auto& pair) { return pair.first == id; };
         }
+
+        PerFrame<UniqueDescriptor> create_descriptor_per_frame(RenderDevice* device, DescriptorLayoutHandle layout, DescriptorPoolHandle pool)
+        {
+            return generate_per_frame([&](frame_index_t) { return device->make_unique<DescriptorHandle_tag>(layout, pool); });
+        }
     } // namespace
 
     Renderer::Renderer(const RendererDesc& desc)

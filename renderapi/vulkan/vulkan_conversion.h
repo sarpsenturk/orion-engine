@@ -2,9 +2,18 @@
 
 #include "vulkan_headers.h"
 
-#include "orion-renderapi/defs.h"
+#include "orion-renderapi/blend.h"
+#include "orion-renderapi/buffer.h"
+#include "orion-renderapi/descriptor.h"
+#include "orion-renderapi/format.h"
+#include "orion-renderapi/image.h"
+#include "orion-renderapi/physical_device.h"
+#include "orion-renderapi/pipeline.h"
+#include "orion-renderapi/render_pass.h"
+#include "orion-renderapi/types.h"
 
 #include "orion-math/vector/vector2.h"
+#include "orion-math/vector/vector4.h"
 
 namespace orion::vulkan
 {

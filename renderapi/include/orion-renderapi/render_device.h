@@ -1,11 +1,19 @@
 #pragma once
 
-#include "orion-renderapi/defs.h"
+#include "orion-renderapi/blend.h"
+#include "orion-renderapi/buffer.h"
+#include "orion-renderapi/descriptor.h"
 #include "orion-renderapi/device_resource.h"
+#include "orion-renderapi/format.h"
 #include "orion-renderapi/handles.h"
+#include "orion-renderapi/image.h"
+#include "orion-renderapi/queue.h"
 #include "orion-renderapi/render_command.h"
+#include "orion-renderapi/render_pass.h"
+#include "orion-renderapi/shader.h"
 #include "orion-renderapi/shader_reflection.h"
 #include "orion-renderapi/swapchain.h"
+#include "orion-renderapi/types.h"
 
 #include <memory>
 #include <span>

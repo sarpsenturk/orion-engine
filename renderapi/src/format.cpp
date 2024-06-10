@@ -1,49 +1,7 @@
-#include "orion-renderapi/defs.h"
-
-#include "orion-utils/assertion.h"
-#include "orion-utils/hash.h"
-
-#include <bit>
-#include <numeric>
+#include "orion-renderapi/format.h"
 
 namespace orion
 {
-    std::uint32_t vertex_input_stride(std::span<const VertexAttributeDesc> attributes)
-    {
-        return std::accumulate(attributes.begin(), attributes.end(), 0u, [](auto acc, const auto& attr) {
-            return acc + format_size(attr.format);
-        });
-    }
-
-    std::size_t DescriptorBindingDesc::hash() const
-    {
-        return std::bit_cast<std::size_t>(*this);
-    }
-
-    std::size_t DescriptorLayoutDesc::hash() const
-    {
-        return std::accumulate(bindings.begin(), bindings.end(), 0ull, [](auto acc, const auto& binding) {
-            return hash_combine(acc, binding.hash());
-        });
-    }
-
-    const char* format_as(PhysicalDeviceType type) noexcept
-    {
-        switch (type) {
-            case PhysicalDeviceType::Other:
-                break;
-            case PhysicalDeviceType::Integrated:
-                return "Integrated";
-            case PhysicalDeviceType::Discrete:
-                return "Discrete";
-            case PhysicalDeviceType::Virtual:
-                return "Virtual";
-            case PhysicalDeviceType::CPU:
-                return "CPU";
-        }
-        return "Other";
-    }
-
     const char* format_as(Format format) noexcept
     {
         switch (format) {

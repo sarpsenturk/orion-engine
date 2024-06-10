@@ -1,7 +1,11 @@
 #pragma once
 
-#include "defs.h"
-#include "handles.h"
+#include "orion-renderapi/image.h"
+#include "orion-renderapi/pipeline.h"
+#include "orion-renderapi/queue.h"
+#include "orion-renderapi/types.h"
+
+#include "orion-math/vector/vector4.h"
 
 #include <cstdint>
 #include <memory>
@@ -148,6 +152,11 @@ namespace orion
     };
 
     using CommandListPtr = std::unique_ptr<CommandList>;
+
+    struct CommandAllocatorDesc {
+        CommandQueueType queue_type;
+        bool reset_command_buffer;
+    };
 
     class CommandAllocator
     {

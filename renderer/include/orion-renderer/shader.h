@@ -1,7 +1,8 @@
 #pragma once
 
-#include "orion-renderapi/defs.h"
 #include "orion-renderapi/device_resource.h"
+#include "orion-renderapi/pipeline.h"
+#include "orion-renderapi/shader.h"
 
 #include "orion-core/filesystem.h"
 

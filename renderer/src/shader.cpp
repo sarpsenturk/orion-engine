@@ -105,6 +105,7 @@ namespace orion
                 case ShaderPassBlend::Add:
                     return blend_attachment_additive();
             }
+            unreachable();
         }
     } // namespace
 

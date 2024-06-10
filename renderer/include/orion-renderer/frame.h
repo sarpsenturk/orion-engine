@@ -1,8 +1,5 @@
 #pragma once
 
-#include "orion-renderapi/defs.h"
-#include "orion-renderapi/device_resource.h"
-
 #include <array>
 #include <concepts>
 #include <cstdint>
@@ -31,7 +28,4 @@ namespace orion
     {
         return generate_per_frame_impl(generator, std::make_integer_sequence<frame_index_t, frames_in_flight>{});
     }
-
-    class RenderDevice;
-    PerFrame<UniqueDescriptor> create_descriptor_per_frame(RenderDevice* device, DescriptorLayoutHandle layout, DescriptorPoolHandle pool);
 } // namespace orion

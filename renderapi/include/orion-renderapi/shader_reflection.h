@@ -1,6 +1,7 @@
 #pragma once
 
-#include "orion-renderapi/defs.h"
+#include "orion-renderapi/descriptor.h"
+#include "orion-renderapi/shader.h"
 
 #include "orion-utils/expected.h"
 
