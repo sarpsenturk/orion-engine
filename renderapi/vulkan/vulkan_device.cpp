@@ -11,7 +11,6 @@
 #include "orion-utils/static_vector.h"
 
 #include <array>
-#include <numeric>
 #include <ranges>
 #include <utility>
 
@@ -533,6 +532,45 @@ namespace orion::vulkan
             };
         }();
 
+        // Create compatible render pass
+        VkRenderPass compatible_render_pass = VK_NULL_HANDLE;
+        {
+            std::vector<VkAttachmentDescription> attachments(desc.render_targets.size());
+            std::ranges::transform(desc.render_targets, attachments.begin(), to_vulkan_attachment);
+            std::vector<VkAttachmentReference> attachment_refs(attachments.size());
+            std::ranges::transform(attachments, attachment_refs.begin(), [index = 0u](const VkAttachmentDescription&) mutable {
+                return VkAttachmentReference{
+                    .attachment = index++,
+                    .layout = VK_IMAGE_LAYOUT_GENERAL,
+                };
+            });
+            const auto subpass = VkSubpassDescription{
+                .flags = 0,
+                .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+                .inputAttachmentCount = 0,
+                .pInputAttachments = nullptr,
+                .colorAttachmentCount = static_cast<uint32_t>(attachments.size()),
+                .pColorAttachments = attachment_refs.data(),
+                .pResolveAttachments = nullptr,
+                .pDepthStencilAttachment = nullptr,
+                .preserveAttachmentCount = 0,
+                .pPreserveAttachments = nullptr,
+            };
+
+            const auto render_pass_info = VkRenderPassCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .attachmentCount = static_cast<uint32_t>(attachments.size()),
+                .pAttachments = attachments.data(),
+                .subpassCount = 1,
+                .pSubpasses = &subpass,
+                .dependencyCount = 0,
+                .pDependencies = nullptr,
+            };
+            vk_result_check(vkCreateRenderPass(vk_device(), &render_pass_info, alloc_callbacks(), &compatible_render_pass));
+        }
+
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
         {
@@ -552,7 +590,7 @@ namespace orion::vulkan
                 .pColorBlendState = &vk_color_blend,
                 .pDynamicState = &vk_dynamic_state,
                 .layout = pipeline_layout,
-                .renderPass = resource_manager_.find(desc.render_pass),
+                .renderPass = compatible_render_pass,
                 .subpass = 0,
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
@@ -560,6 +598,9 @@ namespace orion::vulkan
             vk_result_check(vkCreateGraphicsPipelines(vk_device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkPipeline {}", fmt::ptr(pipeline));
         }
+
+        // Destroy temporary compatible render pass
+        vkDestroyRenderPass(vk_device(), compatible_render_pass, alloc_callbacks());
 
         const auto handle = PipelineHandle::generate();
         resource_manager_.add(handle, pipeline);

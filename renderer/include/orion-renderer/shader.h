@@ -55,7 +55,7 @@ namespace orion
     class ShaderPass
     {
     public:
-        ShaderPass(const ShaderEffect* effect, UniqueRenderPass render_pass, UniquePipeline pipeline);
+        ShaderPass(const ShaderEffect* effect, UniquePipeline pipeline);
 
         static ShaderPass create(RenderDevice* device, const ShaderEffect* effect, const ShaderPassDesc& desc);
 
@@ -64,7 +64,6 @@ namespace orion
 
     private:
         const ShaderEffect* effect_;
-        UniqueRenderPass render_pass_;
         UniquePipeline pipeline_;
     };
 } // namespace orion

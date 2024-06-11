@@ -39,7 +39,6 @@ namespace
         UniqueDescriptor font_descriptor;
 
         UniquePipelineLayout pipeline_layout;
-        UniqueRenderPass render_pass;
         UniquePipeline pipeline;
 
         frame_index_t frame_index = 0;
@@ -70,19 +69,7 @@ namespace
         });
     }
 
-    UniqueRenderPass ImGui_ImplOrion_Create_Renderpass(RenderDevice* device)
-    {
-        return device->make_unique<RenderPassHandle_tag>(RenderPassDesc{
-            .bind_point = orion::PipelineBindPoint::Graphics,
-            .color_attachments = {{
-                AttachmentDesc{
-                    .format = orion::Format::B8G8R8A8_Srgb,
-                },
-            }},
-        });
-    }
-
-    UniquePipeline ImGui_ImplOrion_Create_Pipeline(RenderDevice* device, PipelineLayoutHandle pipeline_layout, RenderPassHandle render_pass)
+    UniquePipeline ImGui_ImplOrion_Create_Pipeline(RenderDevice* device, PipelineLayoutHandle pipeline_layout)
     {
         const auto vs_shader = device->make_unique<ShaderModuleHandle_tag>(ShaderModuleDesc{
             .byte_code = binary_input_file(FilePath{device->shader_base_path()} / "imgui.vs").read_all(),
@@ -134,7 +121,7 @@ namespace
         const auto color_blend = ColorBlendDesc{
             .attachments = color_blend_attachments,
         };
-
+        const auto render_targets = std::array{orion::Format::B8G8R8A8_Srgb};
         return device->make_unique<PipelineHandle_tag>(GraphicsPipelineDesc{
             shaders,
             vertex_attributes,
@@ -142,7 +129,7 @@ namespace
             input_assembly,
             rasterization,
             color_blend,
-            render_pass,
+            render_targets,
         });
     }
 
@@ -514,8 +501,7 @@ void ImGui_ImplOrion_Init(const ImGui_ImplOrion_Desc& desc)
                                                                           backend_data->font_image_view.get(),
                                                                           backend_data->font_sampler.get());
     backend_data->pipeline_layout = ImGui_ImplOrion_Create_PipelineLayout(desc.device, backend_data->font_descriptor_layout.get());
-    backend_data->render_pass = ImGui_ImplOrion_Create_Renderpass(desc.device);
-    backend_data->pipeline = ImGui_ImplOrion_Create_Pipeline(desc.device, backend_data->pipeline_layout.get(), backend_data->render_pass.get());
+    backend_data->pipeline = ImGui_ImplOrion_Create_Pipeline(desc.device, backend_data->pipeline_layout.get());
 
     io.DisplaySize.x = static_cast<float>(desc.display_size.x());
     io.DisplaySize.y = static_cast<float>(desc.display_size.y());

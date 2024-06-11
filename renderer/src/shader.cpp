@@ -124,9 +124,8 @@ namespace orion
         ORION_ASSERT(pixel_shader_.get() != ShaderModuleHandle::invalid());
     }
 
-    ShaderPass::ShaderPass(const ShaderEffect* effect, UniqueRenderPass render_pass, UniquePipeline pipeline)
+    ShaderPass::ShaderPass(const ShaderEffect* effect, UniquePipeline pipeline)
         : effect_(effect)
-        , render_pass_(std::move(render_pass))
         , pipeline_(std::move(pipeline))
     {
     }
@@ -136,17 +135,16 @@ namespace orion
         const auto shaders = effect->shader_stages();
         const auto blend_attachments = std::array{make_blend_attachment(desc.blend)};
         const auto color_blend = ColorBlendDesc{.enable_logic_op = false, .logic_op = LogicOp::Copy, .attachments = blend_attachments};
-        const auto color_attachments = std::array{AttachmentDesc{.format = Format::B8G8R8A8_Srgb}};
-        const auto render_pass = device->create_render_pass({.bind_point = PipelineBindPoint::Graphics, .color_attachments = color_attachments});
+        const auto render_targets = std::array{Format::B8G8R8A8_Srgb};
         const auto pipeline_desc = GraphicsPipelineDesc{
             .shaders = shaders,
             .vertex_attributes = effect->vertex_attributes(),
             .pipeline_layout = effect->pipeline_layout(),
             .rasterization = desc.rasterization,
             .color_blend = color_blend,
-            .render_pass = render_pass,
+            .render_targets = render_targets,
         };
-        return {effect, device->to_unique(render_pass), device->make_unique<PipelineHandle_tag>(pipeline_desc)};
+        return {effect, device->make_unique<PipelineHandle_tag>(pipeline_desc)};
     }
 
     std::array<ShaderStageDesc, 2> ShaderEffect::shader_stages() const

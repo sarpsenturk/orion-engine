@@ -70,7 +70,7 @@ namespace orion
         InputAssemblyDesc input_assembly = {};
         RasterizationDesc rasterization = {};
         ColorBlendDesc color_blend = {};
-        RenderPassHandle render_pass = RenderPassHandle::invalid();
+        std::span<const Format> render_targets;
     };
 
     struct Viewport {

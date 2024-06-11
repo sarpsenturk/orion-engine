@@ -52,4 +52,5 @@ namespace orion::vulkan
     VkOffset2D to_vulkan_offset(const Vector2_i& vec2);
     VkRect2D to_vulkan_rect(const Rect2D& rect2d);
     VkClearColorValue to_vulkan_clear_color(const Vector4_f& color);
+    VkAttachmentDescription to_vulkan_attachment(Format format);
 } // namespace orion::vulkan
