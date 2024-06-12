@@ -90,6 +90,23 @@ namespace orion
             });
         }
 
+        RenderPassHandle create_present_render_pass(RenderDevice* device)
+        {
+            return device->create_render_pass({
+                .bind_point = PipelineBindPoint::Graphics,
+                .color_attachments = {{
+                    AttachmentDesc{
+                        .format = Format::B8G8R8A8_Srgb,
+                        .load_op = AttachmentLoadOp::DontCare,
+                        .store_op = AttachmentStoreOp::Store,
+                        .initial_layout = ImageLayout::Undefined,
+                        .layout = ImageLayout::ColorAttachment,
+                        .final_layout = ImageLayout::PresentSrc,
+                    },
+                }},
+            });
+        }
+
         DescriptorPoolHandle create_material_descriptor_pool(RenderDevice* device)
         {
             // TODO: For more than 1 material we need a dynamic way to handle this.
@@ -136,6 +153,7 @@ namespace orion
         , object_pass_(create_shader_pass(&object_effect_))
         , present_effect_(create_shader_effect("present.vs", "present.ps"))
         , present_pass_(create_shader_pass(&present_effect_))
+        , present_render_pass_(create_present_render_pass(render_device_.get()))
         , descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
         , frame_data_(generate_per_frame(std::bind_front(std::mem_fn(&Renderer::create_frame_data), this)))
         , scene_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(0), descriptor_pool_))
@@ -174,9 +192,9 @@ namespace orion
     {
         auto& frame = current_frame();
 
-        render_device_->wait_for_fence(frame.present_fence.get());
+        render_device_->wait_for_fence(frame.frame_fence.get());
 
-        if (current_frame_index_ == 0) {
+        if (frame_counter_ % frames_in_flight == 0) {
             render_device_->destroy_flush();
         }
 
@@ -265,71 +283,7 @@ namespace orion
             .command_lists = {&render_command, 1},
             .signal_semaphores = {&render_semaphore, 1},
         };
-        render_device_->submit(submit, frame.render_fence.get());
-
-        advance_frame();
-    }
-
-    void Renderer::present_to(const RenderTarget& render_target)
-    {
-        auto& frame = previous_frame();
-
-        // Wait for renderer to finish rendering
-        render_device_->wait_for_fence(frame.render_fence.get());
-
-        auto* present_command = frame.present_command.get();
-
-        present_command->begin();
-        present_command->begin_render_pass({
-            .render_pass = render_target.render_pass(),
-            .framebuffer = render_target.framebuffer(),
-            .render_area = {
-                .offset = {0, 0},
-                .size = render_size_,
-            },
-        });
-        present_command->bind_pipeline({.pipeline = present_pass_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
-        present_command->bind_descriptor({
-            .bind_point = PipelineBindPoint::Graphics,
-            .pipeline_layout = present_effect_.pipeline_layout(),
-            .index = 0,
-            .descriptor = frame.render_output_descriptor.get(),
-        });
-        present_command->set_viewports(Viewport{
-            .position = {0.f, 0.f},
-            .size = vector_cast<float>(render_size_),
-            .depth = {0.f, 1.f},
-        });
-
-        present_command->set_scissors(Scissor{
-            .offset = {0, 0},
-            .size = render_size_,
-        });
-        present_command->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
-        present_command->end_render_pass();
-        present_command->end();
-
-        const auto render_semaphore = frame.render_semaphore.get();
-        const auto present_semaphore = frame.present_semaphore.get();
-        const auto submit = SubmitDesc{
-            .queue_type = CommandQueueType::Graphics,
-            .wait_semaphores = {&render_semaphore, 1},
-            .command_lists = {&present_command, 1},
-            .signal_semaphores = {&present_semaphore, 1},
-        };
-        render_device_->submit(submit, frame.present_fence.get());
-    }
-
-    void Renderer::present(RenderWindow& render_window)
-    {
-        present_to(render_window.acquire_render_target());
-        const auto present_semaphore = previous_frame().present_semaphore.get();
-        render_window.present({&present_semaphore, 1});
-    }
-
-    RenderWindow Renderer::create_render_window(const Window& window)
-    {
-        return RenderWindow::create(render_device_.get(), &window);
+        render_device_->submit(submit, FenceHandle::invalid());
     }
 
     Renderer::FrameData Renderer::create_frame_data(frame_index_t)
@@ -348,12 +302,12 @@ namespace orion
         return {
             .command_allocator = std::move(command_allocator),
             .render_command = std::move(render_command),
-            .render_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = false}),
-            .render_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
+            .present_command = std::move(present_command),
             .render_target = RenderTarget::create(render_device_.get(), render_target_desc),
             .render_output_descriptor = render_device_->make_unique<DescriptorHandle_tag>(present_effect_.descriptor_layout(0), descriptor_pool_),
-            .present_command = std::move(present_command),
-            .present_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = true}),
+            .frame_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = true}),
+            .render_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
+            .swapchain_image_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
             .present_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
             .staging_buffer = render_device_->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
                 .size = staging_buffer_size,
@@ -371,6 +325,81 @@ namespace orion
         io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard;
         auto transfer = transfer_context();
         ImGui_ImplOrion_Init({render_device_.get(), &transfer, render_size_});
+    }
+
+    SwapchainHandle Renderer::create_swapchain(const Window& window)
+    {
+        ORION_ASSERT(swapchain_.get() == SwapchainHandle::invalid() && "Only 1 swapchain is allowed");
+        const auto desc = SwapchainDesc{
+            .image_count = frames_in_flight,
+            .image_format = Format::B8G8R8A8_Srgb,
+            .image_size = window.size(),
+            .image_usage = ImageUsageFlags::ColorAttachment,
+            .vsync = true,
+        };
+        swapchain_ = render_device_->make_unique<SwapchainHandle_tag>(window, desc);
+        const auto framebuffer_count = render_device_->create_framebuffers_for_swapchain(swapchain_.get(), present_render_pass_, swapchain_framebuffers_);
+        ORION_ASSERT(framebuffer_count == frames_in_flight);
+        return swapchain_.get();
+    }
+
+    void Renderer::present()
+    {
+        auto& frame = current_frame();
+        auto* present_command = frame.present_command.get();
+
+        // Acquire swapchain image
+        const auto swapchain_image_semaphore = frame.swapchain_image_semaphore.get();
+        const auto image_index = render_device_->acquire_swapchain_image(swapchain_.get(), swapchain_image_semaphore);
+
+        // Begin a new render pass to render the internal output image to the back buffer
+        present_command->begin();
+        present_command->begin_render_pass({
+            .render_pass = present_render_pass_,
+            .framebuffer = swapchain_framebuffers_[image_index],
+            .render_area = {
+                .offset = {},
+                .size = render_size_, // TODO: Swapchain size and internal render size might be different
+            },
+            .clear_color = {},
+        });
+
+        present_command->bind_pipeline({.pipeline = present_pass_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+        present_command->bind_descriptor({
+            .bind_point = PipelineBindPoint::Graphics,
+            .pipeline_layout = present_effect_.pipeline_layout(),
+            .index = 0,
+            .descriptor = frame.render_output_descriptor.get(),
+        });
+        present_command->set_viewports(Viewport{
+            .position = {0.f, 0.f},
+            .size = vector_cast<float>(render_size_), // TODO: Swapchain size and internal render size might be different
+            .depth = {0.f, 1.f},
+        });
+        present_command->set_scissors(Scissor{
+            .offset = {0, 0},
+            .size = render_size_, // TODO: Swapchain size and internal render size might be different
+        });
+        present_command->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
+        present_command->end_render_pass();
+        present_command->end();
+
+        // Submit presentation commands
+        const auto wait_semaphores = std::array{swapchain_image_semaphore, frame.render_semaphore.get()};
+        const auto present_semaphore = std::array{frame.present_semaphore.get()};
+        const auto submit = SubmitDesc{
+            .queue_type = CommandQueueType::Graphics,
+            .wait_semaphores = wait_semaphores,
+            .command_lists = {&present_command, 1},
+            .signal_semaphores = present_semaphore,
+        };
+        render_device_->submit(submit, frame.frame_fence.get());
+
+        // Swap back buffers / present
+        render_device_->swapchain_present(swapchain_.get(), present_semaphore);
+
+        // Move to next frame index
+        advance_frame();
     }
 
     ShaderEffect Renderer::create_shader_effect(const FilePath& vs_path, const FilePath& ps_path)
@@ -587,8 +616,7 @@ namespace orion
 
     void Renderer::advance_frame()
     {
-        previous_frame_index_ = current_frame_index_;
-        current_frame_index_ = (current_frame_index_ + 1) % frames_in_flight;
+        ++frame_counter_;
     }
 
     TransferContext Renderer::transfer_context()

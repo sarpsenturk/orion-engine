@@ -11,7 +11,6 @@ target_sources(
         material.h
         mesh.h
         render_target.h
-        render_window.h
         renderer.h
         shader.h
         texture.h

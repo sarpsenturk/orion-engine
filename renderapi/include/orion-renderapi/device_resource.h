@@ -10,20 +10,24 @@ namespace orion
     // Forward declare
     class RenderDevice;
 
-    void device_destroy(RenderDevice* device, RenderPassHandle render_pass_handle);
-    void device_destroy(RenderDevice* device, FramebufferHandle framebuffer_handle);
-    void device_destroy(RenderDevice* device, ShaderModuleHandle shader_module_handle);
-    void device_destroy(RenderDevice* device, DescriptorLayoutHandle descriptor_layout_handle);
-    void device_destroy(RenderDevice* device, DescriptorPoolHandle descriptor_pool_handle);
-    void device_destroy(RenderDevice* device, DescriptorHandle descriptor_handle);
-    void device_destroy(RenderDevice* device, PipelineLayoutHandle pipeline_layout_handle);
-    void device_destroy(RenderDevice* device, PipelineHandle pipeline_handle);
-    void device_destroy(RenderDevice* device, GPUBufferHandle buffer_handle);
-    void device_destroy(RenderDevice* device, ImageHandle image_handle);
-    void device_destroy(RenderDevice* device, ImageViewHandle image_view_handle);
-    void device_destroy(RenderDevice* device, SamplerHandle sampler_handle);
-    void device_destroy(RenderDevice* device, FenceHandle fence_handle);
-    void device_destroy(RenderDevice* device, SemaphoreHandle semaphore_handle);
+    template<typename HandleType>
+    void device_destroy(RenderDevice* device, HandleType handle);
+
+    extern template void device_destroy(RenderDevice*, SwapchainHandle);
+    extern template void device_destroy(RenderDevice*, RenderPassHandle);
+    extern template void device_destroy(RenderDevice*, ShaderModuleHandle);
+    extern template void device_destroy(RenderDevice*, DescriptorLayoutHandle);
+    extern template void device_destroy(RenderDevice*, DescriptorPoolHandle);
+    extern template void device_destroy(RenderDevice*, DescriptorHandle);
+    extern template void device_destroy(RenderDevice*, PipelineLayoutHandle);
+    extern template void device_destroy(RenderDevice*, PipelineHandle);
+    extern template void device_destroy(RenderDevice*, GPUBufferHandle);
+    extern template void device_destroy(RenderDevice*, ImageHandle);
+    extern template void device_destroy(RenderDevice*, ImageViewHandle);
+    extern template void device_destroy(RenderDevice*, FramebufferHandle);
+    extern template void device_destroy(RenderDevice*, SamplerHandle);
+    extern template void device_destroy(RenderDevice*, FenceHandle);
+    extern template void device_destroy(RenderDevice*, SemaphoreHandle);
 
     template<typename Tag>
     class UniqueDeviceHandle
@@ -80,6 +84,7 @@ namespace orion
         handle_type handle_ = handle_type::invalid();
     };
 
+    using UniqueSwapchain = UniqueDeviceHandle<SwapchainHandle_tag>;
     using UniqueRenderPass = UniqueDeviceHandle<RenderPassHandle_tag>;
     using UniqueFramebuffer = UniqueDeviceHandle<FramebufferHandle_tag>;
     using UniqueShaderModule = UniqueDeviceHandle<ShaderModuleHandle_tag>;

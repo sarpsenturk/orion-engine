@@ -38,7 +38,8 @@ namespace orion
         [[nodiscard]] virtual const char* shader_base_path() const noexcept = 0;
 
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator(const CommandAllocatorDesc& desc);
-        [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(const Window& window, const SwapchainDesc& desc);
+        [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, const SwapchainDesc& desc);
+        [[nodiscard]] std::size_t create_framebuffers_for_swapchain(SwapchainHandle swapchain_handle, RenderPassHandle render_pass, std::span<FramebufferHandle> out_framebuffers);
         [[nodiscard]] std::unique_ptr<ShaderReflector> create_shader_reflector();
         [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
         [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
@@ -55,6 +56,7 @@ namespace orion
         [[nodiscard]] FenceHandle create_fence(const FenceDesc& desc);
         [[nodiscard]] SemaphoreHandle create_semaphore();
 
+        [[nodiscard]] SwapchainHandle create(SwapchainHandle_tag, const Window& window, const SwapchainDesc& desc) { return create_swapchain(window, desc); }
         [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
         [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
         [[nodiscard]] ShaderModuleHandle create(ShaderModuleHandle_tag, const ShaderModuleDesc& desc) { return create_shader_module(desc); }
@@ -82,6 +84,7 @@ namespace orion
             return {handle, this};
         }
 
+        void destroy(SwapchainHandle swapchain_handle);
         void destroy(RenderPassHandle render_pass_handle);
         void destroy(FramebufferHandle framebuffer_handle);
         void destroy(ShaderModuleHandle shader_module_handle);
@@ -97,6 +100,9 @@ namespace orion
         void destroy(FenceHandle fence_handle);
         void destroy(SemaphoreHandle semaphore_handle);
         void destroy_flush();
+
+        std::uint32_t acquire_swapchain_image(SwapchainHandle swapchain, SemaphoreHandle signal_semaphore);
+        void swapchain_present(SwapchainHandle swapchain, std::span<const SemaphoreHandle> wait_semaphores);
 
         [[nodiscard]] void* map(GPUBufferHandle buffer_handle);
         [[nodiscard]] void* map(ImageHandle image_handle);
@@ -129,7 +135,8 @@ namespace orion
 
     private:
         [[nodiscard]] virtual std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) = 0;
-        [[nodiscard]] virtual std::unique_ptr<Swapchain> create_swapchain_api(const Window& window, const SwapchainDesc& desc) = 0;
+        [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) = 0;
+        [[nodiscard]] virtual std::size_t create_framebuffers_for_swapchain_api(SwapchainHandle swapchain_handle, RenderPassHandle render_pass, std::span<FramebufferHandle> out_framebuffers) = 0;
         [[nodiscard]] virtual std::unique_ptr<ShaderReflector> create_shader_reflector_api() = 0;
         [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
         [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
@@ -146,6 +153,7 @@ namespace orion
         [[nodiscard]] virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
         [[nodiscard]] virtual SemaphoreHandle create_semaphore_api() = 0;
 
+        virtual void destroy_api(SwapchainHandle swapchain_handle) = 0;
         virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
         virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
@@ -163,6 +171,8 @@ namespace orion
 
         virtual void destroy_flush_api() = 0;
 
+        virtual std::uint32_t acquire_swapchain_image_api(SwapchainHandle swapchain, SemaphoreHandle signal_semaphore) = 0;
+        virtual void swapchain_present_api(SwapchainHandle swapchain, std::span<const SemaphoreHandle> wait_semaphores) = 0;
         [[nodiscard]] virtual void* map_api(GPUBufferHandle buffer_handle) = 0;
         [[nodiscard]] virtual void* map_api(ImageHandle image_handle) = 0;
         virtual void unmap_api(GPUBufferHandle buffer_handle) = 0;

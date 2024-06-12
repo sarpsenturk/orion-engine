@@ -15,6 +15,7 @@ namespace orion
     template<typename Tag>
     using RenderDeviceHandle = Handle<Tag, render_device_key_t>;
 
+    ORION_DEFINE_HANDLE(SwapchainHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(RenderPassHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(ShaderModuleHandle, render_device_key_t);
     ORION_DEFINE_HANDLE(DescriptorLayoutHandle, render_device_key_t);

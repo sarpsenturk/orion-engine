@@ -34,17 +34,19 @@ public:
     };
     static constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
 
+    static constexpr auto window_size = orion::defaults::window_size;
+
     SandboxApp()
-        : window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = orion::defaults::window_size})
-        , renderer_({.render_size = window_.size()})
+        : renderer_({.render_size = window_size})
+        , window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = window_size})
         , quad_mesh_(renderer_.create_mesh(vertices, indices).first)
         , blue_mat_(renderer_.create_material({.color = orion::colors::blue}).first)
         , green_mat_(renderer_.create_material({.color = orion::colors::lime}).first)
         , current_mat_(blue_mat_)
-        , render_window_(renderer_.create_render_window(window_))
         , camera_controller_(&camera_, orion::degrees(45.f), window_.aspect_ratio(), {0, 0, 5})
         , imgui_(renderer_.create_imgui_layer<SandboxImGui>())
     {
+        renderer_.create_swapchain(window_);
     }
 
 private:
@@ -118,17 +120,16 @@ private:
 
         renderer_.draw({quad_mesh_, current_mat_, &transform});
         renderer_.render(camera_);
-        renderer_.present(render_window_);
+        renderer_.present();
     }
 
-    orion::Window window_;
     orion::Renderer renderer_;
+    orion::Window window_;
     orion::mesh_id_t quad_mesh_;
     orion::material_id_t blue_mat_;
     orion::material_id_t green_mat_;
     orion::material_id_t current_mat_;
     orion::Matrix4_f transform = orion::Matrix4_f::identity();
-    orion::RenderWindow render_window_;
     orion::Camera camera_;
     orion::CameraController camera_controller_;
     float camera_speed_ = 2.f;

@@ -16,11 +16,18 @@ namespace orion
         return allocator;
     }
 
-    std::unique_ptr<Swapchain> RenderDevice::create_swapchain(const Window& window, const SwapchainDesc& desc)
+    SwapchainHandle RenderDevice::create_swapchain(const Window& window, const SwapchainDesc& desc)
     {
         auto swapchain = create_swapchain_api(window, desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain interface at {}", fmt::ptr(swapchain));
+        SPDLOG_LOGGER_DEBUG(logger(), "Created swapchain with handle {}", swapchain);
         return swapchain;
+    }
+
+    std::size_t RenderDevice::create_framebuffers_for_swapchain(SwapchainHandle swapchain_handle, RenderPassHandle render_pass, std::span<FramebufferHandle> out_framebuffers)
+    {
+        const auto framebuffer_count = create_framebuffers_for_swapchain_api(swapchain_handle, render_pass, out_framebuffers);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created {} framebuffers for swapchain {}", framebuffer_count, swapchain_handle);
+        return framebuffer_count;
     }
 
     std::unique_ptr<ShaderReflector> RenderDevice::create_shader_reflector()
@@ -126,6 +133,12 @@ namespace orion
         return handle;
     }
 
+    void RenderDevice::destroy(SwapchainHandle swapchain_handle)
+    {
+        destroy_api(swapchain_handle);
+        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed swapchain {}", swapchain_handle);
+    }
+
     void RenderDevice::destroy(RenderPassHandle render_pass_handle)
     {
         destroy_api(render_pass_handle);
@@ -213,6 +226,16 @@ namespace orion
     void RenderDevice::destroy_flush()
     {
         destroy_flush_api();
+    }
+
+    std::uint32_t RenderDevice::acquire_swapchain_image(SwapchainHandle swapchain, SemaphoreHandle signal_semaphore)
+    {
+        return acquire_swapchain_image_api(swapchain, signal_semaphore);
+    }
+
+    void RenderDevice::swapchain_present(SwapchainHandle swapchain, std::span<const SemaphoreHandle> wait_semaphores)
+    {
+        return swapchain_present_api(swapchain, wait_semaphores);
     }
 
     void* RenderDevice::map(GPUBufferHandle buffer_handle)

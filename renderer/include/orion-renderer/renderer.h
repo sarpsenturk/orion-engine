@@ -8,7 +8,6 @@
 #include "orion-renderer/mesh.h"
 #include "orion-renderer/render_context.h"
 #include "orion-renderer/render_target.h"
-#include "orion-renderer/render_window.h"
 #include "orion-renderer/shader.h"
 #include "orion-renderer/texture.h"
 #include "orion-renderer/types.h"
@@ -63,11 +62,6 @@ namespace orion
         void draw(const RenderObj& obj);
         void render(const Camera& camera);
 
-        void present_to(const RenderTarget& render_target);
-        void present(RenderWindow& render_window);
-
-        RenderWindow create_render_window(const Window& window);
-
         template<typename ImGuiLayerT>
         std::unique_ptr<ImGuiLayerT> create_imgui_layer()
         {
@@ -76,6 +70,9 @@ namespace orion
             imgui_ = layer.get();
             return layer;
         }
+
+        SwapchainHandle create_swapchain(const Window& window);
+        void present();
 
         ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
         ShaderPass create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc = {});
@@ -88,18 +85,20 @@ namespace orion
         [[nodiscard]] Texture* find_texture(texture_id_t texture_id);
         [[nodiscard]] Material* find_material(material_id_t material_id);
 
+        [[nodiscard]] std::int32_t frame_count() const { return frame_counter_; }
+
     private:
         struct FrameData {
             std::unique_ptr<CommandAllocator> command_allocator;
 
             std::unique_ptr<CommandList> render_command;
-            UniqueFence render_fence;
-            UniqueSemaphore render_semaphore;
+            std::unique_ptr<CommandList> present_command;
             RenderTarget render_target;
             UniqueDescriptor render_output_descriptor;
 
-            std::unique_ptr<CommandList> present_command;
-            UniqueFence present_fence;
+            UniqueFence frame_fence;
+            UniqueSemaphore render_semaphore;
+            UniqueSemaphore swapchain_image_semaphore;
             UniqueSemaphore present_semaphore;
 
             UniqueGPUBuffer staging_buffer;
@@ -123,15 +122,15 @@ namespace orion
 
         ShaderEffect present_effect_;
         ShaderPass present_pass_;
+        RenderPassHandle present_render_pass_;
 
         DescriptorPoolHandle descriptor_pool_;
 
         PerFrame<FrameData> frame_data_;
-        frame_index_t current_frame_index_ = 0;
-        frame_index_t previous_frame_index_ = -1;
+        std::int32_t frame_counter_ = 0;
 
-        FrameData& current_frame() { return frame_data_[current_frame_index_]; }
-        FrameData& previous_frame() { return frame_data_[previous_frame_index_]; }
+        FrameData& current_frame() { return frame_data_[frame_counter_ % frames_in_flight]; }
+        FrameData& previous_frame() { return frame_data_[(frame_counter_ - 1) % frames_in_flight]; }
         void advance_frame();
 
         TransferContext transfer_context();
@@ -151,5 +150,8 @@ namespace orion
         std::vector<RenderObj> objects_;
 
         ImGuiLayer* imgui_;
+
+        UniqueSwapchain swapchain_;
+        std::array<FramebufferHandle, frames_in_flight> swapchain_framebuffers_;
     };
 } // namespace orion
