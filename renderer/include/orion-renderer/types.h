@@ -17,4 +17,10 @@ namespace orion
     using mesh_id_t = std::uint16_t;
     using material_id_t = std::uint16_t;
     using texture_id_t = std::uint16_t;
+
+    enum class BlendMode {
+        Disabled,
+        Add,
+        Transparent,
+    };
 } // namespace orion

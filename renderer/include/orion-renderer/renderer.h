@@ -19,7 +19,6 @@
 #include "orion-renderapi/render_command.h"
 #include "orion-renderapi/render_device.h"
 #include "orion-renderapi/shader_reflection.h"
-#include "orion-renderapi/swapchain.h"
 
 #include "orion-math/matrix/matrix4.h"
 #include "orion-math/vector/vector2.h"
@@ -75,7 +74,6 @@ namespace orion
         void present();
 
         ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
-        ShaderPass create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc = {});
 
         std::pair<mesh_id_t, Mesh*> create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
         std::pair<material_id_t, Material*> create_material(const MaterialData& data);
@@ -118,11 +116,13 @@ namespace orion
         Vector2_u render_size_;
 
         ShaderEffect object_effect_;
-        ShaderPass object_pass_;
-
         ShaderEffect present_effect_;
-        ShaderPass present_pass_;
-        RenderPassHandle present_render_pass_;
+
+        Pipeline object_pipeline_;
+        Pipeline present_pipeline_;
+
+        RenderPassHandle render_pass_;
+        RenderPassHandle present_pass_;
 
         DescriptorPoolHandle descriptor_pool_;
 

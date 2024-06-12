@@ -8,9 +8,9 @@ target_sources(
         imgui_impl_orion.h imgui_impl_orion.cpp
         material.cpp
         mesh.cpp
+        render_context.cpp
         render_target.cpp
         renderer.cpp
         shader.cpp
         texture.cpp
-        render_context.cpp
 )

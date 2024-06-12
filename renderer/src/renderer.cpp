@@ -90,7 +90,24 @@ namespace orion
             });
         }
 
-        RenderPassHandle create_present_render_pass(RenderDevice* device)
+        RenderPassHandle create_render_pass(RenderDevice* device)
+        {
+            return device->create_render_pass({
+                .bind_point = PipelineBindPoint::Graphics,
+                .color_attachments = {{
+                    AttachmentDesc{
+                        .format = Format::B8G8R8A8_Srgb,
+                        .load_op = AttachmentLoadOp::Clear,
+                        .store_op = AttachmentStoreOp::Store,
+                        .initial_layout = ImageLayout::Undefined,
+                        .layout = ImageLayout::ColorAttachment,
+                        .final_layout = ImageLayout::ShaderReadOnly,
+                    },
+                }},
+            });
+        }
+
+        RenderPassHandle create_present_pass(RenderDevice* device)
         {
             return device->create_render_pass({
                 .bind_point = PipelineBindPoint::Graphics,
@@ -150,10 +167,9 @@ namespace orion
         , render_device_(create_render_device(render_backend_.get()))
         , render_size_(desc.render_size)
         , object_effect_(create_shader_effect("object.vs", "object.ps"))
-        , object_pass_(create_shader_pass(&object_effect_))
         , present_effect_(create_shader_effect("present.vs", "present.ps"))
-        , present_pass_(create_shader_pass(&present_effect_))
-        , present_render_pass_(create_present_render_pass(render_device_.get()))
+        , render_pass_(create_render_pass(render_device_.get()))
+        , present_pass_(create_present_pass(render_device_.get()))
         , descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
         , frame_data_(generate_per_frame(std::bind_front(std::mem_fn(&Renderer::create_frame_data), this)))
         , scene_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(0), descriptor_pool_))
@@ -162,6 +178,17 @@ namespace orion
         , object_buffer_(DynamicGPUBuffer::create(render_device_.get(), sizeof(RenderObjGPUData) * max_render_objects, GPUBufferUsageFlags::StorageBuffer))
         , present_sampler_(create_present_sampler(render_device_.get()))
     {
+        // Create object pipeline
+        {
+            object_pipeline_.set_effect(&object_effect_);
+            object_pipeline_.create(render_device_.get());
+        }
+
+        // Create presentation pipeline
+        {
+            present_pipeline_.set_effect(&present_effect_);
+            present_pipeline_.create(render_device_.get());
+        }
         for (frame_index_t index = 0; index < frames_in_flight; ++index) {
             render_device_->write_descriptor(scene_descriptors_[index].get(), 0, DescriptorType::ConstantBuffer, scene_cbuffer_.descriptor_desc(index));
             render_device_->write_descriptor(object_data_descriptors_[index].get(), 0, DescriptorType::StorageBuffer, object_buffer_.descriptor_desc(index));
@@ -203,11 +230,10 @@ namespace orion
 
         auto* render_command = frame.render_command.get();
 
-        const auto& render_target = frame.render_target;
         render_command->begin();
         render_command->begin_render_pass({
-            .render_pass = render_target.render_pass(),
-            .framebuffer = render_target.framebuffer(),
+            .render_pass = render_pass_,
+            .framebuffer = frame.render_target.framebuffer(),
             .render_area = {
                 .offset = {0, 0},
                 .size = render_size_,
@@ -244,7 +270,7 @@ namespace orion
 
         for (std::size_t index = 0; const auto& obj : objects_) {
             const auto* material = find_material(obj.material);
-            render_command->bind_pipeline({.pipeline = object_pass_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+            render_command->bind_pipeline({.pipeline = object_pipeline_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
             render_command->bind_descriptor({
                 .bind_point = PipelineBindPoint::Graphics,
                 .pipeline_layout = object_effect_.pipeline_layout(),
@@ -338,7 +364,7 @@ namespace orion
             .vsync = true,
         };
         swapchain_ = render_device_->make_unique<SwapchainHandle_tag>(window, desc);
-        const auto framebuffer_count = render_device_->create_framebuffers_for_swapchain(swapchain_.get(), present_render_pass_, swapchain_framebuffers_);
+        const auto framebuffer_count = render_device_->create_framebuffers_for_swapchain(swapchain_.get(), present_pass_, swapchain_framebuffers_);
         ORION_ASSERT(framebuffer_count == frames_in_flight);
         return swapchain_.get();
     }
@@ -355,7 +381,7 @@ namespace orion
         // Begin a new render pass to render the internal output image to the back buffer
         present_command->begin();
         present_command->begin_render_pass({
-            .render_pass = present_render_pass_,
+            .render_pass = present_pass_,
             .framebuffer = swapchain_framebuffers_[image_index],
             .render_area = {
                 .offset = {},
@@ -364,7 +390,7 @@ namespace orion
             .clear_color = {},
         });
 
-        present_command->bind_pipeline({.pipeline = present_pass_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+        present_command->bind_pipeline({.pipeline = present_pipeline_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
         present_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
             .pipeline_layout = present_effect_.pipeline_layout(),
@@ -406,11 +432,6 @@ namespace orion
     {
         const auto base_path = FilePath{render_device_->shader_base_path()};
         return ShaderEffect::create(render_device_.get(), base_path / vs_path, base_path / ps_path);
-    }
-
-    ShaderPass Renderer::create_shader_pass(const ShaderEffect* effect, const ShaderPassDesc& desc)
-    {
-        return ShaderPass::create(render_device_.get(), effect, desc);
     }
 
     std::pair<mesh_id_t, Mesh*> Renderer::create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices)
