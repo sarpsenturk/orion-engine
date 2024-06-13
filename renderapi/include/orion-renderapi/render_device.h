@@ -7,9 +7,9 @@
 #include "orion-renderapi/format.h"
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/image.h"
-#include "orion-renderapi/queue.h"
 #include "orion-renderapi/render_command.h"
 #include "orion-renderapi/render_pass.h"
+#include "orion-renderapi/render_queue.h"
 #include "orion-renderapi/shader.h"
 #include "orion-renderapi/shader_reflection.h"
 #include "orion-renderapi/swapchain.h"
@@ -37,6 +37,7 @@ namespace orion
         [[nodiscard]] virtual ShaderObjectType shader_object_type() const noexcept = 0;
         [[nodiscard]] virtual const char* shader_base_path() const noexcept = 0;
 
+        [[nodiscard]] std::unique_ptr<CommandQueue> create_queue(CommandQueueType type);
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator(const CommandAllocatorDesc& desc);
         [[nodiscard]] SwapchainHandle create_swapchain(const Window& window, const SwapchainDesc& desc);
         [[nodiscard]] std::size_t create_framebuffers_for_swapchain(SwapchainHandle swapchain_handle, RenderPassHandle render_pass, std::span<FramebufferHandle> out_framebuffers);
@@ -122,9 +123,6 @@ namespace orion
         void write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, ImageViewHandle image_view_handle, ImageLayout layout);
         void write_descriptor(DescriptorHandle descriptor_handle, std::uint32_t binding, SamplerHandle sampler);
 
-        void submit(const SubmitDesc& desc, FenceHandle signal_fence);
-        void submit_immediate(const SubmitDesc& desc);
-
         [[nodiscard]] auto logger() const noexcept { return logger_; }
 
     protected:
@@ -134,6 +132,7 @@ namespace orion
         RenderDevice& operator=(RenderDevice&&) noexcept = default;
 
     private:
+        [[nodiscard]] virtual std::unique_ptr<CommandQueue> create_queue_api(CommandQueueType type) = 0;
         [[nodiscard]] virtual std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) = 0;
         [[nodiscard]] virtual SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) = 0;
         [[nodiscard]] virtual std::size_t create_framebuffers_for_swapchain_api(SwapchainHandle swapchain_handle, RenderPassHandle render_pass, std::span<FramebufferHandle> out_framebuffers) = 0;
@@ -185,8 +184,6 @@ namespace orion
         virtual void reset_descriptor_pool_api(DescriptorPoolHandle descriptor_pool_handle) = 0;
 
         virtual void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> bindings) = 0;
-
-        virtual void submit_api(const SubmitDesc& desc, FenceHandle signal_fence) = 0;
 
         spdlog::logger* logger_;
     };

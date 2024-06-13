@@ -9,6 +9,13 @@ namespace orion
     {
     }
 
+    std::unique_ptr<CommandQueue> RenderDevice::create_queue(CommandQueueType type)
+    {
+        auto queue = create_queue_api(type);
+        SPDLOG_LOGGER_DEBUG(logger(), "Created command queue interface at {}", fmt::ptr(queue));
+        return queue;
+    }
+
     std::unique_ptr<CommandAllocator> RenderDevice::create_command_allocator(const CommandAllocatorDesc& desc)
     {
         auto allocator = create_command_allocator_api(desc);
@@ -331,16 +338,5 @@ namespace orion
             .images = {&sampler_write, 1},
         };
         write_descriptor(descriptor_handle, write);
-    }
-
-    void RenderDevice::submit(const SubmitDesc& desc, FenceHandle signal_fence)
-    {
-        submit_api(desc, signal_fence);
-    }
-
-    void RenderDevice::submit_immediate(const SubmitDesc& desc)
-    {
-        submit(desc, FenceHandle::invalid());
-        wait_queue_idle(desc.queue_type);
     }
 } // namespace orion

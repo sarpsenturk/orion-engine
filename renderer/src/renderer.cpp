@@ -165,6 +165,7 @@ namespace orion
         : render_backend_module_(load_backend_module(desc.backend))
         , render_backend_(create_render_backend(render_backend_module_))
         , render_device_(create_render_device(render_backend_.get()))
+        , render_queue_(render_device_->create_queue(CommandQueueType::Graphics))
         , render_size_(desc.render_size)
         , object_effect_(create_shader_effect("object.vs", "object.ps"))
         , present_effect_(create_shader_effect("present.vs", "present.ps"))
@@ -303,13 +304,8 @@ namespace orion
         render_command->end_render_pass();
         render_command->end();
 
-        const auto render_semaphore = frame.render_semaphore.get();
-        const auto submit = SubmitDesc{
-            .queue_type = CommandQueueType::Graphics,
-            .command_lists = {&render_command, 1},
-            .signal_semaphores = {&render_semaphore, 1},
-        };
-        render_device_->submit(submit, FenceHandle::invalid());
+        render_queue_->signal(frame.render_semaphore.get());
+        render_queue_->submit(render_command, FenceHandle::invalid());
     }
 
     Renderer::FrameData Renderer::create_frame_data(frame_index_t)
@@ -411,18 +407,13 @@ namespace orion
         present_command->end();
 
         // Submit presentation commands
-        const auto wait_semaphores = std::array{swapchain_image_semaphore, frame.render_semaphore.get()};
-        const auto present_semaphore = std::array{frame.present_semaphore.get()};
-        const auto submit = SubmitDesc{
-            .queue_type = CommandQueueType::Graphics,
-            .wait_semaphores = wait_semaphores,
-            .command_lists = {&present_command, 1},
-            .signal_semaphores = present_semaphore,
-        };
-        render_device_->submit(submit, frame.frame_fence.get());
+        render_queue_->wait(swapchain_image_semaphore);
+        render_queue_->wait(frame.render_semaphore.get());
+        render_queue_->signal(frame.present_semaphore.get());
+        render_queue_->submit(present_command, frame.frame_fence.get());
 
         // Swap back buffers / present
-        render_device_->swapchain_present(swapchain_.get(), present_semaphore);
+        render_device_->swapchain_present(swapchain_.get(), {{frame.present_semaphore.get()}});
 
         // Move to next frame index
         advance_frame();
@@ -643,6 +634,6 @@ namespace orion
     TransferContext Renderer::transfer_context()
     {
         auto& frame = current_frame();
-        return {render_device_.get(), frame.command_allocator.get(), frame.staging_buffer.get()};
+        return {render_device_.get(), render_queue_.get(), frame.command_allocator.get(), frame.staging_buffer.get()};
     }
 } // namespace orion

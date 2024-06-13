@@ -45,11 +45,10 @@ namespace orion::vulkan
         [[nodiscard]] VkQueue get_queue(CommandQueueType queue_type) const;
         [[nodiscard]] std::uint32_t get_queue_family(CommandQueueType queue_type) const;
 
-        [[nodiscard]] std::vector<std::uint32_t> get_unique_queue_families(const std::vector<CommandQueueType>& queue_types) const;
-
         [[nodiscard]] VkDescriptorSetLayout create_vk_descriptor_set_layout(const DescriptorLayoutDesc& desc) const;
 
         // Interface Overrides
+        std::unique_ptr<CommandQueue> create_queue_api(CommandQueueType type) override;
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
         SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
         std::size_t create_framebuffers_for_swapchain_api(SwapchainHandle swapchain_handle, RenderPassHandle render_pass, std::span<FramebufferHandle> out_framebuffers) override;
@@ -100,7 +99,6 @@ namespace orion::vulkan
 
         void write_descriptor_api(DescriptorHandle descriptor_handle, std::span<const DescriptorWrite> writes) override;
 
-        void submit_api(const SubmitDesc& desc, FenceHandle signal_fence) override;
         void* map_api(ImageHandle image_handle) override;
         void unmap_api(ImageHandle image_handle) override;
 

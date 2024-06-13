@@ -3,6 +3,7 @@
 #include "orion-renderer/types.h"
 
 #include "orion-renderapi/render_device.h"
+#include "orion-renderapi/render_queue.h"
 
 #include <cstring>
 
@@ -14,8 +15,9 @@
 
 namespace orion
 {
-    TransferContext::TransferContext(RenderDevice* device, CommandAllocator* command_allocator, GPUBufferHandle staging_buffer)
+    TransferContext::TransferContext(RenderDevice* device, CommandQueue* queue, CommandAllocator* command_allocator, GPUBufferHandle staging_buffer)
         : device_(device)
+        , queue_(queue)
         , command_allocator_(command_allocator)
         , staging_buffer_(staging_buffer)
     {
@@ -42,7 +44,7 @@ namespace orion
         }
         device_->unmap(staging_buffer_);
         command_list->end();
-        device_->submit_immediate({.queue_type = CommandQueueType::Graphics, .command_lists = {{command_list.get()}}});
+        queue_->submit_immediate(command_list.get());
     }
 
     void TransferContext::copy_image_staging(const CopyImageStaging& copy)
@@ -67,7 +69,7 @@ namespace orion
         });
         cmd_list->transition_barrier({.image = copy.dst, .old_layout = ImageLayout::TransferDst, .new_layout = copy.dst_final_layout});
         cmd_list->end();
-        device_->submit_immediate({.queue_type = CommandQueueType::Graphics, .command_lists = {{cmd_list.get()}}});
+        queue_->submit_immediate(cmd_list.get());
     }
 
     void TransferContext::memcpy(ImageHandle image, std::span<const std::byte> bytes, std::size_t offset)

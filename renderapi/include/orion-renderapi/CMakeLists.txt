@@ -12,11 +12,11 @@ target_sources(
         image.h
         physical_device.h
         pipeline.h
-        queue.h
         render_backend.h
         render_command.h
         render_device.h
         render_pass.h
+        render_queue.h
         shader.h
         shader_reflection.h
         swapchain.h

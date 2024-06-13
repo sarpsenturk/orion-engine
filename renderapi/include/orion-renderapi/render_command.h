@@ -2,7 +2,7 @@
 
 #include "orion-renderapi/image.h"
 #include "orion-renderapi/pipeline.h"
-#include "orion-renderapi/queue.h"
+#include "orion-renderapi/render_queue.h"
 #include "orion-renderapi/types.h"
 
 #include "orion-math/vector/vector4.h"

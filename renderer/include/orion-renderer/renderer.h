@@ -113,6 +113,7 @@ namespace orion
         Module render_backend_module_;
         std::unique_ptr<RenderBackend> render_backend_;
         std::unique_ptr<RenderDevice> render_device_;
+        std::unique_ptr<CommandQueue> render_queue_;
         Vector2_u render_size_;
 
         ShaderEffect object_effect_;

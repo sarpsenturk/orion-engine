@@ -3,11 +3,11 @@
 #include "vulkan_command.h"
 #include "vulkan_conversion.h"
 #include "vulkan_platform.h"
+#include "vulkan_queue.h"
 #include "vulkan_reflection.h"
 #include "vulkan_swapchain.h"
 
 #include "orion-utils/assertion.h"
-#include "orion-utils/callable.h"
 #include "orion-utils/static_vector.h"
 
 #include <array>
@@ -89,16 +89,6 @@ namespace orion::vulkan
         return UINT32_MAX;
     }
 
-    std::vector<std::uint32_t> VulkanDevice::get_unique_queue_families(const std::vector<CommandQueueType>& queue_types) const
-    {
-        std::vector<std::uint32_t> queue_families(queue_types.size());
-        std::ranges::transform(queue_types, queue_families.begin(), [this](auto queue_type) {
-            return get_queue_family(queue_type);
-        });
-        queue_families.erase(std::unique(queue_families.begin(), queue_families.end()), queue_families.end());
-        return queue_families;
-    }
-
     VkDescriptorSetLayout VulkanDevice::create_vk_descriptor_set_layout(const DescriptorLayoutDesc& desc) const
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings(desc.bindings.size());
@@ -125,6 +115,11 @@ namespace orion::vulkan
             SPDLOG_LOGGER_TRACE(logger(), "Created VkDescriptorSetLayout {}", fmt::ptr(descriptor_set_layout));
         }
         return descriptor_set_layout;
+    }
+
+    std::unique_ptr<CommandQueue> VulkanDevice::create_queue_api(CommandQueueType type)
+    {
+        return std::make_unique<VulkanQueue>(vk_device(), get_queue(type), get_queue_family(type), resource_manager());
     }
 
     std::unique_ptr<CommandAllocator> VulkanDevice::create_command_allocator_api(const CommandAllocatorDesc& desc)
@@ -322,7 +317,7 @@ namespace orion::vulkan
                     .srcSubpass = 0,
                     .dstSubpass = VK_SUBPASS_EXTERNAL,
                     .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
                     .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                     .dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT,
                 },
@@ -694,7 +689,7 @@ namespace orion::vulkan
                     .srcSubpass = 0,
                     .dstSubpass = VK_SUBPASS_EXTERNAL,
                     .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
                     .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                     .dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT,
                 },
@@ -1134,30 +1129,6 @@ namespace orion::vulkan
             0u,                                      // VkCopyDescriptorSet count
             nullptr                                  // VkCopyDescriptorSet pointer
         );
-    }
-
-    void VulkanDevice::submit_api(const SubmitDesc& desc, FenceHandle signal_fence)
-    {
-        const auto wait_semaphores = resource_manager_.find(desc.wait_semaphores);
-        const std::vector<VkPipelineStageFlags> wait_stages(desc.wait_semaphores.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-        std::vector<VkCommandBuffer> command_buffers(desc.command_lists.size());
-        std::ranges::transform(desc.command_lists | std::views::transform(StaticCast<const VulkanCommandList*>{}), command_buffers.begin(), &VulkanCommandList::vk_command_buffer);
-
-        const auto signal_semaphores = resource_manager_.find(desc.signal_semaphores);
-
-        const auto submit = VkSubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .pNext = nullptr,
-            .waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size()),
-            .pWaitSemaphores = wait_semaphores.data(),
-            .pWaitDstStageMask = wait_stages.data(),
-            .commandBufferCount = static_cast<uint32_t>(command_buffers.size()),
-            .pCommandBuffers = command_buffers.data(),
-            .signalSemaphoreCount = static_cast<uint32_t>(signal_semaphores.size()),
-            .pSignalSemaphores = signal_semaphores.data(),
-        };
-        vk_result_check(vkQueueSubmit(get_queue(desc.queue_type), 1u, &submit, resource_manager_.find(signal_fence)));
     }
 
     VkSemaphore VulkanDevice::create_vk_semaphore()

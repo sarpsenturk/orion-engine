@@ -39,7 +39,7 @@ namespace orion
     class TransferContext
     {
     public:
-        TransferContext(RenderDevice* device, CommandAllocator* command_allocator, GPUBufferHandle staging_buffer);
+        TransferContext(RenderDevice* device, CommandQueue* queue, CommandAllocator* command_allocator, GPUBufferHandle staging_buffer);
 
         void copy_buffer_staging(const CopyBufferStaging& copy);
         void copy_buffer_staging(std::span<const CopyBufferStaging> copies);
@@ -50,6 +50,7 @@ namespace orion
 
     private:
         RenderDevice* device_;
+        CommandQueue* queue_;
         CommandAllocator* command_allocator_;
         GPUBufferHandle staging_buffer_;
     };
