@@ -39,6 +39,7 @@ public:
     SandboxApp()
         : renderer_({.render_size = window_size})
         , window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = window_size})
+        , swapchain_(renderer_.create_swapchain(window_))
         , quad_mesh_(renderer_.create_mesh(vertices, indices).first)
         , blue_mat_(renderer_.create_material({.color = orion::colors::blue}).first)
         , green_mat_(renderer_.create_material({.color = orion::colors::lime}).first)
@@ -46,7 +47,6 @@ public:
         , camera_controller_(&camera_, orion::degrees(45.f), window_.aspect_ratio(), {0, 0, 5})
         , imgui_(renderer_.create_imgui_layer<SandboxImGui>())
     {
-        renderer_.create_swapchain(window_);
     }
 
 private:
@@ -117,14 +117,11 @@ private:
         if (window_.is_minimized()) {
             return;
         }
-
-        renderer_.draw({quad_mesh_, current_mat_, &transform});
-        renderer_.render(camera_);
-        renderer_.present();
     }
 
     orion::Renderer renderer_;
     orion::Window window_;
+    orion::SwapchainPtr swapchain_;
     orion::mesh_id_t quad_mesh_;
     orion::material_id_t blue_mat_;
     orion::material_id_t green_mat_;

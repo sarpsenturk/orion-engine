@@ -10,7 +10,6 @@ namespace orion
         device->destroy(handle);
     }
 
-    template void device_destroy(RenderDevice*, SwapchainHandle);
     template void device_destroy(RenderDevice*, RenderPassHandle);
     template void device_destroy(RenderDevice*, ShaderModuleHandle);
     template void device_destroy(RenderDevice*, DescriptorLayoutHandle);

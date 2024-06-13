@@ -34,7 +34,6 @@ namespace orion::vulkan
 
         [[nodiscard]] VkSemaphore create_vk_semaphore();
         [[nodiscard]] VkFence create_vk_fence(bool signaled);
-        [[nodiscard]] VkSwapchainKHR create_vk_swapchain(const VulkanSwapchainDesc& desc);
 
         [[nodiscard]] VulkanResourceManager* resource_manager() { return &resource_manager_; }
         [[nodiscard]] const VulkanResourceManager* resource_manager() const { return &resource_manager_; }
@@ -50,8 +49,7 @@ namespace orion::vulkan
         // Interface Overrides
         std::unique_ptr<CommandQueue> create_queue_api(CommandQueueType type) override;
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
-        SwapchainHandle create_swapchain_api(const Window& window, const SwapchainDesc& desc) override;
-        std::size_t create_framebuffers_for_swapchain_api(SwapchainHandle swapchain_handle, RenderPassHandle render_pass, std::span<FramebufferHandle> out_framebuffers) override;
+        std::unique_ptr<Swapchain> create_swapchain_api(CommandQueue* queue, const Window& window, const SwapchainDesc& desc) override;
         std::unique_ptr<ShaderReflector> create_shader_reflector_api() override;
         RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
         FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
@@ -68,7 +66,6 @@ namespace orion::vulkan
         FenceHandle create_fence_api(const FenceDesc& desc) override;
         SemaphoreHandle create_semaphore_api() override;
 
-        void destroy_api(SwapchainHandle swapchain_handle) override;
         void destroy_api(RenderPassHandle render_pass_handle) override;
         void destroy_api(FramebufferHandle framebuffer_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
@@ -84,9 +81,6 @@ namespace orion::vulkan
         void destroy_api(FenceHandle fence_handle) override;
         void destroy_api(SemaphoreHandle semaphore_handle) override;
         void destroy_flush_api() override;
-
-        std::uint32_t acquire_swapchain_image_api(SwapchainHandle swapchain, SemaphoreHandle signal_semaphore) override;
-        void swapchain_present_api(SwapchainHandle swapchain, std::span<const SemaphoreHandle> wait_semaphores) override;
 
         void* map_api(GPUBufferHandle buffer_handle) override;
         void unmap_api(GPUBufferHandle buffer_handle) override;
@@ -107,16 +101,6 @@ namespace orion::vulkan
         UniqueVkDevice device_;
         VulkanQueues queues_;
         UniqueVmaAllocator vma_allocator_;
-
-        UniqueVkSurfaceKHR surface_ = VK_NULL_HANDLE;
-        UniqueVkSwapchainKHR swapchain_ = VK_NULL_HANDLE;
-        std::uint32_t swapchain_width_ = 0;
-        std::uint32_t swapchain_height_ = 0;
-        std::vector<VkImage> swapchain_images_;
-        std::uint32_t swapchain_image_index_ = UINT32_MAX;
-        std::vector<UniqueVkImageView> swapchain_image_views_;
-        SwapchainHandle swapchain_handle_ = SwapchainHandle::invalid();
-
         VulkanResourceManager resource_manager_;
     };
 } // namespace orion::vulkan

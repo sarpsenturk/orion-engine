@@ -1,27 +1,38 @@
 #pragma once
 
 #include "orion-renderapi/format.h"
-#include "orion-renderapi/handles.h"
 #include "orion-renderapi/image.h"
 
-#include "orion-math/vector/vector2.h"
-
 #include <cstdint>
-#include <span>
+#include <memory>
 
 namespace orion
 {
-    namespace defaults
-    {
-        inline constexpr auto swapchain_image_count = 2;
-        inline constexpr auto swapchain_format = Format::B8G8R8A8_Srgb;
-    } // namespace defaults
-
     struct SwapchainDesc {
-        std::uint32_t image_count = defaults::swapchain_image_count;
-        Format image_format = defaults::swapchain_format;
-        Vector2_u image_size = {};
-        ImageUsageFlags image_usage = ImageUsageFlags::ColorAttachment;
-        bool vsync = true;
+        std::uint32_t width;
+        std::uint32_t height;
+        Format image_format;
+        std::uint32_t image_count;
+        ImageUsageFlags image_usage;
     };
+
+    class Swapchain
+    {
+    public:
+        Swapchain() = default;
+        virtual ~Swapchain() = default;
+
+        void present(std::uint32_t sync_interval);
+
+    protected:
+        Swapchain(const Swapchain&) = default;
+        Swapchain(Swapchain&&) = default;
+        Swapchain& operator=(const Swapchain&) = default;
+        Swapchain& operator=(Swapchain&&) = default;
+
+    private:
+        virtual void present_api(std::uint32_t sync_interval) = 0;
+    };
+
+    using SwapchainPtr = std::unique_ptr<Swapchain>;
 } // namespace orion

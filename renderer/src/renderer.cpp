@@ -349,74 +349,16 @@ namespace orion
         ImGui_ImplOrion_Init({render_device_.get(), &transfer, render_size_});
     }
 
-    SwapchainHandle Renderer::create_swapchain(const Window& window)
+    std::unique_ptr<Swapchain> Renderer::create_swapchain(const Window& window)
     {
-        ORION_ASSERT(swapchain_.get() == SwapchainHandle::invalid() && "Only 1 swapchain is allowed");
-        const auto desc = SwapchainDesc{
-            .image_count = frames_in_flight,
+        const auto swapchain_desc = SwapchainDesc{
+            .width = window.size().x(),
+            .height = window.size().y(),
             .image_format = Format::B8G8R8A8_Srgb,
-            .image_size = window.size(),
+            .image_count = frames_in_flight,
             .image_usage = ImageUsageFlags::ColorAttachment,
-            .vsync = true,
         };
-        swapchain_ = render_device_->make_unique<SwapchainHandle_tag>(window, desc);
-        const auto framebuffer_count = render_device_->create_framebuffers_for_swapchain(swapchain_.get(), present_pass_, swapchain_framebuffers_);
-        ORION_ASSERT(framebuffer_count == frames_in_flight);
-        return swapchain_.get();
-    }
-
-    void Renderer::present()
-    {
-        auto& frame = current_frame();
-        auto* present_command = frame.present_command.get();
-
-        // Acquire swapchain image
-        const auto swapchain_image_semaphore = frame.swapchain_image_semaphore.get();
-        const auto image_index = render_device_->acquire_swapchain_image(swapchain_.get(), swapchain_image_semaphore);
-
-        // Begin a new render pass to render the internal output image to the back buffer
-        present_command->begin();
-        present_command->begin_render_pass({
-            .render_pass = present_pass_,
-            .framebuffer = swapchain_framebuffers_[image_index],
-            .render_area = {
-                .offset = {},
-                .size = render_size_, // TODO: Swapchain size and internal render size might be different
-            },
-            .clear_color = {},
-        });
-
-        present_command->bind_pipeline({.pipeline = present_pipeline_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
-        present_command->bind_descriptor({
-            .bind_point = PipelineBindPoint::Graphics,
-            .pipeline_layout = present_effect_.pipeline_layout(),
-            .index = 0,
-            .descriptor = frame.render_output_descriptor.get(),
-        });
-        present_command->set_viewports(Viewport{
-            .position = {0.f, 0.f},
-            .size = vector_cast<float>(render_size_), // TODO: Swapchain size and internal render size might be different
-            .depth = {0.f, 1.f},
-        });
-        present_command->set_scissors(Scissor{
-            .offset = {0, 0},
-            .size = render_size_, // TODO: Swapchain size and internal render size might be different
-        });
-        present_command->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
-        present_command->end_render_pass();
-        present_command->end();
-
-        // Submit presentation commands
-        render_queue_->wait(swapchain_image_semaphore);
-        render_queue_->wait(frame.render_semaphore.get());
-        render_queue_->signal(frame.present_semaphore.get());
-        render_queue_->submit(present_command, frame.frame_fence.get());
-
-        // Swap back buffers / present
-        render_device_->swapchain_present(swapchain_.get(), {{frame.present_semaphore.get()}});
-
-        // Move to next frame index
-        advance_frame();
+        return render_device_->create_swapchain(render_queue_.get(), window, swapchain_desc);
     }
 
     ShaderEffect Renderer::create_shader_effect(const FilePath& vs_path, const FilePath& ps_path)

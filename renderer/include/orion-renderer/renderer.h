@@ -70,8 +70,7 @@ namespace orion
             return layer;
         }
 
-        SwapchainHandle create_swapchain(const Window& window);
-        void present();
+        std::unique_ptr<Swapchain> create_swapchain(const Window& window);
 
         ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
 
@@ -151,8 +150,5 @@ namespace orion
         std::vector<RenderObj> objects_;
 
         ImGuiLayer* imgui_;
-
-        UniqueSwapchain swapchain_;
-        std::array<FramebufferHandle, frames_in_flight> swapchain_framebuffers_;
     };
 } // namespace orion

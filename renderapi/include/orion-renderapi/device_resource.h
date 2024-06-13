@@ -13,7 +13,6 @@ namespace orion
     template<typename HandleType>
     void device_destroy(RenderDevice* device, HandleType handle);
 
-    extern template void device_destroy(RenderDevice*, SwapchainHandle);
     extern template void device_destroy(RenderDevice*, RenderPassHandle);
     extern template void device_destroy(RenderDevice*, ShaderModuleHandle);
     extern template void device_destroy(RenderDevice*, DescriptorLayoutHandle);
@@ -84,7 +83,6 @@ namespace orion
         handle_type handle_ = handle_type::invalid();
     };
 
-    using UniqueSwapchain = UniqueDeviceHandle<SwapchainHandle_tag>;
     using UniqueRenderPass = UniqueDeviceHandle<RenderPassHandle_tag>;
     using UniqueFramebuffer = UniqueDeviceHandle<FramebufferHandle_tag>;
     using UniqueShaderModule = UniqueDeviceHandle<ShaderModuleHandle_tag>;
