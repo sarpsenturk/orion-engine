@@ -22,6 +22,7 @@ namespace orion
         Swapchain() = default;
         virtual ~Swapchain() = default;
 
+        ImageViewHandle acquire_render_target();
         void present(std::uint32_t sync_interval);
 
     protected:
@@ -31,6 +32,7 @@ namespace orion
         Swapchain& operator=(Swapchain&&) = default;
 
     private:
+        virtual ImageViewHandle acquire_render_target_api() = 0;
         virtual void present_api(std::uint32_t sync_interval) = 0;
     };
 

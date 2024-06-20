@@ -2,18 +2,28 @@
 
 #include "orion-utils/assertion.h"
 
+#include "vulkan_queue.h"
+#include "vulkan_resource.h"
+
 #include <algorithm>
 
 namespace orion::vulkan
 {
-    VulkanSwapchain::VulkanSwapchain(VkDevice device, VkPhysicalDevice physical_device, VulkanQueue* queue, UniqueVkSurfaceKHR surface, VkSwapchainCreateInfoKHR create_info)
+    VulkanSwapchain::VulkanSwapchain(VkDevice device, VkPhysicalDevice physical_device, VulkanQueue* queue, VulkanResourceManager* resource_manager, UniqueVkSurfaceKHR surface, VkSwapchainCreateInfoKHR create_info)
         : device_(device)
         , physical_device_(physical_device)
         , queue_(queue)
+        , resource_manager_(resource_manager)
         , surface_(std::move(surface))
         , create_info_(create_info)
     {
         recreate_swapchain_and_resources();
+    }
+
+    ImageViewHandle VulkanSwapchain::acquire_render_target_api()
+    {
+        vk_result_check(vkAcquireNextImageKHR(device_, swapchain_.get(), UINT64_MAX, image_acquired_semaphores_[semaphore_index_].get(), VK_NULL_HANDLE, &image_index_));
+        return image_views_[image_index_];
     }
 
     void VulkanSwapchain::present_api(std::uint32_t sync_interval)
@@ -27,17 +37,44 @@ namespace orion::vulkan
         }
         create_info_.presentMode = present_mode;
 
-        const auto present_info = VkPresentInfoKHR{};
+        // semaphore_index_ is incremented here and not when acquiring a render target
+        const VkSemaphore render_complete = render_semaphores_[semaphore_index_++].get();
+        const VkSwapchainKHR swapchain = swapchain_.get();
+
+        const auto present_info = VkPresentInfoKHR{
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .pNext = nullptr,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &render_complete,
+            .swapchainCount = 1,
+            .pSwapchains = &swapchain,
+            .pImageIndices = &image_index_,
+            .pResults = nullptr,
+        };
+
+        if (VkResult result = vkQueuePresentKHR(queue_->vk_queue(), &present_info); result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreate_swapchain_and_resources();
+        } else {
+            vk_result_check(result);
+        }
+    }
+
+    void VulkanSwapchain::destroy_image_views()
+    {
+        for (const auto image_view : image_views_) {
+            resource_manager_->destroy(image_view);
+        }
+        image_views_.clear();
     }
 
     void VulkanSwapchain::recreate_swapchain_and_resources()
     {
-        // I wait for idle before destroying and recreating swapchain and image views, etc.
-        // It definitely isn't fast but, I don't know if this is enough either.
+        // Wait for idle before destroying and recreating swapchain and image views, etc.
+        // It definitely isn't fast but even worse, I don't know if this is enough either.
         vkDeviceWaitIdle(device_);
 
         // Destroy old swapchain resources
-        image_views_.clear();
+        destroy_image_views();
         images_.clear();
 
         // VkSwapchainCreateInfoKHR takes the old VkSwapchainKHR handle
@@ -96,7 +133,9 @@ namespace orion::vulkan
                 },
             };
             vk_result_check(vkCreateImageView(device_, &image_view_info, alloc_callbacks(), &image_view));
-            return unique(image_view, device_);
+            const auto handle = ImageViewHandle::generate();
+            resource_manager_->add(handle, image_view);
+            return handle;
         });
     }
 } // namespace orion::vulkan

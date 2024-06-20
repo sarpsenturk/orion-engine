@@ -17,6 +17,10 @@ namespace orion::vulkan
     public:
         VulkanQueue(VkDevice device, VkQueue queue, std::uint32_t family, VulkanResourceManager* resource_manager);
 
+        [[nodiscard]] VkQueue vk_queue() const { return queue_; }
+
+        void vk_queue_wait(VkSemaphore semaphore, VkPipelineStageFlags wait_stages);
+        void vk_queue_signal(VkSemaphore semaphore);
         void vk_queue_submit(VkFence fence);
 
     private:

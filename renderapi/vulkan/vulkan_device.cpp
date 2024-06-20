@@ -161,7 +161,7 @@ namespace orion::vulkan
             .clipped = VK_TRUE,
             .oldSwapchain = VK_NULL_HANDLE,
         };
-        return std::make_unique<VulkanSwapchain>(vk_device(), physical_device_, static_cast<VulkanQueue*>(queue), unique(surface, instance_), info);
+        return std::make_unique<VulkanSwapchain>(vk_device(), physical_device_, static_cast<VulkanQueue*>(queue), resource_manager(), unique(surface, instance_), info);
     }
 
     std::unique_ptr<ShaderReflector> VulkanDevice::create_shader_reflector_api()
