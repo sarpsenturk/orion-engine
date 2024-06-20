@@ -4,7 +4,6 @@
 #include "orion-renderapi/buffer.h"
 #include "orion-renderapi/descriptor.h"
 #include "orion-renderapi/device_resource.h"
-#include "orion-renderapi/format.h"
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/image.h"
 #include "orion-renderapi/render_command.h"
@@ -13,7 +12,6 @@
 #include "orion-renderapi/shader.h"
 #include "orion-renderapi/shader_reflection.h"
 #include "orion-renderapi/swapchain.h"
-#include "orion-renderapi/types.h"
 
 #include <memory>
 #include <span>
@@ -41,8 +39,7 @@ namespace orion
         [[nodiscard]] std::unique_ptr<CommandAllocator> create_command_allocator(const CommandAllocatorDesc& desc);
         [[nodiscard]] std::unique_ptr<Swapchain> create_swapchain(CommandQueue* queue, const Window& window, const SwapchainDesc& desc);
         [[nodiscard]] std::unique_ptr<ShaderReflector> create_shader_reflector();
-        [[nodiscard]] RenderPassHandle create_render_pass(const RenderPassDesc& desc);
-        [[nodiscard]] FramebufferHandle create_framebuffer(const FramebufferDesc& desc);
+        [[nodiscard]] std::unique_ptr<RenderPass> create_render_pass();
         [[nodiscard]] ShaderModuleHandle create_shader_module(const ShaderModuleDesc& desc);
         [[nodiscard]] DescriptorLayoutHandle create_descriptor_layout(const DescriptorLayoutDesc& desc);
         [[nodiscard]] DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
@@ -56,8 +53,6 @@ namespace orion
         [[nodiscard]] FenceHandle create_fence(const FenceDesc& desc);
         [[nodiscard]] SemaphoreHandle create_semaphore();
 
-        [[nodiscard]] RenderPassHandle create(RenderPassHandle_tag, const RenderPassDesc& desc) { return create_render_pass(desc); }
-        [[nodiscard]] FramebufferHandle create(FramebufferHandle_tag, const FramebufferDesc& desc) { return create_framebuffer(desc); }
         [[nodiscard]] ShaderModuleHandle create(ShaderModuleHandle_tag, const ShaderModuleDesc& desc) { return create_shader_module(desc); }
         [[nodiscard]] DescriptorLayoutHandle create(DescriptorLayoutHandle_tag, const DescriptorLayoutDesc& desc) { return create_descriptor_layout(desc); }
         [[nodiscard]] DescriptorPoolHandle create(DescriptorPoolHandle_tag, const DescriptorPoolDesc& desc) { return create_descriptor_pool(desc); }
@@ -83,8 +78,6 @@ namespace orion
             return {handle, this};
         }
 
-        void destroy(RenderPassHandle render_pass_handle);
-        void destroy(FramebufferHandle framebuffer_handle);
         void destroy(ShaderModuleHandle shader_module_handle);
         void destroy(DescriptorLayoutHandle descriptor_layout_handle);
         void destroy(DescriptorPoolHandle descriptor_pool_handle);
@@ -130,8 +123,7 @@ namespace orion
         [[nodiscard]] virtual std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) = 0;
         [[nodiscard]] virtual std::unique_ptr<Swapchain> create_swapchain_api(CommandQueue* queue, const Window& window, const SwapchainDesc& desc) = 0;
         [[nodiscard]] virtual std::unique_ptr<ShaderReflector> create_shader_reflector_api() = 0;
-        [[nodiscard]] virtual RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) = 0;
-        [[nodiscard]] virtual FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) = 0;
+        [[nodiscard]] virtual std::unique_ptr<RenderPass> create_render_pass_api() = 0;
         [[nodiscard]] virtual ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) = 0;
         [[nodiscard]] virtual DescriptorLayoutHandle create_descriptor_layout_api(const DescriptorLayoutDesc& desc) = 0;
         [[nodiscard]] virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
@@ -145,8 +137,6 @@ namespace orion
         [[nodiscard]] virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
         [[nodiscard]] virtual SemaphoreHandle create_semaphore_api() = 0;
 
-        virtual void destroy_api(RenderPassHandle render_pass_handle) = 0;
-        virtual void destroy_api(FramebufferHandle framebuffer_handle) = 0;
         virtual void destroy_api(ShaderModuleHandle shader_module_handle) = 0;
         virtual void destroy_api(DescriptorLayoutHandle descriptor_layout_handle) = 0;
         virtual void destroy_api(DescriptorPoolHandle descriptor_pool_handle) = 0;

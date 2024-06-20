@@ -9,7 +9,8 @@
 #include "orion-core/window.h"
 
 #include "orion-utils/assertion.h"
-#include "orion-utils/type.h"
+
+#include "orion-platform/platform.h"
 
 #include "imgui_impl_orion.h"
 
@@ -90,40 +91,6 @@ namespace orion
             });
         }
 
-        RenderPassHandle create_render_pass(RenderDevice* device)
-        {
-            return device->create_render_pass({
-                .bind_point = PipelineBindPoint::Graphics,
-                .color_attachments = {{
-                    AttachmentDesc{
-                        .format = Format::B8G8R8A8_Srgb,
-                        .load_op = AttachmentLoadOp::Clear,
-                        .store_op = AttachmentStoreOp::Store,
-                        .initial_layout = ImageLayout::Undefined,
-                        .layout = ImageLayout::ColorAttachment,
-                        .final_layout = ImageLayout::ShaderReadOnly,
-                    },
-                }},
-            });
-        }
-
-        RenderPassHandle create_present_pass(RenderDevice* device)
-        {
-            return device->create_render_pass({
-                .bind_point = PipelineBindPoint::Graphics,
-                .color_attachments = {{
-                    AttachmentDesc{
-                        .format = Format::B8G8R8A8_Srgb,
-                        .load_op = AttachmentLoadOp::DontCare,
-                        .store_op = AttachmentStoreOp::Store,
-                        .initial_layout = ImageLayout::Undefined,
-                        .layout = ImageLayout::ColorAttachment,
-                        .final_layout = ImageLayout::PresentSrc,
-                    },
-                }},
-            });
-        }
-
         DescriptorPoolHandle create_material_descriptor_pool(RenderDevice* device)
         {
             // TODO: For more than 1 material we need a dynamic way to handle this.
@@ -169,8 +136,8 @@ namespace orion
         , render_size_(desc.render_size)
         , object_effect_(create_shader_effect("object.vs", "object.ps"))
         , present_effect_(create_shader_effect("present.vs", "present.ps"))
-        , render_pass_(create_render_pass(render_device_.get()))
-        , present_pass_(create_present_pass(render_device_.get()))
+        , color_pass_(render_device_->create_render_pass())
+        , present_pass_(render_device_->create_render_pass())
         , descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
         , frame_data_(generate_per_frame(std::bind_front(std::mem_fn(&Renderer::create_frame_data), this)))
         , scene_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(0), descriptor_pool_))
@@ -190,12 +157,24 @@ namespace orion
             present_pipeline_.set_effect(&present_effect_);
             present_pipeline_.create(render_device_.get());
         }
+
+        // Setup color pass
+        {
+            const auto render_target = color_pass_->add_attachment();
+            color_pass_->clear(render_target, colors::magenta);
+        }
+
+        // Setup present pass
+        {
+            present_pass_->add_attachment();
+        }
+
         for (frame_index_t index = 0; index < frames_in_flight; ++index) {
             render_device_->write_descriptor(scene_descriptors_[index].get(), 0, DescriptorType::ConstantBuffer, scene_cbuffer_.descriptor_desc(index));
             render_device_->write_descriptor(object_data_descriptors_[index].get(), 0, DescriptorType::StorageBuffer, object_buffer_.descriptor_desc(index));
 
             const auto& frame_data = frame_data_[index];
-            render_device_->write_descriptor(frame_data.render_output_descriptor.get(), 0, frame_data.render_target.image_view(), ImageLayout::ShaderReadOnly);
+            render_device_->write_descriptor(frame_data.render_output_descriptor.get(), 0, frame_data.render_target.get(), ImageLayout::ShaderReadOnly);
             render_device_->write_descriptor(frame_data.render_output_descriptor.get(), 1, present_sampler_);
         }
         create_default_textures();
@@ -232,14 +211,14 @@ namespace orion
         auto* render_command = frame.render_command.get();
 
         render_command->begin();
+
+        render_command->transition_barrier({.image = frame.render_image.get(), .old_layout = ImageLayout::Undefined, .new_layout = ImageLayout::ColorAttachment});
+
+        color_pass_->set_render_target(0, frame.render_target.get());
         render_command->begin_render_pass({
-            .render_pass = render_pass_,
-            .framebuffer = frame.render_target.framebuffer(),
-            .render_area = {
-                .offset = {0, 0},
-                .size = render_size_,
-            },
-            .clear_color = colors::magenta,
+            .render_pass = color_pass_.get(),
+            .render_targets = {{frame.render_target.get()}},
+            .render_area = {.offset = {}, .size = render_size_},
         });
 
         render_command->set_viewports(Viewport{
@@ -302,6 +281,7 @@ namespace orion
         }
 
         render_command->end_render_pass();
+        render_command->transition_barrier({.image = frame.render_image.get(), .old_layout = ImageLayout::ColorAttachment, .new_layout = ImageLayout::ShaderReadOnly});
         render_command->end();
 
         render_queue_->signal(frame.render_semaphore.get());
@@ -314,18 +294,26 @@ namespace orion
         auto render_command = command_allocator->create_command_list();
         auto present_command = command_allocator->create_command_list();
 
-        const auto render_target_desc = RenderTargetDesc{
-            .size = render_size_,
-            .image_usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage,
-            .initial_layout = ImageLayout::Undefined,
-            .final_layout = ImageLayout::ShaderReadOnly,
-        };
+        const auto render_image = render_device_->create_image({
+            .type = ImageType::Image2D,
+            .format = Format::B8G8R8A8_Srgb,
+            .size = vec3(render_size_, 1u),
+            .tiling = ImageTiling::Optimal,
+            .usage = ImageUsageFlags::ColorAttachment | ImageUsageFlags::SampledImage,
+            .host_visible = false,
+        });
+        const auto render_target = render_device_->create_image_view({
+            .image = render_image,
+            .type = ImageViewType::View2D,
+            .format = Format::B8G8R8A8_Srgb,
+        });
 
         return {
             .command_allocator = std::move(command_allocator),
             .render_command = std::move(render_command),
             .present_command = std::move(present_command),
-            .render_target = RenderTarget::create(render_device_.get(), render_target_desc),
+            .render_image = render_device_->to_unique(render_image),
+            .render_target = render_device_->to_unique(render_target),
             .render_output_descriptor = render_device_->make_unique<DescriptorHandle_tag>(present_effect_.descriptor_layout(0), descriptor_pool_),
             .frame_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = true}),
             .render_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),

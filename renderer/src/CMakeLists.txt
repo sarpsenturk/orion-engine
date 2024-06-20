@@ -9,7 +9,6 @@ target_sources(
         material.cpp
         mesh.cpp
         render_context.cpp
-        render_target.cpp
         renderer.cpp
         shader.cpp
         texture.cpp

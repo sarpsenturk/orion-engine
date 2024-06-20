@@ -9,7 +9,6 @@
 #include "orion-renderapi/image.h"
 #include "orion-renderapi/physical_device.h"
 #include "orion-renderapi/pipeline.h"
-#include "orion-renderapi/render_pass.h"
 #include "orion-renderapi/types.h"
 
 #include "orion-math/vector/vector2.h"
@@ -19,9 +18,7 @@ namespace orion::vulkan
 {
     PhysicalDeviceType to_orion_type(VkPhysicalDeviceType physical_device_type);
 
-    VkFormat to_vulkan_type(Format format);
-    VkAttachmentLoadOp to_vulkan_type(AttachmentLoadOp load_op);
-    VkAttachmentStoreOp to_vulkan_type(AttachmentStoreOp store_op);
+    VkFormat to_vulkan_format(Format format);
     VkImageLayout to_vulkan_type(ImageLayout image_layout);
     VkShaderStageFlags to_vulkan_type(ShaderStageFlags shader_stages);
     VkPrimitiveTopology to_vulkan_type(PrimitiveTopology topology);

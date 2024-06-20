@@ -1,19 +1,11 @@
 #pragma once
 
-#include "orion-renderer/frame.h"
-#include "orion-renderer/render_target.h"
-
 #include "orion-renderapi/handles.h"
 #include "orion-renderapi/render_command.h"
 
-#include "orion-utils/static_vector.h"
-
-#include "orion-math/matrix/matrix4.h"
-#include "orion-math/vector/vector2.h"
 #include "orion-math/vector/vector3.h"
 
 #include <cstddef>
-#include <memory>
 #include <span>
 
 namespace orion

@@ -2,28 +2,23 @@
 
 #include "orion-renderer/buffer.h"
 #include "orion-renderer/camera.h"
-#include "orion-renderer/config.h"
+#include "orion-renderer/frame.h"
 #include "orion-renderer/imgui.h"
 #include "orion-renderer/material.h"
 #include "orion-renderer/mesh.h"
 #include "orion-renderer/render_context.h"
-#include "orion-renderer/render_target.h"
 #include "orion-renderer/shader.h"
 #include "orion-renderer/texture.h"
 #include "orion-renderer/types.h"
 
 #include "orion-core/module.h"
-#include "orion-platform/platform.h"
 
 #include "orion-renderapi/render_backend.h"
 #include "orion-renderapi/render_command.h"
 #include "orion-renderapi/render_device.h"
-#include "orion-renderapi/shader_reflection.h"
 
 #include "orion-math/matrix/matrix4.h"
 #include "orion-math/vector/vector2.h"
-
-#include "orion-utils/static_vector.h"
 
 #include "orion-core/filesystem.h"
 
@@ -90,7 +85,9 @@ namespace orion
 
             std::unique_ptr<CommandList> render_command;
             std::unique_ptr<CommandList> present_command;
-            RenderTarget render_target;
+
+            UniqueImage render_image;
+            UniqueImageView render_target;
             UniqueDescriptor render_output_descriptor;
 
             UniqueFence frame_fence;
@@ -121,8 +118,8 @@ namespace orion
         Pipeline object_pipeline_;
         Pipeline present_pipeline_;
 
-        RenderPassHandle render_pass_;
-        RenderPassHandle present_pass_;
+        std::unique_ptr<RenderPass> color_pass_;
+        std::unique_ptr<RenderPass> present_pass_;
 
         DescriptorPoolHandle descriptor_pool_;
 

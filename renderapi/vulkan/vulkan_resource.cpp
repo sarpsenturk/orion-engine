@@ -29,16 +29,6 @@ namespace orion::vulkan
         image_views_.insert(std::make_pair(handle, unique(image_view, device_)));
     }
 
-    void VulkanResourceManager::add(RenderPassHandle handle, VkRenderPass render_pass)
-    {
-        render_passes_.insert(std::make_pair(handle, unique(render_pass, device_)));
-    }
-
-    void VulkanResourceManager::add(FramebufferHandle handle, VkFramebuffer framebuffer)
-    {
-        framebuffers_.insert(std::make_pair(handle, unique(framebuffer, device_)));
-    }
-
     void VulkanResourceManager::add(ShaderModuleHandle handle, VkShaderModule shader_module)
     {
         shader_modules_.insert(std::make_pair(handle, unique(shader_module, device_)));
@@ -97,16 +87,6 @@ namespace orion::vulkan
     void VulkanResourceManager::destroy(ImageViewHandle handle)
     {
         image_views_.erase(handle);
-    }
-
-    void VulkanResourceManager::destroy(RenderPassHandle handle)
-    {
-        render_passes_.erase(handle);
-    }
-
-    void VulkanResourceManager::destroy(FramebufferHandle handle)
-    {
-        framebuffers_.erase(handle);
     }
 
     void VulkanResourceManager::destroy(ShaderModuleHandle handle)
@@ -177,22 +157,6 @@ namespace orion::vulkan
     VkImageView VulkanResourceManager::find(ImageViewHandle handle) const noexcept
     {
         if (auto iter = image_views_.find(handle); iter != image_views_.end()) {
-            return iter->second.get();
-        }
-        return VK_NULL_HANDLE;
-    }
-
-    VkRenderPass VulkanResourceManager::find(RenderPassHandle handle) const noexcept
-    {
-        if (auto iter = render_passes_.find(handle); iter != render_passes_.end()) {
-            return iter->second.get();
-        }
-        return VK_NULL_HANDLE;
-    }
-
-    VkFramebuffer VulkanResourceManager::find(FramebufferHandle handle) const noexcept
-    {
-        if (auto iter = framebuffers_.find(handle); iter != framebuffers_.end()) {
             return iter->second.get();
         }
         return VK_NULL_HANDLE;
@@ -290,20 +254,6 @@ namespace orion::vulkan
         std::vector<VkImageView> image_views(handles.size());
         std::ranges::transform(handles, image_views.begin(), [this](auto handle) { return find(handle); });
         return image_views;
-    }
-
-    std::vector<VkRenderPass> VulkanResourceManager::find(std::span<const RenderPassHandle> handles) const
-    {
-        std::vector<VkRenderPass> render_passes(handles.size());
-        std::ranges::transform(handles, render_passes.begin(), [this](auto handle) { return find(handle); });
-        return render_passes;
-    }
-
-    std::vector<VkFramebuffer> VulkanResourceManager::find(std::span<const FramebufferHandle> handles) const
-    {
-        std::vector<VkFramebuffer> framebuffers(handles.size());
-        std::ranges::transform(handles, framebuffers.begin(), [this](auto handle) { return find(handle); });
-        return framebuffers;
     }
 
     std::vector<VkShaderModule> VulkanResourceManager::find(std::span<const ShaderModuleHandle> handles) const

@@ -45,7 +45,7 @@ namespace orion::vulkan
         return PhysicalDeviceType::Other;
     }
 
-    VkFormat to_vulkan_type(Format format)
+    VkFormat to_vulkan_format(Format format)
     {
         switch (format) {
             case Format::R8_Unorm:
@@ -83,32 +83,6 @@ namespace orion::vulkan
         }
         ORION_ASSERT(!"Format not handled in to_vulkan_type() or is invalid");
         return VK_FORMAT_MAX_ENUM;
-    }
-
-    VkAttachmentLoadOp to_vulkan_type(AttachmentLoadOp load_op)
-    {
-        switch (load_op) {
-            case AttachmentLoadOp::Load:
-                return VK_ATTACHMENT_LOAD_OP_LOAD;
-            case AttachmentLoadOp::Clear:
-                return VK_ATTACHMENT_LOAD_OP_CLEAR;
-            case AttachmentLoadOp::DontCare:
-                return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        }
-        ORION_ASSERT(!"Load op not handled in to_vulkan_type() or is invalid");
-        return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
-    }
-
-    VkAttachmentStoreOp to_vulkan_type(AttachmentStoreOp store_op)
-    {
-        switch (store_op) {
-            case AttachmentStoreOp::Store:
-                return VK_ATTACHMENT_STORE_OP_STORE;
-            case AttachmentStoreOp::DontCare:
-                return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        }
-        ORION_ASSERT(!"Store op not handled in to_vulkan_type() or is invalid");
-        return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
     }
 
     VkImageLayout to_vulkan_type(ImageLayout image_layout)
@@ -534,7 +508,7 @@ namespace orion::vulkan
     {
         return {
             .flags = 0,
-            .format = to_vulkan_type(format),
+            .format = to_vulkan_format(format),
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,

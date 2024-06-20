@@ -5,12 +5,9 @@
 
 #include "vulkan_headers.h"
 #include "vulkan_resource.h"
-#include "vulkan_synchronization.h"
 #include "vulkan_types.h"
 
 #include "orion-assets/config.h"
-
-#include <vector>
 
 namespace orion::vulkan
 {
@@ -51,8 +48,7 @@ namespace orion::vulkan
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
         std::unique_ptr<Swapchain> create_swapchain_api(CommandQueue* queue, const Window& window, const SwapchainDesc& desc) override;
         std::unique_ptr<ShaderReflector> create_shader_reflector_api() override;
-        RenderPassHandle create_render_pass_api(const RenderPassDesc& desc) override;
-        FramebufferHandle create_framebuffer_api(const FramebufferDesc& desc) override;
+        std::unique_ptr<RenderPass> create_render_pass_api() override;
         ShaderModuleHandle create_shader_module_api(const ShaderModuleDesc& desc) override;
         DescriptorLayoutHandle create_descriptor_layout_api(const DescriptorLayoutDesc& desc) override;
         DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
@@ -66,8 +62,6 @@ namespace orion::vulkan
         FenceHandle create_fence_api(const FenceDesc& desc) override;
         SemaphoreHandle create_semaphore_api() override;
 
-        void destroy_api(RenderPassHandle render_pass_handle) override;
-        void destroy_api(FramebufferHandle framebuffer_handle) override;
         void destroy_api(ShaderModuleHandle shader_module_handle) override;
         void destroy_api(DescriptorLayoutHandle descriptor_layout_handle) override;
         void destroy_api(DescriptorPoolHandle descriptor_pool_handle) override;

@@ -34,8 +34,6 @@ namespace orion::vulkan
         void add(ImageHandle handle, VkImage image, VmaAllocation allocation);
         void add(ImageHandle handle, VkImage image);
         void add(ImageViewHandle handle, VkImageView image_view);
-        void add(RenderPassHandle handle, VkRenderPass render_pass);
-        void add(FramebufferHandle handle, VkFramebuffer framebuffer);
         void add(ShaderModuleHandle handle, VkShaderModule shader_module);
         void add(DescriptorLayoutHandle handle, VkDescriptorSetLayout descriptor_set_layout);
         void add(DescriptorPoolHandle handle, VkDescriptorPool descriptor_pool, VkDescriptorPoolCreateFlags flags);
@@ -57,8 +55,6 @@ namespace orion::vulkan
 
         void destroy(ImageHandle handle);
         void destroy(ImageViewHandle handle);
-        void destroy(RenderPassHandle handle);
-        void destroy(FramebufferHandle handle);
         void destroy(ShaderModuleHandle handle);
         void destroy(DescriptorLayoutHandle handle);
         void destroy(DescriptorPoolHandle handle);
@@ -73,8 +69,6 @@ namespace orion::vulkan
 
         [[nodiscard]] VulkanImageResource find(ImageHandle handle) const noexcept;
         [[nodiscard]] VkImageView find(ImageViewHandle handle) const noexcept;
-        [[nodiscard]] VkRenderPass find(RenderPassHandle handle) const noexcept;
-        [[nodiscard]] VkFramebuffer find(FramebufferHandle handle) const noexcept;
         [[nodiscard]] VkShaderModule find(ShaderModuleHandle handle) const noexcept;
         [[nodiscard]] VkDescriptorSetLayout find(DescriptorLayoutHandle handle) const noexcept;
         [[nodiscard]] VulkanDescriptorPool find(DescriptorPoolHandle handle) const noexcept;
@@ -88,8 +82,6 @@ namespace orion::vulkan
 
         [[nodiscard]] std::vector<VulkanImageResource> find(std::span<const ImageHandle> handles) const;
         [[nodiscard]] std::vector<VkImageView> find(std::span<const ImageViewHandle> handles) const;
-        [[nodiscard]] std::vector<VkRenderPass> find(std::span<const RenderPassHandle> handles) const;
-        [[nodiscard]] std::vector<VkFramebuffer> find(std::span<const FramebufferHandle> handles) const;
         [[nodiscard]] std::vector<VkShaderModule> find(std::span<const ShaderModuleHandle> handles) const;
         [[nodiscard]] std::vector<VkDescriptorSetLayout> find(std::span<const DescriptorLayoutHandle> handles) const;
         [[nodiscard]] std::vector<VulkanDescriptorPool> find(std::span<const DescriptorPoolHandle> handles) const;
@@ -107,8 +99,6 @@ namespace orion::vulkan
 
         std::unordered_map<ImageHandle, UniqueVkImage> images_;
         std::unordered_map<ImageViewHandle, UniqueVkImageView> image_views_;
-        std::unordered_map<RenderPassHandle, UniqueVkRenderPass> render_passes_;
-        std::unordered_map<FramebufferHandle, UniqueVkFramebuffer> framebuffers_;
         std::unordered_map<ShaderModuleHandle, UniqueVkShaderModule> shader_modules_;
         std::unordered_map<DescriptorLayoutHandle, UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
         std::unordered_map<DescriptorPoolHandle, UniqueVkDescriptorPool> descriptor_pools_;

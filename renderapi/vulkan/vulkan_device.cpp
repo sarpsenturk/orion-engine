@@ -5,6 +5,7 @@
 #include "vulkan_platform.h"
 #include "vulkan_queue.h"
 #include "vulkan_reflection.h"
+#include "vulkan_renderpass.h"
 #include "vulkan_swapchain.h"
 
 #include "orion-utils/assertion.h"
@@ -134,7 +135,7 @@ namespace orion::vulkan
             };
             vk_result_check(vkCreateCommandPool(vk_device(), &info, alloc_callbacks(), &command_pool));
         }
-        return std::make_unique<VulkanCommandAllocator>(this, unique(command_pool, vk_device()));
+        return std::make_unique<VulkanCommandAllocator>(vk_device(), resource_manager(), unique(command_pool, vk_device()));
     }
 
     std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(CommandQueue* queue, const Window& window, const SwapchainDesc& desc)
@@ -147,7 +148,7 @@ namespace orion::vulkan
             .flags = 0,
             .surface = surface,
             .minImageCount = desc.image_count,
-            .imageFormat = to_vulkan_type(desc.image_format),
+            .imageFormat = to_vulkan_format(desc.image_format),
             .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
             .imageExtent = VkExtent2D{desc.width, desc.height},
             .imageArrayLayers = 1,
@@ -169,112 +170,9 @@ namespace orion::vulkan
         return std::make_unique<VulkanShaderReflector>();
     }
 
-    RenderPassHandle VulkanDevice::create_render_pass_api(const RenderPassDesc& desc)
+    std::unique_ptr<RenderPass> VulkanDevice::create_render_pass_api()
     {
-        VkRenderPass render_pass = VK_NULL_HANDLE;
-        {
-            std::vector<VkAttachmentDescription> vk_attachments_descriptions(desc.color_attachments.size());
-            std::ranges::transform(desc.color_attachments, vk_attachments_descriptions.begin(), [](const AttachmentDesc& attachment) {
-                return VkAttachmentDescription{
-                    .flags = 0,
-                    .format = to_vulkan_type(attachment.format),
-                    .samples = VK_SAMPLE_COUNT_1_BIT,
-                    .loadOp = to_vulkan_type(attachment.load_op),
-                    .storeOp = to_vulkan_type(attachment.store_op),
-                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .initialLayout = to_vulkan_type(attachment.initial_layout),
-                    .finalLayout = to_vulkan_type(attachment.final_layout),
-                };
-            });
-
-            std::vector<VkAttachmentReference> color_attachments(desc.color_attachments.size());
-            std::ranges::transform(desc.color_attachments, color_attachments.begin(), [index = 0u](const AttachmentDesc& attachment) mutable {
-                return VkAttachmentReference{
-                    .attachment = index++,
-                    .layout = to_vulkan_type(attachment.layout),
-                };
-            });
-
-            const auto subpass = VkSubpassDescription{
-                .flags = 0,
-                .pipelineBindPoint = to_vulkan_type(desc.bind_point),
-                .inputAttachmentCount = 0u,
-                .pInputAttachments = nullptr,
-                .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
-                .pColorAttachments = color_attachments.data(),
-                .pResolveAttachments = nullptr,
-                .pDepthStencilAttachment = nullptr,
-                .preserveAttachmentCount = 0,
-                .pPreserveAttachments = nullptr,
-            };
-
-            const auto dependencies = std::array{
-                VkSubpassDependency{
-                    .srcSubpass = VK_SUBPASS_EXTERNAL,
-                    .dstSubpass = 0,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .srcAccessMask = 0,
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    .dependencyFlags = 0,
-                },
-                VkSubpassDependency{
-                    .srcSubpass = 0,
-                    .dstSubpass = VK_SUBPASS_EXTERNAL,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT,
-                },
-            };
-
-            const auto info = VkRenderPassCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .attachmentCount = static_cast<uint32_t>(vk_attachments_descriptions.size()),
-                .pAttachments = vk_attachments_descriptions.data(),
-                .subpassCount = 1u,
-                .pSubpasses = &subpass,
-                .dependencyCount = static_cast<uint32_t>(dependencies.size()),
-                .pDependencies = dependencies.data(),
-            };
-            vk_result_check(vkCreateRenderPass(vk_device(), &info, alloc_callbacks(), &render_pass));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkRenderPass {}", fmt::ptr(render_pass));
-        }
-
-        auto handle = RenderPassHandle::generate();
-        resource_manager_.add(handle, render_pass);
-        return handle;
-    }
-
-    FramebufferHandle VulkanDevice::create_framebuffer_api(const FramebufferDesc& desc)
-    {
-        // Find image views
-        const auto image_views = resource_manager_.find(desc.image_views);
-
-        // Create framebuffer
-        VkFramebuffer framebuffer = VK_NULL_HANDLE;
-        {
-            const auto info = VkFramebufferCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .renderPass = resource_manager_.find(desc.render_pass),
-                .attachmentCount = static_cast<std::uint32_t>(image_views.size()),
-                .pAttachments = image_views.data(),
-                .width = desc.size.x(),
-                .height = desc.size.y(),
-                .layers = 1,
-            };
-            vk_result_check(vkCreateFramebuffer(vk_device(), &info, alloc_callbacks(), &framebuffer));
-            SPDLOG_LOGGER_TRACE(logger(), "Created VkFramebuffer {}", fmt::ptr(framebuffer));
-        }
-
-        const auto handle = FramebufferHandle::generate();
-        resource_manager_.add(handle, framebuffer);
-        return handle;
+        return std::make_unique<VulkanRenderPass>(resource_manager());
     }
 
     ShaderModuleHandle VulkanDevice::create_shader_module_api(const ShaderModuleDesc& desc)
@@ -430,7 +328,7 @@ namespace orion::vulkan
                 return VkVertexInputAttributeDescription{
                     .location = location++,
                     .binding = 0,
-                    .format = to_vulkan_type(attribute.format),
+                    .format = to_vulkan_format(attribute.format),
                     .offset = attr_offset,
                 };
             });
@@ -556,71 +454,27 @@ namespace orion::vulkan
             };
         }();
 
-        // Create compatible render pass
-        VkRenderPass compatible_render_pass = VK_NULL_HANDLE;
-        {
-            std::vector<VkAttachmentDescription> attachments(desc.render_targets.size());
-            std::ranges::transform(desc.render_targets, attachments.begin(), to_vulkan_attachment);
-            std::vector<VkAttachmentReference> attachment_refs(attachments.size());
-            std::ranges::transform(attachments, attachment_refs.begin(), [index = 0u](const VkAttachmentDescription&) mutable {
-                return VkAttachmentReference{
-                    .attachment = index++,
-                    .layout = VK_IMAGE_LAYOUT_GENERAL,
-                };
-            });
-            const auto subpass = VkSubpassDescription{
-                .flags = 0,
-                .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                .inputAttachmentCount = 0,
-                .pInputAttachments = nullptr,
-                .colorAttachmentCount = static_cast<uint32_t>(attachments.size()),
-                .pColorAttachments = attachment_refs.data(),
-                .pResolveAttachments = nullptr,
-                .pDepthStencilAttachment = nullptr,
-                .preserveAttachmentCount = 0,
-                .pPreserveAttachments = nullptr,
-            };
-
-            const auto dependencies = std::array{
-                VkSubpassDependency{
-                    .srcSubpass = VK_SUBPASS_EXTERNAL,
-                    .dstSubpass = 0,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .srcAccessMask = 0,
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    .dependencyFlags = 0,
-                },
-                VkSubpassDependency{
-                    .srcSubpass = 0,
-                    .dstSubpass = VK_SUBPASS_EXTERNAL,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT,
-                },
-            };
-
-            const auto render_pass_info = VkRenderPassCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .attachmentCount = static_cast<uint32_t>(attachments.size()),
-                .pAttachments = attachments.data(),
-                .subpassCount = 1,
-                .pSubpasses = &subpass,
-                .dependencyCount = static_cast<uint32_t>(dependencies.size()),
-                .pDependencies = dependencies.data(),
-            };
-            vk_result_check(vkCreateRenderPass(vk_device(), &render_pass_info, alloc_callbacks(), &compatible_render_pass));
-        }
+        const auto vk_render_targets = [render_targets = desc.render_targets]() {
+            std::vector<VkFormat> vk_render_targets(render_targets.size());
+            std::ranges::transform(render_targets, vk_render_targets.begin(), to_vulkan_format);
+            return vk_render_targets;
+        }();
+        const auto vk_rendering_info = VkPipelineRenderingCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+            .pNext = nullptr,
+            .viewMask = 0,
+            .colorAttachmentCount = static_cast<uint32_t>(vk_render_targets.size()),
+            .pColorAttachmentFormats = vk_render_targets.data(),
+            .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+            .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+        };
 
         // Create VkPipeline
         VkPipeline pipeline = VK_NULL_HANDLE;
         {
             const auto info = VkGraphicsPipelineCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-                .pNext = nullptr,
+                .pNext = &vk_rendering_info,
                 .flags = 0,
                 .stageCount = static_cast<std::uint32_t>(vk_shader_stages.size()),
                 .pStages = vk_shader_stages.data(),
@@ -634,7 +488,7 @@ namespace orion::vulkan
                 .pColorBlendState = &vk_color_blend,
                 .pDynamicState = &vk_dynamic_state,
                 .layout = pipeline_layout,
-                .renderPass = compatible_render_pass,
+                .renderPass = VK_NULL_HANDLE,
                 .subpass = 0,
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
@@ -642,9 +496,6 @@ namespace orion::vulkan
             vk_result_check(vkCreateGraphicsPipelines(vk_device(), VK_NULL_HANDLE, 1, &info, alloc_callbacks(), &pipeline));
             SPDLOG_LOGGER_TRACE(logger(), "Created VkPipeline {}", fmt::ptr(pipeline));
         }
-
-        // Destroy temporary compatible render pass
-        vkDestroyRenderPass(vk_device(), compatible_render_pass, alloc_callbacks());
 
         const auto handle = PipelineHandle::generate();
         resource_manager_.add(handle, pipeline);
@@ -692,7 +543,7 @@ namespace orion::vulkan
                 .pNext = nullptr,
                 .flags = 0,
                 .imageType = to_vulkan_type(desc.type),
-                .format = to_vulkan_type(desc.format),
+                .format = to_vulkan_format(desc.format),
                 .extent = to_vulkan_extent(desc.size),
                 .mipLevels = 1,
                 .arrayLayers = 1,
@@ -730,7 +581,7 @@ namespace orion::vulkan
                 .flags = 0,
                 .image = resource_manager_.find(desc.image).image,
                 .viewType = to_vulkan_type(desc.type),
-                .format = to_vulkan_type(desc.format),
+                .format = to_vulkan_format(desc.format),
                 .components = {
                     .r = VK_COMPONENT_SWIZZLE_IDENTITY,
                     .g = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -798,16 +649,6 @@ namespace orion::vulkan
         const auto handle = SemaphoreHandle::generate();
         resource_manager_.add(handle, create_vk_semaphore());
         return handle;
-    }
-
-    void VulkanDevice::destroy_api(RenderPassHandle render_pass_handle)
-    {
-        resource_manager_.remove(render_pass_handle);
-    }
-
-    void VulkanDevice::destroy_api(FramebufferHandle framebuffer_handle)
-    {
-        resource_manager_.remove(framebuffer_handle);
     }
 
     void VulkanDevice::destroy_api(ShaderModuleHandle shader_module_handle)

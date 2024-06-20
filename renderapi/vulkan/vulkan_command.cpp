@@ -2,10 +2,10 @@
 
 #include "vulkan_conversion.h"
 #include "vulkan_device.h"
+#include "vulkan_renderpass.h"
 
 #include <array>
 #include <ranges>
-#include <unordered_map>
 
 namespace orion::vulkan
 {
@@ -34,9 +34,11 @@ namespace orion::vulkan
         }
     } // namespace
 
-    VulkanCommandList::VulkanCommandList(VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer)
+    VulkanCommandList::VulkanCommandList(VkDevice device, VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer)
         : resource_manager_(resource_manager)
         , command_buffer_(std::move(command_buffer))
+        , vkCmdBeginRenderingKHR(get_device_proc<PFN_vkCmdBeginRenderingKHR>(device, "vkCmdBeginRenderingKHR"))
+        , vkCmdEndRenderingKHR(get_device_proc<PFN_vkCmdEndRenderingKHR>(device, "vkCmdEndRenderingKHR"))
     {
     }
 
@@ -131,27 +133,23 @@ namespace orion::vulkan
 
     void VulkanCommandList::begin_render_pass_api(const CmdBeginRenderPass& cmd_begin_render_pass)
     {
-        const auto clear_values = std::array{
-            VkClearValue{.color = to_vulkan_clear_color(cmd_begin_render_pass.clear_color)},
-        };
-        const auto info = VkRenderPassBeginInfo{
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        const auto rendering_info = VkRenderingInfoKHR{
+            .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
             .pNext = nullptr,
-            .renderPass = resource_manager_->find(cmd_begin_render_pass.render_pass),
-            .framebuffer = resource_manager_->find(cmd_begin_render_pass.framebuffer),
+            .flags = 0,
             .renderArea = to_vulkan_rect(cmd_begin_render_pass.render_area),
-            .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-            .pClearValues = clear_values.data(),
+            .layerCount = 1,
+            .viewMask = 0,
+            .pColorAttachments = static_cast<const VulkanRenderPass*>(cmd_begin_render_pass.render_pass)->color_attachments().data(),
+            .pDepthAttachment = nullptr,
+            .pStencilAttachment = nullptr,
         };
-        vkCmdBeginRenderPass(
-            command_buffer_.get(),
-            &info,
-            VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderingKHR(command_buffer_.get(), &rendering_info);
     }
 
     void VulkanCommandList::end_render_pass_api()
     {
-        vkCmdEndRenderPass(command_buffer_.get());
+        vkCmdEndRenderingKHR(command_buffer_.get());
     }
 
     void VulkanCommandList::set_viewports_api(const CmdSetViewports& cmd_set_viewports)
@@ -268,15 +266,16 @@ namespace orion::vulkan
         );
     }
 
-    VulkanCommandAllocator::VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool)
+    VulkanCommandAllocator::VulkanCommandAllocator(VkDevice device, VulkanResourceManager* resource_manager, UniqueVkCommandPool command_pool)
         : device_(device)
+        , resource_manager_(resource_manager)
         , command_pool_(std::move(command_pool))
     {
     }
 
     void VulkanCommandAllocator::reset_api()
     {
-        vk_result_check(vkResetCommandPool(device_->vk_device(), command_pool_.get(), 0));
+        vk_result_check(vkResetCommandPool(device_, command_pool_.get(), 0));
     }
 
     std::unique_ptr<CommandList> VulkanCommandAllocator::create_command_list_api()
@@ -290,8 +289,8 @@ namespace orion::vulkan
                 .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 .commandBufferCount = 1,
             };
-            vk_result_check(vkAllocateCommandBuffers(device_->vk_device(), &info, &command_buffer));
+            vk_result_check(vkAllocateCommandBuffers(device_, &info, &command_buffer));
         }
-        return std::make_unique<VulkanCommandList>(device_->resource_manager(), unique(command_buffer, device_->vk_device(), command_pool_.get()));
+        return std::make_unique<VulkanCommandList>(device_, resource_manager_, unique(command_buffer, device_, command_pool_.get()));
     }
 } // namespace orion::vulkan

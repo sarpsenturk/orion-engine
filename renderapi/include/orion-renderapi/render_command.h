@@ -51,10 +51,9 @@ namespace orion
     };
 
     struct CmdBeginRenderPass {
-        RenderPassHandle render_pass;
-        FramebufferHandle framebuffer;
+        class RenderPass* render_pass;
+        std::span<const ImageViewHandle> render_targets;
         Rect2D render_area;
-        Vector4_f clear_color;
     };
 
     struct CmdSetViewports {

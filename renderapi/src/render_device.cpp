@@ -35,18 +35,11 @@ namespace orion
         return create_shader_reflector_api();
     }
 
-    RenderPassHandle RenderDevice::create_render_pass(const RenderPassDesc& desc)
+    std::unique_ptr<RenderPass> RenderDevice::create_render_pass()
     {
-        auto handle = create_render_pass_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created render pass with handle {}", handle);
-        return handle;
-    }
-
-    FramebufferHandle RenderDevice::create_framebuffer(const FramebufferDesc& desc)
-    {
-        auto handle = create_framebuffer_api(desc);
-        SPDLOG_LOGGER_DEBUG(logger(), "Created framebuffer with handle {}", handle);
-        return handle;
+        auto render_pass = create_render_pass_api();
+        SPDLOG_LOGGER_DEBUG(logger(), "Created render pass interface at {}", fmt::ptr(render_pass));
+        return render_pass;
     }
 
     ShaderModuleHandle RenderDevice::create_shader_module(const ShaderModuleDesc& desc)
@@ -131,18 +124,6 @@ namespace orion
         auto handle = create_semaphore_api();
         SPDLOG_LOGGER_DEBUG(logger(), "Created semaphore {}", handle);
         return handle;
-    }
-
-    void RenderDevice::destroy(RenderPassHandle render_pass_handle)
-    {
-        destroy_api(render_pass_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed render pass {}", render_pass_handle);
-    }
-
-    void RenderDevice::destroy(FramebufferHandle framebuffer_handle)
-    {
-        destroy_api(framebuffer_handle);
-        SPDLOG_LOGGER_DEBUG(logger(), "Destroyed framebuffer {}", framebuffer_handle);
     }
 
     void RenderDevice::destroy(ShaderModuleHandle shader_module_handle)

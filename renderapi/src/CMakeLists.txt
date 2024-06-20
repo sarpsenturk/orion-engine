@@ -8,6 +8,7 @@ target_sources(
         render_backend.cpp
         render_command.cpp
         render_device.cpp
+        render_pass.cpp
         render_queue.cpp
         shader_reflection.cpp
         swapchain.cpp

@@ -13,7 +13,7 @@ namespace orion::vulkan
     class VulkanCommandList final : public CommandList
     {
     public:
-        VulkanCommandList(VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer);
+        VulkanCommandList(VkDevice device, VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer);
 
         [[nodiscard]] VkCommandBuffer vk_command_buffer() const noexcept { return command_buffer_.get(); }
 
@@ -38,18 +38,21 @@ namespace orion::vulkan
 
         VulkanResourceManager* resource_manager_;
         UniqueVkCommandBuffer command_buffer_;
+        PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
+        PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
     };
 
     class VulkanCommandAllocator final : public CommandAllocator
     {
     public:
-        VulkanCommandAllocator(VulkanDevice* device, UniqueVkCommandPool command_pool);
+        VulkanCommandAllocator(VkDevice device, VulkanResourceManager* resource_manager, UniqueVkCommandPool command_pool);
 
     private:
         void reset_api() override;
         std::unique_ptr<CommandList> create_command_list_api() override;
 
-        VulkanDevice* device_;
+        VkDevice device_;
+        VulkanResourceManager* resource_manager_;
         UniqueVkCommandPool command_pool_;
     };
 } // namespace orion::vulkan
