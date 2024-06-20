@@ -7,16 +7,13 @@
 
 #include "orion-core/version.h"
 
-#include "orion-renderer/config.h"
-
-#include "orion-utils/static_vector.h"
-
 #include <algorithm>
 #include <cstring>
 #include <span>
 #include <spdlog/spdlog.h>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 extern "C" ORION_RENDER_API orion::RenderBackend* create_orion_render_backend()
 {
@@ -35,8 +32,7 @@ namespace orion::vulkan
     {
         constexpr auto get_required_instance_layers() noexcept
         {
-            constexpr auto max_layers = 2;
-            static_vector<const char*, max_layers> layers;
+            std::vector<const char*> layers;
 #ifdef ORION_BUILD_DEBUG
             layers.push_back("VK_LAYER_KHRONOS_validation");
 #endif // ORION_BUILD_DEBUG
@@ -45,25 +41,20 @@ namespace orion::vulkan
 
         constexpr auto get_required_instance_extensions() noexcept
         {
-            constexpr auto max_extensions = 3;
-            static_vector<const char*, max_extensions> extensions;
+            std::vector<const char*> extensions;
 #ifdef ORION_BUILD_DEBUG
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif // ORION_BUILD_DEBUG
-            if constexpr (!ORION_RENDERER_HEADLESS) {
-                extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-                extensions.push_back(platform_surface_ext());
-            }
+#endif
+            extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+            extensions.push_back(platform_surface_ext());
             return extensions;
         }
 
         constexpr auto get_required_device_extensions() noexcept
         {
-            constexpr auto max_extensions = 2;
-            static_vector<const char*, max_extensions> extensions;
-            if constexpr (!ORION_RENDERER_HEADLESS) {
-                extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-            }
+            std::vector<const char*> extensions;
+            extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+            extensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
             return extensions;
         }
 
@@ -259,9 +250,13 @@ namespace orion::vulkan
         // Create the device
         VkDevice device = VK_NULL_HANDLE;
         {
+            const auto dynamic_rendering = VkPhysicalDeviceDynamicRenderingFeaturesKHR{
+                .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+                .dynamicRendering = VK_TRUE,
+            };
             const auto device_info = VkDeviceCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                .pNext = nullptr,
+                .pNext = &dynamic_rendering,
                 .flags = 0,
                 .queueCreateInfoCount = static_cast<std::uint32_t>(queue_infos.size()),
                 .pQueueCreateInfos = queue_infos.data(),

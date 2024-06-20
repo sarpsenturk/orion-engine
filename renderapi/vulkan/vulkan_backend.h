@@ -15,7 +15,7 @@ namespace orion::vulkan
         VulkanBackend() noexcept; // Must be noexcept! It'll be called from an extern C function
 
         // Public API overrides
-        [[nodiscard]] const char* name() const noexcept override { return "Vulkan 1.0"; }
+        [[nodiscard]] const char* name() const noexcept override { return "Vulkan 1.2"; }
 
         [[nodiscard]] auto instance() const noexcept { return instance_.get(); }
 

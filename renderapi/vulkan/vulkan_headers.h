@@ -104,7 +104,7 @@ namespace orion
 
     namespace vulkan
     {
-        inline constexpr auto vulkan_api_version = VK_API_VERSION_1_0;
+        inline constexpr auto vulkan_api_version = VK_API_VERSION_1_2;
 
         constexpr std::uint32_t to_vulkan_version(const Version& version) noexcept
         {
