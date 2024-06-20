@@ -19,6 +19,15 @@ namespace orion::vulkan
             if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
                 return std::make_pair(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
             }
+            if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+                return std::make_pair(0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+            }
+            if (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                return std::make_pair(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+            }
+            if (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+                return std::make_pair(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0);
+            }
             throw std::invalid_argument("invalid vulkan transition");
         }
 
@@ -29,6 +38,15 @@ namespace orion::vulkan
             }
             if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
                 return std::make_pair(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+            }
+            if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+                return std::make_pair(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+            }
+            if (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+                return std::make_pair(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+            }
+            if (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+                return std::make_pair(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
             }
             throw std::invalid_argument("invalid vulkan transition");
         }
@@ -133,6 +151,10 @@ namespace orion::vulkan
 
     void VulkanCommandList::begin_render_pass_api(const CmdBeginRenderPass& cmd_begin_render_pass)
     {
+        ORION_ASSERT(cmd_begin_render_pass.render_pass != nullptr);
+        const auto* vulkan_render_pass = static_cast<const VulkanRenderPass*>(cmd_begin_render_pass.render_pass);
+        const auto& color_attachments = vulkan_render_pass->color_attachments();
+
         const auto rendering_info = VkRenderingInfoKHR{
             .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
             .pNext = nullptr,
@@ -140,7 +162,8 @@ namespace orion::vulkan
             .renderArea = to_vulkan_rect(cmd_begin_render_pass.render_area),
             .layerCount = 1,
             .viewMask = 0,
-            .pColorAttachments = static_cast<const VulkanRenderPass*>(cmd_begin_render_pass.render_pass)->color_attachments().data(),
+            .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
+            .pColorAttachments = color_attachments.data(),
             .pDepthAttachment = nullptr,
             .pStencilAttachment = nullptr,
         };

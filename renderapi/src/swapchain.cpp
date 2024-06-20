@@ -7,6 +7,11 @@ namespace orion
         return acquire_render_target_api();
     }
 
+    ImageHandle Swapchain::current_image()
+    {
+        return current_image_api();
+    }
+
     void Swapchain::present(std::uint32_t sync_interval)
     {
         present_api(sync_interval);

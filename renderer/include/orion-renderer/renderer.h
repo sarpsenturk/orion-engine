@@ -55,6 +55,7 @@ namespace orion
 
         void draw(const RenderObj& obj);
         void render(const Camera& camera);
+        void present_to(Swapchain* swapchain);
 
         template<typename ImGuiLayerT>
         std::unique_ptr<ImGuiLayerT> create_imgui_layer()
@@ -93,7 +94,6 @@ namespace orion
             UniqueFence frame_fence;
             UniqueSemaphore render_semaphore;
             UniqueSemaphore swapchain_image_semaphore;
-            UniqueSemaphore present_semaphore;
 
             UniqueGPUBuffer staging_buffer;
         };
@@ -128,7 +128,6 @@ namespace orion
 
         FrameData& current_frame() { return frame_data_[frame_counter_ % frames_in_flight]; }
         FrameData& previous_frame() { return frame_data_[(frame_counter_ - 1) % frames_in_flight]; }
-        void advance_frame();
 
         TransferContext transfer_context();
 

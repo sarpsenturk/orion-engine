@@ -52,7 +52,6 @@ namespace orion
 
     struct CmdBeginRenderPass {
         class RenderPass* render_pass;
-        std::span<const ImageViewHandle> render_targets;
         Rect2D render_area;
     };
 

@@ -18,8 +18,10 @@ namespace orion::vulkan
 
     private:
         ImageViewHandle acquire_render_target_api() override;
+        ImageHandle current_image_api() override;
         void present_api(std::uint32_t sync_interval) override;
 
+        void release_images();
         void destroy_image_views();
         void recreate_swapchain_and_resources();
 
@@ -31,10 +33,11 @@ namespace orion::vulkan
         VkSwapchainCreateInfoKHR create_info_;
         UniqueVkSwapchainKHR swapchain_;
 
-        std::vector<VkImage> images_;
+        std::vector<ImageHandle> images_;
         std::vector<ImageViewHandle> image_views_;
         std::vector<UniqueVkSemaphore> image_acquired_semaphores_;
         std::vector<UniqueVkSemaphore> render_semaphores_;
+        std::uint32_t image_count_ = 0;
         std::uint32_t semaphore_index_ = 0;
         std::uint32_t image_index_ = UINT32_MAX;
     };

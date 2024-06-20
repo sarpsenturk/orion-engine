@@ -9,6 +9,21 @@
 
 namespace orion::vulkan
 {
+    namespace
+    {
+        std::vector<UniqueVkSemaphore> create_semaphores(VkDevice device, std::uint32_t count)
+        {
+            std::vector<UniqueVkSemaphore> semaphores(count);
+            std::generate_n(semaphores.begin(), count, [device]() {
+                const auto info = VkSemaphoreCreateInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .pNext = nullptr, .flags = 0};
+                VkSemaphore semaphore;
+                vk_result_check(vkCreateSemaphore(device, &info, alloc_callbacks(), &semaphore));
+                return unique(semaphore, device);
+            });
+            return semaphores;
+        }
+    } // namespace
+
     VulkanSwapchain::VulkanSwapchain(VkDevice device, VkPhysicalDevice physical_device, VulkanQueue* queue, VulkanResourceManager* resource_manager, UniqueVkSurfaceKHR surface, VkSwapchainCreateInfoKHR create_info)
         : device_(device)
         , physical_device_(physical_device)
@@ -22,8 +37,16 @@ namespace orion::vulkan
 
     ImageViewHandle VulkanSwapchain::acquire_render_target_api()
     {
-        vk_result_check(vkAcquireNextImageKHR(device_, swapchain_.get(), UINT64_MAX, image_acquired_semaphores_[semaphore_index_].get(), VK_NULL_HANDLE, &image_index_));
+        VkSemaphore image_semaphore = image_acquired_semaphores_[semaphore_index_].get();
+        vk_result_check(vkAcquireNextImageKHR(device_, swapchain_.get(), UINT64_MAX, image_semaphore, VK_NULL_HANDLE, &image_index_));
+        queue_->vk_queue_wait(image_semaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        queue_->vk_queue_signal(render_semaphores_[semaphore_index_].get());
         return image_views_[image_index_];
+    }
+
+    ImageHandle VulkanSwapchain::current_image_api()
+    {
+        return images_[image_index_];
     }
 
     void VulkanSwapchain::present_api(std::uint32_t sync_interval)
@@ -37,8 +60,7 @@ namespace orion::vulkan
         }
         create_info_.presentMode = present_mode;
 
-        // semaphore_index_ is incremented here and not when acquiring a render target
-        const VkSemaphore render_complete = render_semaphores_[semaphore_index_++].get();
+        const VkSemaphore render_complete = render_semaphores_[semaphore_index_].get();
         const VkSwapchainKHR swapchain = swapchain_.get();
 
         const auto present_info = VkPresentInfoKHR{
@@ -57,6 +79,17 @@ namespace orion::vulkan
         } else {
             vk_result_check(result);
         }
+
+        // semaphore_index_ is incremented here and not when acquiring a render target
+        semaphore_index_ = (semaphore_index_ + 1) % image_count_;
+    }
+
+    void VulkanSwapchain::release_images()
+    {
+        for (const auto image : images_) {
+            resource_manager_->destroy(image);
+        }
+        images_.clear();
     }
 
     void VulkanSwapchain::destroy_image_views()
@@ -75,7 +108,7 @@ namespace orion::vulkan
 
         // Destroy old swapchain resources
         destroy_image_views();
-        images_.clear();
+        release_images();
 
         // VkSwapchainCreateInfoKHR takes the old VkSwapchainKHR handle
         // which may help it reuse resources
@@ -102,14 +135,25 @@ namespace orion::vulkan
         swapchain_ = unique(swapchain, device_);
 
         // Acquire swapchain owned images
-        std::uint32_t image_count;
-        vk_result_check(vkGetSwapchainImagesKHR(device_, swapchain, &image_count, nullptr));
-        images_.resize(image_count);
-        vk_result_check(vkGetSwapchainImagesKHR(device_, swapchain, &image_count, images_.data()));
+        vk_result_check(vkGetSwapchainImagesKHR(device_, swapchain, &image_count_, nullptr));
+        std::vector<VkImage> vk_images(image_count_);
+        vk_result_check(vkGetSwapchainImagesKHR(device_, swapchain, &image_count_, vk_images.data()));
+
+        // Generate ImageHandles for public API
+        images_.resize(image_count_);
+        std::ranges::transform(vk_images, images_.begin(), [&](VkImage image) {
+            const auto handle = ImageHandle::generate();
+            resource_manager_->add(handle, image);
+            return handle;
+        });
+
+        // Create semaphores
+        image_acquired_semaphores_ = create_semaphores(device_, image_count_);
+        render_semaphores_ = create_semaphores(device_, image_count_);
 
         // Create image views from acquired images
-        image_views_.resize(images_.size());
-        std::ranges::transform(images_, image_views_.begin(), [&](VkImage image) {
+        image_views_.resize(image_count_);
+        std::ranges::transform(vk_images, image_views_.begin(), [&](VkImage image) {
             VkImageView image_view = VK_NULL_HANDLE;
             const auto image_view_info = VkImageViewCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,

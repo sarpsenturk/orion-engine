@@ -15,8 +15,6 @@
 
 class SandboxImGui final : public orion::ImGuiLayer
 {
-    using ImGuiLayer::ImGuiLayer;
-
     void on_user_draw() override
     {
         ImGui::ShowDemoWindow();
@@ -117,6 +115,11 @@ private:
         if (window_.is_minimized()) {
             return;
         }
+
+        renderer_.draw({quad_mesh_, current_mat_, &transform});
+        renderer_.render(camera_);
+        renderer_.present_to(swapchain_.get());
+        swapchain_->present(1);
     }
 
     orion::Renderer renderer_;

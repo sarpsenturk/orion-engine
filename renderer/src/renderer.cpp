@@ -217,7 +217,6 @@ namespace orion
         color_pass_->set_render_target(0, frame.render_target.get());
         render_command->begin_render_pass({
             .render_pass = color_pass_.get(),
-            .render_targets = {{frame.render_target.get()}},
             .render_area = {.offset = {}, .size = render_size_},
         });
 
@@ -288,6 +287,48 @@ namespace orion
         render_queue_->submit(render_command, FenceHandle::invalid());
     }
 
+    void Renderer::present_to(Swapchain* swapchain)
+    {
+        auto& frame = current_frame();
+        auto* present_command = frame.present_command.get();
+
+        present_command->begin();
+
+        present_pass_->set_render_target(0, swapchain->acquire_render_target());
+        present_command->transition_barrier({.image = swapchain->current_image(), .old_layout = ImageLayout::Undefined, .new_layout = ImageLayout::ColorAttachment});
+        present_command->begin_render_pass({
+            .render_pass = present_pass_.get(),
+            .render_area = {.offset = {}, .size = render_size_}, // TODO: Swapchain size and internal render size might be different
+        });
+
+        present_command->bind_pipeline({.pipeline = present_pipeline_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+        present_command->bind_descriptor({
+            .bind_point = PipelineBindPoint::Graphics,
+            .pipeline_layout = present_effect_.pipeline_layout(),
+            .index = 0,
+            .descriptor = frame.render_output_descriptor.get(),
+        });
+        present_command->set_viewports(Viewport{
+            .position = {0.f, 0.f},
+            .size = vector_cast<float>(render_size_), // TODO: Swapchain size and internal render size might be different
+            .depth = {0.f, 1.f},
+        });
+        present_command->set_scissors(Scissor{
+            .offset = {0, 0},
+            .size = render_size_, // TODO: Swapchain size and internal render size might be different
+        });
+        present_command->draw({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
+
+        present_command->end_render_pass();
+        present_command->transition_barrier({.image = swapchain->current_image(), .old_layout = ImageLayout::ColorAttachment, .new_layout = ImageLayout::PresentSrc});
+        present_command->end();
+
+        render_queue_->wait(frame.render_semaphore.get());
+        render_queue_->submit(present_command, frame.frame_fence.get());
+
+        frame_counter_ += 1;
+    }
+
     Renderer::FrameData Renderer::create_frame_data(frame_index_t)
     {
         auto command_allocator = render_device_->create_command_allocator({.queue_type = CommandQueueType::Graphics, .reset_command_buffer = false});
@@ -318,7 +359,6 @@ namespace orion
             .frame_fence = render_device_->make_unique<FenceHandle_tag>(FenceDesc{.start_finished = true}),
             .render_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
             .swapchain_image_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
-            .present_semaphore = render_device_->make_unique<SemaphoreHandle_tag>(),
             .staging_buffer = render_device_->make_unique<GPUBufferHandle_tag>(GPUBufferDesc{
                 .size = staging_buffer_size,
                 .usage = GPUBufferUsageFlags::TransferSrc,
@@ -554,11 +594,6 @@ namespace orion
             static_assert(sizeof(tex_white_dat) == 4);
             create_texture(tex_white_info, std::as_bytes(std::span{tex_white_dat}));
         }
-    }
-
-    void Renderer::advance_frame()
-    {
-        ++frame_counter_;
     }
 
     TransferContext Renderer::transfer_context()
