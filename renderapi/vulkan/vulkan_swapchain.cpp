@@ -53,13 +53,6 @@ namespace orion::vulkan
     {
         ORION_EXPECTS((sync_interval == 0 || sync_interval == 1) && "Vulkan only supports sync intervals of 0 or 1");
 
-        // Vulkan swapchains must be recreated internally if the present mode has been changed
-        VkPresentModeKHR present_mode = sync_interval == 0 ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR;
-        if (create_info_.presentMode != present_mode) {
-            recreate_swapchain_and_resources();
-        }
-        create_info_.presentMode = present_mode;
-
         const VkSemaphore render_complete = render_semaphores_[semaphore_index_].get();
         const VkSwapchainKHR swapchain = swapchain_.get();
 
@@ -82,6 +75,13 @@ namespace orion::vulkan
 
         // semaphore_index_ is incremented here and not when acquiring a render target
         semaphore_index_ = (semaphore_index_ + 1) % image_count_;
+
+        // Vulkan swapchains must be recreated internally if the present mode has been changed
+        VkPresentModeKHR present_mode = sync_interval == 0 ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR;
+        if (create_info_.presentMode != present_mode) {
+            create_info_.presentMode = present_mode;
+            recreate_swapchain_and_resources();
+        }
     }
 
     void VulkanSwapchain::release_images()
@@ -150,6 +150,7 @@ namespace orion::vulkan
         // Create semaphores
         image_acquired_semaphores_ = create_semaphores(device_, image_count_);
         render_semaphores_ = create_semaphores(device_, image_count_);
+        semaphore_index_ = 0;
 
         // Create image views from acquired images
         image_views_.resize(image_count_);

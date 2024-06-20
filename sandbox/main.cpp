@@ -119,7 +119,7 @@ private:
         renderer_.draw({quad_mesh_, current_mat_, &transform});
         renderer_.render(camera_);
         renderer_.present_to(swapchain_.get());
-        swapchain_->present(1);
+        swapchain_->present(0);
     }
 
     orion::Renderer renderer_;
