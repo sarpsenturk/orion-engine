@@ -5,8 +5,10 @@
 
 #include "orion-utils/compiler.h"
 
+#include <volk.h>
+#define VK_NO_PROTOTYPES
+#define VMA_VULKAN_VERSION 100200000
 #include <vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
 
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>

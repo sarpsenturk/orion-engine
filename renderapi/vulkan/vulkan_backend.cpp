@@ -269,6 +269,10 @@ namespace orion::vulkan
             vk_result_check(vkCreateDevice(physical_device, &device_info, alloc_callbacks(), &device));
         }
 
+        // Initialize volk device functions
+        // TODO: Since it is actually possible to create more than one device in orion we should probably be using volkLoadDeviceTable
+        volkLoadDevice(device);
+
         // Get the created queues
         VkQueue graphics_queue = VK_NULL_HANDLE;
         vkGetDeviceQueue(device, graphics_queue_index, 0, &graphics_queue);
@@ -330,6 +334,8 @@ namespace orion::vulkan
     UniqueVkInstance VulkanBackend::create_instance() const noexcept
     {
         try {
+            vk_result_check(volkInitialize());
+
             const auto vulkan_version = to_vulkan_version(engine_version);
             const auto application_info = VkApplicationInfo{
                 .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -359,6 +365,7 @@ namespace orion::vulkan
                 };
                 vk_result_check(vkCreateInstance(&instance_info, alloc_callbacks(), &instance));
             }
+            volkLoadInstance(instance);
             return unique(instance);
         } catch (const std::exception& exception) {
             SPDLOG_LOGGER_ERROR(logger(), "exception thrown when creating vulkan backend: {}", exception.what());

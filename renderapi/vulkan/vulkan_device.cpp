@@ -42,13 +42,38 @@ namespace orion::vulkan
 
     UniqueVmaAllocator VulkanDevice::create_vma_allocator(VkInstance instance, VkPhysicalDevice physical_device) const
     {
+        // Explicitly setup function pointers for volk
+        const auto vma_functions = VmaVulkanFunctions{
+            .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+            .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+            .vkAllocateMemory = vkAllocateMemory,
+            .vkFreeMemory = vkFreeMemory,
+            .vkMapMemory = vkMapMemory,
+            .vkUnmapMemory = vkUnmapMemory,
+            .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+            .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+            .vkBindBufferMemory = vkBindBufferMemory,
+            .vkBindImageMemory = vkBindImageMemory,
+            .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+            .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+            .vkCreateBuffer = vkCreateBuffer,
+            .vkDestroyBuffer = vkDestroyBuffer,
+            .vkCreateImage = vkCreateImage,
+            .vkDestroyImage = vkDestroyImage,
+            .vkCmdCopyBuffer = vkCmdCopyBuffer,
+            .vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
+            .vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
+            .vkBindBufferMemory2KHR = vkBindBufferMemory2,
+            .vkBindImageMemory2KHR = vkBindImageMemory2,
+            .vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
+        };
         const auto allocator_info = VmaAllocatorCreateInfo{
             .flags = 0,
             .physicalDevice = physical_device,
             .device = vk_device(),
             .preferredLargeHeapBlockSize = 0,
             .pHeapSizeLimit = nullptr,
-            .pVulkanFunctions = nullptr,
+            .pVulkanFunctions = &vma_functions,
             .instance = instance,
             .vulkanApiVersion = vulkan_api_version,
             .pTypeExternalMemoryHandleTypes = nullptr,

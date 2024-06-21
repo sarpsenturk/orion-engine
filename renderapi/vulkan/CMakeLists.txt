@@ -9,6 +9,7 @@ endif ()
 add_library(
         ${ORION_VULKAN_MODULE} MODULE
         vma_impl.cpp
+        volk_impl.cpp
         vulkan_backend.h vulkan_backend.cpp
         vulkan_command.h vulkan_command.cpp
         vulkan_conversion.h vulkan_conversion.cpp
@@ -30,16 +31,17 @@ target_compile_definitions(${ORION_VULKAN_MODULE} PRIVATE ORION_RENDER_BACKEND_E
 find_package(Vulkan REQUIRED)
 find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
 find_package(unofficial-spirv-reflect CONFIG REQUIRED)
-
+find_package(volk CONFIG REQUIRED)
 
 # Link with interface
 target_link_libraries(
         ${ORION_VULKAN_MODULE}
         PRIVATE
         orion::renderapi
-        Vulkan::Vulkan
+        Vulkan::Headers
         unofficial::vulkan-memory-allocator::vulkan-memory-allocator
         unofficial::spirv-reflect::spirv-reflect
+        volk::volk_headers
 )
 
 # Precompiled headers

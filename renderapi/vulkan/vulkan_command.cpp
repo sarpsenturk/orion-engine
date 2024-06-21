@@ -52,11 +52,9 @@ namespace orion::vulkan
         }
     } // namespace
 
-    VulkanCommandList::VulkanCommandList(VkDevice device, VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer)
+    VulkanCommandList::VulkanCommandList(VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer)
         : resource_manager_(resource_manager)
         , command_buffer_(std::move(command_buffer))
-        , vkCmdBeginRenderingKHR(get_device_proc<PFN_vkCmdBeginRenderingKHR>(device, "vkCmdBeginRenderingKHR"))
-        , vkCmdEndRenderingKHR(get_device_proc<PFN_vkCmdEndRenderingKHR>(device, "vkCmdEndRenderingKHR"))
     {
     }
 
@@ -314,6 +312,6 @@ namespace orion::vulkan
             };
             vk_result_check(vkAllocateCommandBuffers(device_, &info, &command_buffer));
         }
-        return std::make_unique<VulkanCommandList>(device_, resource_manager_, unique(command_buffer, device_, command_pool_.get()));
+        return std::make_unique<VulkanCommandList>(resource_manager_, unique(command_buffer, device_, command_pool_.get()));
     }
 } // namespace orion::vulkan

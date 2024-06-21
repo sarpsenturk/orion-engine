@@ -36,7 +36,8 @@
       "dependencies": [
         "vulkan",
         "vulkan-memory-allocator",
-        "spirv-reflect"
+        "spirv-reflect",
+        "volk"
       ]
     }
   }

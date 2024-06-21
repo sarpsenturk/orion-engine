@@ -7,13 +7,12 @@
 
 namespace orion::vulkan
 {
-    class VulkanDevice;
     class VulkanResourceManager;
 
     class VulkanCommandList final : public CommandList
     {
     public:
-        VulkanCommandList(VkDevice device, VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer);
+        VulkanCommandList(VulkanResourceManager* resource_manager, UniqueVkCommandBuffer command_buffer);
 
         [[nodiscard]] VkCommandBuffer vk_command_buffer() const noexcept { return command_buffer_.get(); }
 
@@ -38,8 +37,6 @@ namespace orion::vulkan
 
         VulkanResourceManager* resource_manager_;
         UniqueVkCommandBuffer command_buffer_;
-        PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
-        PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
     };
 
     class VulkanCommandAllocator final : public CommandAllocator
