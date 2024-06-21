@@ -74,7 +74,8 @@ namespace orion
 
         std::unique_ptr<Swapchain> create_swapchain(const Window& window);
 
-        ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path);
+        ShaderEffect create_shader_effect(const FilePath& vs_path, const FilePath& ps_path) const;
+        UniquePipeline create_graphics_pipeline(const ShaderEffect& effect, BlendMode blend_mode, std::span<const Format> render_targets) const;
 
         std::pair<mesh_id_t, Mesh*> create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices);
         std::pair<material_id_t, Material*> create_material(const MaterialData& data);
@@ -122,8 +123,8 @@ namespace orion
         ShaderEffect object_effect_;
         ShaderEffect present_effect_;
 
-        Pipeline object_pipeline_;
-        Pipeline present_pipeline_;
+        UniquePipeline object_pipeline_;
+        UniquePipeline present_pipeline_;
 
         std::unique_ptr<RenderPass> color_pass_;
         std::unique_ptr<RenderPass> present_pass_;

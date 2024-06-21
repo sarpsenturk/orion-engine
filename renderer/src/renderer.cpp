@@ -126,6 +126,19 @@ namespace orion
         {
             return generate_per_frame([&](frame_index_t) { return device->make_unique<DescriptorHandle_tag>(layout, pool); });
         }
+
+        BlendAttachmentDesc make_blend_attachment(BlendMode blend)
+        {
+            switch (blend) {
+                case BlendMode::Disabled:
+                    return blend_attachment_disabled();
+                case BlendMode::Transparent:
+                    return blend_attachment_alphablend();
+                case BlendMode::Add:
+                    return blend_attachment_additive();
+            }
+            unreachable();
+        }
     } // namespace
 
     Renderer::Renderer(const RendererDesc& desc)
@@ -136,6 +149,8 @@ namespace orion
         , render_size_(desc.render_size)
         , object_effect_(create_shader_effect("object.vs", "object.ps"))
         , present_effect_(create_shader_effect("present.vs", "present.ps"))
+        , object_pipeline_(create_graphics_pipeline(object_effect_, BlendMode::Disabled, {{Format::B8G8R8A8_Srgb}}))
+        , present_pipeline_(create_graphics_pipeline(present_effect_, BlendMode::Disabled, {{Format::B8G8R8A8_Srgb}}))
         , color_pass_(render_device_->create_render_pass())
         , present_pass_(render_device_->create_render_pass())
         , descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
@@ -146,17 +161,6 @@ namespace orion
         , object_buffer_(DynamicGPUBuffer::create(render_device_.get(), sizeof(RenderObjGPUData) * max_render_objects, GPUBufferUsageFlags::StorageBuffer))
         , present_sampler_(create_present_sampler(render_device_.get()))
     {
-        // Create object pipeline
-        {
-            object_pipeline_.set_effect(&object_effect_);
-            object_pipeline_.create(render_device_.get());
-        }
-
-        // Create presentation pipeline
-        {
-            present_pipeline_.set_effect(&present_effect_);
-            present_pipeline_.create(render_device_.get());
-        }
 
         // Setup color pass
         {
@@ -255,7 +259,7 @@ namespace orion
 
         for (std::size_t index = 0; const auto& obj : objects_) {
             const auto* material = find_material(obj.material);
-            render_command->bind_pipeline({.pipeline = object_pipeline_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+            render_command->bind_pipeline({.pipeline = object_pipeline_.get(), .bind_point = PipelineBindPoint::Graphics});
             render_command->bind_descriptor({
                 .bind_point = PipelineBindPoint::Graphics,
                 .pipeline_layout = object_effect_.pipeline_layout(),
@@ -307,7 +311,7 @@ namespace orion
             .render_area = {.offset = {}, .size = render_size_}, // TODO: Swapchain size and internal render size might be different
         });
 
-        present_command->bind_pipeline({.pipeline = present_pipeline_.pipeline(), .bind_point = PipelineBindPoint::Graphics});
+        present_command->bind_pipeline({.pipeline = present_pipeline_.get(), .bind_point = PipelineBindPoint::Graphics});
         present_command->bind_descriptor({
             .bind_point = PipelineBindPoint::Graphics,
             .pipeline_layout = present_effect_.pipeline_layout(),
@@ -395,10 +399,30 @@ namespace orion
         return render_device_->create_swapchain(render_queue_.get(), window, swapchain_desc);
     }
 
-    ShaderEffect Renderer::create_shader_effect(const FilePath& vs_path, const FilePath& ps_path)
+    ShaderEffect Renderer::create_shader_effect(const FilePath& vs_path, const FilePath& ps_path) const
     {
         const auto base_path = FilePath{render_device_->shader_base_path()};
         return ShaderEffect::create(render_device_.get(), base_path / vs_path, base_path / ps_path);
+    }
+
+    UniquePipeline Renderer::create_graphics_pipeline(const ShaderEffect& effect, BlendMode blend_mode, std::span<const Format> render_targets) const
+    {
+        ORION_ASSERT(render_device_ != nullptr);
+        ORION_ASSERT(!render_targets.empty());
+
+        const auto shaders = effect.shader_stages();
+        const auto blend_attachments = std::array{make_blend_attachment(blend_mode)};
+        const auto color_blend = ColorBlendDesc{.enable_logic_op = false, .logic_op = LogicOp::Copy, .attachments = blend_attachments};
+        const auto pipeline_desc = GraphicsPipelineDesc{
+            .shaders = shaders,
+            .vertex_attributes = effect.vertex_attributes(),
+            .pipeline_layout = effect.pipeline_layout(),
+            .input_assembly = {},
+            .rasterization = {},
+            .color_blend = color_blend,
+            .render_targets = render_targets,
+        };
+        return render_device_->make_unique<PipelineHandle_tag>(pipeline_desc);
     }
 
     std::pair<mesh_id_t, Mesh*> Renderer::create_mesh(std::span<const Vertex> vertices, std::span<const vertex_index_t> indices)

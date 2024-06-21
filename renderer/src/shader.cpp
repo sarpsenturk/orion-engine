@@ -94,19 +94,6 @@ namespace orion
             }
             return vertex_attributes;
         }
-
-        BlendAttachmentDesc make_blend_attachment(BlendMode blend)
-        {
-            switch (blend) {
-                case BlendMode::Disabled:
-                    return blend_attachment_disabled();
-                case BlendMode::Transparent:
-                    return blend_attachment_alphablend();
-                case BlendMode::Add:
-                    return blend_attachment_additive();
-            }
-            unreachable();
-        }
     } // namespace
 
     ShaderEffect::ShaderEffect(UniqueShaderModule vertex_shader,
@@ -122,35 +109,6 @@ namespace orion
     {
         ORION_ASSERT(vertex_shader_.get() != ShaderModuleHandle::invalid());
         ORION_ASSERT(pixel_shader_.get() != ShaderModuleHandle::invalid());
-    }
-
-    Pipeline::Pipeline(const ShaderEffect* effect, UniquePipeline pipeline)
-        : effect_(effect)
-        , pipeline_(std::move(pipeline))
-    {
-        ORION_ASSERT(effect_ != nullptr);
-        ORION_ASSERT(pipeline_.get() != PipelineHandle::invalid());
-    }
-
-    void Pipeline::create(RenderDevice* device)
-    {
-        ORION_ASSERT(pipeline_.get() == PipelineHandle::invalid() && "Pipeline already baked");
-        ORION_ASSERT(device != nullptr);
-        ORION_ASSERT(effect_ != nullptr);
-
-        const auto shaders = effect_->shader_stages();
-        const auto blend_attachments = std::array{make_blend_attachment(blend_mode_)};
-        const auto color_blend = ColorBlendDesc{.enable_logic_op = false, .logic_op = LogicOp::Copy, .attachments = blend_attachments};
-        const auto render_targets = std::array{Format::B8G8R8A8_Srgb};
-        const auto pipeline_desc = GraphicsPipelineDesc{
-            .shaders = shaders,
-            .vertex_attributes = effect_->vertex_attributes(),
-            .pipeline_layout = effect_->pipeline_layout(),
-            .rasterization = rasterization_,
-            .color_blend = color_blend,
-            .render_targets = render_targets,
-        };
-        pipeline_ = device->make_unique<PipelineHandle_tag>(pipeline_desc);
     }
 
     std::array<ShaderStageDesc, 2> ShaderEffect::shader_stages() const
