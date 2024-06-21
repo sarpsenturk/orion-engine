@@ -48,12 +48,18 @@ namespace orion
         inline constexpr texture_id_t white = 0;
     }
 
+    namespace meshes
+    {
+        inline constexpr mesh_id_t quad = 0;
+    }
+
     class Renderer
     {
     public:
         explicit Renderer(const RendererDesc& desc);
 
         void draw(const RenderObj& obj);
+        void draw_quad(material_id_t material, const Matrix4_f& transform);
         void render(const Camera& camera);
         void present_to(Swapchain* swapchain);
 
@@ -102,6 +108,7 @@ namespace orion
 
         void imgui_init();
         void create_default_textures();
+        void create_default_meshes();
 
         static constexpr std::size_t max_render_objects = 1000;
         static constexpr std::size_t staging_buffer_size = 1024 * 1024;

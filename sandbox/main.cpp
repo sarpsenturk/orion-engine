@@ -11,8 +11,6 @@
 
 #include <imgui.h>
 
-#include <array>
-
 class SandboxImGui final : public orion::ImGuiLayer
 {
     void on_user_draw() override
@@ -24,21 +22,12 @@ class SandboxImGui final : public orion::ImGuiLayer
 class SandboxApp final : public orion::Application
 {
 public:
-    static constexpr auto vertices = std::array{
-        orion::Vertex{{-.5f, 0.5f, 1.f}, {0.f, 0.f}},
-        orion::Vertex{{0.5f, 0.5f, 1.f}, {1.f, 0.f}},
-        orion::Vertex{{0.5f, -.5f, 1.f}, {1.f, 1.f}},
-        orion::Vertex{{-.5f, -.5f, 1.f}, {0.f, 1.f}},
-    };
-    static constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
-
     static constexpr auto window_size = orion::defaults::window_size;
 
     SandboxApp()
         : renderer_({.render_size = window_size})
         , window_({.name = "Sandbox App", .position = orion::defaults::window_position, .size = window_size})
         , swapchain_(renderer_.create_swapchain(window_))
-        , quad_mesh_(renderer_.create_mesh(vertices, indices).first)
         , blue_mat_(renderer_.create_material({.color = orion::colors::blue}).first)
         , green_mat_(renderer_.create_material({.color = orion::colors::lime}).first)
         , current_mat_(blue_mat_)
@@ -116,16 +105,15 @@ private:
             return;
         }
 
-        renderer_.draw({quad_mesh_, current_mat_, &transform});
+        renderer_.draw_quad(current_mat_, transform);
         renderer_.render(camera_);
         renderer_.present_to(swapchain_.get());
-        swapchain_->present(0);
+        swapchain_->present(1);
     }
 
     orion::Renderer renderer_;
     orion::Window window_;
     orion::SwapchainPtr swapchain_;
-    orion::mesh_id_t quad_mesh_;
     orion::material_id_t blue_mat_;
     orion::material_id_t green_mat_;
     orion::material_id_t current_mat_;

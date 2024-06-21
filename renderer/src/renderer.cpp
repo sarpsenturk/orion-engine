@@ -178,6 +178,7 @@ namespace orion
             render_device_->write_descriptor(frame_data.render_output_descriptor.get(), 1, present_sampler_);
         }
         create_default_textures();
+        create_default_meshes();
 
         SPDLOG_LOGGER_INFO(logger(), "Renderer initialized");
         SPDLOG_LOGGER_INFO(logger(), "Render Backend Info:");
@@ -193,6 +194,11 @@ namespace orion
 
         const auto obj_data = std::array{RenderObjGPUData{.transform = *obj.transform}};
         object_buffer_.update(render_device_.get(), std::as_bytes(std::span{obj_data}), sizeof(RenderObjGPUData) * object_index);
+    }
+
+    void Renderer::draw_quad(material_id_t material, const Matrix4_f& transform)
+    {
+        draw({.mesh = meshes::quad, .material = material, .transform = &transform});
     }
 
     void Renderer::render(const Camera& camera)
@@ -593,6 +599,21 @@ namespace orion
             constexpr auto tex_white_dat = std::array{0xFFFFFFFF};
             static_assert(sizeof(tex_white_dat) == 4);
             create_texture(tex_white_info, std::as_bytes(std::span{tex_white_dat}));
+        }
+    }
+
+    void Renderer::create_default_meshes()
+    {
+        // Create quad mesh
+        {
+            static constexpr auto vertices = std::array{
+                Vertex{{-.5f, 0.5f, 1.f}, {0.f, 0.f}},
+                Vertex{{0.5f, 0.5f, 1.f}, {1.f, 0.f}},
+                Vertex{{0.5f, -.5f, 1.f}, {1.f, 1.f}},
+                Vertex{{-.5f, -.5f, 1.f}, {0.f, 1.f}},
+            };
+            static constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
+            create_mesh(vertices, indices);
         }
     }
 
