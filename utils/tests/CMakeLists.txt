@@ -6,6 +6,7 @@ function(add_orion_utils_test name)
     gtest_discover_tests(${name})
 endfunction()
 
+add_orion_utils_test(array)
 add_orion_utils_test(bitflag)
 add_orion_utils_test(linear_allocator)
 add_orion_utils_test(static_vector)

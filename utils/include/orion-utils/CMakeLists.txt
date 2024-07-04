@@ -4,6 +4,7 @@ target_sources(
         FILES
         allocators/allocator.h
         allocators/linear_allocator.h
+        array.h
         assertion.h
         bitflag.h
         bits.h

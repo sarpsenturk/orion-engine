@@ -154,14 +154,13 @@ namespace orion
         , color_pass_(render_device_->create_render_pass())
         , present_pass_(render_device_->create_render_pass())
         , descriptor_pool_(create_material_descriptor_pool(render_device_.get()))
-        , frame_data_(generate_per_frame(std::bind_front(std::mem_fn(&Renderer::create_frame_data), this)))
+        , frame_data_(generate_per_frame(std::bind_front(&Renderer::create_frame_data, this)))
         , scene_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(0), descriptor_pool_))
         , object_data_descriptors_(create_descriptor_per_frame(render_device_.get(), object_effect_.descriptor_layout(2), descriptor_pool_))
         , scene_cbuffer_(DynamicGPUBuffer::create(render_device_.get(), sizeof(SceneCBuffer), GPUBufferUsageFlags::ConstantBuffer))
         , object_buffer_(DynamicGPUBuffer::create(render_device_.get(), sizeof(RenderObjGPUData) * max_render_objects, GPUBufferUsageFlags::StorageBuffer))
         , present_sampler_(create_present_sampler(render_device_.get()))
     {
-
         // Setup color pass
         {
             const auto render_target = color_pass_->add_attachment();
