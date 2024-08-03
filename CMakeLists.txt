@@ -28,6 +28,7 @@ target_include_directories(orion PUBLIC
 # Add sources
 add_subdirectory(include)
 add_subdirectory(src)
+add_subdirectory(examples)
 
 # Set install directories
 set(orion_bindir ${CMAKE_INSTALL_BINDIR})
