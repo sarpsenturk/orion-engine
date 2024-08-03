@@ -1,12 +1,21 @@
 #include <orion/orion.h>
 
-#include <fmt/base.h>
+using namespace orion;
 
-class SandboxApp final : public orion::Application
+class SandboxApp final : public Application
 {
     void on_update() override
     {
-        fmt::println("Hello world");
+        cout()->trace("trace");
+        cout()->debug("debug");
+        cout()->info("info");
+        cout()->warn("warn");
+        cout()->error("error");
+        cerr()->trace("trace");
+        cerr()->debug("debug");
+        cerr()->info("info");
+        cerr()->warn("warn");
+        cerr()->error("error");
         exit();
     }
 
@@ -15,7 +24,7 @@ class SandboxApp final : public orion::Application
     }
 };
 
-std::unique_ptr<orion::Application> create_orion_app(std::span<const char* const> args)
+std::unique_ptr<Application> create_orion_app(std::span<const char* const> args)
 {
     return std::make_unique<SandboxApp>();
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/log.h"
+
 #include <memory>
 #include <span>
 
@@ -8,7 +10,7 @@ namespace orion
     class Application
     {
     public:
-        Application() = default;
+        Application();
         virtual ~Application() = default;
 
         void update();
@@ -17,17 +19,20 @@ namespace orion
         [[nodiscard]] bool should_exit() const { return should_exit_; }
 
     protected:
-        Application(const Application&) = default;
         Application(Application&&) = default;
-        Application& operator=(const Application&) = default;
         Application& operator=(Application&&) = default;
 
         void exit();
+
+        [[nodiscard]] const Logger* cout() const { return console_out_.get(); }
+        [[nodiscard]] const Logger* cerr() const { return console_err_.get(); }
 
     private:
         virtual void on_update() = 0;
         virtual void on_render() = 0;
 
+        std::unique_ptr<Logger> console_out_;
+        std::unique_ptr<Logger> console_err_;
         bool should_exit_ = false;
     };
 } // namespace orion
