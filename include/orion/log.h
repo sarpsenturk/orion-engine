@@ -71,6 +71,8 @@ namespace orion
             log(LogLevel::Error, format, fmt::make_format_args(std::forward<Args>(args)...));
         }
 
+        [[nodiscard]] const Sink* sink() const { return sink_.get(); }
+
     private:
         void log(LogLevel level, fmt::string_view format, fmt::format_args args) const;
 

@@ -36,5 +36,3 @@ namespace orion
         bool should_exit_ = false;
     };
 } // namespace orion
-
-std::unique_ptr<orion::Application> create_orion_app(std::span<const char* const> args);

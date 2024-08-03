@@ -1,4 +1,4 @@
-#include <orion/orion.h>
+#include <orion/application.h>
 
 using namespace orion;
 
@@ -24,7 +24,7 @@ class SandboxApp final : public Application
     }
 };
 
-std::unique_ptr<Application> create_orion_app(std::span<const char* const> args)
+std::unique_ptr<Application> orion_main(std::span<const char* const> args)
 {
     return std::make_unique<SandboxApp>();
 }

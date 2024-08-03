@@ -37,6 +37,20 @@ add_subdirectory(include)
 add_subdirectory(src)
 add_subdirectory(examples)
 
+# Add entry point
+add_library(orion-main src/entry_point.cpp)
+add_library(orion::orion-main ALIAS orion-main)
+target_link_libraries(orion-main PRIVATE orion)
+target_compile_features(orion-main PUBLIC cxx_std_20)
+
+# Add & enable tests
+if (PROJECT_IS_TOP_LEVEL)
+    include(CTest)
+    if (BUILD_TESTING)
+        add_subdirectory(tests)
+    endif ()
+endif ()
+
 # Set install directories
 set(orion_bindir ${CMAKE_INSTALL_BINDIR})
 set(orion_libdir ${CMAKE_INSTALL_LIBDIR}/orion-${ORION_VERSION})
@@ -51,15 +65,15 @@ write_basic_package_version_file(
 )
 install(
         FILES
-            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/orion-config.cmake
-            ${CMAKE_CURRENT_BINARY_DIR}/OrionConfigVersion.cmake
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/orion-config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/OrionConfigVersion.cmake
         DESTINATION
-            ${orion_cmakedir}
+        ${orion_cmakedir}
 )
 
 # Install orion libs, headers
 install(
-        TARGETS orion
+        TARGETS orion orion-main
         EXPORT OrionTargets
         LIBRARY DESTINATION ${orion_libdir}
         ARCHIVE DESTINATION ${orion_libdir}
