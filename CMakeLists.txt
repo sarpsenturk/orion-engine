@@ -28,6 +28,10 @@ target_include_directories(orion PUBLIC
 # Set compile options for compiler
 include(cmake/CompileOptions.cmake)
 
+# Add dependencies
+find_package(fmt 11.0.0 CONFIG REQUIRED)
+target_link_libraries(orion PUBLIC fmt::fmt)
+
 # Add sources
 add_subdirectory(include)
 add_subdirectory(src)

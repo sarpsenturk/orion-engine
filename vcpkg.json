@@ -1,0 +1,11 @@
+{
+  "name": "orion-engine",
+  "version-semver": "0.1.0",
+  "builtin-baseline": "fe1cde61e971d53c9687cf9a46308f8f55da19fa",
+  "dependencies": [
+    {
+      "name": "fmt",
+      "version>=": "11.0.2"
+    }
+  ]
+}

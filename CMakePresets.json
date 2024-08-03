@@ -7,6 +7,11 @@
   },
   "configurePresets": [
     {
+      "name": "vcpkg",
+      "hidden": true,
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    },
+    {
       "name": "debug",
       "hidden": true,
       "cacheVariables": {

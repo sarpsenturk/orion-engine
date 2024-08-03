@@ -1,9 +1,12 @@
 #include <orion/orion.h>
 
+#include <fmt/base.h>
+
 class SandboxApp final : public orion::Application
 {
     void on_update() override
     {
+        fmt::println("Hello world");
         exit();
     }
 
