@@ -1,6 +1,8 @@
 target_sources(
         orion PUBLIC
         FILE_SET HEADERS FILES
-        orion/log.h
         orion/application.h
+        orion/compiler.h
+        orion/log.h
+        orion/platform.h
 )

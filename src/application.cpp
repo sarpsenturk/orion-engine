@@ -1,7 +1,8 @@
 #include "orion/application.h"
 
-#include <cstdio>
-#include <exception>
+#include "orion/compiler.h"
+#include "orion/config.h"
+#include "orion/platform.h"
 
 namespace orion
 {
@@ -9,6 +10,11 @@ namespace orion
         : console_out_(make_stdout_logger(LogLevel::Trace))
         , console_err_(make_stderr_logger(LogLevel::Trace))
     {
+        console_out_->info("Orion Game Engine");
+        console_out_->info("version: {}", ORION_VERSION);
+        console_out_->info("platform: {}", ORION_PLATFORM_NAME);
+        console_out_->info("build: {}", ORION_BUILD_TYPE);
+        console_out_->info("compiler: {}", ORION_COMPILER_NAME);
     }
 
     void Application::update()

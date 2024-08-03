@@ -20,8 +20,12 @@ set(orion_includedir ${CMAKE_INSTALL_INCLUDEDIR})
 add_library(orion "")
 add_library(orion::orion ALIAS orion)
 target_compile_features(orion PUBLIC cxx_std_20)
+target_compile_definitions(orion PUBLIC $<$<CONFIG:Debug>:ORION_BUILD_DEBUG>)
+
+# Set include directories
 target_include_directories(orion PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/conf>
         $<INSTALL_INTERFACE:${orion_includedir}>
 )
 
@@ -80,6 +84,9 @@ install(
         RUNTIME DESTINATION ${orion_bindir}
         FILE_SET HEADERS DESTINATION ${orion_includedir}
 )
+
+# Install configuration file
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/conf/orion/config.h DESTINATION ${orion_includedir}/orion)
 
 # Install export target
 install(
