@@ -25,6 +25,9 @@ target_include_directories(orion PUBLIC
         $<INSTALL_INTERFACE:${orion_includedir}>
 )
 
+# Set compile options for compiler
+include(cmake/CompileOptions.cmake)
+
 # Add sources
 add_subdirectory(include)
 add_subdirectory(src)
