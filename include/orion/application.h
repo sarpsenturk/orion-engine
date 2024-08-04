@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <span>
+#include <string>
 
 namespace orion
 {
@@ -22,7 +23,8 @@ namespace orion
         Application(Application&&) = default;
         Application& operator=(Application&&) = default;
 
-        void exit();
+        void exit_application();
+        [[noreturn]] void abort_application(const std::string& what);
 
         [[nodiscard]] const Logger* cout() const { return console_out_.get(); }
         [[nodiscard]] const Logger* cerr() const { return console_err_.get(); }
@@ -36,3 +38,5 @@ namespace orion
         bool should_exit_ = false;
     };
 } // namespace orion
+
+std::unique_ptr<orion::Application> orion_main(std::span<const char* const> args);

@@ -34,7 +34,8 @@ include(cmake/CompileOptions.cmake)
 
 # Add dependencies
 find_package(fmt 11.0.0 CONFIG REQUIRED)
-target_link_libraries(orion PUBLIC fmt::fmt)
+find_package(tl-expected 1.0.0 CONFIG REQUIRED)
+target_link_libraries(orion PUBLIC fmt::fmt tl::expected)
 
 # Add sources
 add_subdirectory(include)

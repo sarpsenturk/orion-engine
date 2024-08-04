@@ -4,6 +4,8 @@
 #include "orion/config.h"
 #include "orion/platform.h"
 
+#include <stdexcept>
+
 namespace orion
 {
     Application::Application()
@@ -27,8 +29,13 @@ namespace orion
         on_render();
     }
 
-    void Application::exit()
+    void Application::exit_application()
     {
         should_exit_ = true;
+    }
+
+    void Application::abort_application(const std::string& what)
+    {
+        throw std::runtime_error(what);
     }
 } // namespace orion
