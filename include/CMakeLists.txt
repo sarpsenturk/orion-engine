@@ -4,7 +4,6 @@ target_sources(
         orion/application.h
         orion/assertion.h
         orion/compiler.h
-        orion/log.h
         orion/platform.h
         orion/window.h
 )

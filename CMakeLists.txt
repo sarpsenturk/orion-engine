@@ -20,7 +20,7 @@ set(orion_includedir ${CMAKE_INSTALL_INCLUDEDIR})
 add_library(orion "")
 add_library(orion::orion ALIAS orion)
 target_compile_features(orion PUBLIC cxx_std_20)
-target_compile_definitions(orion PUBLIC $<$<CONFIG:Debug>:ORION_BUILD_DEBUG>)
+target_compile_definitions(orion PUBLIC $<$<CONFIG:Debug>:ORION_BUILD_DEBUG> $<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE>)
 
 # Set include directories
 target_include_directories(orion PUBLIC
@@ -34,8 +34,9 @@ include(cmake/CompileOptions.cmake)
 
 # Add dependencies
 find_package(fmt 11.0.0 CONFIG REQUIRED)
+find_package(spdlog 1.14.1 CONFIG REQUIRED)
 find_package(tl-expected 1.0.0 CONFIG REQUIRED)
-target_link_libraries(orion PUBLIC fmt::fmt tl::expected)
+target_link_libraries(orion PUBLIC fmt::fmt spdlog::spdlog tl::expected)
 
 # Add sources
 add_subdirectory(include)

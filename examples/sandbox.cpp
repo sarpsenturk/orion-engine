@@ -1,6 +1,8 @@
 #include <orion/application.h>
 #include <orion/window.h>
 
+#include <spdlog/spdlog.h>
+
 using namespace orion;
 
 class SandboxApp final : public Application
@@ -18,7 +20,7 @@ private:
     {
         WindowEvent event;
         while ((event = window_->poll_event())) {
-            cout()->trace("{}", event);
+            SPDLOG_TRACE("{}", event);
             if (event.is<OnWindowClose>()) {
                 exit_application();
             }

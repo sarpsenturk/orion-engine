@@ -1,7 +1,6 @@
 target_sources(
         orion PRIVATE
         application.cpp
-        log.cpp
         window.cpp
 )
 

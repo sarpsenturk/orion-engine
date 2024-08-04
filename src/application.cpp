@@ -4,19 +4,20 @@
 #include "orion/config.h"
 #include "orion/platform.h"
 
+#include <spdlog/spdlog.h>
+
 #include <stdexcept>
 
 namespace orion
 {
     Application::Application()
-        : console_out_(make_stdout_logger(LogLevel::Trace))
-        , console_err_(make_stderr_logger(LogLevel::Trace))
     {
-        console_out_->info("Orion Game Engine");
-        console_out_->info("version: {}", ORION_VERSION);
-        console_out_->info("platform: {}", ORION_PLATFORM_NAME);
-        console_out_->info("build: {}", ORION_BUILD_TYPE);
-        console_out_->info("compiler: {}", ORION_COMPILER_NAME);
+        spdlog::set_level(static_cast<spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
+        SPDLOG_INFO("Orion Game Engine");
+        SPDLOG_INFO("version: {}", ORION_VERSION);
+        SPDLOG_INFO("platform: {}", ORION_PLATFORM_NAME);
+        SPDLOG_INFO("build: {}", ORION_BUILD_TYPE);
+        SPDLOG_INFO("compiler: {}", ORION_COMPILER_NAME);
     }
 
     void Application::update()
