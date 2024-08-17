@@ -8,6 +8,7 @@ target_sources(
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_subdirectory(win32)
+    add_subdirectory(renderapi/d3d12)
 else ()
     message(FATAL_ERROR "unknown/unsupported platform for implementation")
 endif ()
