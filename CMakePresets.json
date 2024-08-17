@@ -39,14 +39,6 @@
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "cl"
       }
-    },
-    {
-      "name": "gcc-10",
-      "hidden": true,
-      "generator": "Ninja",
-      "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "g++-10"
-      }
     }
   ]
 }

@@ -3,8 +3,9 @@ Orion is a game engine, created with modern C++ (20) and best practices.
 
 ## Building
 
-Orion is supported on both Windows & Linux with macOS support
-planned for the near future.
+Orion will be initially only supported on Windows, however
+Linux and macOS support will be added once the engine is in a more mature
+state.
 
 To build orion you will need:
 
