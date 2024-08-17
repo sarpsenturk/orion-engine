@@ -4,6 +4,7 @@ target_sources(
         window.cpp
 
         renderapi/render_backend.cpp
+        renderapi/render_device.cpp
 )
 
 add_subdirectory(renderapi/vulkan)

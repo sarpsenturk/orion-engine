@@ -8,4 +8,5 @@ target_sources(
         orion/window.h
 
         orion/renderapi/render_backend.h
+        orion/renderapi/render_device.h
 )

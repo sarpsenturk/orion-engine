@@ -17,9 +17,10 @@ namespace orion
 
     private:
         std::vector<GraphicsAdapter> get_adapters_api() override;
+        std::unique_ptr<RenderDevice> create_device_api(std::size_t adapter_index) override;
 
         ComPtr<ID3D12Debug> debug_controller_;
         ComPtr<IDXGIFactory2> factory_;
-        std::vector<ComPtr<IDXGIAdapter>> adapters_;
+        std::vector<ComPtr<IDXGIAdapter1>> adapters_;
     };
 } // namespace orion

@@ -11,12 +11,9 @@ class SandboxApp final : public Application
 public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
-        , render_backend_(RenderBackend::create())
+        , render_backend_(RenderBackend::create_builtin_d3d12())
+        , render_device_(render_backend_->create_device(0))
     {
-        SPDLOG_INFO("Render backend: {}", render_backend_->name());
-        for (const auto adapters = render_backend_->get_adapters(); const auto& adapter : adapters) {
-            SPDLOG_INFO("Adapter: {}", adapter.name);
-        }
     }
 
 private:
@@ -37,6 +34,7 @@ private:
 
     Window window_;
     std::unique_ptr<RenderBackend> render_backend_;
+    std::unique_ptr<RenderDevice> render_device_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)

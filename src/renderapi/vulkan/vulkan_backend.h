@@ -18,6 +18,7 @@ namespace orion
 
     private:
         std::vector<GraphicsAdapter> get_adapters_api() override;
+        std::unique_ptr<RenderDevice> create_device_api(std::size_t adapter_index) override;
 
         VkInstance instance_ = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debug_messenger_ = VK_NULL_HANDLE;

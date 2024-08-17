@@ -1,6 +1,9 @@
 #include "vulkan_backend.h"
 
+#include "vulkan_device.h"
 #include "vulkan_error.h"
+
+#include "orion/assertion.h"
 
 #include <spdlog/spdlog.h>
 
@@ -97,6 +100,9 @@ namespace orion
         }
 #endif
 
+        // Get physical devices
+        get_adapters_api();
+
         SPDLOG_DEBUG("Vulkan backend initialized");
     }
 
@@ -126,5 +132,63 @@ namespace orion
             };
         });
         return adapters;
+    }
+
+    std::unique_ptr<RenderDevice> VulkanBackend::create_device_api(std::size_t adapter_index)
+    {
+        ORION_EXPECTS(adapter_index < physical_devices_.size());
+        VkPhysicalDevice physical_device = physical_devices_[adapter_index];
+        SPDLOG_TRACE("Creating VkDevice with VkPhysicalDevice {}", fmt::ptr(physical_device));
+
+        const auto queue_families = [&] {
+            std::uint32_t count = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, nullptr);
+            std::vector<VkQueueFamilyProperties> properties(count);
+            vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &count, properties.data());
+            return properties;
+        }();
+        SPDLOG_TRACE("Found {} queue families for physical device", queue_families.size());
+
+        const auto queue_family_index = [&] {
+            for (std::uint32_t index = 0; const auto& queue_family : queue_families) {
+                if (queue_family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                    return index;
+                }
+                ++index;
+            }
+            return UINT32_MAX;
+        }();
+        if (queue_family_index == UINT32_MAX) {
+            throw std::runtime_error{"Vulkan: failed to find suitable queue family"};
+        }
+        SPDLOG_TRACE("Using queue family index {}", queue_family_index);
+
+        const auto queue_priority = 1.f;
+        const auto queue_info = VkDeviceQueueCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueFamilyIndex = queue_family_index,
+            .queueCount = 1,
+            .pQueuePriorities = &queue_priority,
+        };
+
+        VkDevice device = VK_NULL_HANDLE;
+        const auto device_info = VkDeviceCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueCreateInfoCount = 1,
+            .pQueueCreateInfos = &queue_info,
+            .enabledLayerCount = 0,
+            .ppEnabledLayerNames = nullptr,
+            .enabledExtensionCount = 0,
+            .ppEnabledExtensionNames = nullptr,
+            .pEnabledFeatures = nullptr,
+        };
+        vk_assert(vkCreateDevice(physical_device, &device_info, nullptr, &device));
+        SPDLOG_TRACE("Created VkDevice {}", fmt::ptr(device));
+
+        return std::make_unique<VulkanDevice>(device);
     }
 } // namespace orion

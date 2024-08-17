@@ -1,5 +1,9 @@
 #include "d3d12_backend.h"
 
+#include "d3d12_device.h"
+
+#include "orion/assertion.h"
+
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -19,6 +23,9 @@ namespace orion
         hr_assert(CreateDXGIFactory1(IID_PPV_ARGS(&factory_)));
         SPDLOG_TRACE("Created IDXGIFactory2 interface at {}", fmt::ptr(factory_.Get()));
 
+        // Get adapters
+        get_adapters_api();
+
         SPDLOG_DEBUG("DirectX12 backend initialized");
     }
 
@@ -29,8 +36,8 @@ namespace orion
             adapters_.clear();
             UINT i = 0;
             while (true) {
-                ComPtr<IDXGIAdapter> adapter;
-                if (HRESULT hr = factory_->EnumAdapters(i++, &adapter); hr != S_OK) {
+                ComPtr<IDXGIAdapter1> adapter;
+                if (HRESULT hr = factory_->EnumAdapters1(i++, &adapter); hr != S_OK) {
                     break;
                 }
                 adapters_.emplace_back(std::move(adapter));
@@ -38,11 +45,23 @@ namespace orion
         }
 
         std::vector<GraphicsAdapter> adapters(adapters_.size());
-        std::ranges::transform(adapters_, adapters.begin(), [](const ComPtr<IDXGIAdapter>& adapter) {
+        std::ranges::transform(adapters_, adapters.begin(), [](const ComPtr<IDXGIAdapter1>& adapter) {
             DXGI_ADAPTER_DESC desc;
             hr_assert(adapter->GetDesc(&desc));
             return GraphicsAdapter{.name = wstring_to_string(desc.Description)};
         });
         return adapters;
+    }
+
+    std::unique_ptr<RenderDevice> D3D12Backend::create_device_api(std::size_t adapter_index)
+    {
+        ORION_EXPECTS(adapter_index < adapters_.size());
+        IDXGIAdapter1* adapter = adapters_[adapter_index].Get();
+        SPDLOG_TRACE("Creating ID3D12Device with IDXGIAdapter1 interface {}", fmt::ptr(adapter));
+
+        ComPtr<ID3D12Device> device;
+        hr_assert(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
+        SPDLOG_TRACE("Created ID3D12Device interface at {}", fmt::ptr(device.Get()));
+        return std::make_unique<D3D12Device>(std::move(device));
     }
 } // namespace orion

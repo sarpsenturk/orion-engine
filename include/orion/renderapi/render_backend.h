@@ -2,15 +2,12 @@
 
 #include "orion/renderapi/render_device.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace orion
 {
-    using adapter_index_t = std::uint32_t;
-
     struct GraphicsAdapter {
         std::string name;
     };
@@ -36,6 +33,9 @@ namespace orion
         // Gets the adapters (GPUs) available on the system
         std::vector<GraphicsAdapter> get_adapters();
 
+        // Create a logical device
+        std::unique_ptr<RenderDevice> create_device(std::size_t adapter_index);
+
     protected:
         RenderBackend(const RenderBackend&) = default;
         RenderBackend& operator=(const RenderBackend&) = default;
@@ -44,5 +44,6 @@ namespace orion
 
     private:
         virtual std::vector<GraphicsAdapter> get_adapters_api() = 0;
+        virtual std::unique_ptr<RenderDevice> create_device_api(std::size_t adapter_index) = 0;
     };
 } // namespace orion
