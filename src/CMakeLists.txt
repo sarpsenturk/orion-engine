@@ -6,6 +6,8 @@ target_sources(
         renderapi/render_backend.cpp
 )
 
+add_subdirectory(renderapi/vulkan)
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_subdirectory(win32)
 else ()
