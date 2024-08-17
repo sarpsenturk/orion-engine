@@ -2,6 +2,8 @@ target_sources(
         orion PRIVATE
         application.cpp
         window.cpp
+
+        renderapi/render_backend.cpp
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")

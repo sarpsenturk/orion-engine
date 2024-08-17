@@ -6,4 +6,6 @@ target_sources(
         orion/compiler.h
         orion/platform.h
         orion/window.h
+
+        orion/renderapi/render_backend.h
 )
