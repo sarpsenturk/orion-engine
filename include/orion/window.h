@@ -1,9 +1,8 @@
 #pragma once
 
-#include <tl/expected.hpp>
-
 #include <cstdint>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <variant>
 
@@ -18,10 +17,6 @@ namespace orion
         std::uint32_t height = UINT32_MAX;
         std::int32_t xpos = window_position_default;
         std::int32_t ypos = window_position_default;
-    };
-
-    struct WindowCreateError {
-        std::string msg;
     };
 
     // Window events begin with On*
@@ -77,19 +72,22 @@ namespace orion
 
     std::string format_as(const WindowEvent& event);
 
+    // Represent the platform implementation internals of a Window
     struct PlatformWindow;
+
+    struct WindowCreateError final : public std::runtime_error {
+        using std::runtime_error::runtime_error;
+    };
 
     class Window
     {
     public:
-        explicit Window(std::unique_ptr<PlatformWindow> platform_window);
+        explicit Window(const WindowDesc& desc);
         Window(const Window&) = delete;
         Window(Window&&) noexcept;
         Window& operator=(const Window&) = delete;
         Window& operator=(Window&&) noexcept;
         ~Window();
-
-        static tl::expected<std::unique_ptr<Window>, WindowCreateError> create(const WindowDesc& desc);
 
         WindowEvent poll_event();
 
