@@ -25,4 +25,9 @@ namespace orion
         return create_builtin_vulkan();
 #endif
     }
+
+    std::vector<GraphicsAdapter> RenderBackend::get_adapters()
+    {
+        return get_adapters_api();
+    }
 } // namespace orion

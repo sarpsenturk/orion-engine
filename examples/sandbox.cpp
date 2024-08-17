@@ -14,6 +14,9 @@ public:
         , render_backend_(RenderBackend::create())
     {
         SPDLOG_INFO("Render backend: {}", render_backend_->name());
+        for (const auto adapters = render_backend_->get_adapters(); const auto& adapter : adapters) {
+            SPDLOG_INFO("Adapter: {}", adapter.name);
+        }
     }
 
 private:

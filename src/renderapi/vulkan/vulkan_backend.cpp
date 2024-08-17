@@ -4,6 +4,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <vector>
 
 namespace orion
@@ -107,5 +108,23 @@ namespace orion
         if (instance_ != VK_NULL_HANDLE) {
             vkDestroyInstance(instance_, nullptr);
         }
+    }
+
+    std::vector<GraphicsAdapter> VulkanBackend::get_adapters_api()
+    {
+        std::uint32_t count = 0;
+        vk_assert(vkEnumeratePhysicalDevices(instance_, &count, nullptr), "Failed to enumerate physical devices");
+        physical_devices_.resize(count);
+        vk_assert(vkEnumeratePhysicalDevices(instance_, &count, physical_devices_.data()), "Failed to enumerate physical devices");
+
+        std::vector<GraphicsAdapter> adapters(count);
+        std::ranges::transform(physical_devices_, adapters.begin(), [](VkPhysicalDevice physical_device) {
+            VkPhysicalDeviceProperties properties;
+            vkGetPhysicalDeviceProperties(physical_device, &properties);
+            return GraphicsAdapter{
+                .name = properties.deviceName,
+            };
+        });
+        return adapters;
     }
 } // namespace orion

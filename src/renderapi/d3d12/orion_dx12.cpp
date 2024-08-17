@@ -12,4 +12,14 @@ namespace orion
             throw std::runtime_error{fmt::format("{}: {}", msg, hr)};
         }
     }
+
+    std::string wstring_to_string(const wchar_t* wstr)
+    {
+        const auto size = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+        std::string utf8(size, '\0');
+        if (WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &utf8[0], size, nullptr, nullptr) == 0) [[unlikely]] {
+            throw std::runtime_error{"failed to convert wstring to string"};
+        }
+        return utf8;
+    }
 } // namespace orion
