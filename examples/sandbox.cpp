@@ -11,7 +11,7 @@ class SandboxApp final : public Application
 public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
-        , render_backend_(RenderBackend::create_builtin_vulkan())
+        , render_backend_(RenderBackend::create())
     {
         SPDLOG_INFO("Render backend: {}", render_backend_->name());
     }
