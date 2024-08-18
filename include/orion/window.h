@@ -91,6 +91,8 @@ namespace orion
 
         WindowEvent poll_event();
 
+        [[nodiscard]] const PlatformWindow* platform_window() const noexcept { return platform_window_.get(); }
+
     private:
         std::unique_ptr<PlatformWindow> platform_window_;
     };

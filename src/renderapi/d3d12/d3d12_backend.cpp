@@ -62,6 +62,6 @@ namespace orion
         ComPtr<ID3D12Device> device;
         hr_assert(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
         SPDLOG_TRACE("Created ID3D12Device interface at {}", fmt::ptr(device.Get()));
-        return std::make_unique<D3D12Device>(std::move(device));
+        return std::make_unique<D3D12Device>(std::move(device), factory_);
     }
 } // namespace orion

@@ -11,9 +11,10 @@ class SandboxApp final : public Application
 public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
-        , render_backend_(RenderBackend::create())
+        , render_backend_(RenderBackend::create_builtin_d3d12())
         , render_device_(render_backend_->create_device(0))
         , command_queue_(render_device_->create_command_queue())
+        , swapchain_(render_device_->create_swapchain({.window = &window_, .queue = command_queue_.get(), .width = 800, .height = 600, .image_count = 2}))
     {
     }
 
@@ -37,6 +38,7 @@ private:
     std::unique_ptr<RenderBackend> render_backend_;
     std::unique_ptr<RenderDevice> render_device_;
     std::unique_ptr<CommandQueue> command_queue_;
+    std::unique_ptr<Swapchain> swapchain_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)

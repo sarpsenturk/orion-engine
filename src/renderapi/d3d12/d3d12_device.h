@@ -9,11 +9,13 @@ namespace orion
     class D3D12Device final : public RenderDevice
     {
     public:
-        D3D12Device(ComPtr<ID3D12Device> device);
+        D3D12Device(ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory2> factory);
 
     private:
         std::unique_ptr<CommandQueue> create_command_queue_api() override;
+        std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
 
         ComPtr<ID3D12Device> device_;
+        ComPtr<IDXGIFactory2> factory_;
     };
 } // namespace orion

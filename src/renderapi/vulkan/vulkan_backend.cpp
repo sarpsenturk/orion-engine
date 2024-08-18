@@ -4,6 +4,7 @@
 #include "vulkan_error.h"
 
 #include "orion/assertion.h"
+#include "orion/platform.h"
 
 #include <spdlog/spdlog.h>
 
@@ -14,6 +15,12 @@ namespace orion
 {
     namespace
     {
+#ifdef ORION_PLATFORM_WIN32
+        constexpr const char* platform_surface_ext = "VK_KHR_win32_surface";
+#else
+    #error no platform surface extension defined
+#endif
+
         std::vector<const char*> enabled_instance_layers()
         {
             std::vector<const char*> layers;
@@ -26,9 +33,18 @@ namespace orion
         std::vector<const char*> enabled_instance_extensions()
         {
             std::vector<const char*> extensions;
+            extensions.push_back("VK_KHR_surface");
+            extensions.push_back(platform_surface_ext);
 #ifdef ORION_BUILD_DEBUG
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
+            return extensions;
+        }
+
+        std::vector<const char*> enabled_device_extensions()
+        {
+            std::vector<const char*> extensions;
+            extensions.push_back("VK_KHR_swapchain");
             return extensions;
         }
 
@@ -173,6 +189,7 @@ namespace orion
             .pQueuePriorities = &queue_priority,
         };
 
+        const auto extensions = enabled_device_extensions();
         VkDevice device = VK_NULL_HANDLE;
         const auto device_info = VkDeviceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -182,16 +199,18 @@ namespace orion
             .pQueueCreateInfos = &queue_info,
             .enabledLayerCount = 0,
             .ppEnabledLayerNames = nullptr,
-            .enabledExtensionCount = 0,
-            .ppEnabledExtensionNames = nullptr,
+            .enabledExtensionCount = static_cast<std::uint32_t>(extensions.size()),
+            .ppEnabledExtensionNames = extensions.data(),
             .pEnabledFeatures = nullptr,
         };
         vk_assert(vkCreateDevice(physical_device, &device_info, nullptr, &device));
         SPDLOG_TRACE("Created VkDevice {}", fmt::ptr(device));
 
+        volkLoadDevice(device);
+
         VkQueue queue;
         vkGetDeviceQueue(device, queue_family_index, 0, &queue);
 
-        return std::make_unique<VulkanDevice>(device, physical_device, queue);
+        return std::make_unique<VulkanDevice>(device, instance_, physical_device, queue, queue_family_index);
     }
 } // namespace orion

@@ -23,10 +23,13 @@ target_compile_features(orion PUBLIC cxx_std_20)
 target_compile_definitions(orion PUBLIC $<$<CONFIG:Debug>:ORION_BUILD_DEBUG> $<$<CONFIG:Debug>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE>)
 
 # Set include directories
-target_include_directories(orion PUBLIC
+target_include_directories(orion
+        PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/conf>
         $<INSTALL_INTERFACE:${orion_includedir}>
+        PRIVATE
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
 )
 
 # Set compile options for compiler

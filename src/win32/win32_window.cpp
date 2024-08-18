@@ -71,8 +71,8 @@ namespace orion
                 window_style,                                                     // Window style: https://learn.microsoft.com/en-us/windows/win32/winmsg/window-styles
                 desc.xpos != window_position_default ? desc.xpos : CW_USEDEFAULT, // X position
                 desc.ypos != window_position_default ? desc.ypos : CW_USEDEFAULT, // Y position
-                rect.right,                                                       // Width,
-                rect.bottom,                                                      // Height
+                rect.right - rect.left,                                           // Width,
+                rect.bottom - rect.top,                                           // Height
                 NULL,                                                             // Parent window handle
                 NULL,                                                             // Menu handle
                 GetModuleHandle(nullptr),                                         // Module handle

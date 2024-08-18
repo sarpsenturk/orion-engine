@@ -11,6 +11,8 @@ namespace orion
     public:
         D3D12Queue(ComPtr<ID3D12CommandQueue> queue);
 
+        [[nodiscard]] ID3D12CommandQueue* get() const { return queue_.Get(); }
+
     private:
         ComPtr<ID3D12CommandQueue> queue_;
     };
