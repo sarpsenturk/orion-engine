@@ -7,4 +7,5 @@ target_sources(orion PRIVATE
         vulkan_backend.h vulkan_backend.cpp
         vulkan_device.h vulkan_device.cpp
         vulkan_error.h vulkan_error.cpp
+        vulkan_queue.h vulkan_queue.cpp
 )

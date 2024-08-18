@@ -189,6 +189,9 @@ namespace orion
         vk_assert(vkCreateDevice(physical_device, &device_info, nullptr, &device));
         SPDLOG_TRACE("Created VkDevice {}", fmt::ptr(device));
 
-        return std::make_unique<VulkanDevice>(device);
+        VkQueue queue;
+        vkGetDeviceQueue(device, queue_family_index, 0, &queue);
+
+        return std::make_unique<VulkanDevice>(device, physical_device, queue);
     }
 } // namespace orion

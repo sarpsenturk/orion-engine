@@ -12,6 +12,8 @@ namespace orion
         D3D12Device(ComPtr<ID3D12Device> device);
 
     private:
+        std::unique_ptr<CommandQueue> create_command_queue_api() override;
+
         ComPtr<ID3D12Device> device_;
     };
 } // namespace orion
