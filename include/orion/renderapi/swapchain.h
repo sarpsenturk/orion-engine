@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/renderapi/format.h"
+
 #include <cstdint>
 
 namespace orion
@@ -10,6 +12,7 @@ namespace orion
         std::uint32_t width;
         std::uint32_t height;
         std::uint32_t image_count;
+        Format image_format;
     };
 
     class Swapchain

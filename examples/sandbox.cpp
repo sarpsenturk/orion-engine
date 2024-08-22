@@ -26,16 +26,40 @@ class SandboxApp final : public Application
 public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
-        , render_backend_(RenderBackend::create())
+        , render_backend_(RenderBackend::create_builtin_vulkan())
         , render_device_(render_backend_->create_device(0))
         , command_queue_(render_device_->create_command_queue())
-        , swapchain_(render_device_->create_swapchain({.window = &window_, .queue = command_queue_.get(), .width = 800, .height = 600, .image_count = 2}))
+        , swapchain_(render_device_->create_swapchain({.window = &window_, .queue = command_queue_.get(), .width = 800, .height = 600, .image_count = 2, .image_format = Format::B8G8R8A8_Unorm}))
     {
         auto compiler = render_device_->create_shader_compiler();
         const auto vs = compiler->compile({.source = vertex_shader, .type = ShaderType::Vertex});
         SPDLOG_DEBUG("Created vertex shader binary with size {}", vs.size());
         const auto ps = compiler->compile({.source = pixel_shader, .type = ShaderType::Pixel});
         SPDLOG_DEBUG("Created pixel shader binary with size {}", ps.size());
+
+        const auto pipeline = render_device_->create_graphics_pipeline({
+            .vertex_shader = vs,
+            .pixel_shader = ps,
+            .vertex_attributes = {{VertexAttribute{.name = "POSITION", .format = Format::R32G32B32_Float}}},
+            .primitive_topology = PrimitiveTopology::Triangle,
+            .rasterizer = {.fill_mode = FillMode::Solid, .cull_mode = CullMode::Back, .front_face = FrontFace::ClockWise},
+            .blend = {
+                .render_targets = {{
+                    RenderTargetBlendDesc{
+                        .blend_enable = true,
+                        .src_blend = Blend::One,
+                        .dst_blend = Blend::Zero,
+                        .blend_op = BlendOp::Add,
+                        .src_blend_alpha = Blend::One,
+                        .dst_blend_alpha = Blend::Zero,
+                        .blend_op_alpha = BlendOp::Add,
+                        .color_write_mask = ColorWriteFlags::All,
+                    },
+                }},
+                .blend_constants = {1.f, 1.f, 1.f, 1.f},
+            },
+            .render_target_formats = {{Format::B8G8R8A8_Unorm}},
+        });
     }
 
 private:

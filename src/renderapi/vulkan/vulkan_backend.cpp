@@ -45,6 +45,7 @@ namespace orion
         {
             std::vector<const char*> extensions;
             extensions.push_back("VK_KHR_swapchain");
+            extensions.push_back("VK_KHR_dynamic_rendering");
             return extensions;
         }
 
@@ -189,11 +190,17 @@ namespace orion
             .pQueuePriorities = &queue_priority,
         };
 
-        const auto extensions = enabled_device_extensions();
         VkDevice device = VK_NULL_HANDLE;
+
+        const auto extensions = enabled_device_extensions();
+        const auto dynamic_rendering = VkPhysicalDeviceDynamicRenderingFeatures{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+            .pNext = nullptr,
+            .dynamicRendering = VK_TRUE,
+        };
         const auto device_info = VkDeviceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext = nullptr,
+            .pNext = &dynamic_rendering,
             .flags = 0,
             .queueCreateInfoCount = 1,
             .pQueueCreateInfos = &queue_info,

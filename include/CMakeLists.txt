@@ -7,6 +7,9 @@ target_sources(
         orion/platform.h
         orion/window.h
 
+        orion/renderapi/format.h
+        orion/renderapi/handle.h
+        orion/renderapi/pipeline.h
         orion/renderapi/render_backend.h
         orion/renderapi/render_device.h
         orion/renderapi/render_queue.h

@@ -24,4 +24,17 @@ namespace orion
         SPDLOG_DEBUG("Created shader compiler {}", fmt::ptr(compiler.get()));
         return compiler;
     }
+
+    GraphicsPipelineHandle RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
+    {
+        auto graphics_pipeline = create_graphics_pipeline_api(desc);
+        SPDLOG_DEBUG("Created graphics pipeline {}", fmt::underlying(graphics_pipeline));
+        return graphics_pipeline;
+    }
+
+    void RenderDevice::destroy(GraphicsPipelineHandle pipeline)
+    {
+        destroy_api(pipeline);
+        SPDLOG_DEBUG("Destroyed graphics pipeline {}", fmt::underlying(pipeline));
+    }
 } // namespace orion

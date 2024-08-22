@@ -109,10 +109,10 @@ namespace orion
         return "unknown_vk_result";
     }
 
-    void vk_assert(VkResult result, const char* message)
+    void vk_assert(VkResult result, const char* message, const std::source_location& location)
     {
         if (result != VK_SUCCESS) [[unlikely]] {
-            throw std::runtime_error{fmt::format("{}: {}", message, vk_result_string(result))};
+            throw std::runtime_error{fmt::format("{}:{} {}: {}", location.file_name(), location.line(), message, vk_result_string(result))};
         }
     }
 } // namespace orion

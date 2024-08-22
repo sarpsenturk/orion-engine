@@ -6,10 +6,10 @@
 
 namespace orion
 {
-    void hr_assert(HRESULT hr, const char* msg)
+    void hr_assert(HRESULT hr, const char* msg, const std::source_location& location)
     {
         if (FAILED(hr)) [[unlikely]] {
-            throw std::runtime_error{fmt::format("{}: {}", msg, hr)};
+            throw std::runtime_error{fmt::format("{}:{} {}: {:#x}", location.file_name(), location.line(), msg, static_cast<std::make_unsigned_t<HRESULT>>(hr))};
         }
     }
 
