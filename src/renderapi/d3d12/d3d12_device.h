@@ -14,6 +14,7 @@ namespace orion
     private:
         std::unique_ptr<CommandQueue> create_command_queue_api() override;
         std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
+        std::unique_ptr<ShaderCompiler> create_shader_compiler_api() override;
 
         ComPtr<ID3D12Device> device_;
         ComPtr<IDXGIFactory2> factory_;

@@ -1,6 +1,6 @@
-find_package(VulkanHeaders CONFIG REQUIRED)
-find_package(volk CONFIG REQUIRED)
-target_link_libraries(orion PRIVATE Vulkan::Headers volk::volk_headers)
+find_package(Vulkan REQUIRED COMPONENTS dxc volk)
+
+target_link_libraries(orion PRIVATE Vulkan::Headers Vulkan::dxc_lib Vulkan::volk)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(vulkan_platform_impl vulkan_win32_impl.cpp)
@@ -15,5 +15,6 @@ target_sources(orion PRIVATE
         vulkan_error.h vulkan_error.cpp
         vulkan_platform.h ${vulkan_platform_impl}
         vulkan_queue.h vulkan_queue.cpp
+        vulkan_shader.h vulkan_shader.cpp
         vulkan_swapchain.h vulkan_swapchain.cpp
 )

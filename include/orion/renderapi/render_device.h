@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion/renderapi/render_queue.h"
+#include "orion/renderapi/shader.h"
 #include "orion/renderapi/swapchain.h"
 
 #include <memory>
@@ -15,6 +16,7 @@ namespace orion
 
         std::unique_ptr<CommandQueue> create_command_queue();
         std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc);
+        std::unique_ptr<ShaderCompiler> create_shader_compiler();
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -25,5 +27,6 @@ namespace orion
     private:
         virtual std::unique_ptr<CommandQueue> create_command_queue_api() = 0;
         virtual std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) = 0;
+        virtual std::unique_ptr<ShaderCompiler> create_shader_compiler_api() = 0;
     };
 } // namespace orion

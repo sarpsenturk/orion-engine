@@ -6,6 +6,7 @@ target_sources(
         renderapi/render_backend.cpp
         renderapi/render_device.cpp
         renderapi/render_queue.cpp
+        renderapi/shader.cpp
         renderapi/swapchain.cpp
 )
 

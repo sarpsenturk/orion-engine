@@ -2,7 +2,7 @@
 
 #include "orion/renderapi/render_device.h"
 
-#include <volk.h>
+#include <Volk/volk.h>
 
 namespace orion
 {
@@ -15,6 +15,7 @@ namespace orion
     private:
         std::unique_ptr<CommandQueue> create_command_queue_api() override;
         std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
+        std::unique_ptr<ShaderCompiler> create_shader_compiler_api() override;
 
         VkDevice device_;
         VkInstance instance_;

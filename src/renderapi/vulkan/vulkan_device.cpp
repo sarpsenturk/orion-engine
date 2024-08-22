@@ -3,6 +3,7 @@
 #include "vulkan_error.h"
 #include "vulkan_platform.h"
 #include "vulkan_queue.h"
+#include "vulkan_shader.h"
 #include "vulkan_swapchain.h"
 
 #include "orion/assertion.h"
@@ -87,5 +88,10 @@ namespace orion
             SPDLOG_TRACE("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
         }
         return std::make_unique<VulkanSwapchain>(device_, instance_, surface, swapchain);
+    }
+
+    std::unique_ptr<ShaderCompiler> VulkanDevice::create_shader_compiler_api()
+    {
+        return std::make_unique<VulkanShaderCompiler>();
     }
 } // namespace orion

@@ -10,5 +10,6 @@ target_sources(
         orion/renderapi/render_backend.h
         orion/renderapi/render_device.h
         orion/renderapi/render_queue.h
+        orion/renderapi/shader.h
         orion/renderapi/swapchain.h
 )

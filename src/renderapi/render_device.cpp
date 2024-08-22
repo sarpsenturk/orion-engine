@@ -17,4 +17,11 @@ namespace orion
         SPDLOG_DEBUG("Created swapchain {}", fmt::ptr(swapchain.get()));
         return swapchain;
     }
+
+    std::unique_ptr<ShaderCompiler> RenderDevice::create_shader_compiler()
+    {
+        auto compiler = create_shader_compiler_api();
+        SPDLOG_DEBUG("Created shader compiler {}", fmt::ptr(compiler.get()));
+        return compiler;
+    }
 } // namespace orion

@@ -1,6 +1,7 @@
 #include "d3d12_device.h"
 
 #include "d3d12_queue.h"
+#include "d3d12_shader.h"
 #include "d3d12_swapchain.h"
 
 #include "win32/win32_window.h"
@@ -53,5 +54,10 @@ namespace orion
         SPDLOG_TRACE("Created IDXGISwapChain1 interface at {}", fmt::ptr(swapchain.Get()));
 
         return std::make_unique<D3D12Swapchain>(std::move(swapchain));
+    }
+
+    std::unique_ptr<ShaderCompiler> D3D12Device::create_shader_compiler_api()
+    {
+        return std::make_unique<D3D12ShaderCompiler>();
     }
 } // namespace orion
