@@ -47,3 +47,15 @@
     #define ORION_EXPECTS(condition) ((void)0)
     #define ORION_ENSURES(condition) ((void)0)
 #endif
+
+namespace orion
+{
+    [[noreturn]] inline void unreachable()
+    {
+#ifdef ORION_COMPILER_MSVC
+        __assume(false);
+#else
+        __builtin_unreachable();
+#endif
+    }
+} // namespace orion
