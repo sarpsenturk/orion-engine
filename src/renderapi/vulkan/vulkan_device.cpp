@@ -25,15 +25,9 @@ namespace orion
         , physical_device_(physical_device)
         , queue_(queue)
         , queue_family_index_(queue_family_index)
-        , handle_table_(device)
+        , pipeline_layouts_(device_.get())
+        , pipelines_(device_.get())
     {
-    }
-
-    VulkanDevice::~VulkanDevice()
-    {
-        if (device_ != VK_NULL_HANDLE) {
-            vkDestroyDevice(device_, nullptr);
-        }
     }
 
     std::unique_ptr<CommandQueue> VulkanDevice::create_command_queue_api()
@@ -90,10 +84,10 @@ namespace orion
                 .clipped = VK_TRUE,
                 .oldSwapchain = VK_NULL_HANDLE,
             };
-            vk_assert(vkCreateSwapchainKHR(device_, &info, nullptr, &swapchain));
+            vk_assert(vkCreateSwapchainKHR(device_.get(), &info, nullptr, &swapchain));
             SPDLOG_TRACE("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
         }
-        return std::make_unique<VulkanSwapchain>(device_, instance_, surface, swapchain);
+        return std::make_unique<VulkanSwapchain>(device_.get(), instance_, surface, swapchain);
     }
 
     std::unique_ptr<ShaderCompiler> VulkanDevice::create_shader_compiler_api()
@@ -101,7 +95,26 @@ namespace orion
         return std::make_unique<VulkanShaderCompiler>();
     }
 
-    GraphicsPipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
+    PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)
+    {
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        {
+            const auto info = VkPipelineLayoutCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .setLayoutCount = 0,
+                .pSetLayouts = nullptr,
+                .pushConstantRangeCount = 0,
+                .pPushConstantRanges = nullptr,
+            };
+            vk_assert(vkCreatePipelineLayout(device_.get(), &info, nullptr, &pipeline_layout));
+            SPDLOG_TRACE("Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
+        }
+        return pipeline_layouts_.insert(pipeline_layout);
+    }
+
+    PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
         VkPipeline pipeline = VK_NULL_HANDLE;
         {
@@ -263,20 +276,9 @@ namespace orion
                 .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
             };
 
-            // TODO: Temporary pipeline layout
-            VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-            {
-                const auto info = VkPipelineLayoutCreateInfo{
-                    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                    .pNext = nullptr,
-                    .flags = 0,
-                    .setLayoutCount = 0,
-                    .pSetLayouts = nullptr,
-                    .pushConstantRangeCount = 0,
-                    .pPushConstantRanges = nullptr,
-                };
-                vk_assert(vkCreatePipelineLayout(device_, &info, nullptr, &pipeline_layout));
-            }
+            // Pipeline layout
+            VkPipelineLayout pipeline_layout = pipeline_layouts_.lookup(desc.pipeline_layout);
+            ORION_EXPECTS(pipeline_layout != VK_NULL_HANDLE);
 
             const auto info = VkGraphicsPipelineCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -299,22 +301,29 @@ namespace orion
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
             };
-            vk_assert(vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
+            vk_assert(vkCreateGraphicsPipelines(device_.get(), VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
             SPDLOG_TRACE("Created VkPipeline {}", fmt::ptr(pipeline));
 
             // Cleanup shaders
             // TODO: Do this automatically
             for (VkShaderModule module : shader_modules) {
-                vkDestroyShaderModule(device_, module, nullptr);
+                vkDestroyShaderModule(device_.get(), module, nullptr);
             }
         }
-        return handle_table_.insert(pipeline);
+        return pipelines_.insert(pipeline);
     }
 
-    void VulkanDevice::destroy_api(GraphicsPipelineHandle pipeline)
+    void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
-        if (!handle_table_.remove(pipeline)) {
-            SPDLOG_WARN("Attempting to destroy graphics pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
+        if (!pipeline_layouts_.remove(pipeline_layout)) {
+            SPDLOG_WARN("Attempting to destroy pipeline layout with handle {}, which is not a valid handle", fmt::underlying(pipeline_layout));
+        }
+    }
+
+    void VulkanDevice::destroy_api(PipelineHandle pipeline)
+    {
+        if (!pipelines_.remove(pipeline)) {
+            SPDLOG_WARN("Attempting to destroy pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
         }
     }
 
@@ -328,7 +337,7 @@ namespace orion
             .codeSize = code.size_bytes(),
             .pCode = reinterpret_cast<const uint32_t*>(code.data()),
         };
-        vk_assert(vkCreateShaderModule(device_, &info, nullptr, &shader_module));
+        vk_assert(vkCreateShaderModule(device_.get(), &info, nullptr, &shader_module));
         return shader_module;
     }
 } // namespace orion

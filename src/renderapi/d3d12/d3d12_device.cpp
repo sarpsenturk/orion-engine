@@ -7,6 +7,8 @@
 
 #include "win32/win32_window.h"
 
+#include "orion/assertion.h"
+
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -64,7 +66,23 @@ namespace orion
         return std::make_unique<D3D12ShaderCompiler>();
     }
 
-    GraphicsPipelineHandle D3D12Device::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
+    PipelineLayoutHandle D3D12Device::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)
+    {
+        const auto root_signature_desc = D3D12_ROOT_SIGNATURE_DESC{
+            .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
+        };
+
+        ComPtr<ID3D10Blob> root_signature_blob;
+        hr_assert(D3D12SerializeRootSignature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, &root_signature_blob, nullptr));
+
+        ComPtr<ID3D12RootSignature> root_signature;
+        hr_assert(device_->CreateRootSignature(0, root_signature_blob->GetBufferPointer(), root_signature_blob->GetBufferSize(), IID_PPV_ARGS(&root_signature)));
+        SPDLOG_TRACE("Created ID3D12RootSignature interface at {}", fmt::ptr(root_signature.Get()));
+
+        return root_signatures_.insert(std::move(root_signature));
+    }
+
+    PipelineHandle D3D12Device::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
     {
         ComPtr<ID3D12PipelineState> pipeline;
         {
@@ -153,17 +171,11 @@ namespace orion
                 .Quality = 0,
             };
 
-            // TODO: Temporary root signature
-            const auto root_signature_desc = D3D12_ROOT_SIGNATURE_DESC{
-                .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
-            };
-            ComPtr<ID3D10Blob> root_signature_blob;
-            hr_assert(D3D12SerializeRootSignature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, &root_signature_blob, nullptr));
-            ComPtr<ID3D12RootSignature> root_signature;
-            hr_assert(device_->CreateRootSignature(0, root_signature_blob->GetBufferPointer(), root_signature_blob->GetBufferSize(), IID_PPV_ARGS(&root_signature)));
+            ID3D12RootSignature* root_signature = root_signatures_.lookup(desc.pipeline_layout).Get();
+            ORION_EXPECTS(root_signature != nullptr);
 
             const auto d3d12_desc = D3D12_GRAPHICS_PIPELINE_STATE_DESC{
-                .pRootSignature = root_signature.Get(),
+                .pRootSignature = root_signature,
                 .VS = {.pShaderBytecode = desc.vertex_shader.data(), .BytecodeLength = desc.vertex_shader.size_bytes()},
                 .PS = {.pShaderBytecode = desc.pixel_shader.data(), .BytecodeLength = desc.pixel_shader.size_bytes()},
                 .BlendState = blend_state,
@@ -183,13 +195,20 @@ namespace orion
             SPDLOG_TRACE("Created graphics ID3D12Pipeline interface at {}", fmt::ptr(pipeline.Get()));
         }
 
-        return handle_table_.insert(std::move(pipeline));
+        return pipelines_.insert(std::move(pipeline));
     }
 
-    void D3D12Device::destroy_api(GraphicsPipelineHandle pipeline)
+    void D3D12Device::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
-        if (!handle_table_.remove(pipeline)) {
-            SPDLOG_WARN("Trying to remove graphics pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
+        if (!root_signatures_.remove(pipeline_layout)) {
+            SPDLOG_WARN("Trying to remove pipeline layout with handle {}, which is not a valid handle", fmt::underlying(pipeline_layout));
+        }
+    }
+
+    void D3D12Device::destroy_api(PipelineHandle pipeline)
+    {
+        if (!pipelines_.remove(pipeline)) {
+            SPDLOG_WARN("Trying to remove pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
         }
     }
 } // namespace orion

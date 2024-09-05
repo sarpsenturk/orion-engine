@@ -17,13 +17,16 @@ namespace orion
         std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
         std::unique_ptr<ShaderCompiler> create_shader_compiler_api() override;
 
-        GraphicsPipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
+        PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) override;
+        PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
 
-        void destroy_api(GraphicsPipelineHandle pipeline) override;
+        void destroy_api(PipelineLayoutHandle pipeline_layout) override;
+        void destroy_api(PipelineHandle pipeline) override;
 
         ComPtr<ID3D12Device> device_;
         ComPtr<IDXGIFactory2> factory_;
 
-        D3D12HandleTable handle_table_;
+        D3D12RootSignatureTable root_signatures_;
+        D3D12PipelineTable pipelines_;
     };
 } // namespace orion

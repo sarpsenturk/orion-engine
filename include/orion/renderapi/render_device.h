@@ -20,9 +20,11 @@ namespace orion
         std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc);
         std::unique_ptr<ShaderCompiler> create_shader_compiler();
 
-        GraphicsPipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
+        PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
+        PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
 
-        void destroy(GraphicsPipelineHandle pipeline);
+        void destroy(PipelineLayoutHandle pipeline_layout);
+        void destroy(PipelineHandle pipeline);
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -35,8 +37,10 @@ namespace orion
         virtual std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) = 0;
         virtual std::unique_ptr<ShaderCompiler> create_shader_compiler_api() = 0;
 
-        virtual GraphicsPipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
+        virtual PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) = 0;
+        virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
 
-        virtual void destroy_api(GraphicsPipelineHandle pipeline) = 0;
+        virtual void destroy_api(PipelineHandle pipeline) = 0;
+        virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
     };
 } // namespace orion

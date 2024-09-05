@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion/renderapi/format.h"
+#include "orion/renderapi/handle.h"
 
 #include <array>
 #include <cstddef>
@@ -8,6 +9,9 @@
 
 namespace orion
 {
+    struct PipelineLayoutDesc {
+    };
+
     struct VertexAttribute {
         const char* name;
         Format format;
@@ -82,6 +86,7 @@ namespace orion
     };
 
     struct GraphicsPipelineDesc {
+        PipelineLayoutHandle pipeline_layout;
         std::span<const std::byte> vertex_shader;
         std::span<const std::byte> pixel_shader;
         std::span<const VertexAttribute> vertex_attributes;

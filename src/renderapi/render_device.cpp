@@ -25,14 +25,27 @@ namespace orion
         return compiler;
     }
 
-    GraphicsPipelineHandle RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
+    PipelineLayoutHandle RenderDevice::create_pipeline_layout(const PipelineLayoutDesc& desc)
+    {
+        auto pipeline_layout = create_pipeline_layout_api(desc);
+        SPDLOG_DEBUG("Created pipeline layout {}", fmt::underlying(pipeline_layout));
+        return pipeline_layout;
+    }
+
+    PipelineHandle RenderDevice::create_graphics_pipeline(const GraphicsPipelineDesc& desc)
     {
         auto graphics_pipeline = create_graphics_pipeline_api(desc);
         SPDLOG_DEBUG("Created graphics pipeline {}", fmt::underlying(graphics_pipeline));
         return graphics_pipeline;
     }
 
-    void RenderDevice::destroy(GraphicsPipelineHandle pipeline)
+    void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)
+    {
+        destroy_api(pipeline_layout);
+        SPDLOG_DEBUG("Destroyed pipeline layout {}", fmt::underlying(pipeline_layout));
+    }
+
+    void RenderDevice::destroy(PipelineHandle pipeline)
     {
         destroy_api(pipeline);
         SPDLOG_DEBUG("Destroyed graphics pipeline {}", fmt::underlying(pipeline));

@@ -26,7 +26,7 @@ class SandboxApp final : public Application
 public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
-        , render_backend_(RenderBackend::create_builtin_vulkan())
+        , render_backend_(RenderBackend::create_builtin_d3d12())
         , render_device_(render_backend_->create_device(0))
         , command_queue_(render_device_->create_command_queue())
         , swapchain_(render_device_->create_swapchain({.window = &window_, .queue = command_queue_.get(), .width = 800, .height = 600, .image_count = 2, .image_format = Format::B8G8R8A8_Unorm}))
@@ -37,7 +37,10 @@ public:
         const auto ps = compiler->compile({.source = pixel_shader, .type = ShaderType::Pixel});
         SPDLOG_DEBUG("Created pixel shader binary with size {}", ps.size());
 
-        const auto pipeline = render_device_->create_graphics_pipeline({
+        pipeline_layout_ = render_device_->create_pipeline_layout({});
+
+        graphics_pipeline_ = render_device_->create_graphics_pipeline({
+            .pipeline_layout = pipeline_layout_,
             .vertex_shader = vs,
             .pixel_shader = ps,
             .vertex_attributes = {{VertexAttribute{.name = "POSITION", .format = Format::R32G32B32_Float}}},
@@ -83,6 +86,8 @@ private:
     std::unique_ptr<RenderDevice> render_device_;
     std::unique_ptr<CommandQueue> command_queue_;
     std::unique_ptr<Swapchain> swapchain_;
+    PipelineLayoutHandle pipeline_layout_;
+    PipelineHandle graphics_pipeline_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)
