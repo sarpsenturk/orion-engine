@@ -12,6 +12,7 @@ target_link_libraries(orion PRIVATE Vulkan::Headers Vulkan::volk Microsoft::Dire
 target_sources(orion PRIVATE
         volk_impl.cpp
         vulkan_backend.h vulkan_backend.cpp
+        vulkan_command.h vulkan_command.cpp
         vulkan_conversion.h vulkan_conversion.cpp
         vulkan_device.h vulkan_device.cpp
         vulkan_error.h vulkan_error.cpp

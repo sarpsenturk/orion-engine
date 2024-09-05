@@ -2,6 +2,7 @@
 
 #include "orion/renderapi/handle.h"
 #include "orion/renderapi/pipeline.h"
+#include "orion/renderapi/render_command.h"
 #include "orion/renderapi/render_queue.h"
 #include "orion/renderapi/shader.h"
 #include "orion/renderapi/swapchain.h"
@@ -19,6 +20,8 @@ namespace orion
         std::unique_ptr<CommandQueue> create_command_queue();
         std::unique_ptr<Swapchain> create_swapchain(const SwapchainDesc& desc);
         std::unique_ptr<ShaderCompiler> create_shader_compiler();
+        std::unique_ptr<CommandAllocator> create_command_allocator(const CommandAllocatorDesc& desc);
+        std::unique_ptr<CommandList> create_command_list(const CommandListDesc& desc);
 
         PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
         PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
@@ -36,6 +39,8 @@ namespace orion
         virtual std::unique_ptr<CommandQueue> create_command_queue_api() = 0;
         virtual std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) = 0;
         virtual std::unique_ptr<ShaderCompiler> create_shader_compiler_api() = 0;
+        virtual std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) = 0;
+        virtual std::unique_ptr<CommandList> create_command_list_api(const CommandListDesc& desc) = 0;
 
         virtual PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) = 0;
         virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;

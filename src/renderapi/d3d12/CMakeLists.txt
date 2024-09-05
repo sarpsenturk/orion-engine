@@ -3,6 +3,7 @@ target_link_libraries(orion PRIVATE D3D12.lib Dxgi.lib Microsoft::DirectXShaderC
 
 target_sources(orion PRIVATE
         d3d12_backend.h d3d12_backend.cpp
+        d3d12_command.h d3d12_command.cpp
         d3d12_conversion.h d3d12_conversion.cpp
         d3d12_device.h d3d12_device.cpp
         d3d12_handle.h d3d12_handle.cpp

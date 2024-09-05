@@ -25,7 +25,7 @@ namespace orion
         static std::unique_ptr<RenderBackend> create_builtin_d3d12();
 
         // Create the builtin default backend for the target platform
-        static std::unique_ptr<RenderBackend> create();
+        static std::unique_ptr<RenderBackend> create_default();
 
         // Gets the name of the backend
         [[nodiscard]] virtual const char* name() const noexcept = 0;

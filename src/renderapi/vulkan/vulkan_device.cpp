@@ -1,5 +1,6 @@
 #include "vulkan_device.h"
 
+#include "vulkan_command.h"
 #include "vulkan_conversion.h"
 #include "vulkan_error.h"
 #include "vulkan_platform.h"
@@ -93,6 +94,41 @@ namespace orion
     std::unique_ptr<ShaderCompiler> VulkanDevice::create_shader_compiler_api()
     {
         return std::make_unique<VulkanShaderCompiler>();
+    }
+
+    std::unique_ptr<CommandAllocator> VulkanDevice::create_command_allocator_api([[maybe_unused]] const CommandAllocatorDesc& desc)
+    {
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        {
+            const auto info = VkCommandPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .queueFamilyIndex = queue_family_index_,
+            };
+            vk_assert(vkCreateCommandPool(device_.get(), &info, nullptr, &command_pool));
+            SPDLOG_TRACE("Created VkCommandPool {}", fmt::ptr(command_pool));
+        }
+        return std::make_unique<VulkanCommandAllocator>(device_.get(), command_pool);
+    }
+
+    std::unique_ptr<CommandList> VulkanDevice::create_command_list_api(const CommandListDesc& desc)
+    {
+        VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+        {
+            const auto* command_pool = dynamic_cast<const VulkanCommandAllocator*>(desc.command_allocator);
+            ORION_ASSERT(command_pool != nullptr);
+            const auto info = VkCommandBufferAllocateInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                .pNext = nullptr,
+                .commandPool = command_pool->vk_command_pool(),
+                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                .commandBufferCount = 1,
+            };
+            vk_assert(vkAllocateCommandBuffers(device_.get(), &info, &command_buffer));
+            SPDLOG_TRACE("Created VkCommandBuffer {}", fmt::ptr(command_buffer));
+        }
+        return std::make_unique<VulkanCommandList>(device_.get(), command_buffer);
     }
 
     PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)

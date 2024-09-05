@@ -19,7 +19,7 @@ namespace orion
         return std::make_unique<D3D12Backend>();
     }
 
-    std::unique_ptr<RenderBackend> RenderBackend::create()
+    std::unique_ptr<RenderBackend> RenderBackend::create_default()
     {
 #ifdef ORION_PLATFORM_WIN32
         return create_builtin_d3d12();

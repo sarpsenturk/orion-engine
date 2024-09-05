@@ -19,6 +19,8 @@ namespace orion
         std::unique_ptr<CommandQueue> create_command_queue_api() override;
         std::unique_ptr<Swapchain> create_swapchain_api(const SwapchainDesc& desc) override;
         std::unique_ptr<ShaderCompiler> create_shader_compiler_api() override;
+        std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
+        std::unique_ptr<CommandList> create_command_list_api(const CommandListDesc& desc) override;
 
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;

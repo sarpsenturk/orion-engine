@@ -25,6 +25,20 @@ namespace orion
         return compiler;
     }
 
+    std::unique_ptr<CommandAllocator> RenderDevice::create_command_allocator(const CommandAllocatorDesc& desc)
+    {
+        auto command_allocator = create_command_allocator_api(desc);
+        SPDLOG_DEBUG("Created command allocator {}", fmt::ptr(command_allocator.get()));
+        return command_allocator;
+    }
+
+    std::unique_ptr<CommandList> RenderDevice::create_command_list(const CommandListDesc& desc)
+    {
+        auto command_list = create_command_list_api(desc);
+        SPDLOG_DEBUG("Created command list {}", fmt::ptr(command_list.get()));
+        return command_list;
+    }
+
     PipelineLayoutHandle RenderDevice::create_pipeline_layout(const PipelineLayoutDesc& desc)
     {
         auto pipeline_layout = create_pipeline_layout_api(desc);

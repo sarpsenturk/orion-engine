@@ -1,5 +1,6 @@
 #include "d3d12_device.h"
 
+#include "d3d12_command.h"
 #include "d3d12_conversion.h"
 #include "d3d12_queue.h"
 #include "d3d12_shader.h"
@@ -64,6 +65,24 @@ namespace orion
     std::unique_ptr<ShaderCompiler> D3D12Device::create_shader_compiler_api()
     {
         return std::make_unique<D3D12ShaderCompiler>();
+    }
+
+    std::unique_ptr<CommandAllocator> D3D12Device::create_command_allocator_api([[maybe_unused]] const CommandAllocatorDesc& desc)
+    {
+        ComPtr<ID3D12CommandAllocator> command_allocator;
+        hr_assert(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocator)));
+        SPDLOG_TRACE("Created ID3D12CommandAllocator interface at {}", fmt::ptr(command_allocator.Get()));
+        return std::make_unique<D3D12CommandAllocator>(std::move(command_allocator));
+    }
+
+    std::unique_ptr<CommandList> D3D12Device::create_command_list_api(const CommandListDesc& desc)
+    {
+        const auto command_allocator = dynamic_cast<const D3D12CommandAllocator*>(desc.command_allocator)->d3d12_command_allocator();
+        ORION_ASSERT(command_allocator != nullptr);
+        ComPtr<ID3D12CommandList> command_list;
+        hr_assert(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocator.Get(), nullptr, IID_PPV_ARGS(&command_list)));
+        SPDLOG_TRACE("Created ID3D12CommandList interface at {}", fmt::ptr(command_list.Get()));
+        return std::make_unique<D3D12CommandList>(std::move(command_list));
     }
 
     PipelineLayoutHandle D3D12Device::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)

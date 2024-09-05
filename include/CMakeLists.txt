@@ -11,6 +11,7 @@ target_sources(
         orion/renderapi/handle.h
         orion/renderapi/pipeline.h
         orion/renderapi/render_backend.h
+        orion/renderapi/render_command.h
         orion/renderapi/render_device.h
         orion/renderapi/render_queue.h
         orion/renderapi/shader.h
