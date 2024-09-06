@@ -7,6 +7,11 @@ target_sources(
         orion/platform.h
         orion/window.h
 
+        orion/math/vector.h
+        orion/math/vector2.h
+        orion/math/vector3.h
+        orion/math/vector4.h
+
         orion/renderapi/buffer.h
         orion/renderapi/format.h
         orion/renderapi/handle.h

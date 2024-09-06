@@ -4,7 +4,11 @@
 #include <orion/renderapi/render_backend.h>
 #include <orion/renderapi/shader.h>
 
+#include <orion/math/vector3.h>
+
 #include <spdlog/spdlog.h>
+
+#include <array>
 
 using namespace orion;
 
@@ -70,7 +74,12 @@ public:
         });
 
         // Create vertex buffer
-        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(float) * 3 * 3, .usage = BufferUsage::Vertex});
+        constexpr auto vertices = std::array{
+            Vector3f{0.f, .5f, 0.f},
+            Vector3f{.5f, -.5f, 0.f},
+            Vector3f{-.5f, -.5f, 0.f},
+        };
+        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(vertices), .usage = BufferUsage::Vertex});
     }
 
 private:

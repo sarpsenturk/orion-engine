@@ -56,7 +56,7 @@ namespace orion
     BufferHandle RenderDevice::create_buffer(const BufferDesc& desc)
     {
         auto buffer = create_buffer_api(desc);
-        SPDLOG_DEBUG("Created buffer {}", fmt::underlying(buffer));
+        SPDLOG_DEBUG("Created buffer {} {{ size: {} }}", fmt::underlying(buffer), desc.size);
         return buffer;
     }
 
