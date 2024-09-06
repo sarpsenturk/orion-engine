@@ -10,6 +10,7 @@ find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(orion PRIVATE Vulkan::Headers Vulkan::volk Microsoft::DirectXShaderCompiler)
 
 target_sources(orion PRIVATE
+        vma_impl.cpp
         volk_impl.cpp
         vulkan_backend.h vulkan_backend.cpp
         vulkan_command.h vulkan_command.cpp

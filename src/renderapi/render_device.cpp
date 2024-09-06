@@ -53,6 +53,13 @@ namespace orion
         return graphics_pipeline;
     }
 
+    BufferHandle RenderDevice::create_buffer(const BufferDesc& desc)
+    {
+        auto buffer = create_buffer_api(desc);
+        SPDLOG_DEBUG("Created buffer {}", fmt::underlying(buffer));
+        return buffer;
+    }
+
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)
     {
         destroy_api(pipeline_layout);
@@ -63,5 +70,11 @@ namespace orion
     {
         destroy_api(pipeline);
         SPDLOG_DEBUG("Destroyed graphics pipeline {}", fmt::underlying(pipeline));
+    }
+
+    void RenderDevice::destroy(BufferHandle buffer)
+    {
+        destroy_api(buffer);
+        SPDLOG_DEBUG("Destroyed buffer {}", fmt::underlying(buffer));
     }
 } // namespace orion

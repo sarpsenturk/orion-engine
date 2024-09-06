@@ -16,10 +16,22 @@
 
 namespace orion
 {
-    D3D12Device::D3D12Device(ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory2> factory)
+    D3D12Device::D3D12Device(ComPtr<ID3D12Device> device, ComPtr<IDXGIFactory2> factory, ComPtr<IDXGIAdapter1> adapter)
         : device_(std::move(device))
         , factory_(std::move(factory))
+        , adapter_(std::move(adapter))
     {
+        // Create D3D12MA allocator
+        {
+            const auto desc = D3D12MA::ALLOCATOR_DESC{
+                .Flags = D3D12MA::ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED |
+                         D3D12MA::ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED,
+                .pDevice = device_.Get(),
+                .pAdapter = adapter_.Get(),
+            };
+            hr_assert(D3D12MA::CreateAllocator(&desc, &allocator_));
+            SPDLOG_TRACE("Created D3D12MA::Allocator interface at {}", fmt::ptr(allocator_.Get()));
+        }
     }
 
     std::unique_ptr<CommandQueue> D3D12Device::create_command_queue_api()
@@ -83,6 +95,31 @@ namespace orion
         hr_assert(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocator.Get(), nullptr, IID_PPV_ARGS(&command_list)));
         SPDLOG_TRACE("Created ID3D12CommandList interface at {}", fmt::ptr(command_list.Get()));
         return std::make_unique<D3D12CommandList>(std::move(command_list));
+    }
+
+    BufferHandle D3D12Device::create_buffer_api(const BufferDesc& desc)
+    {
+        ComPtr<D3D12MA::Allocation> allocation;
+        {
+            const auto resource_desc = D3D12_RESOURCE_DESC{
+                .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+                .Alignment = 0,
+                .Width = desc.size,
+                .Height = 1,
+                .DepthOrArraySize = 1,
+                .MipLevels = 1,
+                .Format = DXGI_FORMAT_UNKNOWN,
+                .SampleDesc = {.Count = 1, .Quality = 0},
+                .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+                .Flags = D3D12_RESOURCE_FLAG_NONE,
+            };
+            const auto alloc_desc = D3D12MA::ALLOCATION_DESC{
+                .HeapType = D3D12_HEAP_TYPE_DEFAULT,
+            };
+            hr_assert(allocator_->CreateResource(&alloc_desc, &resource_desc, to_d3d12_buffer_state(desc.usage), nullptr, &allocation, IID_NULL, nullptr));
+            SPDLOG_TRACE("Created D3D12MA::Allocation {} for buffer", fmt::ptr(allocation.Get()));
+        }
+        return buffers_.insert(std::move(allocation));
     }
 
     PipelineLayoutHandle D3D12Device::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)
@@ -228,6 +265,13 @@ namespace orion
     {
         if (!pipelines_.remove(pipeline)) {
             SPDLOG_WARN("Trying to remove pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
+        }
+    }
+
+    void D3D12Device::destroy_api(BufferHandle buffer)
+    {
+        if (!buffers_.remove(buffer)) {
+            SPDLOG_WARN("Trying to remove buffer with handle {}, which is not a valid handle", fmt::underlying(buffer));
         }
     }
 } // namespace orion

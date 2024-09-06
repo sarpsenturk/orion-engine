@@ -3,6 +3,7 @@
 #include "orion/renderapi/handle.h"
 
 #include <Volk/volk.h>
+#include <vma/vk_mem_alloc.h>
 
 #include <array>
 #include <cstdint>
@@ -107,6 +108,12 @@ namespace orion
     };
     using UniqueVulkanDevice = std::unique_ptr<VkDevice, VulkanDeviceDeleter>;
 
+    struct VMAAllocatorDeleter {
+        using pointer = VmaAllocator;
+        void operator()(VmaAllocator allocator) const;
+    };
+    using UniqueVMAAllocator = std::unique_ptr<VmaAllocator, VMAAllocatorDeleter>;
+
     struct VulkanPipelineLayoutDeleter {
         void operator()(VkDevice device, VkPipelineLayout pipelineLayout) const;
     };
@@ -115,6 +122,17 @@ namespace orion
         void operator()(VkDevice device, VkPipeline pipeline) const;
     };
 
+    struct VulkanBuffer {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        VmaAllocator allocator = VK_NULL_HANDLE;
+    };
+
+    struct VulkanBufferDeleter {
+        void operator()(VkDevice device, VulkanBuffer* buffer) const;
+    };
+
     using VulkanPipelineLayoutTable = VulkanHandleTable<VkPipelineLayout, PipelineLayoutHandle, VulkanPipelineLayoutDeleter>;
     using VulkanPipelineTable = VulkanHandleTable<VkPipeline, PipelineHandle, VulkanPipelineDeleter>;
+    using VulkanBufferTable = VulkanHandleTable<VulkanBuffer*, BufferHandle, VulkanBufferDeleter>;
 } // namespace orion

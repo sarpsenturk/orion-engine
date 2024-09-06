@@ -56,12 +56,12 @@ namespace orion
     std::unique_ptr<RenderDevice> D3D12Backend::create_device_api(std::size_t adapter_index)
     {
         ORION_EXPECTS(adapter_index < adapters_.size());
-        IDXGIAdapter1* adapter = adapters_[adapter_index].Get();
-        SPDLOG_TRACE("Creating ID3D12Device with IDXGIAdapter1 interface {}", fmt::ptr(adapter));
+        auto adapter = adapters_[adapter_index];
+        SPDLOG_TRACE("Creating ID3D12Device with IDXGIAdapter1 interface {}", fmt::ptr(adapter.Get()));
 
         ComPtr<ID3D12Device> device;
-        hr_assert(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
+        hr_assert(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
         SPDLOG_TRACE("Created ID3D12Device interface at {}", fmt::ptr(device.Get()));
-        return std::make_unique<D3D12Device>(std::move(device), factory_);
+        return std::make_unique<D3D12Device>(std::move(device), factory_, std::move(adapter));
     }
 } // namespace orion

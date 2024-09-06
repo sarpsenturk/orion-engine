@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion/renderapi/buffer.h"
 #include "orion/renderapi/format.h"
 #include "orion/renderapi/pipeline.h"
 
@@ -14,4 +15,5 @@ namespace orion
     VkBlendFactor to_vk_blend_factor(Blend blend);
     VkBlendOp to_vk_blend_op(BlendOp blend_op);
     VkColorComponentFlags to_vk_color_components(ColorWriteFlags color_write_mask);
+    VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage);
 } // namespace orion

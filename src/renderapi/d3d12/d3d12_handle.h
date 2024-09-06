@@ -4,6 +4,8 @@
 
 #include "orion_dx12.h"
 
+#include "D3D12MemAlloc.h"
+
 #include <array>
 
 namespace orion
@@ -79,4 +81,5 @@ namespace orion
 
     using D3D12RootSignatureTable = D3D12HandleTable<ID3D12RootSignature, PipelineLayoutHandle>;
     using D3D12PipelineTable = D3D12HandleTable<ID3D12PipelineState, PipelineHandle>;
+    using D3D12BufferTable = D3D12HandleTable<D3D12MA::Allocation, BufferHandle>;
 } // namespace orion

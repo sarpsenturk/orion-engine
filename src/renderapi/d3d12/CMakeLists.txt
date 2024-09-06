@@ -2,6 +2,7 @@ find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(orion PRIVATE D3D12.lib Dxgi.lib Microsoft::DirectXShaderCompiler Microsoft::DXIL)
 
 target_sources(orion PRIVATE
+        D3D12MemAlloc.h D3D12MemAlloc.cpp
         d3d12_backend.h d3d12_backend.cpp
         d3d12_command.h d3d12_command.cpp
         d3d12_conversion.h d3d12_conversion.cpp

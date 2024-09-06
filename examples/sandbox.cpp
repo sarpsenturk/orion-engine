@@ -33,14 +33,17 @@ public:
         , command_allocator_(render_device_->create_command_allocator({}))
         , command_list_(render_device_->create_command_list({.command_allocator = command_allocator_.get()}))
     {
+        // Compile shaders
         auto compiler = render_device_->create_shader_compiler();
         const auto vs = compiler->compile({.source = vertex_shader, .type = ShaderType::Vertex});
         SPDLOG_DEBUG("Created vertex shader binary with size {}", vs.size());
         const auto ps = compiler->compile({.source = pixel_shader, .type = ShaderType::Pixel});
         SPDLOG_DEBUG("Created pixel shader binary with size {}", ps.size());
 
+        // Create pipeline layout
         pipeline_layout_ = render_device_->create_pipeline_layout({});
 
+        // Create graphics pipeline
         graphics_pipeline_ = render_device_->create_graphics_pipeline({
             .pipeline_layout = pipeline_layout_,
             .vertex_shader = vs,
@@ -65,6 +68,9 @@ public:
             },
             .render_target_formats = {{Format::B8G8R8A8_Unorm}},
         });
+
+        // Create vertex buffer
+        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(float) * 3 * 3, .usage = BufferUsage::Vertex});
     }
 
 private:
@@ -92,6 +98,7 @@ private:
     std::unique_ptr<CommandList> command_list_;
     PipelineLayoutHandle pipeline_layout_;
     PipelineHandle graphics_pipeline_;
+    BufferHandle vertex_buffer_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)

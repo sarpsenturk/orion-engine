@@ -73,11 +73,11 @@ namespace orion
             const auto app_info = VkApplicationInfo{
                 .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
                 .pNext = nullptr,
-                .pApplicationName = "OrionVulkankApp",
+                .pApplicationName = "OrionVulkanApp",
                 .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
                 .pEngineName = "OrionVulkanEngine",
                 .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-                .apiVersion = VK_VERSION_1_2,
+                .apiVersion = VK_API_VERSION_1_2,
             };
             const auto layers = enabled_instance_layers();
             const auto extensions = enabled_instance_extensions();

@@ -3,6 +3,7 @@ target_sources(
         application.cpp
         window.cpp
 
+        renderapi/buffer.cpp
         renderapi/format.cpp
         renderapi/pipeline.cpp
         renderapi/render_backend.cpp

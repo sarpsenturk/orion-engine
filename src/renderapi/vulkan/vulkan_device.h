@@ -5,6 +5,7 @@
 #include "vulkan_handle.h"
 
 #include <Volk/volk.h>
+#include <vma/vk_mem_alloc.h>
 
 #include <memory>
 
@@ -24,13 +25,16 @@ namespace orion
 
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
+        BufferHandle create_buffer_api(const BufferDesc& desc) override;
 
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
         void destroy_api(PipelineHandle pipeline) override;
+        void destroy_api(BufferHandle buffer) override;
 
         VkShaderModule create_vk_shader_module(std::span<const std::byte> code);
 
         UniqueVulkanDevice device_;
+        UniqueVMAAllocator vma_allocator_;
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         VkQueue queue_;
@@ -38,5 +42,6 @@ namespace orion
 
         VulkanPipelineLayoutTable pipeline_layouts_;
         VulkanPipelineTable pipelines_;
+        VulkanBufferTable buffers_;
     };
 } // namespace orion

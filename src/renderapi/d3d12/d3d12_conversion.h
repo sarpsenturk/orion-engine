@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion/renderapi/buffer.h"
 #include "orion/renderapi/format.h"
 #include "orion/renderapi/pipeline.h"
 
@@ -14,4 +15,5 @@ namespace orion
     D3D12_FILL_MODE to_d3d12_fill_mode(FillMode fill_mode);
     D3D12_CULL_MODE to_d3d12_cull_mode(CullMode cull_mode);
     D3D12_PRIMITIVE_TOPOLOGY_TYPE to_d3d12_primitive_topology(PrimitiveTopology topology);
+    D3D12_RESOURCE_STATES to_d3d12_buffer_state(BufferUsage buffer_usage);
 } // namespace orion

@@ -28,7 +28,51 @@ namespace orion
         , queue_family_index_(queue_family_index)
         , pipeline_layouts_(device_.get())
         , pipelines_(device_.get())
+        , buffers_(device_.get())
     {
+        // Create VMA allocator
+        VmaAllocator vma_allocator = VK_NULL_HANDLE;
+        {
+            const auto vulkan_functions = VmaVulkanFunctions{
+                .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+                .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+                .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+                .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+                .vkAllocateMemory = vkAllocateMemory,
+                .vkFreeMemory = vkFreeMemory,
+                .vkMapMemory = vkMapMemory,
+                .vkUnmapMemory = vkUnmapMemory,
+                .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+                .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+                .vkBindBufferMemory = vkBindBufferMemory,
+                .vkBindImageMemory = vkBindImageMemory,
+                .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+                .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+                .vkCreateBuffer = vkCreateBuffer,
+                .vkDestroyBuffer = vkDestroyBuffer,
+                .vkCreateImage = vkCreateImage,
+                .vkDestroyImage = vkDestroyImage,
+                .vkCmdCopyBuffer = vkCmdCopyBuffer,
+                .vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
+                .vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
+                .vkBindBufferMemory2KHR = vkBindBufferMemory2,
+                .vkBindImageMemory2KHR = vkBindImageMemory2,
+                .vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
+                .vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
+                .vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
+            };
+            const auto info = VmaAllocatorCreateInfo{
+                .flags = {},
+                .physicalDevice = physical_device,
+                .device = device_.get(),
+                .pVulkanFunctions = &vulkan_functions,
+                .instance = instance,
+                .vulkanApiVersion = VK_API_VERSION_1_2,
+            };
+            vk_assert(vmaCreateAllocator(&info, &vma_allocator));
+            SPDLOG_TRACE("Created VMA allocator {}", fmt::ptr(vma_allocator));
+        }
+        vma_allocator_ = UniqueVMAAllocator(vma_allocator);
     }
 
     std::unique_ptr<CommandQueue> VulkanDevice::create_command_queue_api()
@@ -349,6 +393,28 @@ namespace orion
         return pipelines_.insert(pipeline);
     }
 
+    BufferHandle VulkanDevice::create_buffer_api(const BufferDesc& desc)
+    {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        {
+            const auto buffer_info = VkBufferCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .size = desc.size,
+                .usage = to_vk_buffer_usage(desc.usage),
+                .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            };
+            const auto alloc_info = VmaAllocationCreateInfo{
+                .usage = VMA_MEMORY_USAGE_AUTO,
+            };
+            vk_assert(vmaCreateBuffer(vma_allocator_.get(), &buffer_info, &alloc_info, &buffer, &allocation, nullptr));
+            SPDLOG_TRACE("Created VkBuffer {} with VmaAllocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
+        }
+        return buffers_.insert(new VulkanBuffer{.buffer = buffer, .allocation = allocation, .allocator = vma_allocator_.get()});
+    }
+
     void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
         if (!pipeline_layouts_.remove(pipeline_layout)) {
@@ -360,6 +426,13 @@ namespace orion
     {
         if (!pipelines_.remove(pipeline)) {
             SPDLOG_WARN("Attempting to destroy pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
+        }
+    }
+
+    void VulkanDevice::destroy_api(BufferHandle buffer)
+    {
+        if (!buffers_.remove(buffer)) {
+            SPDLOG_WARN("Attempting to destroy buffer with handle {}. which is not a valid handle", fmt::underlying(buffer));
         }
     }
 

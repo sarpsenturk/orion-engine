@@ -90,4 +90,15 @@ namespace orion
         }
         return color_components;
     }
+
+    VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage)
+    {
+        switch (usage) {
+            case BufferUsage::Vertex:
+                return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            case BufferUsage::Index:
+                return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
+        unreachable();
+    }
 } // namespace orion

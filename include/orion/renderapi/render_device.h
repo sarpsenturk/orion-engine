@@ -1,5 +1,6 @@
 #pragma once
 
+#include "buffer.h"
 #include "orion/renderapi/handle.h"
 #include "orion/renderapi/pipeline.h"
 #include "orion/renderapi/render_command.h"
@@ -25,9 +26,11 @@ namespace orion
 
         PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
         PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
+        BufferHandle create_buffer(const BufferDesc& desc);
 
         void destroy(PipelineLayoutHandle pipeline_layout);
         void destroy(PipelineHandle pipeline);
+        void destroy(BufferHandle buffer);
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -44,8 +47,10 @@ namespace orion
 
         virtual PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) = 0;
         virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
+        virtual BufferHandle create_buffer_api(const BufferDesc& desc) = 0;
 
         virtual void destroy_api(PipelineHandle pipeline) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
+        virtual void destroy_api(BufferHandle buffer) = 0;
     };
 } // namespace orion

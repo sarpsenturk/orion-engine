@@ -90,4 +90,15 @@ namespace orion
         }
         unreachable();
     }
+
+    D3D12_RESOURCE_STATES to_d3d12_buffer_state(BufferUsage buffer_usage)
+    {
+        switch (buffer_usage) {
+            case BufferUsage::Vertex:
+                return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            case BufferUsage::Index:
+                return D3D12_RESOURCE_STATE_INDEX_BUFFER;
+        }
+        unreachable();
+    }
 } // namespace orion
