@@ -32,6 +32,10 @@ namespace orion
         void destroy(PipelineHandle pipeline);
         void destroy(BufferHandle buffer);
 
+        void* map(BufferHandle buffer);
+        void unmap(BufferHandle buffer);
+        void memcpy(BufferHandle dst, const void* src, std::size_t size);
+
     protected:
         RenderDevice(const RenderDevice&) = default;
         RenderDevice& operator=(const RenderDevice&) = default;
@@ -52,5 +56,8 @@ namespace orion
         virtual void destroy_api(PipelineHandle pipeline) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
         virtual void destroy_api(BufferHandle buffer) = 0;
+
+        virtual void* map_api(BufferHandle buffer) = 0;
+        virtual void unmap_api(BufferHandle buffer) = 0;
     };
 } // namespace orion

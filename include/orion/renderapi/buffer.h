@@ -12,5 +12,6 @@ namespace orion
     struct BufferDesc {
         std::size_t size;
         BufferUsage usage;
+        bool cpu_visible;
     };
 } // namespace orion

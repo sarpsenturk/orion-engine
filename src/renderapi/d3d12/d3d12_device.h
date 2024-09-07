@@ -29,6 +29,9 @@ namespace orion
         void destroy_api(PipelineHandle pipeline) override;
         void destroy_api(BufferHandle buffer) override;
 
+        void* map_api(BufferHandle buffer) override;
+        void unmap_api(BufferHandle buffer) override;
+
         ComPtr<ID3D12Device> device_;
         ComPtr<IDXGIFactory2> factory_;
         ComPtr<IDXGIAdapter1> adapter_;

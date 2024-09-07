@@ -407,6 +407,7 @@ namespace orion
                 .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             };
             const auto alloc_info = VmaAllocationCreateInfo{
+                .flags = desc.cpu_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
                 .usage = VMA_MEMORY_USAGE_AUTO,
             };
             vk_assert(vmaCreateBuffer(vma_allocator_.get(), &buffer_info, &alloc_info, &buffer, &allocation, nullptr));
@@ -433,6 +434,27 @@ namespace orion
     {
         if (!buffers_.remove(buffer)) {
             SPDLOG_WARN("Attempting to destroy buffer with handle {}. which is not a valid handle", fmt::underlying(buffer));
+        }
+    }
+
+    void* VulkanDevice::map_api(BufferHandle buffer)
+    {
+        if (VulkanBuffer* vk_buffer = buffers_.lookup(buffer)) {
+            void* ptr;
+            vk_assert(vmaMapMemory(vma_allocator_.get(), vk_buffer->allocation, &ptr));
+            return ptr;
+        } else {
+            SPDLOG_ERROR("Failed to map buffer {}: failed to find buffer", fmt::underlying(buffer));
+            return nullptr;
+        }
+    }
+
+    void VulkanDevice::unmap_api(BufferHandle buffer)
+    {
+        if (VulkanBuffer* vk_buffer = buffers_.lookup(buffer)) {
+            vmaUnmapMemory(vma_allocator_.get(), vk_buffer->allocation);
+        } else {
+            SPDLOG_ERROR("Failed to unmap buffer {}: failed to find buffer", fmt::underlying(buffer));
         }
     }
 

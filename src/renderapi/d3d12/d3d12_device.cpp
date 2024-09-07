@@ -114,10 +114,17 @@ namespace orion
                 .Flags = D3D12_RESOURCE_FLAG_NONE,
             };
             const auto alloc_desc = D3D12MA::ALLOCATION_DESC{
-                .HeapType = D3D12_HEAP_TYPE_DEFAULT,
+                .HeapType = desc.cpu_visible ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             };
-            hr_assert(allocator_->CreateResource(&alloc_desc, &resource_desc, to_d3d12_buffer_state(desc.usage), nullptr, &allocation, IID_NULL, nullptr));
-            SPDLOG_TRACE("Created D3D12MA::Allocation {} for buffer", fmt::ptr(allocation.Get()));
+            hr_assert(
+                allocator_->CreateResource(
+                    &alloc_desc,
+                    &resource_desc,
+                    desc.cpu_visible ? D3D12_RESOURCE_STATE_GENERIC_READ : to_d3d12_buffer_state(desc.usage),
+                    nullptr, &allocation,
+                    IID_NULL,
+                    nullptr));
+            SPDLOG_TRACE("Created ID3D12Resource (buffer) {} with D3D12MA::Allocation {}", fmt::ptr(allocation->GetResource()), fmt::ptr(allocation.Get()));
         }
         return buffers_.insert(std::move(allocation));
     }
@@ -272,6 +279,29 @@ namespace orion
     {
         if (!buffers_.remove(buffer)) {
             SPDLOG_WARN("Trying to remove buffer with handle {}, which is not a valid handle", fmt::underlying(buffer));
+        }
+    }
+
+    void* D3D12Device::map_api(BufferHandle buffer)
+    {
+        if (auto allocation = buffers_.lookup(buffer)) {
+            ID3D12Resource* resource = allocation->GetResource();
+            void* ptr;
+            hr_assert(resource->Map(0, nullptr, &ptr));
+            return ptr;
+        } else {
+            SPDLOG_ERROR("Failed to map buffer resource with handle {}: couldn't find buffer", fmt::underlying(buffer));
+            return nullptr;
+        }
+    }
+
+    void D3D12Device::unmap_api(BufferHandle buffer)
+    {
+        if (auto allocation = buffers_.lookup(buffer)) {
+            ID3D12Resource* resource = allocation->GetResource();
+            resource->Unmap(0, nullptr);
+        } else {
+            SPDLOG_ERROR("Failed to unmap buffer with handle {}: couldn't find buffer", fmt::underlying(buffer));
         }
     }
 } // namespace orion

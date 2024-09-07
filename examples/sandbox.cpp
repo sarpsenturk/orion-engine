@@ -12,18 +12,24 @@
 
 using namespace orion;
 
-constexpr const char* vertex_shader = R"hlsl(
+constexpr auto vertex_shader = R"hlsl(
 float4 main(float3 position : POSITION) : SV_Position
 {
     return float4(position, 1.0);
 })hlsl";
 
-constexpr const char* pixel_shader = R"hlsl(
+constexpr auto pixel_shader = R"hlsl(
 float4 main() : SV_Target
 {
     return float4(1.0, 1.0, 1.0, 1.0);
 }
 )hlsl";
+
+constexpr auto vertices = std::array{
+    Vector3f{0.f, .5f, 0.f},
+    Vector3f{.5f, -.5f, 0.f},
+    Vector3f{-.5f, -.5f, 0.f},
+};
 
 class SandboxApp final : public Application
 {
@@ -74,12 +80,10 @@ public:
         });
 
         // Create vertex buffer
-        constexpr auto vertices = std::array{
-            Vector3f{0.f, .5f, 0.f},
-            Vector3f{.5f, -.5f, 0.f},
-            Vector3f{-.5f, -.5f, 0.f},
-        };
-        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(vertices), .usage = BufferUsage::Vertex});
+        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(vertices), .usage = BufferUsage::Vertex, .cpu_visible = true});
+
+        // Upload vertex data
+        render_device_->memcpy(vertex_buffer_, vertices.data(), sizeof(vertices));
     }
 
 private:

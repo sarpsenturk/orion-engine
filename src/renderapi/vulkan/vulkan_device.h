@@ -31,6 +31,9 @@ namespace orion
         void destroy_api(PipelineHandle pipeline) override;
         void destroy_api(BufferHandle buffer) override;
 
+        void* map_api(BufferHandle buffer) override;
+        void unmap_api(BufferHandle buffer) override;
+
         VkShaderModule create_vk_shader_module(std::span<const std::byte> code);
 
         UniqueVulkanDevice device_;

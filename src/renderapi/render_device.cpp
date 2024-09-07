@@ -77,4 +77,21 @@ namespace orion
         destroy_api(buffer);
         SPDLOG_DEBUG("Destroyed buffer {}", fmt::underlying(buffer));
     }
+
+    void* RenderDevice::map(BufferHandle buffer)
+    {
+        return map_api(buffer);
+    }
+
+    void RenderDevice::unmap(BufferHandle buffer)
+    {
+        unmap_api(buffer);
+    }
+
+    void RenderDevice::memcpy(BufferHandle dst, const void* src, std::size_t size)
+    {
+        void* ptr = map(dst);
+        std::memcpy(ptr, src, size);
+        unmap_api(dst);
+    }
 } // namespace orion
