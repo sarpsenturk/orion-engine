@@ -126,7 +126,7 @@ namespace orion
                     nullptr));
             SPDLOG_TRACE("Created ID3D12Resource (buffer) {} with D3D12MA::Allocation {}", fmt::ptr(allocation->GetResource()), fmt::ptr(allocation.Get()));
         }
-        return buffers_.insert(std::move(allocation));
+        return context_.insert_buffer(std::move(allocation));
     }
 
     PipelineLayoutHandle D3D12Device::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)
@@ -142,7 +142,7 @@ namespace orion
         hr_assert(device_->CreateRootSignature(0, root_signature_blob->GetBufferPointer(), root_signature_blob->GetBufferSize(), IID_PPV_ARGS(&root_signature)));
         SPDLOG_TRACE("Created ID3D12RootSignature interface at {}", fmt::ptr(root_signature.Get()));
 
-        return root_signatures_.insert(std::move(root_signature));
+        return context_.insert_pipeline_layout(std::move(root_signature));
     }
 
     PipelineHandle D3D12Device::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
@@ -234,11 +234,11 @@ namespace orion
                 .Quality = 0,
             };
 
-            ID3D12RootSignature* root_signature = root_signatures_.lookup(desc.pipeline_layout).Get();
+            const auto root_signature = context_.get_root_signature(desc.pipeline_layout);
             ORION_EXPECTS(root_signature != nullptr);
 
             const auto d3d12_desc = D3D12_GRAPHICS_PIPELINE_STATE_DESC{
-                .pRootSignature = root_signature,
+                .pRootSignature = root_signature.Get(),
                 .VS = {.pShaderBytecode = desc.vertex_shader.data(), .BytecodeLength = desc.vertex_shader.size_bytes()},
                 .PS = {.pShaderBytecode = desc.pixel_shader.data(), .BytecodeLength = desc.pixel_shader.size_bytes()},
                 .BlendState = blend_state,
@@ -258,33 +258,33 @@ namespace orion
             SPDLOG_TRACE("Created graphics ID3D12Pipeline interface at {}", fmt::ptr(pipeline.Get()));
         }
 
-        return pipelines_.insert(std::move(pipeline));
+        return context_.insert_pipeline(std::move(pipeline));
     }
 
     void D3D12Device::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
-        if (!root_signatures_.remove(pipeline_layout)) {
+        if (!context_.remove_root_signature(pipeline_layout)) {
             SPDLOG_WARN("Trying to remove pipeline layout with handle {}, which is not a valid handle", fmt::underlying(pipeline_layout));
         }
     }
 
     void D3D12Device::destroy_api(PipelineHandle pipeline)
     {
-        if (!pipelines_.remove(pipeline)) {
+        if (!context_.remove_pipeline(pipeline)) {
             SPDLOG_WARN("Trying to remove pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
         }
     }
 
     void D3D12Device::destroy_api(BufferHandle buffer)
     {
-        if (!buffers_.remove(buffer)) {
+        if (!context_.remove_buffer(buffer)) {
             SPDLOG_WARN("Trying to remove buffer with handle {}, which is not a valid handle", fmt::underlying(buffer));
         }
     }
 
     void* D3D12Device::map_api(BufferHandle buffer)
     {
-        if (auto allocation = buffers_.lookup(buffer)) {
+        if (auto allocation = context_.get_buffer(buffer)) {
             ID3D12Resource* resource = allocation->GetResource();
             void* ptr;
             hr_assert(resource->Map(0, nullptr, &ptr));
@@ -297,7 +297,7 @@ namespace orion
 
     void D3D12Device::unmap_api(BufferHandle buffer)
     {
-        if (auto allocation = buffers_.lookup(buffer)) {
+        if (auto allocation = context_.get_buffer(buffer)) {
             ID3D12Resource* resource = allocation->GetResource();
             resource->Unmap(0, nullptr);
         } else {

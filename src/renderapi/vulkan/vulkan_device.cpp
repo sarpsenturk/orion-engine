@@ -20,59 +20,65 @@
 
 namespace orion
 {
+    namespace
+    {
+        VmaAllocator create_vma_allocator(VkDevice device, VkPhysicalDevice physical_device, VkInstance instance)
+        {
+            // Create VMA allocator
+            VmaAllocator vma_allocator = VK_NULL_HANDLE;
+            {
+                const auto vulkan_functions = VmaVulkanFunctions{
+                    .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+                    .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+                    .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+                    .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+                    .vkAllocateMemory = vkAllocateMemory,
+                    .vkFreeMemory = vkFreeMemory,
+                    .vkMapMemory = vkMapMemory,
+                    .vkUnmapMemory = vkUnmapMemory,
+                    .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+                    .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+                    .vkBindBufferMemory = vkBindBufferMemory,
+                    .vkBindImageMemory = vkBindImageMemory,
+                    .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+                    .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+                    .vkCreateBuffer = vkCreateBuffer,
+                    .vkDestroyBuffer = vkDestroyBuffer,
+                    .vkCreateImage = vkCreateImage,
+                    .vkDestroyImage = vkDestroyImage,
+                    .vkCmdCopyBuffer = vkCmdCopyBuffer,
+                    .vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
+                    .vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
+                    .vkBindBufferMemory2KHR = vkBindBufferMemory2,
+                    .vkBindImageMemory2KHR = vkBindImageMemory2,
+                    .vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
+                    .vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
+                    .vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
+                };
+                const auto info = VmaAllocatorCreateInfo{
+                    .flags = {},
+                    .physicalDevice = physical_device,
+                    .device = device,
+                    .pVulkanFunctions = &vulkan_functions,
+                    .instance = instance,
+                    .vulkanApiVersion = VK_API_VERSION_1_2,
+                };
+                vk_assert(vmaCreateAllocator(&info, &vma_allocator));
+                SPDLOG_TRACE("Created VMA allocator {}", fmt::ptr(vma_allocator));
+            }
+            return vma_allocator;
+        }
+    } // namespace
+
     VulkanDevice::VulkanDevice(VkDevice device, VkInstance instance, VkPhysicalDevice physical_device, VkQueue queue, std::uint32_t queue_family_index)
         : device_(device)
         , instance_(instance)
         , physical_device_(physical_device)
         , queue_(queue)
         , queue_family_index_(queue_family_index)
-        , pipeline_layouts_(device_.get())
-        , pipelines_(device_.get())
-        , buffers_(device_.get())
+        , vma_allocator_(create_vma_allocator(device, physical_device, instance))
+        , context_(device_, vma_allocator_)
     {
-        // Create VMA allocator
-        VmaAllocator vma_allocator = VK_NULL_HANDLE;
-        {
-            const auto vulkan_functions = VmaVulkanFunctions{
-                .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-                .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
-                .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
-                .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
-                .vkAllocateMemory = vkAllocateMemory,
-                .vkFreeMemory = vkFreeMemory,
-                .vkMapMemory = vkMapMemory,
-                .vkUnmapMemory = vkUnmapMemory,
-                .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
-                .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
-                .vkBindBufferMemory = vkBindBufferMemory,
-                .vkBindImageMemory = vkBindImageMemory,
-                .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
-                .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
-                .vkCreateBuffer = vkCreateBuffer,
-                .vkDestroyBuffer = vkDestroyBuffer,
-                .vkCreateImage = vkCreateImage,
-                .vkDestroyImage = vkDestroyImage,
-                .vkCmdCopyBuffer = vkCmdCopyBuffer,
-                .vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
-                .vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
-                .vkBindBufferMemory2KHR = vkBindBufferMemory2,
-                .vkBindImageMemory2KHR = vkBindImageMemory2,
-                .vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
-                .vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
-                .vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
-            };
-            const auto info = VmaAllocatorCreateInfo{
-                .flags = {},
-                .physicalDevice = physical_device,
-                .device = device_.get(),
-                .pVulkanFunctions = &vulkan_functions,
-                .instance = instance,
-                .vulkanApiVersion = VK_API_VERSION_1_2,
-            };
-            vk_assert(vmaCreateAllocator(&info, &vma_allocator));
-            SPDLOG_TRACE("Created VMA allocator {}", fmt::ptr(vma_allocator));
-        }
-        vma_allocator_ = UniqueVMAAllocator(vma_allocator);
     }
 
     std::unique_ptr<CommandQueue> VulkanDevice::create_command_queue_api()
@@ -129,10 +135,10 @@ namespace orion
                 .clipped = VK_TRUE,
                 .oldSwapchain = VK_NULL_HANDLE,
             };
-            vk_assert(vkCreateSwapchainKHR(device_.get(), &info, nullptr, &swapchain));
+            vk_assert(vkCreateSwapchainKHR(device_, &info, nullptr, &swapchain));
             SPDLOG_TRACE("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
         }
-        return std::make_unique<VulkanSwapchain>(device_.get(), instance_, surface, swapchain);
+        return std::make_unique<VulkanSwapchain>(device_, instance_, surface, swapchain);
     }
 
     std::unique_ptr<ShaderCompiler> VulkanDevice::create_shader_compiler_api()
@@ -150,10 +156,10 @@ namespace orion
                 .flags = 0,
                 .queueFamilyIndex = queue_family_index_,
             };
-            vk_assert(vkCreateCommandPool(device_.get(), &info, nullptr, &command_pool));
+            vk_assert(vkCreateCommandPool(device_, &info, nullptr, &command_pool));
             SPDLOG_TRACE("Created VkCommandPool {}", fmt::ptr(command_pool));
         }
-        return std::make_unique<VulkanCommandAllocator>(device_.get(), command_pool);
+        return std::make_unique<VulkanCommandAllocator>(device_, command_pool);
     }
 
     std::unique_ptr<CommandList> VulkanDevice::create_command_list_api(const CommandListDesc& desc)
@@ -169,10 +175,10 @@ namespace orion
                 .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 .commandBufferCount = 1,
             };
-            vk_assert(vkAllocateCommandBuffers(device_.get(), &info, &command_buffer));
+            vk_assert(vkAllocateCommandBuffers(device_, &info, &command_buffer));
             SPDLOG_TRACE("Created VkCommandBuffer {}", fmt::ptr(command_buffer));
         }
-        return std::make_unique<VulkanCommandList>(device_.get(), command_buffer);
+        return std::make_unique<VulkanCommandList>(device_, command_buffer);
     }
 
     PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)
@@ -188,10 +194,10 @@ namespace orion
                 .pushConstantRangeCount = 0,
                 .pPushConstantRanges = nullptr,
             };
-            vk_assert(vkCreatePipelineLayout(device_.get(), &info, nullptr, &pipeline_layout));
+            vk_assert(vkCreatePipelineLayout(device_, &info, nullptr, &pipeline_layout));
             SPDLOG_TRACE("Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
         }
-        return pipeline_layouts_.insert(pipeline_layout);
+        return context_.insert(pipeline_layout);
     }
 
     PipelineHandle VulkanDevice::create_graphics_pipeline_api(const GraphicsPipelineDesc& desc)
@@ -357,7 +363,7 @@ namespace orion
             };
 
             // Pipeline layout
-            VkPipelineLayout pipeline_layout = pipeline_layouts_.lookup(desc.pipeline_layout);
+            VkPipelineLayout pipeline_layout = context_.lookup(desc.pipeline_layout);
             ORION_EXPECTS(pipeline_layout != VK_NULL_HANDLE);
 
             const auto info = VkGraphicsPipelineCreateInfo{
@@ -381,16 +387,16 @@ namespace orion
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
             };
-            vk_assert(vkCreateGraphicsPipelines(device_.get(), VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
+            vk_assert(vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
             SPDLOG_TRACE("Created VkPipeline {}", fmt::ptr(pipeline));
 
             // Cleanup shaders
             // TODO: Do this automatically
             for (VkShaderModule module : shader_modules) {
-                vkDestroyShaderModule(device_.get(), module, nullptr);
+                vkDestroyShaderModule(device_, module, nullptr);
             }
         }
-        return pipelines_.insert(pipeline);
+        return context_.insert(pipeline);
     }
 
     BufferHandle VulkanDevice::create_buffer_api(const BufferDesc& desc)
@@ -410,38 +416,38 @@ namespace orion
                 .flags = desc.cpu_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
                 .usage = VMA_MEMORY_USAGE_AUTO,
             };
-            vk_assert(vmaCreateBuffer(vma_allocator_.get(), &buffer_info, &alloc_info, &buffer, &allocation, nullptr));
+            vk_assert(vmaCreateBuffer(vma_allocator_, &buffer_info, &alloc_info, &buffer, &allocation, nullptr));
             SPDLOG_TRACE("Created VkBuffer {} with VmaAllocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
         }
-        return buffers_.insert(new VulkanBuffer{.buffer = buffer, .allocation = allocation, .allocator = vma_allocator_.get()});
+        return context_.insert(buffer, allocation);
     }
 
     void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
-        if (!pipeline_layouts_.remove(pipeline_layout)) {
+        if (!context_.remove(pipeline_layout)) {
             SPDLOG_WARN("Attempting to destroy pipeline layout with handle {}, which is not a valid handle", fmt::underlying(pipeline_layout));
         }
     }
 
     void VulkanDevice::destroy_api(PipelineHandle pipeline)
     {
-        if (!pipelines_.remove(pipeline)) {
+        if (!context_.remove(pipeline)) {
             SPDLOG_WARN("Attempting to destroy pipeline with handle {}, which is not a valid handle", fmt::underlying(pipeline));
         }
     }
 
     void VulkanDevice::destroy_api(BufferHandle buffer)
     {
-        if (!buffers_.remove(buffer)) {
+        if (!context_.remove(buffer)) {
             SPDLOG_WARN("Attempting to destroy buffer with handle {}. which is not a valid handle", fmt::underlying(buffer));
         }
     }
 
     void* VulkanDevice::map_api(BufferHandle buffer)
     {
-        if (VulkanBuffer* vk_buffer = buffers_.lookup(buffer)) {
+        if (VulkanBuffer vk_buffer = context_.lookup(buffer)) {
             void* ptr;
-            vk_assert(vmaMapMemory(vma_allocator_.get(), vk_buffer->allocation, &ptr));
+            vk_assert(vmaMapMemory(vma_allocator_, vk_buffer.allocation, &ptr));
             return ptr;
         } else {
             SPDLOG_ERROR("Failed to map buffer {}: failed to find buffer", fmt::underlying(buffer));
@@ -451,8 +457,8 @@ namespace orion
 
     void VulkanDevice::unmap_api(BufferHandle buffer)
     {
-        if (VulkanBuffer* vk_buffer = buffers_.lookup(buffer)) {
-            vmaUnmapMemory(vma_allocator_.get(), vk_buffer->allocation);
+        if (VulkanBuffer vk_buffer = context_.lookup(buffer)) {
+            vmaUnmapMemory(vma_allocator_, vk_buffer.allocation);
         } else {
             SPDLOG_ERROR("Failed to unmap buffer {}: failed to find buffer", fmt::underlying(buffer));
         }
@@ -468,7 +474,7 @@ namespace orion
             .codeSize = code.size_bytes(),
             .pCode = reinterpret_cast<const uint32_t*>(code.data()),
         };
-        vk_assert(vkCreateShaderModule(device_.get(), &info, nullptr, &shader_module));
+        vk_assert(vkCreateShaderModule(device_, &info, nullptr, &shader_module));
         return shader_module;
     }
 } // namespace orion

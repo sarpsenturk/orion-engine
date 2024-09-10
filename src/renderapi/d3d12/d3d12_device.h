@@ -2,8 +2,9 @@
 
 #include "orion/renderapi/render_device.h"
 
-#include "d3d12_handle.h"
 #include "orion_dx12.h"
+
+#include "d3d12_context.h"
 
 #include "D3D12MemAlloc.h"
 
@@ -37,8 +38,6 @@ namespace orion
         ComPtr<IDXGIAdapter1> adapter_;
         ComPtr<D3D12MA::Allocator> allocator_;
 
-        D3D12RootSignatureTable root_signatures_;
-        D3D12PipelineTable pipelines_;
-        D3D12BufferTable buffers_;
+        D3D12Context context_;
     };
 } // namespace orion

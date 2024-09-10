@@ -5,9 +5,9 @@ target_sources(orion PRIVATE
         D3D12MemAlloc.h D3D12MemAlloc.cpp
         d3d12_backend.h d3d12_backend.cpp
         d3d12_command.h d3d12_command.cpp
+        d3d12_context.h d3d12_context.cpp
         d3d12_conversion.h d3d12_conversion.cpp
         d3d12_device.h d3d12_device.cpp
-        d3d12_handle.h d3d12_handle.cpp
         d3d12_queue.h d3d12_queue.cpp
         d3d12_shader.h d3d12_shader.cpp
         d3d12_swapchain.h d3d12_swapchain.cpp
