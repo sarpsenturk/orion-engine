@@ -2,6 +2,8 @@
 
 #include <fmt/base.h>
 
+#include <utility>
+
 namespace orion
 {
     PipelineLayoutHandle D3D12Context::insert_pipeline_layout(ComPtr<ID3D12RootSignature> root_signature)
@@ -19,6 +21,16 @@ namespace orion
         return insert<BufferHandle>(buffers_, std::move(allocation));
     }
 
+    ImageHandle D3D12Context::insert_image(ComPtr<ID3D12Resource> image)
+    {
+        return insert<ImageHandle>(images_, std::move(image));
+    }
+
+    RenderTargetHandle D3D12Context::insert_render_target(ComPtr<ID3D12DescriptorHeap> descriptor_heap, D3D12_CPU_DESCRIPTOR_HANDLE descriptor_handle)
+    {
+        return insert<RenderTargetHandle>(rtvs_, D3D12RenderTarget{.descriptor_heap = std::move(descriptor_heap), .descriptor_handle = descriptor_handle});
+    }
+
     ComPtr<ID3D12RootSignature> D3D12Context::get_root_signature(PipelineLayoutHandle pipeline_layout) const
     {
         return lookup(root_signatures_, pipeline_layout);
@@ -34,6 +46,16 @@ namespace orion
         return lookup(buffers_, buffer);
     }
 
+    ComPtr<ID3D12Resource> D3D12Context::get_image(ImageHandle image) const
+    {
+        return lookup(images_, image);
+    }
+
+    D3D12RenderTarget D3D12Context::get_render_target(RenderTargetHandle render_target)
+    {
+        return lookup(rtvs_, render_target);
+    }
+
     bool D3D12Context::remove_root_signature(PipelineLayoutHandle pipeline_layout)
     {
         return remove(root_signatures_, pipeline_layout);
@@ -47,5 +69,15 @@ namespace orion
     bool D3D12Context::remove_buffer(BufferHandle buffer)
     {
         return remove(buffers_, buffer);
+    }
+
+    bool D3D12Context::remove_image(ImageHandle image)
+    {
+        return remove(images_, image);
+    }
+
+    bool D3D12Context::remove_render_target(RenderTargetHandle render_target)
+    {
+        return remove(rtvs_, render_target);
     }
 } // namespace orion

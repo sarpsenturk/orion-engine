@@ -42,6 +42,16 @@ namespace orion
         return BufferHandle{insert(buffers_, VulkanBuffer{.buffer = buffer, .allocation = allocation})};
     }
 
+    ImageHandle VulkanContext::insert(VkImage image)
+    {
+        return ImageHandle{insert(images_, image)};
+    }
+
+    RenderTargetHandle VulkanContext::insert(VkImageView image_view)
+    {
+        return RenderTargetHandle{insert(image_views_, image_view)};
+    }
+
     VkPipelineLayout VulkanContext::lookup(PipelineLayoutHandle pipeline_layout) const
     {
         return lookup(pipeline_layouts_, static_cast<render_device_handle_t>(pipeline_layout));
@@ -55,6 +65,16 @@ namespace orion
     VulkanBuffer VulkanContext::lookup(BufferHandle buffer) const
     {
         return lookup(buffers_, static_cast<render_device_handle_t>(buffer));
+    }
+
+    VkImage VulkanContext::lookup(ImageHandle image) const
+    {
+        return lookup(images_, static_cast<render_device_handle_t>(image));
+    }
+
+    VkImageView VulkanContext::lookup(RenderTargetHandle render_target) const
+    {
+        return lookup(image_views_, static_cast<render_device_handle_t>(render_target));
     }
 
     bool VulkanContext::remove(PipelineLayoutHandle pipeline_layout)
@@ -79,5 +99,18 @@ namespace orion
             vmaDestroyBuffer(allocator_, buffer.buffer, buffer.allocation);
         };
         return remove(buffers_, static_cast<render_device_handle_t>(buffer), deleter);
+    }
+
+    bool VulkanContext::remove(ImageHandle image)
+    {
+        return remove(images_, static_cast<render_device_handle_t>(image), [](VkImage) {});
+    }
+
+    bool VulkanContext::remove(RenderTargetHandle render_target)
+    {
+        auto deleter = [this](VkImageView image_view) {
+            vkDestroyImageView(device_, image_view, nullptr);
+        };
+        return remove(image_views_, static_cast<render_device_handle_t>(render_target), deleter);
     }
 } // namespace orion

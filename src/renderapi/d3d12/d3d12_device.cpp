@@ -71,7 +71,7 @@ namespace orion
         hr_assert(factory_->CreateSwapChainForHwnd(queue, hwnd, &dxgi_desc, nullptr, nullptr, &swapchain));
         SPDLOG_TRACE("Created IDXGISwapChain1 interface at {}", fmt::ptr(swapchain.Get()));
 
-        return std::make_unique<D3D12Swapchain>(std::move(swapchain));
+        return std::make_unique<D3D12Swapchain>(device_.Get(), std::move(swapchain), &context_);
     }
 
     std::unique_ptr<ShaderCompiler> D3D12Device::create_shader_compiler_api()

@@ -25,14 +25,20 @@ namespace orion
         PipelineLayoutHandle insert(VkPipelineLayout pipeline_layout);
         PipelineHandle insert(VkPipeline pipeline);
         BufferHandle insert(VkBuffer buffer, VmaAllocation allocation);
+        ImageHandle insert(VkImage image);
+        RenderTargetHandle insert(VkImageView image_view);
 
         VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
         VkPipeline lookup(PipelineHandle pipeline) const;
         VulkanBuffer lookup(BufferHandle buffer) const;
+        VkImage lookup(ImageHandle image) const;
+        VkImageView lookup(RenderTargetHandle render_target) const;
 
         bool remove(PipelineLayoutHandle pipeline_layout);
         bool remove(PipelineHandle pipeline);
         bool remove(BufferHandle buffer);
+        bool remove(ImageHandle image);
+        bool remove(RenderTargetHandle render_target);
 
     private:
         template<typename T>
@@ -47,19 +53,19 @@ namespace orion
         using ResourceTable = std::array<TableEntry<T>, 0xffff>;
 
         template<typename T>
-        bool is_empty(const TableEntry<T>& entry) const
+        static bool is_empty(const TableEntry<T>& entry)
         {
             return entry.value == VK_NULL_HANDLE;
         }
 
         template<>
-        bool is_empty(const TableEntry<VulkanBuffer>& entry) const
+        bool is_empty(const TableEntry<VulkanBuffer>& entry)
         {
             return entry.value.buffer == VK_NULL_HANDLE;
         }
 
         template<typename T>
-        std::uint16_t find_empty_slot(const ResourceTable<T>& table)
+        static std::uint16_t find_empty_slot(const ResourceTable<T>& table)
         {
             for (std::uint16_t i = 0; i < table.size(); ++i) {
                 if (is_empty(table[i])) {
@@ -70,13 +76,13 @@ namespace orion
         }
 
         template<typename T>
-        render_device_handle_t get_device_handle(const ResourceTable<T>& table, std::uint16_t index)
+        static render_device_handle_t get_device_handle(const ResourceTable<T>& table, std::uint16_t index)
         {
             return index | table[index].gen << 16;
         }
 
         template<typename T>
-        render_device_handle_t insert(ResourceTable<T>& table, T value)
+        static render_device_handle_t insert(ResourceTable<T>& table, T value)
         {
             const auto slot = find_empty_slot(table);
             if (slot == UINT16_MAX) {
@@ -97,7 +103,7 @@ namespace orion
         }
 
         template<typename T>
-        T lookup(const ResourceTable<T>& table, render_device_handle_t handle) const
+        static T lookup(const ResourceTable<T>& table, render_device_handle_t handle)
         {
             const auto [index, gen] = to_vulkan_handle(handle);
             if (index >= table.size()) {
@@ -111,7 +117,7 @@ namespace orion
         }
 
         template<typename T>
-        bool remove(ResourceTable<T>& table, render_device_handle_t handle, auto deleter)
+        static bool remove(ResourceTable<T>& table, render_device_handle_t handle, auto deleter)
         {
             const auto [index, gen] = to_vulkan_handle(handle);
             if (index >= table.size()) {
@@ -133,6 +139,8 @@ namespace orion
         ResourceTable<VkPipelineLayout> pipeline_layouts_;
         ResourceTable<VkPipeline> pipelines_;
         ResourceTable<VulkanBuffer> buffers_;
+        ResourceTable<VkImage> images_;
+        ResourceTable<VkImageView> image_views_;
 
         static_assert(sizeof(TableEntry<VulkanBuffer>) == 24);
     };

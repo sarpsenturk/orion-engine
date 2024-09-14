@@ -10,6 +10,18 @@
 
 namespace orion
 {
+    struct D3D12RenderTarget {
+        ComPtr<ID3D12DescriptorHeap> descriptor_heap = nullptr;
+        D3D12_CPU_DESCRIPTOR_HANDLE descriptor_handle = {};
+
+        D3D12RenderTarget& operator=(std::nullptr_t)
+        {
+            descriptor_heap = nullptr;
+            descriptor_handle = D3D12_CPU_DESCRIPTOR_HANDLE{};
+            return *this;
+        }
+    };
+
     class D3D12Context
     {
     public:
@@ -27,14 +39,20 @@ namespace orion
         PipelineLayoutHandle insert_pipeline_layout(ComPtr<ID3D12RootSignature> root_signature);
         PipelineHandle insert_pipeline(ComPtr<ID3D12PipelineState> pipeline);
         BufferHandle insert_buffer(ComPtr<D3D12MA::Allocation> allocation);
+        ImageHandle insert_image(ComPtr<ID3D12Resource> image);
+        RenderTargetHandle insert_render_target(ComPtr<ID3D12DescriptorHeap> descriptor_heap, D3D12_CPU_DESCRIPTOR_HANDLE descriptor_handle);
 
         ComPtr<ID3D12RootSignature> get_root_signature(PipelineLayoutHandle pipeline_layout) const;
         ComPtr<ID3D12PipelineState> get_pipeline(PipelineHandle pipeline) const;
         ComPtr<D3D12MA::Allocation> get_buffer(BufferHandle buffer) const;
+        ComPtr<ID3D12Resource> get_image(ImageHandle image) const;
+        D3D12RenderTarget get_render_target(RenderTargetHandle render_target);
 
         bool remove_root_signature(PipelineLayoutHandle pipeline_layout);
         bool remove_pipeline(PipelineHandle pipeline);
         bool remove_buffer(BufferHandle buffer);
+        bool remove_image(ImageHandle image);
+        bool remove_render_target(RenderTargetHandle render_target);
 
     private:
         template<typename T>
@@ -50,6 +68,12 @@ namespace orion
         static bool is_empty_slot(const Entry<T>& entry)
         {
             return entry.value == nullptr;
+        }
+
+        template<>
+        bool is_empty_slot<D3D12RenderTarget>(const Entry<D3D12RenderTarget>& entry)
+        {
+            return entry.value.descriptor_heap == nullptr;
         }
 
         static std::uint16_t find_empty_slot(const auto& table)
@@ -103,5 +127,7 @@ namespace orion
         ResourceTable<ComPtr<ID3D12RootSignature>> root_signatures_;
         ResourceTable<ComPtr<ID3D12PipelineState>> pipelines_;
         ResourceTable<ComPtr<D3D12MA::Allocation>> buffers_;
+        ResourceTable<ComPtr<ID3D12Resource>> images_;
+        ResourceTable<D3D12RenderTarget> rtvs_;
     };
 } // namespace orion

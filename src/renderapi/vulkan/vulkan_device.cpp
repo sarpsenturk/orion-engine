@@ -91,6 +91,9 @@ namespace orion
         ORION_EXPECTS(desc.width != 0);
         ORION_EXPECTS(desc.height != 0);
 
+        auto* vulkan_queue = dynamic_cast<VulkanQueue*>(desc.queue);
+        ORION_EXPECTS(vulkan_queue != nullptr);
+
         // Create the surface
         VkSurfaceKHR surface = create_platform_surface(instance_, desc.window);
         SPDLOG_TRACE("Created VkSurfaceKHR {}", fmt::ptr(surface));
@@ -114,31 +117,30 @@ namespace orion
         }
 
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-        {
-            const auto info = VkSwapchainCreateInfoKHR{
-                .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                .pNext = nullptr,
-                .flags = 0,
-                .surface = surface,
-                .minImageCount = desc.image_count,
-                .imageFormat = to_vk_format(desc.image_format),
-                .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
-                .imageExtent = {.width = desc.width, .height = desc.height},
-                .imageArrayLayers = 1,
-                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-                .queueFamilyIndexCount = 0,
-                .pQueueFamilyIndices = nullptr,
-                .preTransform = surface_capabilities.currentTransform,
-                .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                .presentMode = VK_PRESENT_MODE_FIFO_KHR,
-                .clipped = VK_TRUE,
-                .oldSwapchain = VK_NULL_HANDLE,
-            };
-            vk_assert(vkCreateSwapchainKHR(device_, &info, nullptr, &swapchain));
-            SPDLOG_TRACE("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
-        }
-        return std::make_unique<VulkanSwapchain>(device_, instance_, surface, swapchain);
+        const auto info = VkSwapchainCreateInfoKHR{
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .pNext = nullptr,
+            .flags = 0,
+            .surface = surface,
+            .minImageCount = desc.image_count,
+            .imageFormat = to_vk_format(desc.image_format),
+            .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+            .imageExtent = {.width = desc.width, .height = desc.height},
+            .imageArrayLayers = 1,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices = nullptr,
+            .preTransform = surface_capabilities.currentTransform,
+            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode = VK_PRESENT_MODE_FIFO_KHR,
+            .clipped = VK_TRUE,
+            .oldSwapchain = VK_NULL_HANDLE,
+        };
+
+        vk_assert(vkCreateSwapchainKHR(device_, &info, nullptr, &swapchain));
+        SPDLOG_TRACE("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
+        return std::make_unique<VulkanSwapchain>(device_, instance_, physical_device_, surface, swapchain, info, vulkan_queue, &context_);
     }
 
     std::unique_ptr<ShaderCompiler> VulkanDevice::create_shader_compiler_api()

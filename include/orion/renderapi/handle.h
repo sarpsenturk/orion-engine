@@ -11,4 +11,6 @@ namespace orion
     enum class PipelineLayoutHandle : render_device_handle_t { Invalid = invalid_device_handle };
     enum class PipelineHandle : render_device_handle_t { Invalid = invalid_device_handle };
     enum class BufferHandle : render_device_handle_t { Invalid = invalid_device_handle };
+    enum class ImageHandle : render_device_handle_t { Invalid = invalid_device_handle };
+    enum class RenderTargetHandle : render_device_handle_t { Invalid = invalid_device_handle };
 } // namespace orion
