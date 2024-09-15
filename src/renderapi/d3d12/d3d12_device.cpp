@@ -45,7 +45,7 @@ namespace orion
         ComPtr<ID3D12CommandQueue> queue;
         hr_assert(device_->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue)));
         SPDLOG_TRACE("Created ID3D12CommandQueue interface at {}", fmt::ptr(queue.Get()));
-        return std::make_unique<D3D12Queue>(queue);
+        return std::make_unique<D3D12Queue>(queue, &context_);
     }
 
     std::unique_ptr<Swapchain> D3D12Device::create_swapchain_api(const SwapchainDesc& desc)
@@ -91,7 +91,7 @@ namespace orion
     {
         const auto command_allocator = dynamic_cast<const D3D12CommandAllocator*>(desc.command_allocator)->d3d12_command_allocator();
         ORION_ASSERT(command_allocator != nullptr);
-        ComPtr<ID3D12CommandList> command_list;
+        ComPtr<ID3D12GraphicsCommandList> command_list;
         hr_assert(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocator.Get(), nullptr, IID_PPV_ARGS(&command_list)));
         SPDLOG_TRACE("Created ID3D12CommandList interface at {}", fmt::ptr(command_list.Get()));
         return std::make_unique<D3D12CommandList>(std::move(command_list));
@@ -261,7 +261,7 @@ namespace orion
         return context_.insert_pipeline(std::move(pipeline));
     }
 
-    SemaphoreHandle D3D12Device::create_semaphore_api(const SemaphoreDesc& desc)
+    SemaphoreHandle D3D12Device::create_semaphore_api(const SemaphoreDesc&)
     {
         ComPtr<ID3D12Fence> fence;
         hr_assert(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
@@ -272,7 +272,7 @@ namespace orion
     FenceHandle D3D12Device::create_fence_api(const FenceDesc& desc)
     {
         ComPtr<ID3D12Fence> fence;
-        hr_assert(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+        hr_assert(device_->CreateFence(desc.signaled ? 1 : 0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
         SPDLOG_TRACE("Created ID3D12Fence {}", fmt::ptr(fence.Get()));
         return context_.insert_fence(std::move(fence));
     }

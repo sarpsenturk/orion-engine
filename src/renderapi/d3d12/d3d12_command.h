@@ -10,13 +10,15 @@ namespace orion
     class D3D12CommandList final : public CommandList
     {
     public:
-        explicit D3D12CommandList(ComPtr<ID3D12CommandList> command_list);
+        explicit D3D12CommandList(ComPtr<ID3D12GraphicsCommandList> command_list);
+
+        [[nodiscard]] ComPtr<ID3D12GraphicsCommandList> dx_command_list() const { return command_list_; }
 
     private:
         void begin_api() override;
         void end_api() override;
 
-        ComPtr<ID3D12CommandList> command_list_;
+        ComPtr<ID3D12GraphicsCommandList> command_list_;
     };
 
     class D3D12CommandAllocator final : public CommandAllocator

@@ -83,7 +83,7 @@ namespace orion
 
     std::unique_ptr<CommandQueue> VulkanDevice::create_command_queue_api()
     {
-        return std::make_unique<VulkanQueue>(queue_);
+        return std::make_unique<VulkanQueue>(queue_, &context_);
     }
 
     std::unique_ptr<Swapchain> VulkanDevice::create_swapchain_api(const SwapchainDesc& desc)

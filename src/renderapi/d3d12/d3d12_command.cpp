@@ -2,7 +2,7 @@
 
 namespace orion
 {
-    D3D12CommandList::D3D12CommandList(ComPtr<ID3D12CommandList> command_list)
+    D3D12CommandList::D3D12CommandList(ComPtr<ID3D12GraphicsCommandList> command_list)
         : command_list_(std::move(command_list))
     {
     }
