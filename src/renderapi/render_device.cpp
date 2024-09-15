@@ -60,6 +60,20 @@ namespace orion
         return buffer;
     }
 
+    SemaphoreHandle RenderDevice::create_semaphore(const SemaphoreDesc& desc)
+    {
+        auto semaphore = create_semaphore_api(desc);
+        SPDLOG_DEBUG("Created semaphore {}", fmt::underlying(semaphore));
+        return semaphore;
+    }
+
+    FenceHandle RenderDevice::create_fence(const FenceDesc& desc)
+    {
+        auto fence = create_fence_api(desc);
+        SPDLOG_DEBUG("Created fence {} {{ signaled: {} }}", fmt::underlying(fence), desc.signaled);
+        return fence;
+    }
+
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)
     {
         destroy_api(pipeline_layout);
@@ -69,13 +83,25 @@ namespace orion
     void RenderDevice::destroy(PipelineHandle pipeline)
     {
         destroy_api(pipeline);
-        SPDLOG_DEBUG("Destroyed graphics pipeline {}", fmt::underlying(pipeline));
+        SPDLOG_DEBUG("Destroyed pipeline {}", fmt::underlying(pipeline));
     }
 
     void RenderDevice::destroy(BufferHandle buffer)
     {
         destroy_api(buffer);
         SPDLOG_DEBUG("Destroyed buffer {}", fmt::underlying(buffer));
+    }
+
+    void RenderDevice::destroy(SemaphoreHandle semaphore)
+    {
+        destroy_api(semaphore);
+        SPDLOG_DEBUG("Destroyed semaphore {}", fmt::underlying(semaphore));
+    }
+
+    void RenderDevice::destroy(FenceHandle fence)
+    {
+        destroy_api(fence);
+        SPDLOG_DEBUG("Destroyed fence {}", fmt::underlying(fence));
     }
 
     void* RenderDevice::map(BufferHandle buffer)

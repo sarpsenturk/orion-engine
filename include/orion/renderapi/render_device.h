@@ -7,6 +7,7 @@
 #include "orion/renderapi/render_queue.h"
 #include "orion/renderapi/shader.h"
 #include "orion/renderapi/swapchain.h"
+#include "orion/renderapi/sync.h"
 
 #include <memory>
 
@@ -27,14 +28,20 @@ namespace orion
         PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
         PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         BufferHandle create_buffer(const BufferDesc& desc);
+        SemaphoreHandle create_semaphore(const SemaphoreDesc& desc);
+        FenceHandle create_fence(const FenceDesc& desc);
 
         void destroy(PipelineLayoutHandle pipeline_layout);
         void destroy(PipelineHandle pipeline);
         void destroy(BufferHandle buffer);
+        void destroy(SemaphoreHandle semaphore);
+        void destroy(FenceHandle fence);
 
         void* map(BufferHandle buffer);
         void unmap(BufferHandle buffer);
         void memcpy(BufferHandle dst, const void* src, std::size_t size);
+
+        void wait_for_fence(FenceHandle fence);
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -52,12 +59,18 @@ namespace orion
         virtual PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) = 0;
         virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
         virtual BufferHandle create_buffer_api(const BufferDesc& desc) = 0;
+        virtual SemaphoreHandle create_semaphore_api(const SemaphoreDesc& desc) = 0;
+        virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
 
         virtual void destroy_api(PipelineHandle pipeline) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
         virtual void destroy_api(BufferHandle buffer) = 0;
+        virtual void destroy_api(SemaphoreHandle semaphore) = 0;
+        virtual void destroy_api(FenceHandle fence) = 0;
 
         virtual void* map_api(BufferHandle buffer) = 0;
         virtual void unmap_api(BufferHandle buffer) = 0;
+
+        virtual void wait_for_fence_api(FenceHandle fence) = 0;
     };
 } // namespace orion

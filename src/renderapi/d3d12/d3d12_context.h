@@ -17,9 +17,11 @@ namespace orion
         D3D12RenderTarget& operator=(std::nullptr_t)
         {
             descriptor_heap = nullptr;
-            descriptor_handle = D3D12_CPU_DESCRIPTOR_HANDLE{};
+            descriptor_handle = {};
             return *this;
         }
+
+        bool operator==(std::nullptr_t) const { return descriptor_heap == nullptr; }
     };
 
     class D3D12Context
@@ -41,18 +43,24 @@ namespace orion
         BufferHandle insert_buffer(ComPtr<D3D12MA::Allocation> allocation);
         ImageHandle insert_image(ComPtr<ID3D12Resource> image);
         RenderTargetHandle insert_render_target(ComPtr<ID3D12DescriptorHeap> descriptor_heap, D3D12_CPU_DESCRIPTOR_HANDLE descriptor_handle);
+        SemaphoreHandle insert_semaphore(ComPtr<ID3D12Fence> fence);
+        FenceHandle insert_fence(ComPtr<ID3D12Fence> fence);
 
         ComPtr<ID3D12RootSignature> get_root_signature(PipelineLayoutHandle pipeline_layout) const;
         ComPtr<ID3D12PipelineState> get_pipeline(PipelineHandle pipeline) const;
         ComPtr<D3D12MA::Allocation> get_buffer(BufferHandle buffer) const;
         ComPtr<ID3D12Resource> get_image(ImageHandle image) const;
         D3D12RenderTarget get_render_target(RenderTargetHandle render_target);
+        ComPtr<ID3D12Fence> get_semaphore(SemaphoreHandle fence) const;
+        ComPtr<ID3D12Fence> get_fence(FenceHandle fence) const;
 
         bool remove_root_signature(PipelineLayoutHandle pipeline_layout);
         bool remove_pipeline(PipelineHandle pipeline);
         bool remove_buffer(BufferHandle buffer);
         bool remove_image(ImageHandle image);
         bool remove_render_target(RenderTargetHandle render_target);
+        bool remove_semaphore(SemaphoreHandle semaphore);
+        bool remove_fence(FenceHandle fence);
 
     private:
         template<typename T>
@@ -68,12 +76,6 @@ namespace orion
         static bool is_empty_slot(const Entry<T>& entry)
         {
             return entry.value == nullptr;
-        }
-
-        template<>
-        bool is_empty_slot<D3D12RenderTarget>(const Entry<D3D12RenderTarget>& entry)
-        {
-            return entry.value.descriptor_heap == nullptr;
         }
 
         static std::uint16_t find_empty_slot(const auto& table)
@@ -129,5 +131,10 @@ namespace orion
         ResourceTable<ComPtr<D3D12MA::Allocation>> buffers_;
         ResourceTable<ComPtr<ID3D12Resource>> images_;
         ResourceTable<D3D12RenderTarget> rtvs_;
+        // Both semaphores and fences are implemented
+        // with ID3D12Fence D3D12 doesn't make a distinction
+        // like Vulkan.
+        // They are used as binary semaphores & binary fences.
+        ResourceTable<ComPtr<ID3D12Fence>> fences_;
     };
 } // namespace orion

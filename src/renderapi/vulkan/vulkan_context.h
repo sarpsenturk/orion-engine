@@ -27,18 +27,24 @@ namespace orion
         BufferHandle insert(VkBuffer buffer, VmaAllocation allocation);
         ImageHandle insert(VkImage image);
         RenderTargetHandle insert(VkImageView image_view);
+        SemaphoreHandle insert(VkSemaphore semaphore);
+        FenceHandle insert(VkFence fence);
 
         VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
         VkPipeline lookup(PipelineHandle pipeline) const;
         VulkanBuffer lookup(BufferHandle buffer) const;
         VkImage lookup(ImageHandle image) const;
         VkImageView lookup(RenderTargetHandle render_target) const;
+        VkSemaphore lookup(SemaphoreHandle semaphore) const;
+        VkFence lookup(FenceHandle fence) const;
 
         bool remove(PipelineLayoutHandle pipeline_layout);
         bool remove(PipelineHandle pipeline);
         bool remove(BufferHandle buffer);
         bool remove(ImageHandle image);
         bool remove(RenderTargetHandle render_target);
+        bool remove(SemaphoreHandle semaphore);
+        bool remove(FenceHandle fence);
 
     private:
         template<typename T>
@@ -141,7 +147,7 @@ namespace orion
         ResourceTable<VulkanBuffer> buffers_;
         ResourceTable<VkImage> images_;
         ResourceTable<VkImageView> image_views_;
-
-        static_assert(sizeof(TableEntry<VulkanBuffer>) == 24);
+        ResourceTable<VkSemaphore> semaphores_;
+        ResourceTable<VkFence> fences_;
     };
 } // namespace orion

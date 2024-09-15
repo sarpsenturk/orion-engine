@@ -424,6 +424,36 @@ namespace orion
         return context_.insert(buffer, allocation);
     }
 
+    SemaphoreHandle VulkanDevice::create_semaphore_api(const SemaphoreDesc&)
+    {
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        {
+            const auto info = VkSemaphoreCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+            };
+            vk_assert(vkCreateSemaphore(device_, &info, nullptr, &semaphore));
+            SPDLOG_TRACE("Created VkSemaphore {}", fmt::ptr(semaphore));
+        }
+        return context_.insert(semaphore);
+    }
+
+    FenceHandle VulkanDevice::create_fence_api(const FenceDesc& desc)
+    {
+        VkFence fence = VK_NULL_HANDLE;
+        {
+            const auto info = VkFenceCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = desc.signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
+            };
+            vk_assert(vkCreateFence(device_, &info, nullptr, &fence));
+            SPDLOG_TRACE("Created VkFence {}", fmt::ptr(fence));
+        }
+        return context_.insert(fence);
+    }
+
     void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
         if (!context_.remove(pipeline_layout)) {
@@ -442,6 +472,20 @@ namespace orion
     {
         if (!context_.remove(buffer)) {
             SPDLOG_WARN("Attempting to destroy buffer with handle {}. which is not a valid handle", fmt::underlying(buffer));
+        }
+    }
+
+    void VulkanDevice::destroy_api(SemaphoreHandle semaphore)
+    {
+        if (!context_.remove(semaphore)) {
+            SPDLOG_WARN("Attempting to destroy semaphore with handle {}. which is not a valid handle", fmt::underlying(semaphore));
+        }
+    }
+
+    void VulkanDevice::destroy_api(FenceHandle fence)
+    {
+        if (!context_.remove(fence)) {
+            SPDLOG_WARN("Attempting to destroy fence with handle {}. which is not a valid handle", fmt::underlying(fence));
         }
     }
 
@@ -464,6 +508,14 @@ namespace orion
         } else {
             SPDLOG_ERROR("Failed to unmap buffer {}: failed to find buffer", fmt::underlying(buffer));
         }
+    }
+
+    void VulkanDevice::wait_for_fence_api(FenceHandle fence)
+    {
+        VkFence vk_fence = context_.lookup(fence);
+        ORION_EXPECTS(vk_fence != VK_NULL_HANDLE);
+        vk_assert(vkWaitForFences(device_, 1, &vk_fence, VK_TRUE, UINT64_MAX));
+        vk_assert(vkResetFences(device_, 1, &vk_fence));
     }
 
     VkShaderModule VulkanDevice::create_vk_shader_module(std::span<const std::byte> code)

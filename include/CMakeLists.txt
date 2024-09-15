@@ -22,4 +22,5 @@ target_sources(
         orion/renderapi/render_queue.h
         orion/renderapi/shader.h
         orion/renderapi/swapchain.h
+        orion/renderapi/sync.h
 )

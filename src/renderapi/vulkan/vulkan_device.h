@@ -26,13 +26,19 @@ namespace orion
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         BufferHandle create_buffer_api(const BufferDesc& desc) override;
+        SemaphoreHandle create_semaphore_api(const SemaphoreDesc& desc) override;
+        FenceHandle create_fence_api(const FenceDesc& desc) override;
 
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
         void destroy_api(PipelineHandle pipeline) override;
         void destroy_api(BufferHandle buffer) override;
+        void destroy_api(SemaphoreHandle semaphore) override;
+        void destroy_api(FenceHandle fence) override;
 
         void* map_api(BufferHandle buffer) override;
         void unmap_api(BufferHandle buffer) override;
+
+        void wait_for_fence_api(FenceHandle fence) override;
 
         VkShaderModule create_vk_shader_module(std::span<const std::byte> code);
 

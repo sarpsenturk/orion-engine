@@ -52,6 +52,16 @@ namespace orion
         return RenderTargetHandle{insert(image_views_, image_view)};
     }
 
+    SemaphoreHandle VulkanContext::insert(VkSemaphore semaphore)
+    {
+        return SemaphoreHandle{insert(semaphores_, semaphore)};
+    }
+
+    FenceHandle VulkanContext::insert(VkFence fence)
+    {
+        return FenceHandle{insert(fences_, fence)};
+    }
+
     VkPipelineLayout VulkanContext::lookup(PipelineLayoutHandle pipeline_layout) const
     {
         return lookup(pipeline_layouts_, static_cast<render_device_handle_t>(pipeline_layout));
@@ -75,6 +85,16 @@ namespace orion
     VkImageView VulkanContext::lookup(RenderTargetHandle render_target) const
     {
         return lookup(image_views_, static_cast<render_device_handle_t>(render_target));
+    }
+
+    VkSemaphore VulkanContext::lookup(SemaphoreHandle semaphore) const
+    {
+        return lookup(semaphores_, static_cast<render_device_handle_t>(semaphore));
+    }
+
+    VkFence VulkanContext::lookup(FenceHandle fence) const
+    {
+        return lookup(fences_, static_cast<render_device_handle_t>(fence));
     }
 
     bool VulkanContext::remove(PipelineLayoutHandle pipeline_layout)
@@ -112,5 +132,21 @@ namespace orion
             vkDestroyImageView(device_, image_view, nullptr);
         };
         return remove(image_views_, static_cast<render_device_handle_t>(render_target), deleter);
+    }
+
+    bool VulkanContext::remove(SemaphoreHandle semaphore)
+    {
+        auto deleter = [this](VkSemaphore semaphore) {
+            vkDestroySemaphore(device_, semaphore, nullptr);
+        };
+        return remove(semaphores_, static_cast<render_device_handle_t>(semaphore), deleter);
+    }
+
+    bool VulkanContext::remove(FenceHandle fence)
+    {
+        auto deleter = [this](VkFence fence) {
+            vkDestroyFence(device_, fence, nullptr);
+        };
+        return remove(fences_, static_cast<render_device_handle_t>(fence), deleter);
     }
 } // namespace orion

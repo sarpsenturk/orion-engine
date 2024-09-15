@@ -31,6 +31,16 @@ namespace orion
         return insert<RenderTargetHandle>(rtvs_, D3D12RenderTarget{.descriptor_heap = std::move(descriptor_heap), .descriptor_handle = descriptor_handle});
     }
 
+    SemaphoreHandle D3D12Context::insert_semaphore(ComPtr<ID3D12Fence> fence)
+    {
+        return insert<SemaphoreHandle>(fences_, std::move(fence));
+    }
+
+    FenceHandle D3D12Context::insert_fence(ComPtr<ID3D12Fence> fence)
+    {
+        return insert<FenceHandle>(fences_, std::move(fence));
+    }
+
     ComPtr<ID3D12RootSignature> D3D12Context::get_root_signature(PipelineLayoutHandle pipeline_layout) const
     {
         return lookup(root_signatures_, pipeline_layout);
@@ -56,6 +66,16 @@ namespace orion
         return lookup(rtvs_, render_target);
     }
 
+    ComPtr<ID3D12Fence> D3D12Context::get_semaphore(SemaphoreHandle fence) const
+    {
+        return lookup(fences_, fence);
+    }
+
+    ComPtr<ID3D12Fence> D3D12Context::get_fence(FenceHandle fence) const
+    {
+        return lookup(fences_, fence);
+    }
+
     bool D3D12Context::remove_root_signature(PipelineLayoutHandle pipeline_layout)
     {
         return remove(root_signatures_, pipeline_layout);
@@ -79,5 +99,15 @@ namespace orion
     bool D3D12Context::remove_render_target(RenderTargetHandle render_target)
     {
         return remove(rtvs_, render_target);
+    }
+
+    bool D3D12Context::remove_semaphore(SemaphoreHandle semaphore)
+    {
+        return remove(fences_, semaphore);
+    }
+
+    bool D3D12Context::remove_fence(FenceHandle fence)
+    {
+        return remove(fences_, fence);
     }
 } // namespace orion

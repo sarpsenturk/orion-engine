@@ -261,6 +261,22 @@ namespace orion
         return context_.insert_pipeline(std::move(pipeline));
     }
 
+    SemaphoreHandle D3D12Device::create_semaphore_api(const SemaphoreDesc& desc)
+    {
+        ComPtr<ID3D12Fence> fence;
+        hr_assert(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+        SPDLOG_TRACE("Created ID3D12Fence {}", fmt::ptr(fence.Get()));
+        return context_.insert_semaphore(std::move(fence));
+    }
+
+    FenceHandle D3D12Device::create_fence_api(const FenceDesc& desc)
+    {
+        ComPtr<ID3D12Fence> fence;
+        hr_assert(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+        SPDLOG_TRACE("Created ID3D12Fence {}", fmt::ptr(fence.Get()));
+        return context_.insert_fence(std::move(fence));
+    }
+
     void D3D12Device::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
         if (!context_.remove_root_signature(pipeline_layout)) {
@@ -282,6 +298,20 @@ namespace orion
         }
     }
 
+    void D3D12Device::destroy_api(SemaphoreHandle semaphore)
+    {
+        if (!context_.remove_semaphore(semaphore)) {
+            SPDLOG_WARN("Trying to remove semaphore with handle {}, which is not a valid handle", fmt::underlying(semaphore));
+        }
+    }
+
+    void D3D12Device::destroy_api(FenceHandle fence)
+    {
+        if (!context_.remove_fence(fence)) {
+            SPDLOG_WARN("Trying to remove fence with handle {}, which is not a valid handle", fmt::underlying(fence));
+        }
+    }
+
     void* D3D12Device::map_api(BufferHandle buffer)
     {
         if (auto allocation = context_.get_buffer(buffer)) {
@@ -291,6 +321,7 @@ namespace orion
             return ptr;
         } else {
             SPDLOG_ERROR("Failed to map buffer resource with handle {}: couldn't find buffer", fmt::underlying(buffer));
+            ORION_ASSERT(false);
             return nullptr;
         }
     }
@@ -302,6 +333,19 @@ namespace orion
             resource->Unmap(0, nullptr);
         } else {
             SPDLOG_ERROR("Failed to unmap buffer with handle {}: couldn't find buffer", fmt::underlying(buffer));
+            ORION_ASSERT(false);
+        }
+    }
+
+    void D3D12Device::wait_for_fence_api(FenceHandle fence)
+    {
+        if (auto dx_fence = context_.get_fence(fence)) {
+            while (dx_fence->GetCompletedValue() == 0)
+                ;
+            hr_assert(dx_fence->Signal(0));
+        } else {
+            SPDLOG_ERROR("Failed to wait for fence with handle {}: couldn't find fence", fmt::underlying(fence));
+            ORION_ASSERT(false);
         }
     }
 } // namespace orion
