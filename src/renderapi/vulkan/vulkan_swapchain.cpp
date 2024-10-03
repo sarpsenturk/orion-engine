@@ -33,8 +33,9 @@ namespace orion
         create_image_views(images);
 
         // Create semaphores per image (image available + render finished)
-        semaphores_.resize(images.size() * 2);
-        std::generate_n(semaphores_.begin(), images.size(), [&]() {
+        const auto semaphore_count = images.size() * 2;
+        semaphores_.resize(semaphore_count);
+        std::generate_n(semaphores_.begin(), semaphore_count, [&]() {
             VkSemaphore semaphore = VK_NULL_HANDLE;
             const auto info = VkSemaphoreCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -83,9 +84,8 @@ namespace orion
 
     void VulkanSwapchain::present_api(bool vsync)
     {
-        const auto semaphore_index = semaphore_index_;
-        semaphore_index_ = (semaphore_index_ + 1) % semaphores_.size();
-        VkSemaphore wait_semaphore = render_finished_semaphore(semaphore_index);
+        VkSemaphore wait_semaphore = render_finished_semaphore(semaphore_index_);
+        semaphore_index_ = (semaphore_index_ + 1) % images_.size();
 
         const auto info = VkPresentInfoKHR{
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,

@@ -81,6 +81,11 @@ namespace orion
     {
     }
 
+    VulkanDevice::~VulkanDevice()
+    {
+        vk_assert(vkDeviceWaitIdle(device_));
+    }
+
     std::unique_ptr<CommandQueue> VulkanDevice::create_command_queue_api()
     {
         return std::make_unique<VulkanQueue>(queue_, &context_);
@@ -180,7 +185,7 @@ namespace orion
             vk_assert(vkAllocateCommandBuffers(device_, &info, &command_buffer));
             SPDLOG_TRACE("Created VkCommandBuffer {}", fmt::ptr(command_buffer));
         }
-        return std::make_unique<VulkanCommandList>(device_, command_buffer);
+        return std::make_unique<VulkanCommandList>(device_, command_buffer, queue_family_index_, &context_);
     }
 
     PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)
@@ -235,21 +240,23 @@ namespace orion
             };
 
             // Pipeline vertex attributes
-            std::uint32_t offset = 0;
+            std::uint32_t stride = 0;
             std::vector<VkVertexInputAttributeDescription> vertex_attributes(desc.vertex_attributes.size());
-            std::ranges::transform(desc.vertex_attributes, vertex_attributes.begin(), [binding = 0u, &offset](const VertexAttribute& attribute) mutable {
+            std::ranges::transform(desc.vertex_attributes, vertex_attributes.begin(), [binding = 0u, &stride](const VertexAttribute& attribute) mutable {
+                const auto offset = stride;
+                stride += static_cast<uint16_t>(format_byte_size(attribute.format));
                 return VkVertexInputAttributeDescription{
                     .location = 0,
                     .binding = binding++,
                     .format = to_vk_format(attribute.format),
-                    .offset = offset += static_cast<uint16_t>(format_byte_size(attribute.format)),
+                    .offset = offset,
                 };
             });
 
             // Pipeline vertex binding
             const auto vertex_binding = VkVertexInputBindingDescription{
                 .binding = 0,
-                .stride = offset,
+                .stride = stride,
                 .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
             };
 

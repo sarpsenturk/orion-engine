@@ -1,5 +1,7 @@
 #include "orion/renderapi/render_device.h"
 
+#include "orion/assertion.h"
+
 #include <spdlog/spdlog.h>
 
 namespace orion
@@ -119,5 +121,11 @@ namespace orion
         void* ptr = map(dst);
         std::memcpy(ptr, src, size);
         unmap_api(dst);
+    }
+
+    void RenderDevice::wait_for_fence(FenceHandle fence)
+    {
+        ORION_ASSERT(fence != FenceHandle::Invalid);
+        wait_for_fence_api(fence);
     }
 } // namespace orion

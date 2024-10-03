@@ -15,6 +15,7 @@ namespace orion
     {
     public:
         VulkanDevice(VkDevice device, VkInstance instance, VkPhysicalDevice physical_device, VkQueue queue, std::uint32_t queue_family_index);
+        ~VulkanDevice() override;
 
     private:
         std::unique_ptr<CommandQueue> create_command_queue_api() override;

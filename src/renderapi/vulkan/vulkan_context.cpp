@@ -10,6 +10,20 @@ namespace orion
 
     VulkanContext::~VulkanContext()
     {
+        for (const auto [fence, _] : fences_) {
+            vkDestroyFence(device_, fence, nullptr);
+        }
+
+        for (const auto [semaphore, _] : semaphores_) {
+            vkDestroySemaphore(device_, semaphore, nullptr);
+        }
+
+        for (const auto [image_view, _] : image_views_) {
+            vkDestroyImageView(device_, image_view, nullptr);
+        }
+
+        // TODO: Destroy user created images
+
         for (const auto [buffer, _] : buffers_) {
             vmaDestroyBuffer(allocator_, buffer.buffer, buffer.allocation);
         }

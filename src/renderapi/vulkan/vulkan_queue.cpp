@@ -46,7 +46,7 @@ namespace orion
     void VulkanQueue::submit_api(std::span<const class CommandList* const> command_lists, FenceHandle fence)
     {
         // Get VkCommandBuffers
-        command_buffers_.reserve(command_lists.size());
+        command_buffers_.resize(command_lists.size());
         std::ranges::transform(command_lists, command_buffers_.begin(), [](const CommandList* command_list) {
             auto* vulkan_command_list = dynamic_cast<const VulkanCommandList*>(command_list);
             ORION_ASSERT(vulkan_command_list != nullptr);
