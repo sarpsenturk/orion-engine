@@ -15,6 +15,8 @@ namespace orion
                 return sizeof(uint8_t) * 4;
             case Format::R32G32B32_Float:
                 return sizeof(float) * 3;
+            case Format::R32G32B32A32_Float:
+                return sizeof(float) * 4;
         }
         unreachable();
     }

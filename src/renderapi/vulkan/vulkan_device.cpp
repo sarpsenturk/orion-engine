@@ -242,12 +242,12 @@ namespace orion
             // Pipeline vertex attributes
             std::uint32_t stride = 0;
             std::vector<VkVertexInputAttributeDescription> vertex_attributes(desc.vertex_attributes.size());
-            std::ranges::transform(desc.vertex_attributes, vertex_attributes.begin(), [binding = 0u, &stride](const VertexAttribute& attribute) mutable {
+            std::ranges::transform(desc.vertex_attributes, vertex_attributes.begin(), [location = 0u, &stride](const VertexAttribute& attribute) mutable {
                 const auto offset = stride;
                 stride += static_cast<uint16_t>(format_byte_size(attribute.format));
                 return VkVertexInputAttributeDescription{
-                    .location = 0,
-                    .binding = binding++,
+                    .location = location++,
+                    .binding = 0,
                     .format = to_vk_format(attribute.format),
                     .offset = offset,
                 };

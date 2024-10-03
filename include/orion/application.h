@@ -21,8 +21,8 @@ namespace orion
         Application(Application&&) = default;
         Application& operator=(Application&&) = default;
 
-        void exit_application();
-        [[noreturn]] void abort_application(const std::string& what);
+        void orion_exit();
+        [[noreturn]] void orion_abort(const std::string& what);
 
     private:
         virtual void on_update() = 0;

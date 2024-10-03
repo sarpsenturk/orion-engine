@@ -5,6 +5,7 @@
 #include <orion/renderapi/shader.h>
 
 #include <orion/math/vector3.h>
+#include <orion/math/vector4.h>
 
 #include <spdlog/spdlog.h>
 
@@ -13,30 +14,39 @@
 using namespace orion;
 
 constexpr auto vertex_shader = R"hlsl(
-float4 main(float3 position : POSITION) : SV_Position
+struct VSOut {
+    float4 position : SV_Position;
+    float4 color : COLOR;
+};
+
+VSOut main(float3 position : POSITION, float4 color : COLOR)
 {
-    return float4(position, 1.0);
+    VSOut output;
+    output.position = float4(position, 1.0);
+    output.color = color;
+    return output;
 })hlsl";
 
 constexpr auto pixel_shader = R"hlsl(
-float4 main() : SV_Target
+float4 main(float4 color : COLOR) : SV_Target
 {
-    return float4(1.0, 1.0, 1.0, 1.0);
+    return color;
 }
 )hlsl";
 
 struct Vertex {
     Vector3f position;
+    Vector4f color;
 };
 
 constexpr auto vertices = std::array{
-    Vertex{.position = {-.5f, .5f, 0.f}},
-    Vertex{.position = {.5f, .5f, 0.f}},
-    Vertex{.position = {.5f, -.5f, 0.f}},
-    Vertex{.position = {-.5f, -.5f, 0.f}},
+    Vertex{.position = {-.5f, .5f, 0.f}, .color = {1.0, 0.0, 0.0, 1.0}},
+    Vertex{.position = {.5f, .5f, 0.f}, .color = {0.0, 1.0, 0.0, 1.0}},
+    Vertex{.position = {.5f, -.5f, 0.f}, .color = {0.0, 0.0, 1.0, 1.0}},
+    Vertex{.position = {-.5f, -.5f, 0.f}, .color = {0.0, 1.0, 1.0, 1.0}},
 };
 
-const auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
+constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
 
 class SandboxApp final : public Application
 {
@@ -54,8 +64,11 @@ public:
         // Compile shaders
         auto compiler = render_device_->create_shader_compiler();
         const auto vs = compiler->compile({.source = vertex_shader, .type = ShaderType::Vertex});
-        SPDLOG_DEBUG("Created vertex shader binary with size {}", vs.size());
         const auto ps = compiler->compile({.source = pixel_shader, .type = ShaderType::Pixel});
+        if (vs.empty() || ps.empty()) {
+            orion_abort("Failed to compile shaders");
+        }
+        SPDLOG_DEBUG("Created vertex shader binary with size {}", vs.size());
         SPDLOG_DEBUG("Created pixel shader binary with size {}", ps.size());
 
         // Create pipeline layout
@@ -66,7 +79,7 @@ public:
             .pipeline_layout = pipeline_layout_,
             .vertex_shader = vs,
             .pixel_shader = ps,
-            .vertex_attributes = {{VertexAttribute{.name = "POSITION", .format = Format::R32G32B32_Float}}},
+            .vertex_attributes = {{VertexAttribute{.name = "POSITION", .format = Format::R32G32B32_Float}, VertexAttribute{.name = "COLOR", .format = Format::R32G32B32A32_Float}}},
             .primitive_topology = PrimitiveTopology::Triangle,
             .rasterizer = {.fill_mode = FillMode::Solid, .cull_mode = CullMode::Back, .front_face = FrontFace::ClockWise},
             .blend = {
@@ -107,7 +120,7 @@ private:
         while ((event = window_.poll_event())) {
             SPDLOG_TRACE("{}", event);
             if (event.is<OnWindowClose>()) {
-                exit_application();
+                orion_exit();
             }
         }
     }

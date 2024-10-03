@@ -30,12 +30,12 @@ namespace orion
         on_render();
     }
 
-    void Application::exit_application()
+    void Application::orion_exit()
     {
         should_exit_ = true;
     }
 
-    void Application::abort_application(const std::string& what)
+    void Application::orion_abort(const std::string& what)
     {
         throw std::runtime_error(what);
     }
