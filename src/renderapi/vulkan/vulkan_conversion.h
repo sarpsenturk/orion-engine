@@ -3,6 +3,7 @@
 #include "orion/renderapi/buffer.h"
 #include "orion/renderapi/format.h"
 #include "orion/renderapi/pipeline.h"
+#include "orion/renderapi/render_command.h"
 
 #include <Volk/volk.h>
 
@@ -16,4 +17,5 @@ namespace orion
     VkBlendOp to_vk_blend_op(BlendOp blend_op);
     VkColorComponentFlags to_vk_color_components(ColorWriteFlags color_write_mask);
     VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage);
+    VkIndexType to_vk_index_type(IndexType index_type);
 } // namespace orion

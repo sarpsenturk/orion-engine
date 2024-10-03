@@ -1,12 +1,14 @@
 #include "vulkan_command.h"
 
+#include "vulkan_conversion.h"
 #include "vulkan_error.h"
 
 #include "orion/assertion.h"
 
-#include <algorithm>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
+
+#include <algorithm>
 #include <utility>
 
 namespace orion
@@ -250,10 +252,24 @@ namespace orion
         vertex_buffer_offsets_.clear();
     }
 
+    void VulkanCommandList::set_index_buffer_api(const CmdSetIndexBuffer& cmd)
+    {
+        // Find index buffer
+        VkBuffer index_buffer = context_->lookup(cmd.buffer).buffer;
+        ORION_ASSERT(index_buffer != VK_NULL_HANDLE);
+        vkCmdBindIndexBuffer(command_buffer_, index_buffer, 0, to_vk_index_type(cmd.index_type));
+    }
+
     void VulkanCommandList::draw_instanced_api(const CmdDrawInstanced& cmd)
     {
         // Make draw call
         vkCmdDraw(command_buffer_, cmd.vertex_count, cmd.instance_count, cmd.start_vertex, cmd.start_instance);
+    }
+
+    void VulkanCommandList::draw_indexed_instanced_api(const CmdDrawIndexedInstanced& cmd)
+    {
+        // Make draw call
+        vkCmdDrawIndexed(command_buffer_, cmd.index_count, cmd.instance_count, cmd.first_index, 0, cmd.first_vertex);
     }
 
     VulkanCommandAllocator::VulkanCommandAllocator(VkDevice device, VkCommandPool command_pool)

@@ -101,4 +101,15 @@ namespace orion
         }
         unreachable();
     }
+
+    VkIndexType to_vk_index_type(IndexType index_type)
+    {
+        switch (index_type) {
+            case IndexType::U16:
+                return VK_INDEX_TYPE_UINT16;
+            case IndexType::U32:
+                return VK_INDEX_TYPE_UINT32;
+        }
+        unreachable();
+    }
 } // namespace orion

@@ -71,11 +71,29 @@ namespace orion
         std::span<const BufferView> vertex_buffers;
     };
 
+    enum class IndexType {
+        U16,
+        U32,
+    };
+
+    struct CmdSetIndexBuffer {
+        BufferHandle buffer;
+        IndexType index_type;
+    };
+
     struct CmdDrawInstanced {
         std::uint32_t vertex_count;
         std::uint32_t instance_count;
         std::uint32_t start_vertex;
         std::uint32_t start_instance;
+    };
+
+    struct CmdDrawIndexedInstanced {
+        std::uint32_t index_count;
+        std::uint32_t instance_count;
+        std::uint32_t first_index;
+        std::uint32_t first_vertex;
+        std::uint32_t first_instance;
     };
 
     class CommandList
@@ -97,8 +115,10 @@ namespace orion
         void set_scissors(const CmdSetScissors& cmd);
 
         void set_vertex_buffers(const CmdSetVertexBuffers& cmd);
+        void set_index_buffer(const CmdSetIndexBuffer& cmd);
 
         void draw_instanced(const CmdDrawInstanced& cmd);
+        void draw_indexed_instanced(const CmdDrawIndexedInstanced& cmd);
 
     protected:
         CommandList(const CommandList&) = default;
@@ -120,8 +140,10 @@ namespace orion
         virtual void set_scissors_api(const CmdSetScissors& cmd) = 0;
 
         virtual void set_vertex_buffers_api(const CmdSetVertexBuffers& cmd) = 0;
+        virtual void set_index_buffer_api(const CmdSetIndexBuffer& cmd) = 0;
 
         virtual void draw_instanced_api(const CmdDrawInstanced& cmd) = 0;
+        virtual void draw_indexed_instanced_api(const CmdDrawIndexedInstanced& cmd) = 0;
     };
 
     class CommandAllocator

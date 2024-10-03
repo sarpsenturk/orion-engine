@@ -30,10 +30,13 @@ struct Vertex {
 };
 
 constexpr auto vertices = std::array{
-    Vertex{.position = {0.f, .5f, 0.f}},
+    Vertex{.position = {-.5f, .5f, 0.f}},
+    Vertex{.position = {.5f, .5f, 0.f}},
     Vertex{.position = {.5f, -.5f, 0.f}},
     Vertex{.position = {-.5f, -.5f, 0.f}},
 };
+
+const auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
 
 class SandboxApp final : public Application
 {
@@ -89,6 +92,12 @@ public:
 
         // Upload vertex data
         render_device_->memcpy(vertex_buffer_, vertices.data(), sizeof(vertices));
+
+        // Create index buffer
+        index_buffer_ = render_device_->create_buffer({.size = sizeof(indices), .usage = BufferUsage::Index, .cpu_visible = true});
+
+        // Upload index data
+        render_device_->memcpy(index_buffer_, indices.data(), sizeof(indices));
     }
 
 private:
@@ -178,8 +187,11 @@ private:
             }},
         });
 
+        // Set index buffer
+        command_list_->set_index_buffer({.buffer = index_buffer_, .index_type = IndexType::U32});
+
         // Make draw call
-        command_list_->draw_instanced({.vertex_count = 3, .instance_count = 1, .start_vertex = 0, .start_instance = 0});
+        command_list_->draw_indexed_instanced({.index_count = 6, .instance_count = 1, .first_index = 0, .first_vertex = 0, .first_instance = 0});
 
         // End rendering
         command_list_->end_rendering();
@@ -215,6 +227,7 @@ private:
     PipelineLayoutHandle pipeline_layout_;
     PipelineHandle graphics_pipeline_;
     BufferHandle vertex_buffer_;
+    BufferHandle index_buffer_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)

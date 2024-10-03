@@ -56,8 +56,18 @@ namespace orion
         set_vertex_buffers_api(cmd);
     }
 
+    void CommandList::set_index_buffer(const CmdSetIndexBuffer& cmd)
+    {
+        set_index_buffer_api(cmd);
+    }
+
     void CommandList::draw_instanced(const CmdDrawInstanced& cmd)
     {
         draw_instanced_api(cmd);
+    }
+
+    void CommandList::draw_indexed_instanced(const CmdDrawIndexedInstanced& cmd)
+    {
+        draw_indexed_instanced_api(cmd);
     }
 } // namespace orion
