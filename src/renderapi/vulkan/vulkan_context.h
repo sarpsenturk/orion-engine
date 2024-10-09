@@ -22,6 +22,7 @@ namespace orion
         VulkanContext(VkDevice device, VmaAllocator allocator);
         ~VulkanContext();
 
+        DescriptorSetLayoutHandle insert(VkDescriptorSetLayout descriptor_set_layout);
         PipelineLayoutHandle insert(VkPipelineLayout pipeline_layout);
         PipelineHandle insert(VkPipeline pipeline);
         BufferHandle insert(VkBuffer buffer, VmaAllocation allocation);
@@ -31,6 +32,7 @@ namespace orion
         FenceHandle insert(VkFence fence);
         DescriptorPoolHandle insert(VkDescriptorPool descriptor_pool);
 
+        VkDescriptorSetLayout lookup(DescriptorSetLayoutHandle descriptor_set_layout) const;
         VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
         VkPipeline lookup(PipelineHandle pipeline) const;
         VulkanBuffer lookup(BufferHandle buffer) const;
@@ -48,6 +50,7 @@ namespace orion
         bool remove(SemaphoreHandle semaphore);
         bool remove(FenceHandle fence);
         bool remove(DescriptorPoolHandle descriptor_pool);
+        bool remove(DescriptorSetLayoutHandle descriptor_set_layout);
 
     private:
         template<typename T>
@@ -145,6 +148,7 @@ namespace orion
         VkDevice device_;
         VmaAllocator allocator_;
 
+        ResourceTable<VkDescriptorSetLayout> descriptor_set_layouts_;
         ResourceTable<VkPipelineLayout> pipeline_layouts_;
         ResourceTable<VkPipeline> pipelines_;
         ResourceTable<VulkanBuffer> buffers_;

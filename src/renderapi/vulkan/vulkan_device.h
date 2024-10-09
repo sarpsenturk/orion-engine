@@ -24,6 +24,7 @@ namespace orion
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
         std::unique_ptr<CommandList> create_command_list_api(const CommandListDesc& desc) override;
 
+        DescriptorSetLayoutHandle create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc) override;
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         BufferHandle create_buffer_api(const BufferDesc& desc) override;
@@ -31,6 +32,7 @@ namespace orion
         FenceHandle create_fence_api(const FenceDesc& desc) override;
         DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
 
+        void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) override;
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
         void destroy_api(PipelineHandle pipeline) override;
         void destroy_api(BufferHandle buffer) override;

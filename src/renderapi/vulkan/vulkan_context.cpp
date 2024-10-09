@@ -40,9 +40,18 @@ namespace orion
             vkDestroyPipelineLayout(device_, pipeline_layout, nullptr);
         }
 
+        for (const auto [descriptor_set_layout, _] : descriptor_set_layouts_) {
+            vkDestroyDescriptorSetLayout(device_, descriptor_set_layout, nullptr);
+        }
+
         vmaDestroyAllocator(allocator_);
 
         vkDestroyDevice(device_, nullptr);
+    }
+
+    DescriptorSetLayoutHandle VulkanContext::insert(VkDescriptorSetLayout descriptor_set_layout)
+    {
+        return DescriptorSetLayoutHandle{insert(descriptor_set_layouts_, descriptor_set_layout)};
     }
 
     PipelineLayoutHandle VulkanContext::insert(VkPipelineLayout pipeline_layout)
@@ -85,6 +94,11 @@ namespace orion
         return DescriptorPoolHandle{insert(descriptor_pools_, descriptor_pool)};
     }
 
+    VkDescriptorSetLayout VulkanContext::lookup(DescriptorSetLayoutHandle descriptor_set_layout) const
+    {
+        return lookup(descriptor_set_layouts_, static_cast<render_device_handle_t>(descriptor_set_layout));
+    }
+
     VkPipelineLayout VulkanContext::lookup(PipelineLayoutHandle pipeline_layout) const
     {
         return lookup(pipeline_layouts_, static_cast<render_device_handle_t>(pipeline_layout));
@@ -123,6 +137,14 @@ namespace orion
     VkDescriptorPool VulkanContext::lookup(DescriptorPoolHandle descriptor_pool) const
     {
         return lookup(descriptor_pools_, static_cast<render_device_handle_t>(descriptor_pool));
+    }
+
+    bool VulkanContext::remove(DescriptorSetLayoutHandle descriptor_set_layout)
+    {
+        auto deleter = [this](VkDescriptorSetLayout descriptor_set_layout) {
+            vkDestroyDescriptorSetLayout(device_, descriptor_set_layout, nullptr);
+        };
+        return remove(descriptor_set_layouts_, static_cast<render_device_handle_t>(descriptor_set_layout), deleter);
     }
 
     bool VulkanContext::remove(PipelineLayoutHandle pipeline_layout)

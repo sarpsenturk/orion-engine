@@ -26,6 +26,7 @@ namespace orion
         std::unique_ptr<CommandAllocator> create_command_allocator(const CommandAllocatorDesc& desc);
         std::unique_ptr<CommandList> create_command_list(const CommandListDesc& desc);
 
+        DescriptorSetLayoutHandle create_descriptor_set_layout(const DescriptorSetLayoutDesc& desc);
         PipelineLayoutHandle create_pipeline_layout(const PipelineLayoutDesc& desc);
         PipelineHandle create_graphics_pipeline(const GraphicsPipelineDesc& desc);
         BufferHandle create_buffer(const BufferDesc& desc);
@@ -33,6 +34,7 @@ namespace orion
         FenceHandle create_fence(const FenceDesc& desc);
         DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
 
+        void destroy(DescriptorSetLayoutHandle descriptor_set_layout);
         void destroy(PipelineLayoutHandle pipeline_layout);
         void destroy(PipelineHandle pipeline);
         void destroy(BufferHandle buffer);
@@ -59,6 +61,7 @@ namespace orion
         virtual std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) = 0;
         virtual std::unique_ptr<CommandList> create_command_list_api(const CommandListDesc& desc) = 0;
 
+        virtual DescriptorSetLayoutHandle create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc) = 0;
         virtual PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) = 0;
         virtual PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) = 0;
         virtual BufferHandle create_buffer_api(const BufferDesc& desc) = 0;
@@ -66,8 +69,9 @@ namespace orion
         virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
         virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
 
-        virtual void destroy_api(PipelineHandle pipeline) = 0;
+        virtual void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
+        virtual void destroy_api(PipelineHandle pipeline) = 0;
         virtual void destroy_api(BufferHandle buffer) = 0;
         virtual void destroy_api(SemaphoreHandle semaphore) = 0;
         virtual void destroy_api(FenceHandle fence) = 0;

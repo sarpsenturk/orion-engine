@@ -8,6 +8,15 @@ namespace orion
         ConstantBuffer,
     };
 
+    struct DescriptorSetBindingDesc {
+        DescriptorType type;
+        std::uint32_t size;
+    };
+
+    struct DescriptorSetLayoutDesc {
+        std::span<const DescriptorSetBindingDesc> bindings;
+    };
+
     struct DescriptorPoolSize {
         DescriptorType type;
         std::uint32_t count;

@@ -93,8 +93,17 @@ public:
         SPDLOG_DEBUG("Created vertex shader binary with size {}", vs.size());
         SPDLOG_DEBUG("Created pixel shader binary with size {}", ps.size());
 
+        // Create descriptor set layout
+        descriptor_set_layout_ = render_device_->create_descriptor_set_layout({
+            .bindings = {{
+                DescriptorSetBindingDesc{.type = DescriptorType::ConstantBuffer, .size = 1},
+            }},
+        });
+
         // Create pipeline layout
-        pipeline_layout_ = render_device_->create_pipeline_layout({});
+        pipeline_layout_ = render_device_->create_pipeline_layout({
+            .descriptor_set_layouts = {{descriptor_set_layout_}},
+        });
 
         // Create graphics pipeline
         graphics_pipeline_ = render_device_->create_graphics_pipeline({
@@ -256,11 +265,12 @@ private:
     std::unique_ptr<CommandAllocator> command_allocator_;
     std::unique_ptr<CommandList> command_list_;
     FenceHandle fence_;
-    DescriptorPoolHandle descriptor_pool_;
+    DescriptorSetLayoutHandle descriptor_set_layout_;
     PipelineLayoutHandle pipeline_layout_;
     PipelineHandle graphics_pipeline_;
     BufferHandle vertex_buffer_;
     BufferHandle index_buffer_;
+    DescriptorPoolHandle descriptor_pool_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)
