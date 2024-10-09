@@ -4,8 +4,8 @@
 #include <orion/renderapi/render_backend.h>
 #include <orion/renderapi/shader.h>
 
-#include <orion/math/vector3.h>
-#include <orion/math/vector4.h>
+#include <orion/math/vector/vector3.h>
+#include <orion/math/vector/vector4.h>
 
 #include <spdlog/spdlog.h>
 

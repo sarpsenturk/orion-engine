@@ -12,10 +12,10 @@ target_sources(
         orion/math/matrix/matrix3.h
         orion/math/matrix/matrix4.h
 
-        orion/math/vector.h
-        orion/math/vector2.h
-        orion/math/vector3.h
-        orion/math/vector4.h
+        orion/math/vector/vector.h
+        orion/math/vector/vector2.h
+        orion/math/vector/vector3.h
+        orion/math/vector/vector4.h
 
         orion/renderapi/buffer.h
         orion/renderapi/descriptor.h

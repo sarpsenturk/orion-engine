@@ -1,5 +1,5 @@
-#include "orion/math/vector.h"
-#include "orion/math/vector3.h"
+#include "orion/math/vector/vector.h"
+#include "orion/math/vector/vector3.h"
 
 #include <gtest/gtest.h>
 
