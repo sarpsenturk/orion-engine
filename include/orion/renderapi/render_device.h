@@ -33,6 +33,7 @@ namespace orion
         SemaphoreHandle create_semaphore(const SemaphoreDesc& desc);
         FenceHandle create_fence(const FenceDesc& desc);
         DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
+        DescriptorSetHandle create_descriptor_set(const DescriptorSetDesc& desc);
 
         void destroy(DescriptorSetLayoutHandle descriptor_set_layout);
         void destroy(PipelineLayoutHandle pipeline_layout);
@@ -41,6 +42,7 @@ namespace orion
         void destroy(SemaphoreHandle semaphore);
         void destroy(FenceHandle fence);
         void destroy(DescriptorPoolHandle descriptor_pool);
+        void destroy(DescriptorSetHandle descriptor_set);
 
         void* map(BufferHandle buffer);
         void unmap(BufferHandle buffer);
@@ -68,6 +70,7 @@ namespace orion
         virtual SemaphoreHandle create_semaphore_api(const SemaphoreDesc& desc) = 0;
         virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
         virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
+        virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) = 0;
 
         virtual void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
@@ -76,6 +79,7 @@ namespace orion
         virtual void destroy_api(SemaphoreHandle semaphore) = 0;
         virtual void destroy_api(FenceHandle fence) = 0;
         virtual void destroy_api(DescriptorPoolHandle descriptor_pool) = 0;
+        virtual void destroy_api(DescriptorSetHandle descriptor_set) = 0;
 
         virtual void* map_api(BufferHandle buffer) = 0;
         virtual void unmap_api(BufferHandle buffer) = 0;

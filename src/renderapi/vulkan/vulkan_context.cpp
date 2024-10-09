@@ -10,6 +10,7 @@ namespace orion
 
     VulkanContext::~VulkanContext()
     {
+        // Don't need to call vkFreeDescriptorSets as vkDestroyDescriptorPool will handle it
         for (const auto [descriptor_pool, _] : descriptor_pools_) {
             vkDestroyDescriptorPool(device_, descriptor_pool, nullptr);
         }
@@ -94,6 +95,11 @@ namespace orion
         return DescriptorPoolHandle{insert(descriptor_pools_, descriptor_pool)};
     }
 
+    DescriptorSetHandle VulkanContext::insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool)
+    {
+        return DescriptorSetHandle{insert(descriptor_sets_, VulkanDescriptorSet{descriptor_set, descriptor_pool})};
+    }
+
     VkDescriptorSetLayout VulkanContext::lookup(DescriptorSetLayoutHandle descriptor_set_layout) const
     {
         return lookup(descriptor_set_layouts_, static_cast<render_device_handle_t>(descriptor_set_layout));
@@ -137,6 +143,11 @@ namespace orion
     VkDescriptorPool VulkanContext::lookup(DescriptorPoolHandle descriptor_pool) const
     {
         return lookup(descriptor_pools_, static_cast<render_device_handle_t>(descriptor_pool));
+    }
+
+    VkDescriptorSet VulkanContext::lookup(DescriptorSetHandle descriptor_set) const
+    {
+        return lookup(descriptor_sets_, static_cast<render_device_handle_t>(descriptor_set)).set;
     }
 
     bool VulkanContext::remove(DescriptorSetLayoutHandle descriptor_set_layout)
@@ -206,5 +217,13 @@ namespace orion
             vkDestroyDescriptorPool(device_, descriptor_pool, nullptr);
         };
         return remove(descriptor_pools_, static_cast<render_device_handle_t>(descriptor_pool), deleter);
+    }
+
+    bool VulkanContext::remove(DescriptorSetHandle descriptor_set)
+    {
+        auto deleter = [this](VulkanDescriptorSet descriptor_set) {
+            vkFreeDescriptorSets(device_, descriptor_set.pool, 1, &descriptor_set.set);
+        };
+        return remove(descriptor_sets_, static_cast<render_device_handle_t>(descriptor_set), deleter);
     }
 } // namespace orion

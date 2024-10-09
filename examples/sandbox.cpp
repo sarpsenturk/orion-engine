@@ -142,6 +142,9 @@ public:
 
         // Upload index data
         render_device_->memcpy(index_buffer_, indices.data(), sizeof(indices));
+
+        // Create descriptor set
+        descriptor_set_ = render_device_->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
     }
 
 private:
@@ -271,6 +274,7 @@ private:
     BufferHandle vertex_buffer_;
     BufferHandle index_buffer_;
     DescriptorPoolHandle descriptor_pool_;
+    DescriptorSetHandle descriptor_set_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)

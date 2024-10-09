@@ -16,6 +16,13 @@ namespace orion
         explicit(false) operator bool() const noexcept { return buffer != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE; }
     };
 
+    struct VulkanDescriptorSet {
+        VkDescriptorSet set = VK_NULL_HANDLE;
+        VkDescriptorPool pool = VK_NULL_HANDLE;
+
+        explicit(false) operator bool() const noexcept { return set != VK_NULL_HANDLE && pool != VK_NULL_HANDLE; }
+    };
+
     class VulkanContext
     {
     public:
@@ -31,6 +38,7 @@ namespace orion
         SemaphoreHandle insert(VkSemaphore semaphore);
         FenceHandle insert(VkFence fence);
         DescriptorPoolHandle insert(VkDescriptorPool descriptor_pool);
+        DescriptorSetHandle insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool);
 
         VkDescriptorSetLayout lookup(DescriptorSetLayoutHandle descriptor_set_layout) const;
         VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
@@ -41,6 +49,7 @@ namespace orion
         VkSemaphore lookup(SemaphoreHandle semaphore) const;
         VkFence lookup(FenceHandle fence) const;
         VkDescriptorPool lookup(DescriptorPoolHandle descriptor_pool) const;
+        VkDescriptorSet lookup(DescriptorSetHandle descriptor_set) const;
 
         bool remove(PipelineLayoutHandle pipeline_layout);
         bool remove(PipelineHandle pipeline);
@@ -51,6 +60,7 @@ namespace orion
         bool remove(FenceHandle fence);
         bool remove(DescriptorPoolHandle descriptor_pool);
         bool remove(DescriptorSetLayoutHandle descriptor_set_layout);
+        bool remove(DescriptorSetHandle descriptor_set);
 
     private:
         template<typename T>
@@ -74,6 +84,12 @@ namespace orion
         bool is_empty(const TableEntry<VulkanBuffer>& entry)
         {
             return entry.value.buffer == VK_NULL_HANDLE;
+        }
+
+        template<>
+        bool is_empty(const TableEntry<VulkanDescriptorSet>& entry)
+        {
+            return entry.value.set == VK_NULL_HANDLE;
         }
 
         template<typename T>
@@ -157,5 +173,6 @@ namespace orion
         ResourceTable<VkSemaphore> semaphores_;
         ResourceTable<VkFence> fences_;
         ResourceTable<VkDescriptorPool> descriptor_pools_;
+        ResourceTable<VulkanDescriptorSet> descriptor_sets_;
     };
 } // namespace orion

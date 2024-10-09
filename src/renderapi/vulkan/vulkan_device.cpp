@@ -519,6 +519,27 @@ namespace orion
         return context_.insert(descriptor_pool);
     }
 
+    DescriptorSetHandle VulkanDevice::create_descriptor_set_api(const DescriptorSetDesc& desc)
+    {
+        VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+        VkDescriptorPool descriptor_pool = context_.lookup(desc.pool);
+        ORION_ENSURES(descriptor_pool != VK_NULL_HANDLE);
+        {
+            VkDescriptorSetLayout descriptor_set_layout = context_.lookup(desc.layout);
+            ORION_ENSURES(descriptor_set_layout != VK_NULL_HANDLE);
+            const auto info = VkDescriptorSetAllocateInfo{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                .pNext = nullptr,
+                .descriptorPool = descriptor_pool,
+                .descriptorSetCount = 1,
+                .pSetLayouts = &descriptor_set_layout,
+            };
+            vk_assert(vkAllocateDescriptorSets(device_, &info, &descriptor_set));
+            SPDLOG_TRACE("Created VkDescriptorSet {}", fmt::ptr(descriptor_set));
+        }
+        return context_.insert(descriptor_set, descriptor_pool);
+    }
+
     void VulkanDevice::destroy_api(DescriptorSetLayoutHandle descriptor_set_layout)
     {
         if (!context_.remove(descriptor_set_layout)) {
@@ -565,6 +586,13 @@ namespace orion
     {
         if (!context_.remove(descriptor_pool)) {
             SPDLOG_WARN("Attempting to destroy descriptor pool with handle {}, which is not a valid handle", fmt::underlying(descriptor_pool));
+        }
+    }
+
+    void VulkanDevice::destroy_api(DescriptorSetHandle descriptor_set)
+    {
+        if (!context_.remove(descriptor_set)) {
+            SPDLOG_WARN("Attempting to destroy descriptor set with handle {}, which is not a valid handle", fmt::underlying(descriptor_set));
         }
     }
 

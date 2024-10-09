@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/renderapi/handle.h"
+
 #include <span>
 
 namespace orion
@@ -25,5 +27,10 @@ namespace orion
     struct DescriptorPoolDesc {
         std::uint32_t max_descriptor_sets;
         std::span<const DescriptorPoolSize> descriptor_sizes;
+    };
+
+    struct DescriptorSetDesc {
+        DescriptorSetLayoutHandle layout;
+        DescriptorPoolHandle pool;
     };
 } // namespace orion

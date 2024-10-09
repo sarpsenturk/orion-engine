@@ -90,6 +90,13 @@ namespace orion
         return descriptor_pool;
     }
 
+    DescriptorSetHandle RenderDevice::create_descriptor_set(const DescriptorSetDesc& desc)
+    {
+        auto descriptor_set = create_descriptor_set_api(desc);
+        SPDLOG_DEBUG("Created descriptor set {}", fmt::underlying(descriptor_set));
+        return descriptor_set;
+    }
+
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)
     {
         destroy_api(pipeline_layout);
@@ -130,6 +137,12 @@ namespace orion
     {
         destroy_api(descriptor_set_layout);
         SPDLOG_DEBUG("Destroyed descriptor set_layout {}", fmt::underlying(descriptor_set_layout));
+    }
+
+    void RenderDevice::destroy(DescriptorSetHandle descriptor_set)
+    {
+        destroy_api(descriptor_set);
+        SPDLOG_DEBUG("Destroyed descriptor set {}", fmt::underlying(descriptor_set));
     }
 
     void* RenderDevice::map(BufferHandle buffer)
