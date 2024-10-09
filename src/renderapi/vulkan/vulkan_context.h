@@ -19,13 +19,20 @@ namespace orion
     struct VulkanDescriptorSet {
         VkDescriptorSet set = VK_NULL_HANDLE;
         VkDescriptorPool pool = VK_NULL_HANDLE;
-
-        explicit(false) operator bool() const noexcept { return set != VK_NULL_HANDLE && pool != VK_NULL_HANDLE; }
     };
 
     class VulkanContext
     {
     public:
+        template<typename T>
+        struct TableEntry {
+            T value = {};
+            std::uint16_t gen = 0;
+        };
+
+        template<typename T>
+        using ResourceTable = std::array<TableEntry<T>, 0xffff>;
+
         VulkanContext(VkDevice device, VmaAllocator allocator);
         ~VulkanContext();
 
@@ -63,104 +70,6 @@ namespace orion
         bool remove(DescriptorSetHandle descriptor_set);
 
     private:
-        template<typename T>
-        struct TableEntry {
-            T value = {};
-            std::uint16_t gen = 0;
-        };
-
-        static_assert(sizeof(TableEntry<VkPipelineLayout>) == 16);
-
-        template<typename T>
-        using ResourceTable = std::array<TableEntry<T>, 0xffff>;
-
-        template<typename T>
-        static bool is_empty(const TableEntry<T>& entry)
-        {
-            return entry.value == VK_NULL_HANDLE;
-        }
-
-        template<>
-        bool is_empty(const TableEntry<VulkanBuffer>& entry)
-        {
-            return entry.value.buffer == VK_NULL_HANDLE;
-        }
-
-        template<>
-        bool is_empty(const TableEntry<VulkanDescriptorSet>& entry)
-        {
-            return entry.value.set == VK_NULL_HANDLE;
-        }
-
-        template<typename T>
-        static std::uint16_t find_empty_slot(const ResourceTable<T>& table)
-        {
-            for (std::uint16_t i = 0; i < table.size(); ++i) {
-                if (is_empty(table[i])) {
-                    return i;
-                }
-            }
-            return UINT16_MAX;
-        }
-
-        template<typename T>
-        static render_device_handle_t get_device_handle(const ResourceTable<T>& table, std::uint16_t index)
-        {
-            return index | table[index].gen << 16;
-        }
-
-        template<typename T>
-        static render_device_handle_t insert(ResourceTable<T>& table, T value)
-        {
-            const auto slot = find_empty_slot(table);
-            if (slot == UINT16_MAX) {
-                return invalid_device_handle;
-            }
-            table[slot].value = value;
-            return get_device_handle(table, slot);
-        }
-
-        struct VulkanHandleImpl {
-            std::uint16_t index = 0;
-            std::uint16_t gen = 0;
-        };
-
-        static VulkanHandleImpl to_vulkan_handle(render_device_handle_t handle)
-        {
-            return {.index = static_cast<std::uint16_t>(handle & 0xffff), .gen = static_cast<std::uint16_t>(handle >> 16)};
-        }
-
-        template<typename T>
-        static T lookup(const ResourceTable<T>& table, render_device_handle_t handle)
-        {
-            const auto [index, gen] = to_vulkan_handle(handle);
-            if (index >= table.size()) {
-                return {};
-            }
-            const auto entry = table[index];
-            if (entry.gen != gen) {
-                return {};
-            }
-            return entry.value;
-        }
-
-        template<typename T>
-        static bool remove(ResourceTable<T>& table, render_device_handle_t handle, auto deleter)
-        {
-            const auto [index, gen] = to_vulkan_handle(handle);
-            if (index >= table.size()) {
-                return false;
-            }
-            auto& entry = table[index];
-            if (is_empty(entry) || entry.gen != gen) {
-                return false;
-            }
-            deleter(entry.value);
-            entry.value = {};
-            entry.gen += 1;
-            return true;
-        }
-
         VkDevice device_;
         VmaAllocator allocator_;
 
