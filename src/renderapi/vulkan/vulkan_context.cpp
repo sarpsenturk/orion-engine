@@ -10,6 +10,10 @@ namespace orion
 
     VulkanContext::~VulkanContext()
     {
+        for (const auto [descriptor_pool, _] : descriptor_pools_) {
+            vkDestroyDescriptorPool(device_, descriptor_pool, nullptr);
+        }
+
         for (const auto [fence, _] : fences_) {
             vkDestroyFence(device_, fence, nullptr);
         }
@@ -76,6 +80,11 @@ namespace orion
         return FenceHandle{insert(fences_, fence)};
     }
 
+    DescriptorPoolHandle VulkanContext::insert(VkDescriptorPool descriptor_pool)
+    {
+        return DescriptorPoolHandle{insert(descriptor_pools_, descriptor_pool)};
+    }
+
     VkPipelineLayout VulkanContext::lookup(PipelineLayoutHandle pipeline_layout) const
     {
         return lookup(pipeline_layouts_, static_cast<render_device_handle_t>(pipeline_layout));
@@ -109,6 +118,11 @@ namespace orion
     VkFence VulkanContext::lookup(FenceHandle fence) const
     {
         return lookup(fences_, static_cast<render_device_handle_t>(fence));
+    }
+
+    VkDescriptorPool VulkanContext::lookup(DescriptorPoolHandle descriptor_pool) const
+    {
+        return lookup(descriptor_pools_, static_cast<render_device_handle_t>(descriptor_pool));
     }
 
     bool VulkanContext::remove(PipelineLayoutHandle pipeline_layout)
@@ -162,5 +176,13 @@ namespace orion
             vkDestroyFence(device_, fence, nullptr);
         };
         return remove(fences_, static_cast<render_device_handle_t>(fence), deleter);
+    }
+
+    bool VulkanContext::remove(DescriptorPoolHandle descriptor_pool)
+    {
+        auto deleter = [this](VkDescriptorPool descriptor_pool) {
+            vkDestroyDescriptorPool(device_, descriptor_pool, nullptr);
+        };
+        return remove(descriptor_pools_, static_cast<render_device_handle_t>(descriptor_pool), deleter);
     }
 } // namespace orion

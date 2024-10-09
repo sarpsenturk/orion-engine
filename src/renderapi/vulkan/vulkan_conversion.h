@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion/renderapi/buffer.h"
+#include "orion/renderapi/descriptor.h"
 #include "orion/renderapi/format.h"
 #include "orion/renderapi/pipeline.h"
 #include "orion/renderapi/render_command.h"
@@ -18,4 +19,5 @@ namespace orion
     VkColorComponentFlags to_vk_color_components(ColorWriteFlags color_write_mask);
     VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage);
     VkIndexType to_vk_index_type(IndexType index_type);
+    VkDescriptorType to_vk_descriptor_type(DescriptorType descriptor_type);
 } // namespace orion

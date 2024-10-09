@@ -53,14 +53,36 @@ class SandboxApp final : public Application
 public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
-        , render_backend_(RenderBackend::create_builtin_vulkan())
-        , render_device_(render_backend_->create_device(0))
-        , command_queue_(render_device_->create_command_queue())
-        , swapchain_(render_device_->create_swapchain({.window = &window_, .queue = command_queue_.get(), .width = 800, .height = 600, .image_count = 2, .image_format = Format::B8G8R8A8_Unorm}))
-        , command_allocator_(render_device_->create_command_allocator({}))
-        , command_list_(render_device_->create_command_list({.command_allocator = command_allocator_.get()}))
-        , fence_(render_device_->create_fence({.signaled = false}))
     {
+        // Create render backend
+        render_backend_ = RenderBackend::create_builtin_vulkan();
+
+        // Create render device
+        render_device_ = render_backend_->create_device(0);
+
+        // Create command queue
+        command_queue_ = render_device_->create_command_queue();
+
+        // Create swapchain
+        swapchain_ = render_device_->create_swapchain({.window = &window_, .queue = command_queue_.get(), .width = 800, .height = 600, .image_count = 2, .image_format = Format::B8G8R8A8_Unorm});
+
+        // Create command allocator
+        command_allocator_ = render_device_->create_command_allocator({});
+
+        // Create command list
+        command_list_ = render_device_->create_command_list({.command_allocator = command_allocator_.get()});
+
+        // Create descriptor pool
+        descriptor_pool_ = render_device_->create_descriptor_pool({
+            .max_descriptor_sets = 1,
+            .descriptor_sizes = {{
+                DescriptorPoolSize{.type = DescriptorType::ConstantBuffer, .count = 1},
+            }},
+        });
+
+        // Create frame fence
+        fence_ = render_device_->create_fence({.signaled = false});
+
         // Compile shaders
         auto compiler = render_device_->create_shader_compiler();
         const auto vs = compiler->compile({.source = vertex_shader, .type = ShaderType::Vertex});
@@ -193,10 +215,7 @@ private:
         command_list_->set_vertex_buffers({
             .start_buffer = 0,
             .vertex_buffers = {{
-                BufferView{
-                    .buffer = vertex_buffer_,
-                    .stride = sizeof(Vertex),
-                },
+                BufferView{.buffer = vertex_buffer_, .stride = sizeof(Vertex)},
             }},
         });
 
@@ -237,6 +256,7 @@ private:
     std::unique_ptr<CommandAllocator> command_allocator_;
     std::unique_ptr<CommandList> command_list_;
     FenceHandle fence_;
+    DescriptorPoolHandle descriptor_pool_;
     PipelineLayoutHandle pipeline_layout_;
     PipelineHandle graphics_pipeline_;
     BufferHandle vertex_buffer_;

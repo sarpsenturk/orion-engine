@@ -4,6 +4,7 @@ target_sources(
         window.cpp
 
         renderapi/buffer.cpp
+        renderapi/descriptor.cpp
         renderapi/format.cpp
         renderapi/pipeline.cpp
         renderapi/render_backend.cpp

@@ -461,6 +461,31 @@ namespace orion
         return context_.insert(fence);
     }
 
+    DescriptorPoolHandle VulkanDevice::create_descriptor_pool_api(const DescriptorPoolDesc& desc)
+    {
+        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        {
+            std::vector<VkDescriptorPoolSize> pool_sizes(desc.descriptor_sizes.size());
+            std::ranges::transform(desc.descriptor_sizes, pool_sizes.begin(), [](const DescriptorPoolSize& pool_size) {
+                return VkDescriptorPoolSize{
+                    .type = to_vk_descriptor_type(pool_size.type),
+                    .descriptorCount = pool_size.count,
+                };
+            });
+            const auto info = VkDescriptorPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .maxSets = desc.max_descriptor_sets,
+                .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
+                .pPoolSizes = pool_sizes.data(),
+            };
+            vk_assert(vkCreateDescriptorPool(device_, &info, nullptr, &descriptor_pool));
+            SPDLOG_TRACE("Created VkDescriptorPool {}", fmt::ptr(descriptor_pool));
+        }
+        return context_.insert(descriptor_pool);
+    }
+
     void VulkanDevice::destroy_api(PipelineLayoutHandle pipeline_layout)
     {
         if (!context_.remove(pipeline_layout)) {
@@ -478,21 +503,28 @@ namespace orion
     void VulkanDevice::destroy_api(BufferHandle buffer)
     {
         if (!context_.remove(buffer)) {
-            SPDLOG_WARN("Attempting to destroy buffer with handle {}. which is not a valid handle", fmt::underlying(buffer));
+            SPDLOG_WARN("Attempting to destroy buffer with handle {}, which is not a valid handle", fmt::underlying(buffer));
         }
     }
 
     void VulkanDevice::destroy_api(SemaphoreHandle semaphore)
     {
         if (!context_.remove(semaphore)) {
-            SPDLOG_WARN("Attempting to destroy semaphore with handle {}. which is not a valid handle", fmt::underlying(semaphore));
+            SPDLOG_WARN("Attempting to destroy semaphore with handle {}, which is not a valid handle", fmt::underlying(semaphore));
         }
     }
 
     void VulkanDevice::destroy_api(FenceHandle fence)
     {
         if (!context_.remove(fence)) {
-            SPDLOG_WARN("Attempting to destroy fence with handle {}. which is not a valid handle", fmt::underlying(fence));
+            SPDLOG_WARN("Attempting to destroy fence with handle {}, which is not a valid handle", fmt::underlying(fence));
+        }
+    }
+
+    void VulkanDevice::destroy_api(DescriptorPoolHandle descriptor_pool)
+    {
+        if (!context_.remove(descriptor_pool)) {
+            SPDLOG_WARN("Attempting to destroy descriptor pool with handle {}, which is not a valid handle", fmt::underlying(descriptor_pool));
         }
     }
 

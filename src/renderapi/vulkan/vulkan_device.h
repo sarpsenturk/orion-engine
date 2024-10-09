@@ -29,12 +29,14 @@ namespace orion
         BufferHandle create_buffer_api(const BufferDesc& desc) override;
         SemaphoreHandle create_semaphore_api(const SemaphoreDesc& desc) override;
         FenceHandle create_fence_api(const FenceDesc& desc) override;
+        DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
 
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
         void destroy_api(PipelineHandle pipeline) override;
         void destroy_api(BufferHandle buffer) override;
         void destroy_api(SemaphoreHandle semaphore) override;
         void destroy_api(FenceHandle fence) override;
+        void destroy_api(DescriptorPoolHandle descriptor_pool) override;
 
         void* map_api(BufferHandle buffer) override;
         void unmap_api(BufferHandle buffer) override;

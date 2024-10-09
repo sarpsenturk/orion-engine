@@ -29,6 +29,7 @@ namespace orion
         RenderTargetHandle insert(VkImageView image_view);
         SemaphoreHandle insert(VkSemaphore semaphore);
         FenceHandle insert(VkFence fence);
+        DescriptorPoolHandle insert(VkDescriptorPool descriptor_pool);
 
         VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
         VkPipeline lookup(PipelineHandle pipeline) const;
@@ -37,6 +38,7 @@ namespace orion
         VkImageView lookup(RenderTargetHandle render_target) const;
         VkSemaphore lookup(SemaphoreHandle semaphore) const;
         VkFence lookup(FenceHandle fence) const;
+        VkDescriptorPool lookup(DescriptorPoolHandle descriptor_pool) const;
 
         bool remove(PipelineLayoutHandle pipeline_layout);
         bool remove(PipelineHandle pipeline);
@@ -45,6 +47,7 @@ namespace orion
         bool remove(RenderTargetHandle render_target);
         bool remove(SemaphoreHandle semaphore);
         bool remove(FenceHandle fence);
+        bool remove(DescriptorPoolHandle descriptor_pool);
 
     private:
         template<typename T>
@@ -149,5 +152,6 @@ namespace orion
         ResourceTable<VkImageView> image_views_;
         ResourceTable<VkSemaphore> semaphores_;
         ResourceTable<VkFence> fences_;
+        ResourceTable<VkDescriptorPool> descriptor_pools_;
     };
 } // namespace orion

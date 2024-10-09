@@ -1,6 +1,7 @@
 #pragma once
 
 #include "buffer.h"
+#include "descriptor.h"
 #include "orion/renderapi/handle.h"
 #include "orion/renderapi/pipeline.h"
 #include "orion/renderapi/render_command.h"
@@ -30,12 +31,14 @@ namespace orion
         BufferHandle create_buffer(const BufferDesc& desc);
         SemaphoreHandle create_semaphore(const SemaphoreDesc& desc);
         FenceHandle create_fence(const FenceDesc& desc);
+        DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
 
         void destroy(PipelineLayoutHandle pipeline_layout);
         void destroy(PipelineHandle pipeline);
         void destroy(BufferHandle buffer);
         void destroy(SemaphoreHandle semaphore);
         void destroy(FenceHandle fence);
+        void destroy(DescriptorPoolHandle descriptor_pool);
 
         void* map(BufferHandle buffer);
         void unmap(BufferHandle buffer);
@@ -61,12 +64,14 @@ namespace orion
         virtual BufferHandle create_buffer_api(const BufferDesc& desc) = 0;
         virtual SemaphoreHandle create_semaphore_api(const SemaphoreDesc& desc) = 0;
         virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
+        virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
 
         virtual void destroy_api(PipelineHandle pipeline) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
         virtual void destroy_api(BufferHandle buffer) = 0;
         virtual void destroy_api(SemaphoreHandle semaphore) = 0;
         virtual void destroy_api(FenceHandle fence) = 0;
+        virtual void destroy_api(DescriptorPoolHandle descriptor_pool) = 0;
 
         virtual void* map_api(BufferHandle buffer) = 0;
         virtual void unmap_api(BufferHandle buffer) = 0;

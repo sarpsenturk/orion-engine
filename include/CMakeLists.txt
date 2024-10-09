@@ -13,6 +13,7 @@ target_sources(
         orion/math/vector4.h
 
         orion/renderapi/buffer.h
+        orion/renderapi/descriptor.h
         orion/renderapi/format.h
         orion/renderapi/handle.h
         orion/renderapi/pipeline.h

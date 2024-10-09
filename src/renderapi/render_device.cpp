@@ -76,6 +76,13 @@ namespace orion
         return fence;
     }
 
+    DescriptorPoolHandle RenderDevice::create_descriptor_pool(const DescriptorPoolDesc& desc)
+    {
+        auto descriptor_pool = create_descriptor_pool_api(desc);
+        SPDLOG_DEBUG("Created descriptor pool {}", fmt::underlying(descriptor_pool));
+        return descriptor_pool;
+    }
+
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)
     {
         destroy_api(pipeline_layout);
@@ -104,6 +111,12 @@ namespace orion
     {
         destroy_api(fence);
         SPDLOG_DEBUG("Destroyed fence {}", fmt::underlying(fence));
+    }
+
+    void RenderDevice::destroy(DescriptorPoolHandle descriptor_pool)
+    {
+        destroy_api(descriptor_pool);
+        SPDLOG_DEBUG("Destroyed descriptor pool {}", fmt::underlying(descriptor_pool));
     }
 
     void* RenderDevice::map(BufferHandle buffer)

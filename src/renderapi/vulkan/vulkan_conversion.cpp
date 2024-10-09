@@ -114,4 +114,13 @@ namespace orion
         }
         unreachable();
     }
+
+    VkDescriptorType to_vk_descriptor_type(DescriptorType descriptor_type)
+    {
+        switch (descriptor_type) {
+            case DescriptorType::ConstantBuffer:
+                return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        }
+        unreachable();
+    }
 } // namespace orion
