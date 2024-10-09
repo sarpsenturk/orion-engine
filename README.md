@@ -22,9 +22,9 @@ for a full list of dependencies.
 
 ## Milestones
 
-- [ ] Create a Window
-- [ ] Render a triangle
-- [ ] Render a quad
+- [x] Create a Window
+- [x] Render a triangle
+- [x] Render a quad
 - [ ] Render a textured quad
 - [ ] Render multiple quads
 - [ ] Game: Pong
