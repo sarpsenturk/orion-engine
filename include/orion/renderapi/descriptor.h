@@ -33,4 +33,12 @@ namespace orion
         DescriptorSetLayoutHandle layout;
         DescriptorPoolHandle pool;
     };
+
+    struct ConstantBufferViewDesc {
+        BufferHandle buffer;
+        std::uint32_t offset;
+        std::uint32_t size;
+        DescriptorSetHandle descriptor_set;
+        std::uint32_t descriptor_binding;
+    };
 } // namespace orion

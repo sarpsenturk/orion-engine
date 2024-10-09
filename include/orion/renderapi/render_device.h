@@ -50,6 +50,8 @@ namespace orion
 
         void wait_for_fence(FenceHandle fence);
 
+        void create_constant_buffer_view(const ConstantBufferViewDesc& desc);
+
     protected:
         RenderDevice(const RenderDevice&) = default;
         RenderDevice& operator=(const RenderDevice&) = default;
@@ -85,5 +87,7 @@ namespace orion
         virtual void unmap_api(BufferHandle buffer) = 0;
 
         virtual void wait_for_fence_api(FenceHandle fence) = 0;
+
+        virtual void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) = 0;
     };
 } // namespace orion

@@ -60,7 +60,7 @@ namespace orion
         std::span<const Rect2D> scissors;
     };
 
-    struct BufferView {
+    struct VertexBufferView {
         BufferHandle buffer;
         std::uint32_t offset;
         std::uint32_t stride;
@@ -68,7 +68,7 @@ namespace orion
 
     struct CmdSetVertexBuffers {
         std::uint32_t start_buffer;
-        std::span<const BufferView> vertex_buffers;
+        std::span<const VertexBufferView> vertex_buffers;
     };
 
     enum class IndexType {
@@ -79,6 +79,12 @@ namespace orion
     struct CmdSetIndexBuffer {
         BufferHandle buffer;
         IndexType index_type;
+    };
+
+    struct CmdSetDescriptorSet {
+        std::uint32_t set;
+        DescriptorSetHandle descriptor_set;
+        PipelineLayoutHandle pipeline_layout;
     };
 
     struct CmdDrawInstanced {
@@ -113,9 +119,9 @@ namespace orion
         void set_pipeline(const CmdSetPipeline& cmd);
         void set_viewports(const CmdSetViewports& cmd);
         void set_scissors(const CmdSetScissors& cmd);
-
         void set_vertex_buffers(const CmdSetVertexBuffers& cmd);
         void set_index_buffer(const CmdSetIndexBuffer& cmd);
+        void set_descriptor_set(const CmdSetDescriptorSet& cmd);
 
         void draw_instanced(const CmdDrawInstanced& cmd);
         void draw_indexed_instanced(const CmdDrawIndexedInstanced& cmd);
@@ -138,9 +144,9 @@ namespace orion
         virtual void set_pipeline_api(const CmdSetPipeline& cmd) = 0;
         virtual void set_viewports_api(const CmdSetViewports& cmd) = 0;
         virtual void set_scissors_api(const CmdSetScissors& cmd) = 0;
-
         virtual void set_vertex_buffers_api(const CmdSetVertexBuffers& cmd) = 0;
         virtual void set_index_buffer_api(const CmdSetIndexBuffer& cmd) = 0;
+        virtual void set_descriptor_set_api(const CmdSetDescriptorSet& cmd) = 0;
 
         virtual void draw_instanced_api(const CmdDrawInstanced& cmd) = 0;
         virtual void draw_indexed_instanced_api(const CmdDrawIndexedInstanced& cmd) = 0;

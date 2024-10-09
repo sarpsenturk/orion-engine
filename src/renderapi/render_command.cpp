@@ -61,6 +61,11 @@ namespace orion
         set_index_buffer_api(cmd);
     }
 
+    void CommandList::set_descriptor_set(const CmdSetDescriptorSet& cmd)
+    {
+        set_descriptor_set_api(cmd);
+    }
+
     void CommandList::draw_instanced(const CmdDrawInstanced& cmd)
     {
         draw_instanced_api(cmd);

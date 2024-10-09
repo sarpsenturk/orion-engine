@@ -47,6 +47,8 @@ namespace orion
 
         void wait_for_fence_api(FenceHandle fence) override;
 
+        void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) override;
+
         VkShaderModule create_vk_shader_module(std::span<const std::byte> code);
 
         VkDevice device_;

@@ -232,7 +232,7 @@ namespace orion
         // Set up vertex buffers and offsets
         vertex_buffers_.reserve(cmd.vertex_buffers.size());
         vertex_buffers_.reserve(cmd.vertex_buffers.size());
-        std::ranges::for_each(cmd.vertex_buffers, [this](const BufferView& buffer_view) {
+        std::ranges::for_each(cmd.vertex_buffers, [this](const VertexBufferView& buffer_view) {
             VulkanBuffer buffer = context_->lookup(buffer_view.buffer);
             ORION_ASSERT(buffer.buffer != VK_NULL_HANDLE);
             vertex_buffers_.push_back(buffer.buffer);
@@ -258,6 +258,23 @@ namespace orion
         VkBuffer index_buffer = context_->lookup(cmd.buffer).buffer;
         ORION_ASSERT(index_buffer != VK_NULL_HANDLE);
         vkCmdBindIndexBuffer(command_buffer_, index_buffer, 0, to_vk_index_type(cmd.index_type));
+    }
+
+    void VulkanCommandList::set_descriptor_set_api(const CmdSetDescriptorSet& cmd)
+    {
+        VkDescriptorSet descriptor_set = context_->lookup(cmd.descriptor_set);
+        ORION_ASSERT(descriptor_set != VK_NULL_HANDLE);
+        VkPipelineLayout pipeline_layout = context_->lookup(cmd.pipeline_layout);
+        ORION_ASSERT(pipeline_layout != VK_NULL_HANDLE);
+        vkCmdBindDescriptorSets(
+            command_buffer_,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline_layout,
+            0,
+            1,
+            &descriptor_set,
+            0,
+            nullptr);
     }
 
     void VulkanCommandList::draw_instanced_api(const CmdDrawInstanced& cmd)

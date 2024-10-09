@@ -96,10 +96,12 @@ namespace orion
     VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage)
     {
         switch (usage) {
-            case BufferUsage::Vertex:
+            case BufferUsage::VertexBuffer:
                 return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-            case BufferUsage::Index:
+            case BufferUsage::IndexBuffer:
                 return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+            case BufferUsage::ConstantBuffer:
+                return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
         unreachable();
     }

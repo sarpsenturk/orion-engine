@@ -198,7 +198,7 @@ namespace orion
                     .binding = index++,
                     .descriptorType = to_vk_descriptor_type(binding.type),
                     .descriptorCount = binding.size,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                    .stageFlags = VK_SHADER_STAGE_ALL,
                     .pImmutableSamplers = nullptr,
                 };
             });
@@ -623,6 +623,33 @@ namespace orion
         ORION_EXPECTS(vk_fence != VK_NULL_HANDLE);
         vk_assert(vkWaitForFences(device_, 1, &vk_fence, VK_TRUE, UINT64_MAX));
         vk_assert(vkResetFences(device_, 1, &vk_fence));
+    }
+
+    void VulkanDevice::create_constant_buffer_view_api(const ConstantBufferViewDesc& desc)
+    {
+        VkBuffer vk_buffer = context_.lookup(desc.buffer).buffer;
+        ORION_EXPECTS(vk_buffer != VK_NULL_HANDLE);
+        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
+        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
+
+        const auto buffer_info = VkDescriptorBufferInfo{
+            .buffer = vk_buffer,
+            .offset = desc.offset,
+            .range = desc.size,
+        };
+        const auto descriptor_write = VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = vk_descriptor_set,
+            .dstBinding = desc.descriptor_binding,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pImageInfo = nullptr,
+            .pBufferInfo = &buffer_info,
+            .pTexelBufferView = nullptr,
+        };
+        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
     }
 
     VkShaderModule VulkanDevice::create_vk_shader_module(std::span<const std::byte> code)

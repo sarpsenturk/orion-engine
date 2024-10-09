@@ -167,4 +167,11 @@ namespace orion
         ORION_ASSERT(fence != FenceHandle::Invalid);
         wait_for_fence_api(fence);
     }
+
+    void RenderDevice::create_constant_buffer_view(const ConstantBufferViewDesc& desc)
+    {
+        ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
+        ORION_ASSERT(desc.descriptor_set != DescriptorSetHandle::Invalid);
+        create_constant_buffer_view_api(desc);
+    }
 } // namespace orion

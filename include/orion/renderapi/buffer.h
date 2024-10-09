@@ -5,8 +5,9 @@
 namespace orion
 {
     enum class BufferUsage {
-        Vertex,
-        Index,
+        VertexBuffer,
+        IndexBuffer,
+        ConstantBuffer,
     };
 
     struct BufferDesc {

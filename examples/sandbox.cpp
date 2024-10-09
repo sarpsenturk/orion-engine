@@ -14,21 +14,17 @@
 using namespace orion;
 
 constexpr auto vertex_shader = R"hlsl(
-struct VSOut {
-    float4 position : SV_Position;
-    float4 color : COLOR;
-};
-
-VSOut main(float3 position : POSITION, float4 color : COLOR)
+float4 main(float3 position : POSITION) : SV_Position
 {
-    VSOut output;
-    output.position = float4(position, 1.0);
-    output.color = color;
-    return output;
+    return float4(position, 1.0);
 })hlsl";
 
 constexpr auto pixel_shader = R"hlsl(
-float4 main(float4 color : COLOR) : SV_Target
+cbuffer Constants {
+    float4 color;
+};
+
+float4 main() : SV_Target
 {
     return color;
 }
@@ -36,14 +32,13 @@ float4 main(float4 color : COLOR) : SV_Target
 
 struct Vertex {
     Vector3f position;
-    Vector4f color;
 };
 
 constexpr auto vertices = std::array{
-    Vertex{.position = {-.5f, .5f, 0.f}, .color = {1.0, 0.0, 0.0, 1.0}},
-    Vertex{.position = {.5f, .5f, 0.f}, .color = {0.0, 1.0, 0.0, 1.0}},
-    Vertex{.position = {.5f, -.5f, 0.f}, .color = {0.0, 0.0, 1.0, 1.0}},
-    Vertex{.position = {-.5f, -.5f, 0.f}, .color = {0.0, 1.0, 1.0, 1.0}},
+    Vertex{.position = {-.5f, .5f, 0.f}},
+    Vertex{.position = {.5f, .5f, 0.f}},
+    Vertex{.position = {.5f, -.5f, 0.f}},
+    Vertex{.position = {-.5f, -.5f, 0.f}},
 };
 
 constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
@@ -110,7 +105,7 @@ public:
             .pipeline_layout = pipeline_layout_,
             .vertex_shader = vs,
             .pixel_shader = ps,
-            .vertex_attributes = {{VertexAttribute{.name = "POSITION", .format = Format::R32G32B32_Float}, VertexAttribute{.name = "COLOR", .format = Format::R32G32B32A32_Float}}},
+            .vertex_attributes = {{VertexAttribute{.name = "POSITION", .format = Format::R32G32B32_Float}}},
             .primitive_topology = PrimitiveTopology::Triangle,
             .rasterizer = {.fill_mode = FillMode::Solid, .cull_mode = CullMode::Back, .front_face = FrontFace::ClockWise},
             .blend = {
@@ -132,19 +127,31 @@ public:
         });
 
         // Create vertex buffer
-        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(vertices), .usage = BufferUsage::Vertex, .cpu_visible = true});
+        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(vertices), .usage = BufferUsage::VertexBuffer, .cpu_visible = true});
 
         // Upload vertex data
         render_device_->memcpy(vertex_buffer_, vertices.data(), sizeof(vertices));
 
         // Create index buffer
-        index_buffer_ = render_device_->create_buffer({.size = sizeof(indices), .usage = BufferUsage::Index, .cpu_visible = true});
+        index_buffer_ = render_device_->create_buffer({.size = sizeof(indices), .usage = BufferUsage::IndexBuffer, .cpu_visible = true});
 
         // Upload index data
         render_device_->memcpy(index_buffer_, indices.data(), sizeof(indices));
 
         // Create descriptor set
         descriptor_set_ = render_device_->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
+
+        // Create constant buffer
+        constant_buffer_ = render_device_->create_buffer({.size = sizeof(Vector4f), .usage = BufferUsage::ConstantBuffer, .cpu_visible = true});
+
+        // Create constant buffer view
+        render_device_->create_constant_buffer_view({
+            .buffer = constant_buffer_,
+            .offset = 0,
+            .size = sizeof(Vector4f),
+            .descriptor_set = descriptor_set_,
+            .descriptor_binding = 0,
+        });
     }
 
 private:
@@ -227,12 +234,20 @@ private:
         command_list_->set_vertex_buffers({
             .start_buffer = 0,
             .vertex_buffers = {{
-                BufferView{.buffer = vertex_buffer_, .stride = sizeof(Vertex)},
+                VertexBufferView{.buffer = vertex_buffer_, .stride = sizeof(Vertex)},
             }},
         });
 
         // Set index buffer
         command_list_->set_index_buffer({.buffer = index_buffer_, .index_type = IndexType::U32});
+
+        // Set color and descriptor set
+        static std::uint32_t color = 0;
+        const auto color_f = color / 255.f;
+        const auto color_vf = Vector4f{color_f, color_f, color_f, 1.0f};
+        render_device_->memcpy(constant_buffer_, &color_vf, sizeof(color_vf));
+        color = (color + 1) & 0xff; // (color + 1) % 255
+        command_list_->set_descriptor_set({.set = 0, .descriptor_set = descriptor_set_, .pipeline_layout = pipeline_layout_});
 
         // Make draw call
         command_list_->draw_indexed_instanced({.index_count = 6, .instance_count = 1, .first_index = 0, .first_vertex = 0, .first_instance = 0});
@@ -275,6 +290,7 @@ private:
     BufferHandle index_buffer_;
     DescriptorPoolHandle descriptor_pool_;
     DescriptorSetHandle descriptor_set_;
+    BufferHandle constant_buffer_;
 };
 
 std::unique_ptr<Application> orion_main(std::span<const char* const> args)
