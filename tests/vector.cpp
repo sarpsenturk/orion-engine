@@ -123,11 +123,29 @@ namespace orion
             EXPECT_EQ(result, expected);
         }
 
+        TEST(Vector, ScalarMultiplicationMixedMode)
+        {
+            const auto vector = Vector{1, 2, 3};
+            const auto result = vector * 2.f;
+            using result_type = typename decltype(result)::value_type;
+            static_assert(std::is_same_v<result_type, float>);
+        }
+
         TEST(Vector, ScalarDivision)
         {
             const auto vector = Vector{2, 4, 6};
             const auto result = vector / 2;
             const auto expected = Vector{1, 2, 3};
+            EXPECT_EQ(result, expected);
+        }
+
+        TEST(Vector, ScalarDivisionMixedMode)
+        {
+            const auto vector = Vector{2, 4, 6};
+            const auto result = vector / 2.f;
+            using result_type = typename decltype(result)::value_type;
+            static_assert(std::is_same_v<result_type, float>);
+            const auto expected = Vector{1.f, 2.f, 3.f};
             EXPECT_EQ(result, expected);
         }
 

@@ -84,23 +84,23 @@ namespace orion
             return lhs;
         }
 
-        constexpr friend Vector operator*(const Vector& vector, auto scalar)
+        constexpr friend auto operator*(const Vector& vector, auto scalar) -> Vector<std::common_type_t<T, decltype(scalar)>, N>
         {
-            Vector result;
+            Vector<std::common_type_t<T, decltype(scalar)>, N> result;
             std::transform(vector.begin(), vector.end(), result.begin(), [scalar](auto a) { return a * scalar; });
             return result;
         }
 
-        constexpr friend Vector operator*(auto scalar, const Vector& vector)
+        constexpr friend auto operator*(auto scalar, const Vector& vector) -> Vector<std::common_type_t<T, decltype(scalar)>, N>
         {
-            Vector result;
+            Vector<std::common_type_t<T, decltype(scalar)>, N> result;
             std::transform(vector.begin(), vector.end(), result.begin(), [scalar](auto a) { return a * scalar; });
             return result;
         }
 
-        constexpr friend Vector operator/(const Vector& vector, auto scalar)
+        constexpr friend auto operator/(const Vector& vector, auto scalar) -> Vector<std::common_type_t<T, decltype(scalar)>, N>
         {
-            Vector result;
+            Vector<std::common_type_t<T, decltype(scalar)>, N> result;
             std::transform(vector.begin(), vector.end(), result.begin(), [scalar](auto a) { return a / scalar; });
             return result;
         }
