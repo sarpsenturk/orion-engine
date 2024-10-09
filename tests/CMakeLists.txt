@@ -15,4 +15,5 @@ function(orion_add_gtest name src)
     gtest_discover_tests(${name})
 endfunction()
 
+orion_add_gtest(matrix matrix.cpp)
 orion_add_gtest(vector vector.cpp)

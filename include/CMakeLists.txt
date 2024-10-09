@@ -7,6 +7,11 @@ target_sources(
         orion/platform.h
         orion/window.h
 
+        orion/math/matrix/matrix.h
+        orion/math/matrix/matrix2.h
+        orion/math/matrix/matrix3.h
+        orion/math/matrix/matrix4.h
+
         orion/math/vector.h
         orion/math/vector2.h
         orion/math/vector3.h
