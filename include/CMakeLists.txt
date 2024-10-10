@@ -11,6 +11,7 @@ target_sources(
         orion/math/matrix/matrix2.h
         orion/math/matrix/matrix3.h
         orion/math/matrix/matrix4.h
+        orion/math/matrix/projection.h
 
         orion/math/vector/vector.h
         orion/math/vector/vector2.h

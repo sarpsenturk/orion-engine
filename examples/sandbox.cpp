@@ -4,6 +4,8 @@
 #include <orion/renderapi/render_backend.h>
 #include <orion/renderapi/shader.h>
 
+#include <orion/math/matrix/matrix4.h>
+#include <orion/math/matrix/projection.h>
 #include <orion/math/vector/vector3.h>
 #include <orion/math/vector/vector4.h>
 
@@ -14,19 +16,19 @@
 using namespace orion;
 
 constexpr auto vertex_shader = R"hlsl(
+cbuffer Scene : register(b0) {
+    float4x4 projection;
+};
+
 float4 main(float3 position : POSITION) : SV_Position
 {
-    return float4(position, 1.0);
+    return mul(projection, float4(position, 1.0));
 })hlsl";
 
 constexpr auto pixel_shader = R"hlsl(
-cbuffer Constants {
-    float4 color;
-};
-
 float4 main() : SV_Target
 {
-    return color;
+    return float4(1.0, 1.0, 1.0, 1.0);
 }
 )hlsl";
 
@@ -35,10 +37,10 @@ struct Vertex {
 };
 
 constexpr auto vertices = std::array{
-    Vertex{.position = {-.5f, .5f, 0.f}},
-    Vertex{.position = {.5f, .5f, 0.f}},
-    Vertex{.position = {.5f, -.5f, 0.f}},
-    Vertex{.position = {-.5f, -.5f, 0.f}},
+    Vertex{.position = {-.5f, .5f, -.1f}},
+    Vertex{.position = {.5f, .5f, -.1f}},
+    Vertex{.position = {.5f, -.5f, -.1f}},
+    Vertex{.position = {-.5f, -.5f, -.1f}},
 };
 
 constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
@@ -142,13 +144,17 @@ public:
         descriptor_set_ = render_device_->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
 
         // Create constant buffer
-        constant_buffer_ = render_device_->create_buffer({.size = sizeof(Vector4f), .usage = BufferUsage::ConstantBuffer, .cpu_visible = true});
+        constant_buffer_ = render_device_->create_buffer({.size = sizeof(Matrix4f), .usage = BufferUsage::ConstantBuffer, .cpu_visible = true});
+
+        // Upload projection matrix
+        const auto projection = orthographic_rh(-4.f, 4.f, -3.f, 3.f, 0.1f, 1.f);
+        render_device_->memcpy(constant_buffer_, &projection, sizeof(Matrix4f));
 
         // Create constant buffer view
         render_device_->create_constant_buffer_view({
             .buffer = constant_buffer_,
             .offset = 0,
-            .size = sizeof(Vector4f),
+            .size = sizeof(Matrix4f),
             .descriptor_set = descriptor_set_,
             .descriptor_binding = 0,
         });
@@ -242,11 +248,6 @@ private:
         command_list_->set_index_buffer({.buffer = index_buffer_, .index_type = IndexType::U32});
 
         // Set color and descriptor set
-        static std::uint32_t color = 0;
-        const auto color_f = color / 255.f;
-        const auto color_vf = Vector4f{color_f, color_f, color_f, 1.0f};
-        render_device_->memcpy(constant_buffer_, &color_vf, sizeof(color_vf));
-        color = (color + 1) & 0xff; // (color + 1) % 255
         command_list_->set_descriptor_set({.set = 0, .descriptor_set = descriptor_set_, .pipeline_layout = pipeline_layout_});
 
         // Make draw call
