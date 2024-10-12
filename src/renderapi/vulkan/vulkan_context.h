@@ -21,6 +21,13 @@ namespace orion
         VkDescriptorPool pool = VK_NULL_HANDLE;
     };
 
+    struct VulkanImage {
+        VkImage image = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+
+        [[nodiscard]] bool is_user_image() const noexcept { return image != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE; }
+    };
+
     class VulkanContext
     {
     public:
@@ -40,7 +47,7 @@ namespace orion
         PipelineLayoutHandle insert(VkPipelineLayout pipeline_layout);
         PipelineHandle insert(VkPipeline pipeline);
         BufferHandle insert(VkBuffer buffer, VmaAllocation allocation);
-        ImageHandle insert(VkImage image);
+        ImageHandle insert(VkImage image, VmaAllocation allocation = VK_NULL_HANDLE);
         RenderTargetHandle insert(VkImageView image_view);
         SemaphoreHandle insert(VkSemaphore semaphore);
         FenceHandle insert(VkFence fence);
@@ -77,7 +84,7 @@ namespace orion
         ResourceTable<VkPipelineLayout> pipeline_layouts_;
         ResourceTable<VkPipeline> pipelines_;
         ResourceTable<VulkanBuffer> buffers_;
-        ResourceTable<VkImage> images_;
+        ResourceTable<VulkanImage> images_;
         ResourceTable<VkImageView> image_views_;
         ResourceTable<VkSemaphore> semaphores_;
         ResourceTable<VkFence> fences_;

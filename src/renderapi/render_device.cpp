@@ -97,6 +97,13 @@ namespace orion
         return descriptor_set;
     }
 
+    ImageHandle RenderDevice::create_image(const ImageDesc& desc)
+    {
+        auto image = create_image_api(desc);
+        SPDLOG_DEBUG("Created image {}", fmt::underlying(image));
+        return image;
+    }
+
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)
     {
         destroy_api(pipeline_layout);
@@ -143,6 +150,12 @@ namespace orion
     {
         destroy_api(descriptor_set);
         SPDLOG_DEBUG("Destroyed descriptor set {}", fmt::underlying(descriptor_set));
+    }
+
+    void RenderDevice::destroy(ImageHandle image)
+    {
+        destroy_api(image);
+        SPDLOG_DEBUG("Destroyed image {}", fmt::underlying(image));
     }
 
     void* RenderDevice::map(BufferHandle buffer)

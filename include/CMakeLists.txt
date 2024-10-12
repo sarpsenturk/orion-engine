@@ -22,6 +22,7 @@ target_sources(
         orion/renderapi/descriptor.h
         orion/renderapi/format.h
         orion/renderapi/handle.h
+        orion/renderapi/image.h
         orion/renderapi/pipeline.h
         orion/renderapi/render_backend.h
         orion/renderapi/render_command.h

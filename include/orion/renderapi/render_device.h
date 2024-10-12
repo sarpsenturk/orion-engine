@@ -3,6 +3,7 @@
 #include "buffer.h"
 #include "descriptor.h"
 #include "orion/renderapi/handle.h"
+#include "orion/renderapi/image.h"
 #include "orion/renderapi/pipeline.h"
 #include "orion/renderapi/render_command.h"
 #include "orion/renderapi/render_queue.h"
@@ -34,6 +35,7 @@ namespace orion
         FenceHandle create_fence(const FenceDesc& desc);
         DescriptorPoolHandle create_descriptor_pool(const DescriptorPoolDesc& desc);
         DescriptorSetHandle create_descriptor_set(const DescriptorSetDesc& desc);
+        ImageHandle create_image(const ImageDesc& desc);
 
         void destroy(DescriptorSetLayoutHandle descriptor_set_layout);
         void destroy(PipelineLayoutHandle pipeline_layout);
@@ -43,6 +45,7 @@ namespace orion
         void destroy(FenceHandle fence);
         void destroy(DescriptorPoolHandle descriptor_pool);
         void destroy(DescriptorSetHandle descriptor_set);
+        void destroy(ImageHandle image);
 
         void* map(BufferHandle buffer);
         void unmap(BufferHandle buffer);
@@ -73,6 +76,7 @@ namespace orion
         virtual FenceHandle create_fence_api(const FenceDesc& desc) = 0;
         virtual DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) = 0;
         virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) = 0;
+        virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
 
         virtual void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
@@ -82,6 +86,7 @@ namespace orion
         virtual void destroy_api(FenceHandle fence) = 0;
         virtual void destroy_api(DescriptorPoolHandle descriptor_pool) = 0;
         virtual void destroy_api(DescriptorSetHandle descriptor_set) = 0;
+        virtual void destroy_api(ImageHandle image) = 0;
 
         virtual void* map_api(BufferHandle buffer) = 0;
         virtual void unmap_api(BufferHandle buffer) = 0;

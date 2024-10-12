@@ -3,6 +3,7 @@
 #include "orion/renderapi/buffer.h"
 #include "orion/renderapi/descriptor.h"
 #include "orion/renderapi/format.h"
+#include "orion/renderapi/image.h"
 #include "orion/renderapi/pipeline.h"
 #include "orion/renderapi/render_command.h"
 
@@ -20,4 +21,6 @@ namespace orion
     VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage);
     VkIndexType to_vk_index_type(IndexType index_type);
     VkDescriptorType to_vk_descriptor_type(DescriptorType descriptor_type);
+    VkImageType to_vk_image_type(ImageType image_type);
+    VkImageUsageFlags to_vk_image_usage(ImageUsageFlags usage);
 } // namespace orion

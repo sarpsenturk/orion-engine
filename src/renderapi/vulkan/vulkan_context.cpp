@@ -22,6 +22,12 @@ namespace orion
             return entry.value.set == VK_NULL_HANDLE;
         }
 
+        template<>
+        bool is_empty(const VulkanContext::TableEntry<VulkanImage>& entry)
+        {
+            return entry.value.image == VK_NULL_HANDLE;
+        }
+
         template<typename T>
         std::uint16_t find_empty_slot(const VulkanContext::ResourceTable<T>& table)
         {
@@ -118,6 +124,11 @@ namespace orion
         }
 
         // TODO: Destroy user created images
+        for (const auto [image, _] : images_) {
+            if (image.is_user_image()) {
+                vmaDestroyImage(allocator_, image.image, image.allocation);
+            }
+        }
 
         for (const auto [buffer, _] : buffers_) {
             vmaDestroyBuffer(allocator_, buffer.buffer, buffer.allocation);
@@ -160,9 +171,9 @@ namespace orion
         return BufferHandle{insert_t(buffers_, VulkanBuffer{.buffer = buffer, .allocation = allocation})};
     }
 
-    ImageHandle VulkanContext::insert(VkImage image)
+    ImageHandle VulkanContext::insert(VkImage image, VmaAllocation allocation)
     {
-        return ImageHandle{insert_t(images_, image)};
+        return ImageHandle{insert_t(images_, VulkanImage{.image = image, .allocation = allocation})};
     }
 
     RenderTargetHandle VulkanContext::insert(VkImageView image_view)
@@ -212,7 +223,7 @@ namespace orion
 
     VkImage VulkanContext::lookup(ImageHandle image) const
     {
-        return lookup_t(images_, static_cast<render_device_handle_t>(image));
+        return lookup_t(images_, static_cast<render_device_handle_t>(image)).image;
     }
 
     VkImageView VulkanContext::lookup(RenderTargetHandle render_target) const
@@ -274,7 +285,11 @@ namespace orion
 
     bool VulkanContext::remove(ImageHandle image)
     {
-        return remove_t(images_, static_cast<render_device_handle_t>(image), [](VkImage) {});
+        return remove_t(images_, static_cast<render_device_handle_t>(image), [this](VulkanImage vk_image) {
+            if (vk_image.is_user_image()) {
+                vmaDestroyImage(allocator_, vk_image.image, vk_image.allocation);
+            }
+        });
     }
 
     bool VulkanContext::remove(RenderTargetHandle render_target)

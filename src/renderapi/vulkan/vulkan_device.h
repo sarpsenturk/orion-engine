@@ -32,6 +32,7 @@ namespace orion
         FenceHandle create_fence_api(const FenceDesc& desc) override;
         DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
         DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
+        ImageHandle create_image_api(const ImageDesc& desc) override;
 
         void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) override;
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
@@ -41,6 +42,7 @@ namespace orion
         void destroy_api(FenceHandle fence) override;
         void destroy_api(DescriptorPoolHandle descriptor_pool) override;
         void destroy_api(DescriptorSetHandle descriptor_set) override;
+        void destroy_api(ImageHandle image) override;
 
         void* map_api(BufferHandle buffer) override;
         void unmap_api(BufferHandle buffer) override;

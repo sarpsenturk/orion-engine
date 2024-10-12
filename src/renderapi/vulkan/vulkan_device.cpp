@@ -540,6 +540,37 @@ namespace orion
         return context_.insert(descriptor_set, descriptor_pool);
     }
 
+    ImageHandle VulkanDevice::create_image_api(const ImageDesc& desc)
+    {
+        VkImage image = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        {
+            const auto image_info = VkImageCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .imageType = to_vk_image_type(desc.type),
+                .format = to_vk_format(desc.format),
+                .extent = {.width = desc.width, .height = desc.height, .depth = desc.height},
+                .mipLevels = 1,
+                .arrayLayers = 1,
+                .samples = VK_SAMPLE_COUNT_1_BIT,
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage = to_vk_image_usage(desc.usage_flags),
+                .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                .queueFamilyIndexCount = 0,
+                .pQueueFamilyIndices = nullptr,
+                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            };
+            const auto alloc_info = VmaAllocationCreateInfo{
+                .usage = VMA_MEMORY_USAGE_AUTO,
+            };
+            vk_assert(vmaCreateImage(vma_allocator_, &image_info, &alloc_info, &image, &allocation, nullptr));
+            SPDLOG_TRACE("Created VkImage {} with VmaAllocation {}", fmt::ptr(image), fmt::ptr(allocation));
+        }
+        return context_.insert(image, allocation);
+    }
+
     void VulkanDevice::destroy_api(DescriptorSetLayoutHandle descriptor_set_layout)
     {
         if (!context_.remove(descriptor_set_layout)) {
@@ -593,6 +624,13 @@ namespace orion
     {
         if (!context_.remove(descriptor_set)) {
             SPDLOG_WARN("Attempting to destroy descriptor set with handle {}, which is not a valid handle", fmt::underlying(descriptor_set));
+        }
+    }
+
+    void VulkanDevice::destroy_api(ImageHandle image)
+    {
+        if (!context_.remove(image)) {
+            SPDLOG_WARN("Attempting to destroy image with handle {}, which is invalid", fmt::underlying(image));
         }
     }
 

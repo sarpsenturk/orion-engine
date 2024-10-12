@@ -6,6 +6,7 @@ target_sources(
         renderapi/buffer.cpp
         renderapi/descriptor.cpp
         renderapi/format.cpp
+        renderapi/image.cpp
         renderapi/pipeline.cpp
         renderapi/render_backend.cpp
         renderapi/render_command.cpp

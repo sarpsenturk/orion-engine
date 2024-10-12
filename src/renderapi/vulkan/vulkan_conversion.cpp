@@ -125,4 +125,32 @@ namespace orion
         }
         unreachable();
     }
+
+    VkImageType to_vk_image_type(ImageType image_type)
+    {
+        switch (image_type) {
+            case ImageType::Image1D:
+                return VK_IMAGE_TYPE_1D;
+            case ImageType::Image2D:
+                return VK_IMAGE_TYPE_2D;
+            case ImageType::Image3D:
+                return VK_IMAGE_TYPE_3D;
+        };
+        unreachable();
+    }
+
+    VkImageUsageFlags to_vk_image_usage(ImageUsageFlags usage)
+    {
+        VkImageUsageFlags image_usage = {};
+        if ((usage & ImageUsageFlags::RenderTarget) != ImageUsageFlags::None) {
+            image_usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        }
+        if ((usage & ImageUsageFlags::DepthStencil) != ImageUsageFlags::None) {
+            image_usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
+        if ((usage & ImageUsageFlags::ShaderResource) != ImageUsageFlags::None) {
+            image_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+        }
+        return image_usage;
+    }
 } // namespace orion
