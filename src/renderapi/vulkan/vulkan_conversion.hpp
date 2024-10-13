@@ -27,4 +27,5 @@ namespace orion
     VkFilter to_vk_filter(Filter filter);
     VkSamplerAddressMode to_vk_address_mode(SamplerAddressMode address_mode);
     VkCompareOp to_vk_compare_op(CompareOp compare_op);
+    VkImageLayout to_vk_layout(ImageState image_state);
 } // namespace orion

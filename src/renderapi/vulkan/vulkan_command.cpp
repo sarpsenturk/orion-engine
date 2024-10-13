@@ -14,49 +14,71 @@ namespace orion
 {
     namespace
     {
-        std::pair<VkPipelineStageFlags, VkPipelineStageFlags> make_transition_stages_flags(ResourceState before, ResourceState after)
+        std::pair<VkPipelineStageFlags, VkPipelineStageFlags> make_transition_stages_flags(ImageState before, ImageState after)
         {
-            if (before == ResourceState::Present && after == ResourceState::RenderTarget) {
-                return std::make_pair(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-            } else if (before == ResourceState::RenderTarget && after == ResourceState::Present) {
-                return std::make_pair(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-            } else if (before == ResourceState::Unknown && after == ResourceState::RenderTarget) {
-                return std::make_pair(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-            } else if (before == ResourceState::RenderTarget && after == ResourceState::ShaderResource) {
-                return std::make_pair(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-            } else {
-                return std::make_pair(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-            }
+            const auto src_stage = [before]() {
+                switch (before) {
+                    case ImageState::Unknown:
+                        return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                    case ImageState::RenderTarget:
+                        return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                    case ImageState::Present:
+                        return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                    case ImageState::ShaderResource:
+                        return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                }
+                unreachable();
+            };
+            const auto dst_stage = [after]() {
+                switch (after) {
+                    case ImageState::Unknown:
+                        return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+                    case ImageState::RenderTarget:
+                        return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                    case ImageState::Present:
+                        return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+                    case ImageState::ShaderResource:
+                        return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                }
+                unreachable();
+            };
+            return std::make_pair(src_stage(), dst_stage());
         }
 
-        std::pair<VkAccessFlags, VkAccessFlags> make_transition_access_flags(ResourceState before, ResourceState after)
+        std::pair<VkAccessFlags, VkAccessFlags> make_transition_access_flags(ImageState before, ImageState after)
         {
-            if (before == ResourceState::Present && after == ResourceState::RenderTarget) {
-                return std::make_pair(VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-            } else if (before == ResourceState::RenderTarget && after == ResourceState::Present) {
-                return std::make_pair(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT);
-            } else if (before == ResourceState::Unknown && after == ResourceState::RenderTarget) {
-                return std::make_pair(VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-            } else if (before == ResourceState::RenderTarget && after == ResourceState::ShaderResource) {
-                return std::make_pair(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-            } else {
-                return std::make_pair(VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
-            }
+            const auto src_access = [before]() {
+                switch (before) {
+                    case ImageState::Unknown:
+                        return VK_ACCESS_NONE;
+                    case ImageState::RenderTarget:
+                        return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                    case ImageState::Present:
+                        return VK_ACCESS_MEMORY_READ_BIT;
+                    case ImageState::ShaderResource:
+                        return VK_ACCESS_SHADER_READ_BIT;
+                }
+                unreachable();
+            };
+            const auto dst_access = [after]() {
+                switch (after) {
+                    case ImageState::Unknown:
+                        return VK_ACCESS_NONE;
+                    case ImageState::RenderTarget:
+                        return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                    case ImageState::Present:
+                        return VK_ACCESS_MEMORY_READ_BIT;
+                    case ImageState::ShaderResource:
+                        return VK_ACCESS_SHADER_READ_BIT;
+                }
+                unreachable();
+            };
+            return std::make_pair(src_access(), dst_access());
         }
 
-        std::pair<VkImageLayout, VkImageLayout> make_transition_image_layout(ResourceState before, ResourceState after)
+        std::pair<VkImageLayout, VkImageLayout> make_transition_image_layout(ImageState before, ImageState after)
         {
-            if (before == ResourceState::Present && after == ResourceState::RenderTarget) {
-                return std::make_pair(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-            } else if (before == ResourceState::RenderTarget && after == ResourceState::Present) {
-                return std::make_pair(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-            } else if (before == ResourceState::Unknown && after == ResourceState::RenderTarget) {
-                return std::make_pair(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-            } else if (before == ResourceState::RenderTarget && after == ResourceState::ShaderResource) {
-                return std::make_pair(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-            } else {
-                return std::make_pair(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-            }
+            return std::make_pair(to_vk_layout(before), to_vk_layout(after));
         }
     } // namespace
 

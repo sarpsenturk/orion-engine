@@ -24,7 +24,7 @@ namespace orion
         Rect2D render_area;
     };
 
-    enum class ResourceState {
+    enum class ImageState {
         Unknown,
         RenderTarget,
         Present,
@@ -33,8 +33,8 @@ namespace orion
 
     struct CmdTransitionBarrier {
         ImageHandle image;
-        ResourceState before;
-        ResourceState after;
+        ImageState before;
+        ImageState after;
     };
 
     struct CmdSetPipeline {

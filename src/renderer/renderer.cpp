@@ -157,7 +157,7 @@ namespace orion
         draw_command_->begin();
 
         // Transition render image to render target
-        draw_command_->transition_barrier({.image = render_image_, .before = ResourceState::Unknown, .after = ResourceState::RenderTarget});
+        draw_command_->transition_barrier({.image = render_image_, .before = ImageState::Unknown, .after = ImageState::RenderTarget});
 
         // Begin rendering
         draw_command_->begin_rendering({
@@ -199,10 +199,10 @@ namespace orion
         present_command_->begin();
 
         // Transition swapchain image to render target
-        present_command_->transition_barrier({.image = image, .before = ResourceState::Unknown, .after = ResourceState::RenderTarget});
+        present_command_->transition_barrier({.image = image, .before = ImageState::Unknown, .after = ImageState::RenderTarget});
 
         // Transition render result to shader resource
-        present_command_->transition_barrier({.image = render_image_, .before = ResourceState::RenderTarget, .after = ResourceState::ShaderResource});
+        present_command_->transition_barrier({.image = render_image_, .before = ImageState::RenderTarget, .after = ImageState::ShaderResource});
 
         // Begin rendering to swapchain image
         present_command_->begin_rendering({
@@ -257,7 +257,7 @@ namespace orion
         present_command_->end_rendering();
 
         // Transition swapchain image to present image
-        present_command_->transition_barrier({.image = image, .before = ResourceState::RenderTarget, .after = ResourceState::Present});
+        present_command_->transition_barrier({.image = image, .before = ImageState::RenderTarget, .after = ImageState::Present});
 
         // End command list recording
         present_command_->end();

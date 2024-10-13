@@ -242,4 +242,19 @@ namespace orion
         }
         unreachable();
     }
+
+    VkImageLayout to_vk_layout(ImageState image_state)
+    {
+        switch (image_state) {
+            case ImageState::Unknown:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageState::RenderTarget:
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            case ImageState::Present:
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            case ImageState::ShaderResource:
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        }
+        unreachable();
+    }
 } // namespace orion
