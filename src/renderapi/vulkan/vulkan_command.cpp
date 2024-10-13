@@ -23,6 +23,8 @@ namespace orion
                 return std::make_pair(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
             } else if (before == ResourceState::Unknown && after == ResourceState::RenderTarget) {
                 return std::make_pair(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+            } else if (before == ResourceState::RenderTarget && after == ResourceState::ShaderResource) {
+                return std::make_pair(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
             } else {
                 return std::make_pair(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
             }
@@ -36,6 +38,8 @@ namespace orion
                 return std::make_pair(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT);
             } else if (before == ResourceState::Unknown && after == ResourceState::RenderTarget) {
                 return std::make_pair(VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+            } else if (before == ResourceState::RenderTarget && after == ResourceState::ShaderResource) {
+                return std::make_pair(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
             } else {
                 return std::make_pair(VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
             }
@@ -49,6 +53,8 @@ namespace orion
                 return std::make_pair(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
             } else if (before == ResourceState::Unknown && after == ResourceState::RenderTarget) {
                 return std::make_pair(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            } else if (before == ResourceState::RenderTarget && after == ResourceState::ShaderResource) {
+                return std::make_pair(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             } else {
                 return std::make_pair(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
             }

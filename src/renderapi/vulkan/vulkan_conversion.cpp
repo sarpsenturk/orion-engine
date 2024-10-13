@@ -122,6 +122,10 @@ namespace orion
         switch (descriptor_type) {
             case DescriptorType::ConstantBuffer:
                 return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case DescriptorType::ImageView:
+                return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            case DescriptorType::Sampler:
+                return VK_DESCRIPTOR_TYPE_SAMPLER;
         }
         unreachable();
     }

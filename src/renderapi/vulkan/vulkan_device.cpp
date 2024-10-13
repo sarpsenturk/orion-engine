@@ -287,19 +287,22 @@ namespace orion
             });
 
             // Pipeline vertex binding
-            const auto vertex_binding = VkVertexInputBindingDescription{
-                .binding = 0,
-                .stride = stride,
-                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-            };
+            std::vector<VkVertexInputBindingDescription> vertex_bindings;
+            if (!vertex_attributes.empty()) {
+                vertex_bindings.push_back({
+                    .binding = 0,
+                    .stride = stride,
+                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+                });
+            }
 
             // Pipeline vertex input
             const auto vertex_input = VkPipelineVertexInputStateCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .vertexBindingDescriptionCount = 1,
-                .pVertexBindingDescriptions = &vertex_binding,
+                .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_bindings.size()),
+                .pVertexBindingDescriptions = vertex_bindings.data(),
                 .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attributes.size()),
                 .pVertexAttributeDescriptions = vertex_attributes.data(),
             };

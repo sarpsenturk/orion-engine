@@ -28,6 +28,7 @@ namespace orion
         Unknown,
         RenderTarget,
         Present,
+        ShaderResource,
     };
 
     struct CmdTransitionBarrier {
