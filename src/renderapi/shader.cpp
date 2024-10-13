@@ -1,4 +1,4 @@
-#include "orion/renderapi/shader.h"
+#include "orion/renderapi/shader.hpp"
 
 namespace orion
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/renderapi/render_backend.h"
+#include "orion/renderapi/render_backend.hpp"
 
 #include <Volk/volk.h>
 

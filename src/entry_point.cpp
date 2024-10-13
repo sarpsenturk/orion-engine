@@ -1,4 +1,4 @@
-#include "orion/application.h"
+#include "orion/application.hpp"
 
 // Temporary entry point definition
 // This will change as different entry points are needed

@@ -1,6 +1,6 @@
-#include "vulkan_conversion.h"
+#include "vulkan_conversion.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 namespace orion
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/renderapi/render_device.h"
+#include "orion/renderapi/render_device.hpp"
 
 #include <memory>
 #include <string>

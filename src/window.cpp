@@ -1,4 +1,4 @@
-#include "orion/window.h"
+#include "orion/window.hpp"
 
 #include <fmt/format.h>
 #include <fmt/std.h>

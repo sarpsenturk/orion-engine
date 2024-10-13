@@ -12,14 +12,14 @@ target_link_libraries(orion PRIVATE Vulkan::Headers Vulkan::volk Microsoft::Dire
 target_sources(orion PRIVATE
         vma_impl.cpp
         volk_impl.cpp
-        vulkan_backend.h vulkan_backend.cpp
-        vulkan_command.h vulkan_command.cpp
-        vulkan_context.h vulkan_context.cpp
-        vulkan_conversion.h vulkan_conversion.cpp
-        vulkan_device.h vulkan_device.cpp
-        vulkan_error.h vulkan_error.cpp
-        vulkan_platform.h ${vulkan_platform_impl}
-        vulkan_queue.h vulkan_queue.cpp
-        vulkan_shader.h vulkan_shader.cpp
-        vulkan_swapchain.h vulkan_swapchain.cpp
+        vulkan_backend.hpp vulkan_backend.cpp
+        vulkan_command.hpp vulkan_command.cpp
+        vulkan_context.hpp vulkan_context.cpp
+        vulkan_conversion.hpp vulkan_conversion.cpp
+        vulkan_device.hpp vulkan_device.cpp
+        vulkan_error.hpp vulkan_error.cpp
+        vulkan_platform.hpp ${vulkan_platform_impl}
+        vulkan_queue.hpp vulkan_queue.cpp
+        vulkan_shader.hpp vulkan_shader.cpp
+        vulkan_swapchain.hpp vulkan_swapchain.cpp
 )

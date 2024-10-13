@@ -1,6 +1,6 @@
-#include "orion/renderapi/format.h"
+#include "orion/renderapi/format.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 #include <cstdint>
 

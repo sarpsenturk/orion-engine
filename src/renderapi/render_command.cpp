@@ -1,6 +1,6 @@
-#include "orion/renderapi/render_command.h"
+#include "orion/renderapi/render_command.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 namespace orion
 {

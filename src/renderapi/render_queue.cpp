@@ -1,6 +1,6 @@
-#include "orion/renderapi/render_queue.h"
+#include "orion/renderapi/render_queue.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 namespace orion
 {

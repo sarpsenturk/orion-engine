@@ -1,8 +1,8 @@
-#include "orion/application.h"
+#include "orion/application.hpp"
 
-#include "orion/compiler.h"
+#include "orion/compiler.hpp"
 #include "orion/config.h"
-#include "orion/platform.h"
+#include "orion/platform.hpp"
 
 #include <spdlog/spdlog.h>
 

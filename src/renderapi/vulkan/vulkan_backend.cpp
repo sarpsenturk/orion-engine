@@ -1,10 +1,10 @@
-#include "vulkan_backend.h"
+#include "vulkan_backend.hpp"
 
-#include "vulkan_device.h"
-#include "vulkan_error.h"
+#include "vulkan_device.hpp"
+#include "vulkan_error.hpp"
 
-#include "orion/assertion.h"
-#include "orion/platform.h"
+#include "orion/assertion.hpp"
+#include "orion/platform.hpp"
 
 #include <spdlog/spdlog.h>
 

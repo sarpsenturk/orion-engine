@@ -1,4 +1,4 @@
-#include "orion/renderer/renderer.h"
+#include "orion/renderer/renderer.hpp"
 
 #include <stdexcept>
 

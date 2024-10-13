@@ -1,6 +1,6 @@
-#include "vulkan_shader.hpp"
+#include "vulkan_shader.h"
 
-#include "orion/assertion.hpp"
+#include "orion/assertion.h"
 
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>

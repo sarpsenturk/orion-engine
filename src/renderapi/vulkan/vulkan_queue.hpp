@@ -1,7 +1,7 @@
 #pragma once
 
-#include "orion/renderapi/render_queue.h"
-#include "vulkan_context.h"
+#include "orion/renderapi/render_queue.hpp"
+#include "vulkan_context.hpp"
 
 #include <Volk/volk.h>
 

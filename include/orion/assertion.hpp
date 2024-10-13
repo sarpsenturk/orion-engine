@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/compiler.h"
+#include "orion/compiler.hpp"
 
 #ifdef ORION_COMPILER_MSVC
     #define ORION_DEBUG_BREAK() __debugbreak()

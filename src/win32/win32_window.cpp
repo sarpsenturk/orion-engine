@@ -1,6 +1,6 @@
-#include "win32_window.h"
+#include "win32_window.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 namespace orion
 {

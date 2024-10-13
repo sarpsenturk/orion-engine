@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/renderapi/handle.h"
+#include "orion/renderapi/handle.hpp"
 
 #include <array>
 #include <span>

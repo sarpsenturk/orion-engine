@@ -1,4 +1,4 @@
-#include "vulkan_error.h"
+#include "vulkan_error.hpp"
 
 #include <fmt/format.h>
 

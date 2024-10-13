@@ -1,7 +1,7 @@
 #pragma once
 
-#include "orion/renderapi/format.h"
-#include "orion/renderapi/handle.h"
+#include "orion/renderapi/format.hpp"
+#include "orion/renderapi/handle.hpp"
 
 #include <span>
 

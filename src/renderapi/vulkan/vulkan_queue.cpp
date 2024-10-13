@@ -1,9 +1,9 @@
-#include "vulkan_queue.h"
+#include "vulkan_queue.hpp"
 
-#include "vulkan_command.h"
-#include "vulkan_error.h"
+#include "vulkan_command.hpp"
+#include "vulkan_error.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 #include <spdlog/spdlog.h>
 

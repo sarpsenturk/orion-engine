@@ -1,36 +1,36 @@
 target_sources(
         orion PUBLIC
         FILE_SET HEADERS FILES
-        orion/application.h
-        orion/assertion.h
-        orion/compiler.h
-        orion/platform.h
-        orion/window.h
+        orion/application.hpp
+        orion/assertion.hpp
+        orion/compiler.hpp
+        orion/platform.hpp
+        orion/window.hpp
 
-        orion/math/matrix/matrix.h
-        orion/math/matrix/matrix2.h
-        orion/math/matrix/matrix3.h
-        orion/math/matrix/matrix4.h
-        orion/math/matrix/projection.h
+        orion/math/matrix/matrix.hpp
+        orion/math/matrix/matrix2.hpp
+        orion/math/matrix/matrix3.hpp
+        orion/math/matrix/matrix4.hpp
+        orion/math/matrix/projection.hpp
 
-        orion/math/vector/vector.h
-        orion/math/vector/vector2.h
-        orion/math/vector/vector3.h
-        orion/math/vector/vector4.h
+        orion/math/vector/vector.hpp
+        orion/math/vector/vector2.hpp
+        orion/math/vector/vector3.hpp
+        orion/math/vector/vector4.hpp
 
-        orion/renderapi/buffer.h
-        orion/renderapi/descriptor.h
-        orion/renderapi/format.h
-        orion/renderapi/handle.h
-        orion/renderapi/image.h
-        orion/renderapi/pipeline.h
-        orion/renderapi/render_backend.h
-        orion/renderapi/render_command.h
-        orion/renderapi/render_device.h
-        orion/renderapi/render_queue.h
-        orion/renderapi/shader.h
-        orion/renderapi/swapchain.h
-        orion/renderapi/sync.h
+        orion/renderapi/buffer.hpp
+        orion/renderapi/descriptor.hpp
+        orion/renderapi/format.hpp
+        orion/renderapi/handle.hpp
+        orion/renderapi/image.hpp
+        orion/renderapi/pipeline.hpp
+        orion/renderapi/render_backend.hpp
+        orion/renderapi/render_command.hpp
+        orion/renderapi/render_device.hpp
+        orion/renderapi/render_queue.hpp
+        orion/renderapi/shader.hpp
+        orion/renderapi/swapchain.hpp
+        orion/renderapi/sync.hpp
 
-        orion/renderer/renderer.h
+        orion/renderer/renderer.hpp
 )

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "orion/window.h"
+#include "orion/window.hpp"
 
-#include "orion_win32.h"
+#include "orion_win32.hpp"
 
 namespace orion
 {

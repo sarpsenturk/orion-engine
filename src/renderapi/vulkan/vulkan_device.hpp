@@ -1,8 +1,8 @@
 #pragma once
 
-#include "orion/renderapi/render_device.h"
+#include "orion/renderapi/render_device.hpp"
 
-#include "vulkan_context.h"
+#include "vulkan_context.hpp"
 
 #include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>

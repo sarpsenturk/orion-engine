@@ -1,15 +1,15 @@
-#include <orion/application.h>
-#include <orion/window.h>
+#include <orion/application.hpp>
+#include <orion/window.hpp>
 
-#include <orion/renderapi/render_backend.h>
-#include <orion/renderapi/shader.h>
+#include <orion/renderapi/render_backend.hpp>
+#include <orion/renderapi/shader.hpp>
 
-#include <orion/renderer/renderer.h>
+#include <orion/renderer/renderer.hpp>
 
-#include <orion/math/matrix/matrix4.h>
-#include <orion/math/matrix/projection.h>
-#include <orion/math/vector/vector3.h>
-#include <orion/math/vector/vector4.h>
+#include <orion/math/matrix/matrix4.hpp>
+#include <orion/math/matrix/projection.hpp>
+#include <orion/math/vector/vector3.hpp>
+#include <orion/math/vector/vector4.hpp>
 
 #include <spdlog/spdlog.h>
 

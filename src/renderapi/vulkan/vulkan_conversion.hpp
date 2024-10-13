@@ -1,11 +1,11 @@
 #pragma once
 
-#include "orion/renderapi/buffer.h"
-#include "orion/renderapi/descriptor.h"
-#include "orion/renderapi/format.h"
-#include "orion/renderapi/image.h"
-#include "orion/renderapi/pipeline.h"
-#include "orion/renderapi/render_command.h"
+#include "orion/renderapi/buffer.hpp"
+#include "orion/renderapi/descriptor.hpp"
+#include "orion/renderapi/format.hpp"
+#include "orion/renderapi/image.hpp"
+#include "orion/renderapi/pipeline.hpp"
+#include "orion/renderapi/render_command.hpp"
 
 #include <Volk/volk.h>
 

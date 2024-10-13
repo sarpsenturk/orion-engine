@@ -1,8 +1,8 @@
-#include "orion/renderapi/render_backend.h"
+#include "orion/renderapi/render_backend.hpp"
 
-#include "vulkan/vulkan_backend.h"
+#include "vulkan/vulkan_backend.hpp"
 
-#include "orion/platform.h"
+#include "orion/platform.hpp"
 
 #include <spdlog/spdlog.h>
 

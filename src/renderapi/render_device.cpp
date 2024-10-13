@@ -1,6 +1,6 @@
-#include "orion/renderapi/render_device.h"
+#include "orion/renderapi/render_device.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 #include <spdlog/spdlog.h>
 

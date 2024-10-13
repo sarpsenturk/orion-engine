@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/math/matrix/matrix.h"
+#include "orion/math/matrix/matrix.hpp"
 
 namespace orion
 {

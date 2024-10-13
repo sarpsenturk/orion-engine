@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/renderapi/format.h"
+#include "orion/renderapi/format.hpp"
 
 #include <cstdint>
 #include <type_traits>

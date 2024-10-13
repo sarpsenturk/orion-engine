@@ -1,9 +1,9 @@
 #pragma once
 
-#include "orion/renderapi/render_backend.h"
-#include "orion/renderapi/render_command.h"
-#include "orion/renderapi/render_device.h"
-#include "orion/renderapi/render_queue.h"
+#include "orion/renderapi/render_backend.hpp"
+#include "orion/renderapi/render_command.hpp"
+#include "orion/renderapi/render_device.hpp"
+#include "orion/renderapi/render_queue.hpp"
 
 #include <cstdint>
 

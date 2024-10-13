@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/math/vector/vector.h"
+#include "orion/math/vector/vector.hpp"
 
 namespace orion
 {

@@ -1,15 +1,15 @@
 #pragma once
 
-#include "buffer.h"
-#include "descriptor.h"
-#include "orion/renderapi/handle.h"
-#include "orion/renderapi/image.h"
-#include "orion/renderapi/pipeline.h"
-#include "orion/renderapi/render_command.h"
-#include "orion/renderapi/render_queue.h"
-#include "orion/renderapi/shader.h"
-#include "orion/renderapi/swapchain.h"
-#include "orion/renderapi/sync.h"
+#include "orion/renderapi/buffer.hpp"
+#include "orion/renderapi/descriptor.hpp"
+#include "orion/renderapi/handle.hpp"
+#include "orion/renderapi/image.hpp"
+#include "orion/renderapi/pipeline.hpp"
+#include "orion/renderapi/render_command.hpp"
+#include "orion/renderapi/render_queue.hpp"
+#include "orion/renderapi/shader.hpp"
+#include "orion/renderapi/swapchain.hpp"
+#include "orion/renderapi/sync.hpp"
 
 #include <memory>
 

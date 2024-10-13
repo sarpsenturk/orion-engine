@@ -1,8 +1,8 @@
 #pragma once
 
-#include "orion/renderapi/render_command.h"
+#include "orion/renderapi/render_command.hpp"
 
-#include "vulkan_context.h"
+#include "vulkan_context.hpp"
 
 #include <Volk/volk.h>
 

@@ -1,14 +1,14 @@
-#include "vulkan_device.h"
+#include "vulkan_device.hpp"
 
-#include "vulkan_command.h"
-#include "vulkan_conversion.h"
-#include "vulkan_error.h"
-#include "vulkan_platform.h"
-#include "vulkan_queue.h"
-#include "vulkan_shader.h"
-#include "vulkan_swapchain.h"
+#include "vulkan_command.hpp"
+#include "vulkan_conversion.hpp"
+#include "vulkan_error.hpp"
+#include "vulkan_platform.hpp"
+#include "vulkan_queue.hpp"
+#include "vulkan_shader.hpp"
+#include "vulkan_swapchain.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 #include <spdlog/spdlog.h>
 

@@ -1,8 +1,8 @@
-#include "vulkan_swapchain.h"
+#include "vulkan_swapchain.hpp"
 
-#include "vulkan_error.h"
+#include "vulkan_error.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
 #include <spdlog/spdlog.h>
 

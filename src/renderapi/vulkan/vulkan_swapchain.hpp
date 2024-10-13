@@ -1,9 +1,9 @@
 #pragma once
 
-#include "orion/renderapi/swapchain.h"
+#include "orion/renderapi/swapchain.hpp"
 
-#include "vulkan_context.h"
-#include "vulkan_queue.h"
+#include "vulkan_context.hpp"
+#include "vulkan_queue.hpp"
 
 #include <Volk/volk.h>
 

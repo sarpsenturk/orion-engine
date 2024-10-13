@@ -1,11 +1,10 @@
-#include "vulkan_command.h"
+#include "vulkan_command.hpp"
 
-#include "vulkan_conversion.h"
-#include "vulkan_error.h"
+#include "vulkan_conversion.hpp"
+#include "vulkan_error.hpp"
 
-#include "orion/assertion.h"
+#include "orion/assertion.hpp"
 
-#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
