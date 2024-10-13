@@ -4,6 +4,8 @@
 #include <orion/renderapi/render_backend.h>
 #include <orion/renderapi/shader.h>
 
+#include <orion/renderer/renderer.h>
+
 #include <orion/math/matrix/matrix4.h>
 #include <orion/math/matrix/projection.h>
 #include <orion/math/vector/vector3.h>
@@ -37,51 +39,39 @@ struct Vertex {
 };
 
 constexpr auto vertices = std::array{
-    Vertex{.position = {-.5f, .5f, -.1f}},
-    Vertex{.position = {.5f, .5f, -.1f}},
+    Vertex{.position = {0.f, .5f, -.1f}},
     Vertex{.position = {.5f, -.5f, -.1f}},
     Vertex{.position = {-.5f, -.5f, -.1f}},
 };
 
-constexpr auto indices = std::array{0u, 1u, 2u, 2u, 3u, 0u};
+constexpr auto indices = std::array{0u, 1u, 2u};
 
 class SandboxApp final : public Application
 {
 public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
+        , renderer_({.render_backend = RenderBackend::create_builtin_vulkan(), .width = 800, .height = 600})
     {
-        // Create render backend
-        render_backend_ = RenderBackend::create_builtin_vulkan();
+        // Get render device from renderer
+        auto* render_device = renderer_.render_device();
 
-        // Create render device
-        render_device_ = render_backend_->create_device(0);
-
-        // Create command queue
-        command_queue_ = render_device_->create_command_queue();
+        // Get command queue from renderer
+        auto* graphics_queue = renderer_.graphics_queue();
 
         // Create swapchain
-        swapchain_ = render_device_->create_swapchain({.window = &window_, .queue = command_queue_.get(), .width = 800, .height = 600, .image_count = 2, .image_format = Format::B8G8R8A8_Unorm});
-
-        // Create command allocator
-        command_allocator_ = render_device_->create_command_allocator({});
-
-        // Create command list
-        command_list_ = render_device_->create_command_list({.command_allocator = command_allocator_.get()});
+        swapchain_ = render_device->create_swapchain({.window = &window_, .queue = graphics_queue, .width = 800, .height = 600, .image_count = 2, .image_format = Format::B8G8R8A8_Unorm});
 
         // Create descriptor pool
-        descriptor_pool_ = render_device_->create_descriptor_pool({
+        descriptor_pool_ = render_device->create_descriptor_pool({
             .max_descriptor_sets = 1,
             .descriptor_sizes = {{
                 DescriptorPoolSize{.type = DescriptorType::ConstantBuffer, .count = 1},
             }},
         });
 
-        // Create frame fence
-        fence_ = render_device_->create_fence({.signaled = false});
-
         // Compile shaders
-        auto compiler = render_device_->create_shader_compiler();
+        auto compiler = render_device->create_shader_compiler();
         const auto vs = compiler->compile({.source = vertex_shader, .type = ShaderType::Vertex});
         const auto ps = compiler->compile({.source = pixel_shader, .type = ShaderType::Pixel});
         if (vs.empty() || ps.empty()) {
@@ -91,19 +81,19 @@ public:
         SPDLOG_DEBUG("Created pixel shader binary with size {}", ps.size());
 
         // Create descriptor set layout
-        descriptor_set_layout_ = render_device_->create_descriptor_set_layout({
+        descriptor_set_layout_ = render_device->create_descriptor_set_layout({
             .bindings = {{
                 DescriptorSetBindingDesc{.type = DescriptorType::ConstantBuffer, .size = 1},
             }},
         });
 
         // Create pipeline layout
-        pipeline_layout_ = render_device_->create_pipeline_layout({
+        pipeline_layout_ = render_device->create_pipeline_layout({
             .descriptor_set_layouts = {{descriptor_set_layout_}},
         });
 
         // Create graphics pipeline
-        graphics_pipeline_ = render_device_->create_graphics_pipeline({
+        graphics_pipeline_ = render_device->create_graphics_pipeline({
             .pipeline_layout = pipeline_layout_,
             .vertex_shader = vs,
             .pixel_shader = ps,
@@ -129,29 +119,29 @@ public:
         });
 
         // Create vertex buffer
-        vertex_buffer_ = render_device_->create_buffer({.size = sizeof(vertices), .usage = BufferUsage::VertexBuffer, .cpu_visible = true});
+        vertex_buffer_ = render_device->create_buffer({.size = sizeof(vertices), .usage = BufferUsage::VertexBuffer, .cpu_visible = true});
 
         // Upload vertex data
-        render_device_->memcpy(vertex_buffer_, vertices.data(), sizeof(vertices));
+        render_device->memcpy(vertex_buffer_, vertices.data(), sizeof(vertices));
 
         // Create index buffer
-        index_buffer_ = render_device_->create_buffer({.size = sizeof(indices), .usage = BufferUsage::IndexBuffer, .cpu_visible = true});
+        index_buffer_ = render_device->create_buffer({.size = sizeof(indices), .usage = BufferUsage::IndexBuffer, .cpu_visible = true});
 
         // Upload index data
-        render_device_->memcpy(index_buffer_, indices.data(), sizeof(indices));
+        render_device->memcpy(index_buffer_, indices.data(), sizeof(indices));
 
         // Create descriptor set
-        descriptor_set_ = render_device_->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
+        descriptor_set_ = render_device->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
 
         // Create constant buffer
-        constant_buffer_ = render_device_->create_buffer({.size = sizeof(Matrix4f), .usage = BufferUsage::ConstantBuffer, .cpu_visible = true});
+        constant_buffer_ = render_device->create_buffer({.size = sizeof(Matrix4f), .usage = BufferUsage::ConstantBuffer, .cpu_visible = true});
 
         // Upload projection matrix
         const auto projection = orthographic_rh(-4.f, 4.f, -3.f, 3.f, 0.1f, 1.f);
-        render_device_->memcpy(constant_buffer_, &projection, sizeof(Matrix4f));
+        render_device->memcpy(constant_buffer_, &projection, sizeof(Matrix4f));
 
         // Create constant buffer view
-        render_device_->create_constant_buffer_view({
+        render_device->create_constant_buffer_view({
             .buffer = constant_buffer_,
             .offset = 0,
             .size = sizeof(Matrix4f),
@@ -174,44 +164,17 @@ private:
 
     void on_render() override
     {
-        // Reset command allocator
-        command_allocator_->reset();
+        // Begin a new frame
+        renderer_.begin_frame();
 
-        // Begin command list recording
-        command_list_->begin();
-
-        // Acquire render target from swapchain
-        const auto render_target = swapchain_->acquire_render_target();
-
-        // Get the swapchain image associated with render target
-        const auto image = swapchain_->current_image();
-
-        // Transition swapchain image to a render target
-        command_list_->transition_barrier({
-            .image = image,
-            .before = ResourceState::Unknown,
-            .after = ResourceState::RenderTarget,
-        });
-
-        // Begin rendering to render_target and clear it
-        command_list_->begin_rendering({
-            .render_targets = {{
-                RenderAttachment{
-                    .render_target = render_target,
-                    .clear_color = {1.f, 0.f, 1.f, 1.f},
-                },
-            }},
-            .render_area = {
-                .width = 800,
-                .height = 600,
-            },
-        });
+        // Get command list from renderer
+        auto* draw_command = renderer_.draw_command();
 
         // Set the graphics pipeline
-        command_list_->set_pipeline({.pipeline = graphics_pipeline_});
+        draw_command->set_pipeline({.pipeline = graphics_pipeline_});
 
         // Set the viewport
-        command_list_->set_viewports({
+        draw_command->set_viewports({
             .viewports = {{
                 Viewport{
                     .x = 0.f,
@@ -225,7 +188,7 @@ private:
         });
 
         // Set scissors
-        command_list_->set_scissors({
+        draw_command->set_scissors({
             .scissors = {{
                 Rect2D{
                     .x = 0,
@@ -237,7 +200,7 @@ private:
         });
 
         // Set vertex buffer
-        command_list_->set_vertex_buffers({
+        draw_command->set_vertex_buffers({
             .start_buffer = 0,
             .vertex_buffers = {{
                 VertexBufferView{.buffer = vertex_buffer_, .stride = sizeof(Vertex)},
@@ -245,45 +208,24 @@ private:
         });
 
         // Set index buffer
-        command_list_->set_index_buffer({.buffer = index_buffer_, .index_type = IndexType::U32});
+        draw_command->set_index_buffer({.buffer = index_buffer_, .index_type = IndexType::U32});
 
         // Set color and descriptor set
-        command_list_->set_descriptor_set({.set = 0, .descriptor_set = descriptor_set_, .pipeline_layout = pipeline_layout_});
+        draw_command->set_descriptor_set({.set = 0, .descriptor_set = descriptor_set_, .pipeline_layout = pipeline_layout_});
 
         // Make draw call
-        command_list_->draw_indexed_instanced({.index_count = 6, .instance_count = 1, .first_index = 0, .first_vertex = 0, .first_instance = 0});
+        draw_command->draw_indexed_instanced({.index_count = 3, .instance_count = 1, .first_index = 0, .first_vertex = 0, .first_instance = 0});
 
-        // End rendering
-        command_list_->end_rendering();
+        // End frame
+        renderer_.end_frame();
 
-        // Transition image to present image
-        command_list_->transition_barrier({
-            .image = image,
-            .before = ResourceState::RenderTarget,
-            .after = ResourceState::Present,
-        });
-
-        // End command list recording
-        command_list_->end();
-
-        // Submit command list
-        command_queue_->submit({{command_list_.get()}}, fence_);
-
-        // Present swapchain with vsync == true
-        swapchain_->present(true);
-
-        // Wait for frame to finish
-        render_device_->wait_for_fence(fence_);
+        // Present results to swapchain
+        renderer_.present(swapchain_.get(), 800, 600);
     }
 
     Window window_;
-    std::unique_ptr<RenderBackend> render_backend_;
-    std::unique_ptr<RenderDevice> render_device_;
-    std::unique_ptr<CommandQueue> command_queue_;
+    Renderer renderer_;
     std::unique_ptr<Swapchain> swapchain_;
-    std::unique_ptr<CommandAllocator> command_allocator_;
-    std::unique_ptr<CommandList> command_list_;
-    FenceHandle fence_;
     DescriptorSetLayoutHandle descriptor_set_layout_;
     PipelineLayoutHandle pipeline_layout_;
     PipelineHandle graphics_pipeline_;

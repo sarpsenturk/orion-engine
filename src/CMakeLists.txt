@@ -15,6 +15,8 @@ target_sources(
         renderapi/shader.cpp
         renderapi/swapchain.cpp
         renderapi/sync.cpp
+
+        renderer/renderer.cpp
 )
 
 add_subdirectory(renderapi/vulkan)

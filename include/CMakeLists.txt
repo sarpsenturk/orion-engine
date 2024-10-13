@@ -31,4 +31,6 @@ target_sources(
         orion/renderapi/shader.h
         orion/renderapi/swapchain.h
         orion/renderapi/sync.h
+
+        orion/renderer/renderer.h
 )
