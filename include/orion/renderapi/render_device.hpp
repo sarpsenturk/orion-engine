@@ -40,6 +40,7 @@ namespace orion
         // TODO: For consistency, consider returning BufferViewHandle from create_constant_buffer_view
 
         void create_constant_buffer_view(const ConstantBufferViewDesc& desc);
+        void create_robuffer_view(const ROBufferViewDesc& desc);
         ImageViewHandle create_image_view(const ImageViewDesc& desc);
         SamplerHandle create_sampler(const SamplerDesc& desc);
 
@@ -85,6 +86,7 @@ namespace orion
         virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
 
         virtual void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) = 0;
+        virtual void create_robuffer_view_api(const ROBufferViewDesc& desc) = 0;
         virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
         virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
 

@@ -18,7 +18,7 @@ namespace orion
     VkBlendFactor to_vk_blend_factor(Blend blend);
     VkBlendOp to_vk_blend_op(BlendOp blend_op);
     VkColorComponentFlags to_vk_color_components(ColorWriteFlags color_write_mask);
-    VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage);
+    VkBufferUsageFlags to_vk_buffer_usage(BufferUsageFlags usage);
     VkIndexType to_vk_index_type(IndexType index_type);
     VkDescriptorType to_vk_descriptor_type(DescriptorType descriptor_type);
     VkImageType to_vk_image_type(ImageType image_type);

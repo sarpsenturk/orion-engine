@@ -454,7 +454,7 @@ namespace orion
                 .pNext = nullptr,
                 .flags = {},
                 .size = desc.size,
-                .usage = to_vk_buffer_usage(desc.usage),
+                .usage = to_vk_buffer_usage(desc.usage_flags),
                 .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             };
             const auto alloc_info = VmaAllocationCreateInfo{
@@ -594,6 +594,33 @@ namespace orion
             .dstArrayElement = 0,
             .descriptorCount = 1,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pImageInfo = nullptr,
+            .pBufferInfo = &buffer_info,
+            .pTexelBufferView = nullptr,
+        };
+        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+    }
+
+    void VulkanDevice::create_robuffer_view_api(const ROBufferViewDesc& desc)
+    {
+        VkBuffer vk_buffer = context_.lookup(desc.buffer).buffer;
+        ORION_EXPECTS(vk_buffer != VK_NULL_HANDLE);
+        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
+        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
+
+        const auto buffer_info = VkDescriptorBufferInfo{
+            .buffer = vk_buffer,
+            .offset = desc.first_element * desc.element_size_bytes,
+            .range = desc.element_count * desc.element_size_bytes,
+        };
+        const auto descriptor_write = VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = vk_descriptor_set,
+            .dstBinding = desc.descriptor_binding,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
             .pImageInfo = nullptr,
             .pBufferInfo = &buffer_info,
             .pTexelBufferView = nullptr,

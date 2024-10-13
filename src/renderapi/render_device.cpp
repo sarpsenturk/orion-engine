@@ -111,6 +111,13 @@ namespace orion
         create_constant_buffer_view_api(desc);
     }
 
+    void RenderDevice::create_robuffer_view(const ROBufferViewDesc& desc)
+    {
+        ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
+        ORION_ASSERT(desc.descriptor_set != DescriptorSetHandle::Invalid);
+        create_robuffer_view_api(desc);
+    }
+
     ImageViewHandle RenderDevice::create_image_view(const ImageViewDesc& desc)
     {
         ORION_ASSERT(desc.format != Format::Undefined);

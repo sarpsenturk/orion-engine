@@ -93,17 +93,28 @@ namespace orion
         return color_components;
     }
 
-    VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage)
+    VkBufferUsageFlags to_vk_buffer_usage(BufferUsageFlags usage)
     {
-        switch (usage) {
-            case BufferUsage::VertexBuffer:
-                return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-            case BufferUsage::IndexBuffer:
-                return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            case BufferUsage::ConstantBuffer:
-                return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        VkBufferUsageFlags vk_usage_flags = {};
+        if ((usage & BufferUsageFlags::VertexBuffer) != BufferUsageFlags::None) {
+            vk_usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         }
-        unreachable();
+        if ((usage & BufferUsageFlags::IndexBuffer) != BufferUsageFlags::None) {
+            vk_usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
+        if ((usage & BufferUsageFlags::ConstantBuffer) != BufferUsageFlags::None) {
+            vk_usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        }
+        if ((usage & BufferUsageFlags::StructuredBuffer) != BufferUsageFlags::None) {
+            vk_usage_flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        }
+        if ((usage & BufferUsageFlags::TransferSrc) != BufferUsageFlags::None) {
+            vk_usage_flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        }
+        if ((usage & BufferUsageFlags::TransferDst) != BufferUsageFlags::None) {
+            vk_usage_flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        }
+        return vk_usage_flags;
     }
 
     VkIndexType to_vk_index_type(IndexType index_type)
@@ -122,6 +133,8 @@ namespace orion
         switch (descriptor_type) {
             case DescriptorType::ConstantBuffer:
                 return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case DescriptorType::StructuredBuffer:
+                return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             case DescriptorType::ImageView:
                 return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
             case DescriptorType::Sampler:

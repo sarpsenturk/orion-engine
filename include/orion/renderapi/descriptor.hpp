@@ -9,6 +9,7 @@ namespace orion
 {
     enum class DescriptorType {
         ConstantBuffer,
+        StructuredBuffer,
         ImageView,
         Sampler,
     };
@@ -96,6 +97,15 @@ namespace orion
         CompareOp compare_op;
         float min_lod;
         float max_lod;
+        DescriptorSetHandle descriptor_set;
+        std::uint32_t descriptor_binding;
+    };
+
+    struct ROBufferViewDesc {
+        BufferHandle buffer;
+        std::uint32_t first_element;
+        std::uint32_t element_count;
+        std::uint32_t element_size_bytes;
         DescriptorSetHandle descriptor_set;
         std::uint32_t descriptor_binding;
     };

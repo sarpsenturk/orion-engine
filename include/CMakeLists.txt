@@ -12,6 +12,7 @@ target_sources(
         orion/math/matrix/matrix3.hpp
         orion/math/matrix/matrix4.hpp
         orion/math/matrix/projection.hpp
+        orion/math/matrix/transformation.hpp
 
         orion/math/vector/vector.hpp
         orion/math/vector/vector2.hpp

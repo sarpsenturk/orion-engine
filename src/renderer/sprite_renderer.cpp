@@ -97,7 +97,7 @@ namespace orion
         descriptor_set_ = render_device->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
 
         // Create constant buffer for SceneData and create constant buffer view
-        constant_buffer_ = render_device->create_buffer({.size = sizeof(SceneData), .usage = BufferUsage::ConstantBuffer, .cpu_visible = true});
+        constant_buffer_ = render_device->create_buffer({.size = sizeof(SceneData), .usage_flags = BufferUsageFlags::ConstantBuffer, .cpu_visible = true});
         render_device->create_constant_buffer_view({
             .buffer = constant_buffer_,
             .offset = 0,
