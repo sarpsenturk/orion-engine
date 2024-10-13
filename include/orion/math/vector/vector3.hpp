@@ -21,4 +21,10 @@ namespace orion
             a[0] * b[1] - a[1] * b[0],
         };
     }
+
+    template<typename T>
+    constexpr Vector3_t<T> vec3(const Vector<T, 2>& vector, T z)
+    {
+        return {vector[0], vector[1], z};
+    };
 } // namespace orion
