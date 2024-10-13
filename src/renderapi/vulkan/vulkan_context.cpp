@@ -106,6 +106,10 @@ namespace orion
 
     VulkanContext::~VulkanContext()
     {
+        for (const auto [sampler, _] : samplers_) {
+            vkDestroySampler(device_, sampler, nullptr);
+        }
+
         // Don't need to call vkFreeDescriptorSets as vkDestroyDescriptorPool will handle it
         for (const auto [descriptor_pool, _] : descriptor_pools_) {
             vkDestroyDescriptorPool(device_, descriptor_pool, nullptr);

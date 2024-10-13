@@ -145,7 +145,7 @@ namespace orion
 
         // Create frame sync objects
         frame_semaphore_ = render_device_->create_semaphore({});
-        frame_fence_ = render_device_->create_fence({.signaled = true});
+        frame_fence_ = render_device_->create_fence({.signaled = false});
     }
 
     void Renderer::begin_frame()
