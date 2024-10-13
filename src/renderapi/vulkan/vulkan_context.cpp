@@ -201,6 +201,11 @@ namespace orion
         return DescriptorSetHandle{insert_t(descriptor_sets_, VulkanDescriptorSet{descriptor_set, descriptor_pool})};
     }
 
+    SamplerHandle VulkanContext::insert(VkSampler sampler)
+    {
+        return SamplerHandle{insert_t(samplers_, sampler)};
+    }
+
     VkDescriptorSetLayout VulkanContext::lookup(DescriptorSetLayoutHandle descriptor_set_layout) const
     {
         return lookup_t(descriptor_set_layouts_, static_cast<render_device_handle_t>(descriptor_set_layout));
@@ -249,6 +254,11 @@ namespace orion
     VkDescriptorSet VulkanContext::lookup(DescriptorSetHandle descriptor_set) const
     {
         return lookup_t(descriptor_sets_, static_cast<render_device_handle_t>(descriptor_set)).set;
+    }
+
+    VkSampler VulkanContext::lookup(SamplerHandle sampler) const
+    {
+        return lookup_t(samplers_, static_cast<render_device_handle_t>(sampler));
     }
 
     bool VulkanContext::remove(DescriptorSetLayoutHandle descriptor_set_layout)
@@ -330,5 +340,13 @@ namespace orion
             vkFreeDescriptorSets(device_, descriptor_set.pool, 1, &descriptor_set.set);
         };
         return remove_t(descriptor_sets_, static_cast<render_device_handle_t>(descriptor_set), deleter);
+    }
+
+    bool VulkanContext::remove(SamplerHandle sampler)
+    {
+        auto deleter = [this](VkSampler sampler) {
+            vkDestroySampler(device_, sampler, nullptr);
+        };
+        return remove_t(samplers_, static_cast<render_device_handle_t>(sampler), deleter);
     }
 } // namespace orion

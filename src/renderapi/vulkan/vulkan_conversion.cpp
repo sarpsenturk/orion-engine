@@ -174,4 +174,55 @@ namespace orion
         }
         unreachable();
     }
+
+    VkFilter to_vk_filter(Filter filter)
+    {
+        switch (filter) {
+            case Filter::Nearest:
+                return VK_FILTER_NEAREST;
+            case Filter::Linear:
+                return VK_FILTER_LINEAR;
+        }
+        unreachable();
+    }
+
+    VkSamplerAddressMode to_vk_address_mode(SamplerAddressMode address_mode)
+    {
+        switch (address_mode) {
+            case SamplerAddressMode::Wrap:
+                return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            case SamplerAddressMode::Mirror:
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+            case SamplerAddressMode::Clamp:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            case SamplerAddressMode::Border:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        }
+        unreachable();
+    }
+
+    VkCompareOp to_vk_compare_op(CompareOp compare_op)
+    {
+        switch (compare_op) {
+            case CompareOp::None:
+                return {};
+            case CompareOp::Never:
+                return VK_COMPARE_OP_NEVER;
+            case CompareOp::Less:
+                return VK_COMPARE_OP_LESS;
+            case CompareOp::Equal:
+                return VK_COMPARE_OP_EQUAL;
+            case CompareOp::LessEqual:
+                return VK_COMPARE_OP_LESS_OR_EQUAL;
+            case CompareOp::Greater:
+                return VK_COMPARE_OP_GREATER;
+            case CompareOp::NotEqual:
+                return VK_COMPARE_OP_NOT_EQUAL;
+            case CompareOp::GreaterEqual:
+                return VK_COMPARE_OP_GREATER_OR_EQUAL;
+            case CompareOp::Always:
+                return VK_COMPARE_OP_ALWAYS;
+        }
+        unreachable();
+    }
 } // namespace orion

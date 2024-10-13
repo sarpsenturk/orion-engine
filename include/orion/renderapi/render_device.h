@@ -41,6 +41,7 @@ namespace orion
 
         void create_constant_buffer_view(const ConstantBufferViewDesc& desc);
         ImageViewHandle create_image_view(const ImageViewDesc& desc);
+        SamplerHandle create_sampler(const SamplerDesc& desc);
 
         void destroy(DescriptorSetLayoutHandle descriptor_set_layout);
         void destroy(PipelineLayoutHandle pipeline_layout);
@@ -52,6 +53,7 @@ namespace orion
         void destroy(DescriptorSetHandle descriptor_set);
         void destroy(ImageHandle image);
         void destroy(ImageViewHandle image_view);
+        void destroy(SamplerHandle sampler);
 
         void* map(BufferHandle buffer);
         void unmap(BufferHandle buffer);
@@ -84,6 +86,7 @@ namespace orion
 
         virtual void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) = 0;
         virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
+        virtual SamplerHandle create_sampler_api(const SamplerDesc& desc) = 0;
 
         virtual void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
@@ -95,6 +98,7 @@ namespace orion
         virtual void destroy_api(DescriptorSetHandle descriptor_set) = 0;
         virtual void destroy_api(ImageHandle image) = 0;
         virtual void destroy_api(ImageViewHandle image_view) = 0;
+        virtual void destroy_api(SamplerHandle sampler) = 0;
 
         virtual void* map_api(BufferHandle buffer) = 0;
         virtual void unmap_api(BufferHandle buffer) = 0;

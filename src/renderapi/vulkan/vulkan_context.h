@@ -53,6 +53,7 @@ namespace orion
         FenceHandle insert(VkFence fence);
         DescriptorPoolHandle insert(VkDescriptorPool descriptor_pool);
         DescriptorSetHandle insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool);
+        SamplerHandle insert(VkSampler sampler);
 
         [[nodiscard]] VkDescriptorSetLayout lookup(DescriptorSetLayoutHandle descriptor_set_layout) const;
         [[nodiscard]] VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
@@ -64,6 +65,7 @@ namespace orion
         [[nodiscard]] VkFence lookup(FenceHandle fence) const;
         [[nodiscard]] VkDescriptorPool lookup(DescriptorPoolHandle descriptor_pool) const;
         [[nodiscard]] VkDescriptorSet lookup(DescriptorSetHandle descriptor_set) const;
+        [[nodiscard]] VkSampler lookup(SamplerHandle sampler) const;
 
         bool remove(PipelineLayoutHandle pipeline_layout);
         bool remove(PipelineHandle pipeline);
@@ -75,6 +77,7 @@ namespace orion
         bool remove(DescriptorPoolHandle descriptor_pool);
         bool remove(DescriptorSetLayoutHandle descriptor_set_layout);
         bool remove(DescriptorSetHandle descriptor_set);
+        bool remove(SamplerHandle sampler);
 
     private:
         VkDevice device_;
@@ -90,5 +93,6 @@ namespace orion
         ResourceTable<VkFence> fences_;
         ResourceTable<VkDescriptorPool> descriptor_pools_;
         ResourceTable<VulkanDescriptorSet> descriptor_sets_;
+        ResourceTable<VkSampler> samplers_;
     };
 } // namespace orion

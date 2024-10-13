@@ -25,6 +25,10 @@ namespace orion
     {
         return static_cast<ImageUsageFlags>(static_cast<std::underlying_type_t<ImageUsageFlags>>(lhs) & static_cast<std::underlying_type_t<ImageUsageFlags>>(rhs));
     }
+    constexpr ImageUsageFlags operator|(ImageUsageFlags lhs, ImageUsageFlags rhs)
+    {
+        return static_cast<ImageUsageFlags>(static_cast<std::underlying_type_t<ImageUsageFlags>>(lhs) | static_cast<std::underlying_type_t<ImageUsageFlags>>(rhs));
+    }
 
     struct ImageDesc {
         std::uint32_t width;

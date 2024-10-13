@@ -18,4 +18,5 @@ namespace orion
     enum class FenceHandle : render_device_handle_t { Invalid = invalid_device_handle };
     enum class DescriptorPoolHandle : render_device_handle_t { Invalid = invalid_device_handle };
     enum class DescriptorSetHandle : render_device_handle_t { Invalid = invalid_device_handle };
+    enum class SamplerHandle : render_device_handle_t { Invalid = invalid_device_handle };
 } // namespace orion

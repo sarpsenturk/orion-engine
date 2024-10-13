@@ -654,6 +654,58 @@ namespace orion
         return image_view_handle;
     }
 
+    SamplerHandle VulkanDevice::create_sampler_api(const SamplerDesc& desc)
+    {
+        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
+
+        VkSampler sampler = VK_NULL_HANDLE;
+        {
+            const auto info = VkSamplerCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .magFilter = to_vk_filter(desc.filter),
+                .minFilter = to_vk_filter(desc.filter),
+                .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                .addressModeU = to_vk_address_mode(desc.address_mode_u),
+                .addressModeV = to_vk_address_mode(desc.address_mode_v),
+                .addressModeW = to_vk_address_mode(desc.address_mode_w),
+                .mipLodBias = desc.mip_lod_bias,
+                .anisotropyEnable = VK_FALSE,
+                .maxAnisotropy = 1.f,
+                .compareEnable = desc.compare_op != CompareOp::None,
+                .compareOp = to_vk_compare_op(desc.compare_op),
+                .minLod = desc.min_lod,
+                .maxLod = desc.max_lod,
+                .borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+                .unnormalizedCoordinates = VK_FALSE,
+            };
+            vk_assert(vkCreateSampler(device_, &info, nullptr, &sampler));
+            SPDLOG_TRACE("Created VkSampler {}", fmt::ptr(sampler));
+        }
+        const auto sampler_handle = context_.insert(sampler);
+
+        const auto image_info = VkDescriptorImageInfo{
+            .sampler = sampler,
+            .imageView = VK_NULL_HANDLE,
+            .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+        const auto descriptor_write = VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = vk_descriptor_set,
+            .dstBinding = desc.descriptor_binding,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+            .pImageInfo = &image_info,
+            .pBufferInfo = nullptr,
+            .pTexelBufferView = nullptr,
+        };
+        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+        return sampler_handle;
+    }
+
     void VulkanDevice::destroy_api(DescriptorSetLayoutHandle descriptor_set_layout)
     {
         if (!context_.remove(descriptor_set_layout)) {
@@ -721,6 +773,13 @@ namespace orion
     {
         if (!context_.remove(image_view)) {
             SPDLOG_WARN("Attempting to destroy image view with handle {}, which is not a valid handle", fmt::underlying(image_view));
+        }
+    }
+
+    void VulkanDevice::destroy_api(SamplerHandle sampler)
+    {
+        if (!context_.remove(sampler)) {
+            SPDLOG_WARN("Attempting to destroy sampler with handle {}, which is not a valid handle", fmt::underlying(sampler));
         }
     }
 

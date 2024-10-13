@@ -10,6 +10,7 @@ namespace orion
     enum class DescriptorType {
         ConstantBuffer,
         ImageView,
+        Sampler,
     };
 
     struct DescriptorSetBindingDesc {
@@ -58,6 +59,43 @@ namespace orion
         ImageHandle image;
         Format format;
         ImageViewType type;
+        DescriptorSetHandle descriptor_set;
+        std::uint32_t descriptor_binding;
+    };
+
+    enum class Filter {
+        Nearest,
+        Linear,
+    };
+
+    enum class SamplerAddressMode {
+        Wrap,
+        Mirror,
+        Clamp,
+        Border,
+    };
+
+    enum class CompareOp {
+        None = 0,
+        Never,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        Always,
+    };
+
+    struct SamplerDesc {
+        Filter filter;
+        SamplerAddressMode address_mode_u;
+        SamplerAddressMode address_mode_v;
+        SamplerAddressMode address_mode_w;
+        float mip_lod_bias;
+        CompareOp compare_op;
+        float min_lod;
+        float max_lod;
         DescriptorSetHandle descriptor_set;
         std::uint32_t descriptor_binding;
     };

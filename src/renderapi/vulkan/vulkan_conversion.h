@@ -24,4 +24,7 @@ namespace orion
     VkImageType to_vk_image_type(ImageType image_type);
     VkImageUsageFlags to_vk_image_usage(ImageUsageFlags usage);
     VkImageViewType to_vk_image_view_type(ImageViewType image_view_type);
+    VkFilter to_vk_filter(Filter filter);
+    VkSamplerAddressMode to_vk_address_mode(SamplerAddressMode address_mode);
+    VkCompareOp to_vk_compare_op(CompareOp compare_op);
 } // namespace orion

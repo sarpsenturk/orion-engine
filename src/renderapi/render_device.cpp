@@ -117,6 +117,11 @@ namespace orion
         return create_image_view_api(desc);
     }
 
+    SamplerHandle RenderDevice::create_sampler(const SamplerDesc& desc)
+    {
+        return create_sampler_api(desc);
+    }
+
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)
     {
         destroy_api(pipeline_layout);
@@ -175,6 +180,12 @@ namespace orion
     {
         destroy_api(image_view);
         SPDLOG_DEBUG("Destroyed image view {}", fmt::underlying(image_view));
+    }
+
+    void RenderDevice::destroy(SamplerHandle sampler)
+    {
+        destroy_api(sampler);
+        SPDLOG_DEBUG("Destroyed sampler {}", fmt::underlying(sampler));
     }
 
     void* RenderDevice::map(BufferHandle buffer)
