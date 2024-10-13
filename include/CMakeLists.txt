@@ -32,6 +32,7 @@ target_sources(
         orion/renderapi/swapchain.hpp
         orion/renderapi/sync.hpp
 
+        orion/renderer/camera.hpp
         orion/renderer/renderer.hpp
         orion/renderer/sprite_renderer.hpp
 )

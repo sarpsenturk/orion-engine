@@ -35,8 +35,10 @@ float4 main() : SV_Target
 
 namespace orion
 {
-    SpriteRenderer::SpriteRenderer(RenderDevice* render_device)
+    SpriteRenderer::SpriteRenderer(const SpriteRendererDesc& desc)
     {
+        auto* render_device = desc.render_device;
+
         // Create descriptor set layouts
         descriptor_set_layout_ = render_device->create_descriptor_set_layout({
             .bindings = {{
@@ -104,8 +106,13 @@ namespace orion
             .descriptor_binding = 0,
         });
 
+        // Setup camera
+        const auto view_width = desc.screen_width / desc.camera_size / 2;
+        const auto view_height = desc.screen_height / desc.camera_size / 2;
+        camera_.ortho(-view_width, view_width, -view_height, view_height, 0.f, 1.f);
+
         // Initialize view_projection matrix
-        const auto scene_data = SceneData{.view_projection = Matrix4f::identity()};
+        const auto scene_data = SceneData{.view_projection = camera_.view_projection()};
         render_device->memcpy(constant_buffer_, &scene_data, sizeof(SceneData));
     }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/renderer/camera.hpp"
+
 #include "orion/renderapi/handle.hpp"
 
 #include "orion/math/matrix/matrix4.hpp"
@@ -12,10 +14,17 @@ namespace orion
     class RenderDevice;
     class Renderer;
 
+    struct SpriteRendererDesc {
+        RenderDevice* render_device;
+        std::uint32_t screen_width;
+        std::uint32_t screen_height;
+        float camera_size;
+    };
+
     class SpriteRenderer
     {
     public:
-        explicit SpriteRenderer(RenderDevice* render_device);
+        explicit SpriteRenderer(const SpriteRendererDesc& desc);
 
         void draw();
         void submit(Renderer* renderer);
@@ -38,5 +47,6 @@ namespace orion
         BufferHandle constant_buffer_;
 
         std::vector<SpriteData> sprites_;
+        Camera camera_;
     };
 } // namespace orion

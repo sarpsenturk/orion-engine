@@ -16,7 +16,7 @@ public:
     SandboxApp()
         : window_({.title = "Sandbox App", .width = 800, .height = 600})
         , renderer_({.render_backend = RenderBackend::create_builtin_vulkan(), .width = 800, .height = 600})
-        , sprite_renderer_(renderer_.render_device())
+        , sprite_renderer_({.render_device = renderer_.render_device(), .screen_width = 800, .screen_height = 600, .camera_size = 100})
     {
         // Get render device from renderer
         auto* render_device = renderer_.render_device();

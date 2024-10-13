@@ -16,6 +16,7 @@ target_sources(
         renderapi/swapchain.cpp
         renderapi/sync.cpp
 
+        renderer/camera.cpp
         renderer/renderer.cpp
         renderer/sprite_renderer.cpp
 )
