@@ -1,0 +1,162 @@
+#include "orion/renderer/sprite_renderer.hpp"
+
+#include "orion/renderapi/render_command.hpp"
+#include "orion/renderapi/render_device.hpp"
+
+#include "orion/renderer/renderer.hpp"
+
+#include <stdexcept>
+
+static constexpr auto vertex_shader = R"hlsl(
+static const float3 corners[] = {
+    float3(-0.5, 0.5, 0.0),
+    float3(0.5, 0.5, 0.0),
+    float3(0.5, -0.5, 0.0),
+    float3(-0.5, -0.5, 0.0),
+};
+
+cbuffer Scene : register(b0) {
+    float4x4 view_projection;
+};
+
+float4 main(uint id : SV_VertexID) : SV_Position
+{
+    uint vertex_idx = id % 6;
+    uint corner_idx = vertex_idx < 3 ? vertex_idx : (vertex_idx - 1) % 4;
+    return mul(view_projection, float4(corners[corner_idx], 1.0));
+})hlsl";
+
+static constexpr auto pixel_shader = R"hlsl(
+float4 main() : SV_Target
+{
+    return float4(1.0, 1.0, 1.0, 1.0);
+}
+)hlsl";
+
+namespace orion
+{
+    SpriteRenderer::SpriteRenderer(RenderDevice* render_device)
+    {
+        // Create descriptor set layouts
+        descriptor_set_layout_ = render_device->create_descriptor_set_layout({
+            .bindings = {{
+                DescriptorSetBindingDesc{.type = DescriptorType::ConstantBuffer, .size = 1},
+            }},
+        });
+
+        // Create pipeline layout
+        pipeline_layout_ = render_device->create_pipeline_layout({.descriptor_set_layouts = {{descriptor_set_layout_}}});
+
+        // Compile shaders for pipeline
+        auto shader_compiler = render_device->create_shader_compiler();
+        const auto vs_binary = shader_compiler->compile({.source = vertex_shader, .type = ShaderType::Vertex});
+        const auto ps_binary = shader_compiler->compile({.source = pixel_shader, .type = ShaderType::Pixel});
+        if (vs_binary.empty() || ps_binary.empty()) {
+            throw std::runtime_error("Renderer2D: failed to compile shaders");
+        }
+
+        // Create pipeline
+        pipeline_ = render_device->create_graphics_pipeline({
+            .pipeline_layout = pipeline_layout_,
+            .vertex_shader = vs_binary,
+            .pixel_shader = ps_binary,
+            .vertex_attributes = {},
+            .primitive_topology = PrimitiveTopology::Triangle,
+            .rasterizer = {
+                .fill_mode = FillMode::Solid,
+                .cull_mode = CullMode::Back,
+                .front_face = FrontFace::ClockWise,
+            },
+            .blend = {
+                .render_targets = {{
+                    RenderTargetBlendDesc{
+                        .blend_enable = false,
+                        .src_blend = Blend::One,
+                        .dst_blend = Blend::Zero,
+                        .blend_op = BlendOp::Add,
+                        .src_blend_alpha = Blend::One,
+                        .dst_blend_alpha = Blend::Zero,
+                        .blend_op_alpha = BlendOp::Add,
+                        .color_write_mask = ColorWriteFlags::All,
+                    },
+                }},
+                .blend_constants = {1.f, 1.f, 1.f, 1.f},
+            },
+            .render_target_formats = {{Format::B8G8R8A8_Unorm}},
+        });
+
+        // Create descriptor pool and descriptor sets
+        descriptor_pool_ = render_device->create_descriptor_pool({
+            .max_descriptor_sets = 1,
+            .descriptor_sizes = {{
+                DescriptorPoolSize{.type = DescriptorType::ConstantBuffer, .count = 1},
+            }},
+        });
+        descriptor_set_ = render_device->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
+
+        // Create constant buffer for SceneData and create constant buffer view
+        constant_buffer_ = render_device->create_buffer({.size = sizeof(SceneData), .usage = BufferUsage::ConstantBuffer, .cpu_visible = true});
+        render_device->create_constant_buffer_view({
+            .buffer = constant_buffer_,
+            .offset = 0,
+            .size = sizeof(SceneData),
+            .descriptor_set = descriptor_set_,
+            .descriptor_binding = 0,
+        });
+
+        // Initialize view_projection matrix
+        const auto scene_data = SceneData{.view_projection = Matrix4f::identity()};
+        render_device->memcpy(constant_buffer_, &scene_data, sizeof(SceneData));
+    }
+
+    void SpriteRenderer::draw()
+    {
+        sprites_.push_back({});
+    }
+
+    void SpriteRenderer::submit(Renderer* renderer)
+    {
+        // Get draw command list
+        auto* command_list = renderer->draw_command();
+
+        // Set pipeline
+        command_list->set_pipeline({.pipeline = pipeline_, .layout = pipeline_layout_});
+
+        // Set viewport
+        command_list->set_viewports({
+            .start_viewport = 0,
+            .viewports = {{
+                Viewport{
+                    .x = 0.f,
+                    .y = 0.f,
+                    .width = static_cast<float>(renderer->render_width()),
+                    .height = static_cast<float>(renderer->render_height()),
+                    .min_depth = 0.f,
+                    .max_depth = 1.f,
+                },
+            }},
+        });
+
+        // Set scissor
+        command_list->set_scissors({
+            .start_scissor = 0,
+            .scissors = {{
+                Rect2D{
+                    .x = 0,
+                    .y = 0,
+                    .width = static_cast<std::int32_t>(renderer->render_width()),
+                    .height = static_cast<std::int32_t>(renderer->render_height()),
+                },
+            }},
+        });
+
+        // Set descriptor set
+        command_list->set_descriptor_set({.set = 0, .descriptor_set = descriptor_set_, .pipeline_layout = pipeline_layout_});
+
+        // Draw call
+        command_list->draw_instanced({.vertex_count = vertex_count(), .instance_count = 1, .start_vertex = 0, .start_instance = 0});
+
+        // Reset sprites
+        sprites_.clear();
+    }
+} // namespace orion

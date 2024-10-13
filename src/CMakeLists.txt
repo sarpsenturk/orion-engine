@@ -17,6 +17,7 @@ target_sources(
         renderapi/sync.cpp
 
         renderer/renderer.cpp
+        renderer/sprite_renderer.cpp
 )
 
 add_subdirectory(renderapi/vulkan)

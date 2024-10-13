@@ -33,4 +33,5 @@ target_sources(
         orion/renderapi/sync.hpp
 
         orion/renderer/renderer.hpp
+        orion/renderer/sprite_renderer.hpp
 )

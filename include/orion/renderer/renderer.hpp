@@ -29,6 +29,8 @@ namespace orion
         [[nodiscard]] RenderDevice* render_device() const { return render_device_.get(); }
         [[nodiscard]] CommandQueue* graphics_queue() const { return graphics_queue_.get(); }
         [[nodiscard]] CommandList* draw_command() const { return draw_command_.get(); }
+        [[nodiscard]] std::uint32_t render_width() const { return render_width_; }
+        [[nodiscard]] std::uint32_t render_height() const { return render_height_; }
 
     private:
         std::unique_ptr<RenderBackend> render_backend_;
