@@ -22,7 +22,7 @@ namespace orion
         Swapchain() = default;
         virtual ~Swapchain() = default;
 
-        RenderTargetHandle acquire_render_target();
+        ImageViewHandle acquire_render_target();
         ImageHandle current_image();
 
         void present(bool vsync);
@@ -34,7 +34,7 @@ namespace orion
         Swapchain& operator=(Swapchain&&) = default;
 
     private:
-        virtual RenderTargetHandle acquire_render_target_api() = 0;
+        virtual ImageViewHandle acquire_render_target_api() = 0;
         virtual ImageHandle current_image_api() = 0;
         virtual void present_api(bool vsync) = 0;
     };

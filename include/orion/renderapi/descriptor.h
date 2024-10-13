@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion/renderapi/format.h"
 #include "orion/renderapi/handle.h"
 
 #include <span>
@@ -8,6 +9,7 @@ namespace orion
 {
     enum class DescriptorType {
         ConstantBuffer,
+        ImageView,
     };
 
     struct DescriptorSetBindingDesc {
@@ -38,6 +40,24 @@ namespace orion
         BufferHandle buffer;
         std::uint32_t offset;
         std::uint32_t size;
+        DescriptorSetHandle descriptor_set;
+        std::uint32_t descriptor_binding;
+    };
+
+    enum class ImageViewType {
+        View1D,
+        View2D,
+        View3D,
+        ViewCube,
+        View1DArray,
+        View2DArray,
+        ViewCubeArray,
+    };
+
+    struct ImageViewDesc {
+        ImageHandle image;
+        Format format;
+        ImageViewType type;
         DescriptorSetHandle descriptor_set;
         std::uint32_t descriptor_binding;
     };

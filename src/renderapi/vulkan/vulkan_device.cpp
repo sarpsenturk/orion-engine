@@ -571,6 +571,89 @@ namespace orion
         return context_.insert(image, allocation);
     }
 
+    void VulkanDevice::create_constant_buffer_view_api(const ConstantBufferViewDesc& desc)
+    {
+        VkBuffer vk_buffer = context_.lookup(desc.buffer).buffer;
+        ORION_EXPECTS(vk_buffer != VK_NULL_HANDLE);
+        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
+        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
+
+        const auto buffer_info = VkDescriptorBufferInfo{
+            .buffer = vk_buffer,
+            .offset = desc.offset,
+            .range = desc.size,
+        };
+        const auto descriptor_write = VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = vk_descriptor_set,
+            .dstBinding = desc.descriptor_binding,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pImageInfo = nullptr,
+            .pBufferInfo = &buffer_info,
+            .pTexelBufferView = nullptr,
+        };
+        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+    }
+
+    ImageViewHandle VulkanDevice::create_image_view_api(const ImageViewDesc& desc)
+    {
+        VkImage vk_image = context_.lookup(desc.image);
+        ORION_EXPECTS(vk_image != VK_NULL_HANDLE);
+        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
+        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
+
+        VkImageView image_view = VK_NULL_HANDLE;
+        {
+            const auto image_view_info = VkImageViewCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .image = vk_image,
+                .viewType = to_vk_image_view_type(desc.type),
+                .format = to_vk_format(desc.format),
+                .components = {
+                    .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                },
+                .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            };
+            vk_assert(vkCreateImageView(device_, &image_view_info, nullptr, &image_view));
+            SPDLOG_TRACE("Created VkImageView {}", fmt::ptr(image_view));
+        }
+        const auto image_view_handle = context_.insert(image_view);
+
+        const auto image_info = VkDescriptorImageInfo{
+            .sampler = VK_NULL_HANDLE,
+            .imageView = image_view,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        };
+        const auto descriptor_write = VkWriteDescriptorSet{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = vk_descriptor_set,
+            .dstBinding = desc.descriptor_binding,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            .pImageInfo = &image_info,
+            .pBufferInfo = nullptr,
+            .pTexelBufferView = nullptr,
+        };
+        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+        return image_view_handle;
+    }
+
     void VulkanDevice::destroy_api(DescriptorSetLayoutHandle descriptor_set_layout)
     {
         if (!context_.remove(descriptor_set_layout)) {
@@ -634,6 +717,13 @@ namespace orion
         }
     }
 
+    void VulkanDevice::destroy_api(ImageViewHandle image_view)
+    {
+        if (!context_.remove(image_view)) {
+            SPDLOG_WARN("Attempting to destroy image view with handle {}, which is not a valid handle", fmt::underlying(image_view));
+        }
+    }
+
     void* VulkanDevice::map_api(BufferHandle buffer)
     {
         if (VulkanBuffer vk_buffer = context_.lookup(buffer)) {
@@ -661,33 +751,6 @@ namespace orion
         ORION_EXPECTS(vk_fence != VK_NULL_HANDLE);
         vk_assert(vkWaitForFences(device_, 1, &vk_fence, VK_TRUE, UINT64_MAX));
         vk_assert(vkResetFences(device_, 1, &vk_fence));
-    }
-
-    void VulkanDevice::create_constant_buffer_view_api(const ConstantBufferViewDesc& desc)
-    {
-        VkBuffer vk_buffer = context_.lookup(desc.buffer).buffer;
-        ORION_EXPECTS(vk_buffer != VK_NULL_HANDLE);
-        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
-        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
-
-        const auto buffer_info = VkDescriptorBufferInfo{
-            .buffer = vk_buffer,
-            .offset = desc.offset,
-            .range = desc.size,
-        };
-        const auto descriptor_write = VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = vk_descriptor_set,
-            .dstBinding = desc.descriptor_binding,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .pImageInfo = nullptr,
-            .pBufferInfo = &buffer_info,
-            .pTexelBufferView = nullptr,
-        };
-        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
     }
 
     VkShaderModule VulkanDevice::create_vk_shader_module(std::span<const std::byte> code)

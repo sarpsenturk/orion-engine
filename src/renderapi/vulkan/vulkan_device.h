@@ -34,6 +34,9 @@ namespace orion
         DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
 
+        void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) override;
+        ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
+
         void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) override;
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
         void destroy_api(PipelineHandle pipeline) override;
@@ -43,13 +46,12 @@ namespace orion
         void destroy_api(DescriptorPoolHandle descriptor_pool) override;
         void destroy_api(DescriptorSetHandle descriptor_set) override;
         void destroy_api(ImageHandle image) override;
+        void destroy_api(ImageViewHandle image_view) override;
 
         void* map_api(BufferHandle buffer) override;
         void unmap_api(BufferHandle buffer) override;
 
         void wait_for_fence_api(FenceHandle fence) override;
-
-        void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) override;
 
         VkShaderModule create_vk_shader_module(std::span<const std::byte> code);
 

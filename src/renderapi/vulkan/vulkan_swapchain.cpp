@@ -66,7 +66,7 @@ namespace orion
         }
     }
 
-    RenderTargetHandle VulkanSwapchain::acquire_render_target_api()
+    ImageViewHandle VulkanSwapchain::acquire_render_target_api()
     {
         VkSemaphore wait_semaphore = image_available_semaphore(semaphore_index_);
         vk_assert(vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, wait_semaphore, VK_NULL_HANDLE, &image_index_));

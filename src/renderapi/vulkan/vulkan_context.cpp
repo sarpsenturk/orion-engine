@@ -73,7 +73,7 @@ namespace orion
             if (index >= table.size()) {
                 return {};
             }
-            const auto entry = table[index];
+            const auto& entry = table[index];
             if (entry.gen != gen) {
                 return {};
             }
@@ -176,9 +176,9 @@ namespace orion
         return ImageHandle{insert_t(images_, VulkanImage{.image = image, .allocation = allocation})};
     }
 
-    RenderTargetHandle VulkanContext::insert(VkImageView image_view)
+    ImageViewHandle VulkanContext::insert(VkImageView image_view)
     {
-        return RenderTargetHandle{insert_t(image_views_, image_view)};
+        return ImageViewHandle{insert_t(image_views_, image_view)};
     }
 
     SemaphoreHandle VulkanContext::insert(VkSemaphore semaphore)
@@ -226,9 +226,9 @@ namespace orion
         return lookup_t(images_, static_cast<render_device_handle_t>(image)).image;
     }
 
-    VkImageView VulkanContext::lookup(RenderTargetHandle render_target) const
+    VkImageView VulkanContext::lookup(ImageViewHandle image_view) const
     {
-        return lookup_t(image_views_, static_cast<render_device_handle_t>(render_target));
+        return lookup_t(image_views_, static_cast<render_device_handle_t>(image_view));
     }
 
     VkSemaphore VulkanContext::lookup(SemaphoreHandle semaphore) const
@@ -292,7 +292,7 @@ namespace orion
         });
     }
 
-    bool VulkanContext::remove(RenderTargetHandle render_target)
+    bool VulkanContext::remove(ImageViewHandle render_target)
     {
         auto deleter = [this](VkImageView image_view) {
             vkDestroyImageView(device_, image_view, nullptr);
@@ -326,7 +326,7 @@ namespace orion
 
     bool VulkanContext::remove(DescriptorSetHandle descriptor_set)
     {
-        auto deleter = [this](VulkanDescriptorSet descriptor_set) {
+        auto deleter = [this](const VulkanDescriptorSet& descriptor_set) {
             vkFreeDescriptorSets(device_, descriptor_set.pool, 1, &descriptor_set.set);
         };
         return remove_t(descriptor_sets_, static_cast<render_device_handle_t>(descriptor_set), deleter);

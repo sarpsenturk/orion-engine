@@ -23,4 +23,5 @@ namespace orion
     VkDescriptorType to_vk_descriptor_type(DescriptorType descriptor_type);
     VkImageType to_vk_image_type(ImageType image_type);
     VkImageUsageFlags to_vk_image_usage(ImageUsageFlags usage);
+    VkImageViewType to_vk_image_view_type(ImageViewType image_view_type);
 } // namespace orion

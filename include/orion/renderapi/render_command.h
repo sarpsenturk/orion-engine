@@ -15,7 +15,7 @@ namespace orion
     };
 
     struct RenderAttachment {
-        RenderTargetHandle render_target;
+        ImageViewHandle render_target;
         std::array<float, 4> clear_color;
     };
 

@@ -37,6 +37,11 @@ namespace orion
         DescriptorSetHandle create_descriptor_set(const DescriptorSetDesc& desc);
         ImageHandle create_image(const ImageDesc& desc);
 
+        // TODO: For consistency, consider returning BufferViewHandle from create_constant_buffer_view
+
+        void create_constant_buffer_view(const ConstantBufferViewDesc& desc);
+        ImageViewHandle create_image_view(const ImageViewDesc& desc);
+
         void destroy(DescriptorSetLayoutHandle descriptor_set_layout);
         void destroy(PipelineLayoutHandle pipeline_layout);
         void destroy(PipelineHandle pipeline);
@@ -46,14 +51,13 @@ namespace orion
         void destroy(DescriptorPoolHandle descriptor_pool);
         void destroy(DescriptorSetHandle descriptor_set);
         void destroy(ImageHandle image);
+        void destroy(ImageViewHandle image_view);
 
         void* map(BufferHandle buffer);
         void unmap(BufferHandle buffer);
         void memcpy(BufferHandle dst, const void* src, std::size_t size);
 
         void wait_for_fence(FenceHandle fence);
-
-        void create_constant_buffer_view(const ConstantBufferViewDesc& desc);
 
     protected:
         RenderDevice(const RenderDevice&) = default;
@@ -78,6 +82,9 @@ namespace orion
         virtual DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) = 0;
         virtual ImageHandle create_image_api(const ImageDesc& desc) = 0;
 
+        virtual void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) = 0;
+        virtual ImageViewHandle create_image_view_api(const ImageViewDesc& desc) = 0;
+
         virtual void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) = 0;
         virtual void destroy_api(PipelineLayoutHandle pipeline_layout) = 0;
         virtual void destroy_api(PipelineHandle pipeline) = 0;
@@ -87,12 +94,11 @@ namespace orion
         virtual void destroy_api(DescriptorPoolHandle descriptor_pool) = 0;
         virtual void destroy_api(DescriptorSetHandle descriptor_set) = 0;
         virtual void destroy_api(ImageHandle image) = 0;
+        virtual void destroy_api(ImageViewHandle image_view) = 0;
 
         virtual void* map_api(BufferHandle buffer) = 0;
         virtual void unmap_api(BufferHandle buffer) = 0;
 
         virtual void wait_for_fence_api(FenceHandle fence) = 0;
-
-        virtual void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) = 0;
     };
 } // namespace orion

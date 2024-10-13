@@ -26,7 +26,7 @@ namespace orion
         ~VulkanSwapchain() override;
 
     private:
-        RenderTargetHandle acquire_render_target_api() override;
+        ImageViewHandle acquire_render_target_api() override;
         ImageHandle current_image_api() override;
         void present_api(bool vsync) override;
 
@@ -47,7 +47,7 @@ namespace orion
         VulkanContext* context_;
 
         std::vector<ImageHandle> images_;
-        std::vector<RenderTargetHandle> render_targets_;
+        std::vector<ImageViewHandle> render_targets_;
         // Both image available semaphores & render finished semaphores are stored in this vector
         // semaphores_[semaphore_index_] -> image_available_semaphore
         // semaphores_[semaphore_index_ + 1] -> render_finished_semaphore

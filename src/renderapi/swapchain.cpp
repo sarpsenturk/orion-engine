@@ -2,7 +2,7 @@
 
 namespace orion
 {
-    RenderTargetHandle Swapchain::acquire_render_target()
+    ImageViewHandle Swapchain::acquire_render_target()
     {
         return acquire_render_target_api();
     }

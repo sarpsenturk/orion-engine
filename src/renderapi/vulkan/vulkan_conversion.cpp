@@ -153,4 +153,25 @@ namespace orion
         }
         return image_usage;
     }
+
+    VkImageViewType to_vk_image_view_type(ImageViewType image_view_type)
+    {
+        switch (image_view_type) {
+            case ImageViewType::View1D:
+                return VK_IMAGE_VIEW_TYPE_1D;
+            case ImageViewType::View2D:
+                return VK_IMAGE_VIEW_TYPE_2D;
+            case ImageViewType::View3D:
+                return VK_IMAGE_VIEW_TYPE_3D;
+            case ImageViewType::ViewCube:
+                return VK_IMAGE_VIEW_TYPE_CUBE;
+            case ImageViewType::View1DArray:
+                return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+            case ImageViewType::View2DArray:
+                return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            case ImageViewType::ViewCubeArray:
+                return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        }
+        unreachable();
+    }
 } // namespace orion
