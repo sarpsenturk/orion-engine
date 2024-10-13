@@ -554,7 +554,7 @@ namespace orion
                 .flags = {},
                 .imageType = to_vk_image_type(desc.type),
                 .format = to_vk_format(desc.format),
-                .extent = {.width = desc.width, .height = desc.height, .depth = desc.height},
+                .extent = {.width = desc.width, .height = desc.height, .depth = desc.depth},
                 .mipLevels = 1,
                 .arrayLayers = 1,
                 .samples = VK_SAMPLE_COUNT_1_BIT,
