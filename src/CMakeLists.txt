@@ -1,6 +1,7 @@
 target_sources(
         orion PRIVATE
         application.cpp
+        input.cpp
         window.cpp
 
         renderapi/buffer.cpp

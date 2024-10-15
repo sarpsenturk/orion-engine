@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/input.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
@@ -37,16 +39,32 @@ namespace orion
         std::int32_t ypos;
     };
 
+    // Sent to the window when a key is pressed
+    struct OnKeyDown {
+        Keycode keycode;
+    };
+
+    // Sent to the window when a key is released
+    struct OnKeyUp {
+        Keycode keycode;
+    };
+
     std::string format_as(const OnWindowClose&);
     std::string format_as(const OnWindowResize& resize);
     std::string format_as(const OnWindowMove& move);
+    std::string format_as(const OnKeyDown& keydown);
+    std::string format_as(const OnKeyUp& keyup);
 
     struct WindowEvent {
         using EventData = std::variant<
             std::monostate,
+
             OnWindowClose,
             OnWindowResize,
-            OnWindowMove>;
+            OnWindowMove,
+
+            OnKeyDown,
+            OnKeyUp>;
         EventData data;
 
         WindowEvent& operator=(EventData event)

@@ -20,6 +20,16 @@ namespace orion
         return fmt::format("WindowMove{{ xpos: {}, ypos: {} }}", move.xpos, move.ypos);
     }
 
+    std::string format_as(const OnKeyDown& keydown)
+    {
+        return fmt::format("KeyDown{{ keycode: {} }}", keydown.keycode);
+    }
+
+    std::string format_as(const OnKeyUp& keyup)
+    {
+        return fmt::format("KeyUp{{ keycode: {} }}", keyup.keycode);
+    }
+
     std::string format_as(const WindowEvent& event)
     {
         return fmt::format("{}", event.data);

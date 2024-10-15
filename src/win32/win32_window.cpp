@@ -8,6 +8,144 @@ namespace orion
     {
         constexpr const char* wnd_class_name = "OrionWindowClass";
 
+        constexpr Keycode vk_to_keycode(WPARAM vk) noexcept
+        {
+            if (vk >= '0' && vk <= '9') {
+                return static_cast<Keycode>(static_cast<int>(Keycode::Alpha0) + (vk - '0'));
+            }
+            if (vk >= 'A' && vk <= 'Z') {
+                return static_cast<Keycode>(static_cast<int>(Keycode::KeyA) + (vk - 'A'));
+            }
+            switch (vk) {
+                case VK_BACK:
+                    return Keycode::Backspace;
+                case VK_TAB:
+                    return Keycode::Tab;
+                case VK_RETURN:
+                    return Keycode::Enter;
+                case VK_ESCAPE:
+                    return Keycode::Escape;
+                case VK_SPACE:
+                    return Keycode::Space;
+                case VK_OEM_7:
+                    return Keycode::Quote;
+                case VK_OEM_COMMA:
+                    return Keycode::Comma;
+                case VK_OEM_MINUS:
+                    return Keycode::Minus;
+                case VK_OEM_PERIOD:
+                    return Keycode::Period;
+                case VK_OEM_2:
+                    return Keycode::Slash;
+                case VK_OEM_1:
+                    return Keycode::Semicolon;
+                case VK_OEM_PLUS:
+                    return Keycode::Equal;
+                case VK_OEM_4:
+                    return Keycode::LeftBracket;
+                case VK_OEM_5:
+                    return Keycode::Backslash;
+                case VK_OEM_6:
+                    return Keycode::RightBracket;
+                case VK_OEM_3:
+                    return Keycode::Backtick;
+                case VK_DELETE:
+                    return Keycode::Delete;
+                case VK_INSERT:
+                    return Keycode::Insert;
+                case VK_HOME:
+                    return Keycode::Home;
+                case VK_END:
+                    return Keycode::End;
+                case VK_PRIOR:
+                    return Keycode::PageUp;
+                case VK_NEXT:
+                    return Keycode::PageDown;
+                case VK_SNAPSHOT:
+                    return Keycode::PrintScreen;
+                case VK_SCROLL:
+                    return Keycode::ScrollLock;
+                case VK_PAUSE:
+                    return Keycode::Pause;
+                case VK_F1:
+                    return Keycode::F1;
+                case VK_F2:
+                    return Keycode::F2;
+                case VK_F3:
+                    return Keycode::F3;
+                case VK_F4:
+                    return Keycode::F4;
+                case VK_F5:
+                    return Keycode::F5;
+                case VK_F6:
+                    return Keycode::F6;
+                case VK_F7:
+                    return Keycode::F7;
+                case VK_F8:
+                    return Keycode::F8;
+                case VK_F9:
+                    return Keycode::F9;
+                case VK_F10:
+                    return Keycode::F10;
+                case VK_F11:
+                    return Keycode::F11;
+                case VK_F12:
+                    return Keycode::F12;
+                case VK_CAPITAL:
+                    return Keycode::Caps;
+                case VK_SHIFT:
+                    return Keycode::Shift;
+                case VK_CONTROL:
+                    return Keycode::Control;
+                case VK_MENU:
+                    return Keycode::Alt;
+                case VK_LWIN:
+                    return Keycode::Command; // Usually maps to the left Windows key
+                case VK_NUMPAD0:
+                    return Keycode::Num0;
+                case VK_NUMPAD1:
+                    return Keycode::Num1;
+                case VK_NUMPAD2:
+                    return Keycode::Num2;
+                case VK_NUMPAD3:
+                    return Keycode::Num3;
+                case VK_NUMPAD4:
+                    return Keycode::Num4;
+                case VK_NUMPAD5:
+                    return Keycode::Num5;
+                case VK_NUMPAD6:
+                    return Keycode::Num6;
+                case VK_NUMPAD7:
+                    return Keycode::Num7;
+                case VK_NUMPAD8:
+                    return Keycode::Num8;
+                case VK_NUMPAD9:
+                    return Keycode::Num9;
+                case VK_DIVIDE:
+                    return Keycode::NumDivide;
+                case VK_MULTIPLY:
+                    return Keycode::NumMultiply;
+                case VK_SUBTRACT:
+                    return Keycode::NumMinus;
+                case VK_ADD:
+                    return Keycode::NumPlus;
+                case VK_DECIMAL:
+                    return Keycode::NumPeriod;
+                case VK_NUMLOCK:
+                    return Keycode::NumLock;
+                case VK_LEFT:
+                    return Keycode::LeftArrow;
+                case VK_UP:
+                    return Keycode::UpArrow;
+                case VK_RIGHT:
+                    return Keycode::RightArrow;
+                case VK_DOWN:
+                    return Keycode::DownArrow;
+                default:
+                    return Keycode::Unknown; // For undefined keys
+            }
+        }
+
         LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
         {
             if (auto* window = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA))) {
@@ -20,6 +158,12 @@ namespace orion
                         return 0;
                     case WM_MOVE:
                         window->event = OnWindowMove{.xpos = static_cast<std::int32_t>(LOWORD(lparam)), .ypos = static_cast<std::int32_t>(HIWORD(lparam))};
+                        return 0;
+                    case WM_KEYDOWN:
+                        window->event = OnKeyDown{.keycode = vk_to_keycode(wparam)};
+                        return 0;
+                    case WM_KEYUP:
+                        window->event = OnKeyUp{.keycode = vk_to_keycode(wparam)};
                         return 0;
                     default:
                         break;

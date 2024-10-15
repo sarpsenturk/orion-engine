@@ -4,6 +4,7 @@ target_sources(
         orion/application.hpp
         orion/assertion.hpp
         orion/compiler.hpp
+        orion/input.hpp
         orion/platform.hpp
         orion/window.hpp
 
