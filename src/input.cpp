@@ -220,4 +220,17 @@ namespace orion
         }
         unreachable();
     }
+
+    const char* format_as(MouseButton mouse_button)
+    {
+        switch (mouse_button) {
+            case MouseButton::Left:
+                return "Left";
+            case MouseButton::Right:
+                return "Right";
+            case MouseButton::Middle:
+                return "Middle";
+        }
+        unreachable();
+    }
 } // namespace orion

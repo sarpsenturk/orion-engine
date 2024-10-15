@@ -49,11 +49,42 @@ namespace orion
         Keycode keycode;
     };
 
+    // Sent to the window when the mouse is moved
+    struct OnMouseMove {
+        std::int32_t xpos;
+        std::int32_t ypos;
+    };
+
+    // Sent to the window when a mouse button is pressed
+    struct OnMouseButtonDown {
+        MouseButton button;
+        std::int32_t xpos;
+        std::int32_t ypos;
+    };
+
+    // Sent to the window when a mouse button is released
+    struct OnMouseButtonUp {
+        MouseButton button;
+        std::int32_t xpos;
+        std::int32_t ypos;
+    };
+
+    // Sent to the window when the mouse wheel is rotated
+    struct OnMouseScroll {
+        std::int32_t scroll;
+        std::int32_t xpos;
+        std::int32_t ypos;
+    };
+
     std::string format_as(const OnWindowClose&);
     std::string format_as(const OnWindowResize& resize);
     std::string format_as(const OnWindowMove& move);
     std::string format_as(const OnKeyDown& keydown);
     std::string format_as(const OnKeyUp& keyup);
+    std::string format_as(const OnMouseMove& mousemove);
+    std::string format_as(const OnMouseButtonDown& mousebuttondown);
+    std::string format_as(const OnMouseButtonUp& mousebuttonup);
+    std::string format_as(const OnMouseScroll& mousescroll);
 
     struct WindowEvent {
         using EventData = std::variant<
@@ -64,7 +95,12 @@ namespace orion
             OnWindowMove,
 
             OnKeyDown,
-            OnKeyUp>;
+            OnKeyUp,
+
+            OnMouseMove,
+            OnMouseButtonDown,
+            OnMouseButtonUp,
+            OnMouseScroll>;
         EventData data;
 
         WindowEvent& operator=(EventData event)

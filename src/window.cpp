@@ -30,6 +30,26 @@ namespace orion
         return fmt::format("KeyUp{{ keycode: {} }}", keyup.keycode);
     }
 
+    std::string format_as(const OnMouseMove& mousemove)
+    {
+        return fmt::format("MouseMove{{ xpos: {}, ypos: {} }}", mousemove.xpos, mousemove.ypos);
+    }
+
+    std::string format_as(const OnMouseButtonDown& mousebuttondown)
+    {
+        return fmt::format("MouseButtonDown{{ button: {}, xpos: {}, ypos: {} }}", mousebuttondown.button, mousebuttondown.xpos, mousebuttondown.ypos);
+    }
+
+    std::string format_as(const OnMouseButtonUp& mousebuttonup)
+    {
+        return fmt::format("MouseButtonUp{{ button: {}, xpos: {}, ypos: {} }}", mousebuttonup.button, mousebuttonup.xpos, mousebuttonup.ypos);
+    }
+
+    std::string format_as(const OnMouseScroll& mousescroll)
+    {
+        return fmt::format("MouseScroll{{ scroll: {}, xpos: {}, ypos: {} }}", mousescroll.scroll, mousescroll.xpos, mousescroll.ypos);
+    }
+
     std::string format_as(const WindowEvent& event)
     {
         return fmt::format("{}", event.data);

@@ -124,5 +124,12 @@ namespace orion
         Max
     };
 
+    enum class MouseButton {
+        Left,
+        Right,
+        Middle,
+    };
+
     const char* format_as(Keycode keycode);
+    const char* format_as(MouseButton mouse_button);
 } // namespace orion

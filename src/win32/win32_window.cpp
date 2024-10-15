@@ -2,6 +2,8 @@
 
 #include "orion/assertion.hpp"
 
+#include <Windowsx.h>
+
 namespace orion
 {
     namespace
@@ -146,6 +148,25 @@ namespace orion
             }
         }
 
+        constexpr MouseButton get_mouse_button(UINT msg)
+        {
+            switch (msg) {
+                case WM_LBUTTONDOWN:
+                case WM_LBUTTONUP:
+                case WM_LBUTTONDBLCLK:
+                    return MouseButton::Left;
+                case WM_RBUTTONDOWN:
+                case WM_RBUTTONUP:
+                case WM_RBUTTONDBLCLK:
+                    return MouseButton::Right;
+                case WM_MBUTTONDOWN:
+                case WM_MBUTTONUP:
+                case WM_MBUTTONDBLCLK:
+                    return MouseButton::Middle;
+            }
+            unreachable();
+        }
+
         LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
         {
             if (auto* window = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA))) {
@@ -164,6 +185,22 @@ namespace orion
                         return 0;
                     case WM_KEYUP:
                         window->event = OnKeyUp{.keycode = vk_to_keycode(wparam)};
+                        return 0;
+                    case WM_MOUSEMOVE:
+                        window->event = OnMouseMove{.xpos = GET_X_LPARAM(lparam), .ypos = GET_Y_LPARAM(lparam)};
+                        return 0;
+                    case WM_LBUTTONDOWN:
+                    case WM_RBUTTONDOWN:
+                    case WM_MBUTTONDOWN:
+                        window->event = OnMouseButtonDown{.button = get_mouse_button(msg), .xpos = GET_X_LPARAM(lparam), .ypos = GET_Y_LPARAM(lparam)};
+                        return 0;
+                    case WM_LBUTTONUP:
+                    case WM_RBUTTONUP:
+                    case WM_MBUTTONUP:
+                        window->event = OnMouseButtonUp{.button = get_mouse_button(msg), .xpos = GET_X_LPARAM(lparam), .ypos = GET_Y_LPARAM(lparam)};
+                        return 0;
+                    case WM_MOUSEWHEEL:
+                        window->event = OnMouseScroll{.scroll = GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA, .xpos = GET_X_LPARAM(lparam), .ypos = GET_Y_LPARAM(lparam)};
                         return 0;
                     default:
                         break;
