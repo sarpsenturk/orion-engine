@@ -5,6 +5,8 @@
 #include "orion/renderapi/handle.hpp"
 
 #include "orion/math/matrix/matrix4.hpp"
+#include "orion/math/vector/vector2.hpp"
+#include "orion/math/vector/vector3.hpp"
 
 #include <vector>
 
@@ -24,9 +26,11 @@ namespace orion
     class SpriteRenderer
     {
     public:
+        static constexpr auto max_batch_size = 5000;
+
         explicit SpriteRenderer(const SpriteRendererDesc& desc);
 
-        void draw();
+        void draw(const Vector3f& position, const Vector2f& size);
         void submit(Renderer* renderer);
 
         [[nodiscard]] std::uint32_t vertex_count() const { return static_cast<std::uint32_t>(sprites_.size()) * 6; }
@@ -37,7 +41,10 @@ namespace orion
         };
 
         struct SpriteData {
+            Matrix4f model;
         };
+
+        static constexpr auto sprite_buffer_size = sizeof(SpriteData) * max_batch_size;
 
         DescriptorSetLayoutHandle descriptor_set_layout_;
         PipelineLayoutHandle pipeline_layout_;
@@ -45,6 +52,7 @@ namespace orion
         DescriptorPoolHandle descriptor_pool_;
         DescriptorSetHandle descriptor_set_;
         BufferHandle constant_buffer_;
+        BufferHandle sprite_buffer_;
 
         std::vector<SpriteData> sprites_;
         Camera camera_;

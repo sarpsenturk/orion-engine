@@ -46,7 +46,7 @@ private:
         renderer_.begin_frame();
 
         // Draw sprite
-        sprite_renderer_.draw();
+        sprite_renderer_.draw({1.f, -1.f, 0.f}, {2.f, 1.f});
 
         // Submit sprite
         sprite_renderer_.submit(&renderer_);

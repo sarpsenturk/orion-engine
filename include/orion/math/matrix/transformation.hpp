@@ -13,13 +13,13 @@ namespace orion
             T{1}, T{0}, T{0}, T{0},
             T{0}, T{1}, T{0}, T{0},
             T{0}, T{0}, T{1}, T{0},
-            x, y, z, T{0}};
+            x, y, z, T{1}};
     }
 
     template<typename T = float>
     Matrix4_t<T> translate(const Vector3_t<T>& vector)
     {
-        return translate(vector.x, vector.y, vector.z);
+        return translate(vector[0], vector[1], vector[2]);
     }
 
     template<typename T = float>
@@ -35,6 +35,6 @@ namespace orion
     template<typename T = float>
     Matrix4_t<T> scale(const Vector3_t<T>& vector)
     {
-        return scale(vector.x, vector.y, vector.z);
+        return scale(vector[0], vector[1], vector[2]);
     }
 } // namespace orion

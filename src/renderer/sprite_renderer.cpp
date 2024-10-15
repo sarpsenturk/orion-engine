@@ -5,8 +5,9 @@
 
 #include "orion/renderer/renderer.hpp"
 
-#include <stdexcept>
+#include "orion/math/matrix/transformation.hpp"
 
+#include <stdexcept>
 static constexpr auto vertex_shader = R"hlsl(
 static const float3 corners[] = {
     float3(-0.5, 0.5, 0.0),
@@ -19,11 +20,18 @@ cbuffer Scene : register(b0) {
     float4x4 view_projection;
 };
 
+struct SpriteData {
+    float4x4 model;
+};
+StructuredBuffer<SpriteData> sprites;
+
 float4 main(uint id : SV_VertexID) : SV_Position
 {
     uint vertex_idx = id % 6;
     uint corner_idx = vertex_idx < 3 ? vertex_idx : (vertex_idx - 1) % 4;
-    return mul(view_projection, float4(corners[corner_idx], 1.0));
+    uint sprite_idx = id / 6;
+    SpriteData sprite = sprites[sprite_idx];
+    return mul(view_projection, mul(sprite.model, float4(corners[corner_idx], 1.0)));
 })hlsl";
 
 static constexpr auto pixel_shader = R"hlsl(
@@ -43,6 +51,7 @@ namespace orion
         descriptor_set_layout_ = render_device->create_descriptor_set_layout({
             .bindings = {{
                 DescriptorSetBindingDesc{.type = DescriptorType::ConstantBuffer, .size = 1},
+                DescriptorSetBindingDesc{.type = DescriptorType::StructuredBuffer, .size = 1},
             }},
         });
 
@@ -92,6 +101,7 @@ namespace orion
             .max_descriptor_sets = 1,
             .descriptor_sizes = {{
                 DescriptorPoolSize{.type = DescriptorType::ConstantBuffer, .count = 1},
+                DescriptorPoolSize{.type = DescriptorType::StructuredBuffer, .count = 1},
             }},
         });
         descriptor_set_ = render_device->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
@@ -106,6 +116,21 @@ namespace orion
             .descriptor_binding = 0,
         });
 
+        // Create structured buffer for SpriteData and create robuffer_view
+        // TODO: Consider making this not CPU visible and use a staging buffer for this
+        sprite_buffer_ = render_device->create_buffer({.size = sprite_buffer_size, .usage_flags = BufferUsageFlags::StructuredBuffer, .cpu_visible = true});
+        render_device->create_robuffer_view({
+            .buffer = sprite_buffer_,
+            .first_element = 0,
+            .element_count = max_batch_size,
+            .element_size_bytes = sizeof(SpriteData),
+            .descriptor_set = descriptor_set_,
+            .descriptor_binding = 1,
+        });
+
+        // Allocate CPU memory for sprites
+        sprites_.reserve(max_batch_size);
+
         // Setup camera
         const auto view_width = desc.screen_width / desc.camera_size / 2;
         const auto view_height = desc.screen_height / desc.camera_size / 2;
@@ -116,9 +141,10 @@ namespace orion
         render_device->memcpy(constant_buffer_, &scene_data, sizeof(SceneData));
     }
 
-    void SpriteRenderer::draw()
+    void SpriteRenderer::draw(const Vector3f& position, const Vector2f& size)
     {
-        sprites_.push_back({});
+        const auto model = Matrix4f::identity() * translate(position) * scale(vec3(size, 1.f));
+        sprites_.push_back({.model = model});
     }
 
     void SpriteRenderer::submit(Renderer* renderer)
@@ -156,6 +182,12 @@ namespace orion
                 },
             }},
         });
+
+        // Update sprite buffer
+        {
+            auto* render_device = renderer->render_device();
+            render_device->memcpy(sprite_buffer_, sprites_.data(), sizeof(SpriteData) * sprites_.size());
+        }
 
         // Set descriptor set
         command_list->set_descriptor_set({.set = 0, .descriptor_set = descriptor_set_, .pipeline_layout = pipeline_layout_});
