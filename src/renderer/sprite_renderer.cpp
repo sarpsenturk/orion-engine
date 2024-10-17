@@ -143,7 +143,7 @@ namespace orion
 
     void SpriteRenderer::draw(const Vector3f& position, const Vector2f& size)
     {
-        const auto model = Matrix4f::identity() * translate(position) * scale(vec3(size, 1.f));
+        const auto model = Matrix4f::identity() * scale(vec3(size, 1.f)) * translate(position);
         sprites_.push_back({.model = model});
     }
 
