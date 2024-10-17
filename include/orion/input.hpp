@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
+
 namespace orion
 {
     enum class Keycode {
@@ -121,15 +124,46 @@ namespace orion
         RightArrow,
         DownArrow,
 
-        Max
+        Max,
     };
+
+    const char* format_as(Keycode keycode);
 
     enum class MouseButton {
         Left,
         Right,
         Middle,
+        Max,
     };
 
-    const char* format_as(Keycode keycode);
     const char* format_as(MouseButton mouse_button);
+
+    class Keyboard
+    {
+    public:
+        enum class KeyState : std::int8_t {
+            Up = 0,
+            Down,
+        };
+
+        [[nodiscard]] bool is_key_down(Keycode key) const;
+
+        void set_key_down(Keycode key);
+        void set_key_up(Keycode key);
+
+    private:
+        std::array<KeyState, static_cast<std::size_t>(Keycode::Max)> keys_ = {};
+    };
+
+    class Mouse
+    {
+    public:
+        void set_button_down(MouseButton button);
+        void set_button_up(MouseButton button);
+
+        [[nodiscard]] bool is_button_down(MouseButton button) const;
+
+    private:
+        std::array<bool, static_cast<std::size_t>(MouseButton::Max)> buttons_ = {};
+    };
 } // namespace orion

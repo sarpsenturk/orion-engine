@@ -5,6 +5,21 @@
 
 namespace orion
 {
+    WindowEvent Window::poll_event()
+    {
+        auto event = poll_event_impl();
+        if (const auto* keydown = event.as<OnKeyDown>()) {
+            keyboard_.set_key_down(keydown->keycode);
+        } else if (const auto* keyup = event.as<OnKeyUp>()) {
+            keyboard_.set_key_up(keyup->keycode);
+        } else if (const auto* mousebuttondown = event.as<OnMouseButtonDown>()) {
+            mouse_.set_button_down(mousebuttondown->button);
+        } else if (const auto* mousebuttonup = event.as<OnMouseButtonUp>()) {
+            mouse_.set_button_up(mousebuttonup->button);
+        }
+        return event;
+    }
+
     std::string format_as(const OnWindowClose&)
     {
         return "WindowClose{}";

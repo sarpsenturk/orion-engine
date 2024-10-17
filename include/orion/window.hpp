@@ -145,9 +145,19 @@ namespace orion
 
         WindowEvent poll_event();
 
+        [[nodiscard]] const Keyboard& keyboard() const { return keyboard_; }
+        [[nodiscard]] const Mouse& mouse() const { return mouse_; }
+
         [[nodiscard]] const PlatformWindow* platform_window() const noexcept { return platform_window_.get(); }
 
     private:
+        WindowEvent poll_event_impl();
+
         std::unique_ptr<PlatformWindow> platform_window_;
+
+        // Input devices
+
+        Keyboard keyboard_;
+        Mouse mouse_;
     };
 } // namespace orion

@@ -45,6 +45,10 @@ private:
                 orion_exit();
             }
         }
+
+        if (window_.mouse().is_button_down(MouseButton::Left)) {
+            SPDLOG_TRACE("Left button down");
+        }
     }
 
     void on_render() override

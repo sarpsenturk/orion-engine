@@ -290,7 +290,7 @@ namespace orion
         }
     }
 
-    WindowEvent Window::poll_event()
+    WindowEvent Window::poll_event_impl()
     {
         // Empty last event
         platform_window_->event = std::monostate{};

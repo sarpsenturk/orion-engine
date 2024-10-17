@@ -2,8 +2,52 @@
 
 #include "orion/assertion.hpp"
 
+#include <type_traits>
+
 namespace orion
 {
+    bool Keyboard::is_key_down(Keycode key) const
+    {
+        const auto index = static_cast<std::underlying_type_t<Keycode>>(key);
+        ORION_ASSERT(0 <= index && index < keys_.size());
+        return keys_[index] == KeyState::Down;
+    }
+
+    void Keyboard::set_key_down(Keycode key)
+    {
+        const auto index = static_cast<std::underlying_type_t<Keycode>>(key);
+        ORION_ASSERT(0 <= index && index < keys_.size());
+        keys_[index] = KeyState::Down;
+    }
+
+    void Keyboard::set_key_up(Keycode key)
+    {
+        const auto index = static_cast<std::underlying_type_t<Keycode>>(key);
+        ORION_ASSERT(0 <= index && index < keys_.size());
+        keys_[index] = KeyState::Up;
+    }
+
+    void Mouse::set_button_down(MouseButton button)
+    {
+        const auto index = static_cast<std::underlying_type_t<MouseButton>>(button);
+        ORION_ASSERT(0 <= index && index < buttons_.size());
+        buttons_[index] = true;
+    }
+
+    void Mouse::set_button_up(MouseButton button)
+    {
+        const auto index = static_cast<std::underlying_type_t<MouseButton>>(button);
+        ORION_ASSERT(0 <= index && index < buttons_.size());
+        buttons_[index] = false;
+    }
+
+    bool Mouse::is_button_down(MouseButton button) const
+    {
+        const auto index = static_cast<std::underlying_type_t<MouseButton>>(button);
+        ORION_ASSERT(0 <= index && index < buttons_.size());
+        return buttons_[index];
+    }
+
     const char* format_as(Keycode keycode)
     {
         switch (keycode) {
