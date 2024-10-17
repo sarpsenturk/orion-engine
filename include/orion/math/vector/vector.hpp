@@ -48,6 +48,11 @@ namespace orion
         constexpr reference back() { return data_.back(); }
         constexpr const_reference back() const { return data_.back(); }
 
+        constexpr std::array<T, N>& as_array() noexcept { return data_; }
+        constexpr const std::array<T, N>& as_array() const noexcept { return data_; }
+
+        // Equality operators
+
         constexpr friend bool operator==(const Vector& lhs, const Vector& rhs)
         {
             return lhs.data_ == rhs.data_;
@@ -57,6 +62,8 @@ namespace orion
         {
             return lhs.data_ != rhs.data_;
         }
+
+        // Addition
 
         constexpr friend Vector operator+(const Vector& lhs, const Vector& rhs)
         {
@@ -71,6 +78,8 @@ namespace orion
             return lhs;
         }
 
+        // Subtraction
+
         constexpr friend Vector operator-(const Vector& lhs, const Vector& rhs)
         {
             Vector result;
@@ -83,6 +92,8 @@ namespace orion
             std::transform(lhs.begin(), lhs.end(), rhs.begin(), lhs.begin(), [](auto a, auto b) { return a - b; });
             return lhs;
         }
+
+        // Scalar multiplication
 
         constexpr friend auto operator*(const Vector& vector, auto scalar) -> Vector<std::common_type_t<T, decltype(scalar)>, N>
         {
@@ -97,6 +108,8 @@ namespace orion
             std::transform(vector.begin(), vector.end(), result.begin(), [scalar](auto a) { return a * scalar; });
             return result;
         }
+
+        // Scalar division
 
         constexpr friend auto operator/(const Vector& vector, auto scalar) -> Vector<std::common_type_t<T, decltype(scalar)>, N>
         {

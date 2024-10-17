@@ -25,7 +25,14 @@ public:
         auto* graphics_queue = renderer_.graphics_queue();
 
         // Create swapchain
-        swapchain_ = render_device->create_swapchain({.window = &window_, .queue = graphics_queue, .width = 800, .height = 600, .image_count = 2, .image_format = Format::B8G8R8A8_Unorm});
+        swapchain_ = render_device->create_swapchain({
+            .window = &window_,
+            .queue = graphics_queue,
+            .width = 800,
+            .height = 600,
+            .image_count = 2,
+            .image_format = Format::B8G8R8A8_Unorm,
+        });
     }
 
 private:
@@ -43,7 +50,7 @@ private:
     void on_render() override
     {
         // Begin a new frame
-        renderer_.begin_frame();
+        renderer_.begin_frame(colors::black);
 
         // Draw sprite
         sprite_renderer_.draw({1.f, -1.f, 0.f}, {2.f, 1.f});

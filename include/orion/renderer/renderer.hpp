@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/renderer/color.hpp"
+
 #include "orion/renderapi/render_backend.hpp"
 #include "orion/renderapi/render_command.hpp"
 #include "orion/renderapi/render_device.hpp"
@@ -20,7 +22,7 @@ namespace orion
     public:
         explicit Renderer(RendererDesc desc);
 
-        void begin_frame();
+        void begin_frame(const Color& clear_color);
         void end_frame();
 
         void present(Swapchain* swapchain, std::uint32_t swapchain_width, std::uint32_t swapchain_height);

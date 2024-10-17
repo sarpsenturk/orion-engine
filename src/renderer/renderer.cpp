@@ -148,7 +148,7 @@ namespace orion
         frame_fence_ = render_device_->create_fence({.signaled = false});
     }
 
-    void Renderer::begin_frame()
+    void Renderer::begin_frame(const Color& clear_color)
     {
         // Reset all command lists
         command_allocator_->reset();
@@ -163,7 +163,7 @@ namespace orion
         draw_command_->begin_rendering({
             .render_targets = {{RenderAttachment{
                 .render_target = render_image_view_,
-                .clear_color = {1.f, 0.f, 1.f, 1.f},
+                .clear_color = clear_color.as_array(),
             }}},
             .render_area = {
                 .width = static_cast<std::int32_t>(render_width_),
