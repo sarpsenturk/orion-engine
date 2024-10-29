@@ -1,5 +1,5 @@
-#include "orion/math/vector/vector.h"
-#include "orion/math/vector/vector3.h"
+#include "orion/math/vector/vector.hpp"
+#include "orion/math/vector/vector3.hpp"
 
 #include <gtest/gtest.h>
 
@@ -164,6 +164,30 @@ namespace orion
             const auto result = cross(a, b);
             const auto expected = Vector{-3, 6, -3};
             EXPECT_EQ(result, expected);
+        }
+
+        TEST(Vector, SqrMagnitude)
+        {
+            const auto vector = Vector{4, 5, 6};
+            EXPECT_EQ(vector.sqr_magnitude(), 77);
+        }
+
+        TEST(Vector, SqrMagnitude_Zero)
+        {
+            const auto vector = Vector{0, 0 ,0};
+            EXPECT_EQ(vector.sqr_magnitude(), 0);
+        }
+
+        TEST(Vector, SqrMagnitude_Negative)
+        {
+            const auto vector = Vector{1, -2, 3};
+            EXPECT_EQ(vector.sqr_magnitude(), 14);
+        }
+
+        TEST(Vector, Magnitude)
+        {
+            const auto vector = Vector{4, 5, 6};
+            EXPECT_FLOAT_EQ(vector.magnitude(), 8.77496438739);
         }
     } // namespace
 } // namespace orion

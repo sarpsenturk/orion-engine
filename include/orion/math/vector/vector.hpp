@@ -1,9 +1,13 @@
 #pragma once
 
+#include "orion/math/sqrt.hpp"
+
 #include <algorithm>
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <iterator>
+#include <numeric>
 
 namespace orion
 {
@@ -116,6 +120,18 @@ namespace orion
             Vector<std::common_type_t<T, decltype(scalar)>, N> result;
             std::transform(vector.begin(), vector.end(), result.begin(), [scalar](auto a) { return a / scalar; });
             return result;
+        }
+
+        // Vector magnitude
+        constexpr T sqr_magnitude() const noexcept
+        {
+            return std::accumulate(data_.begin(), data_.end(), T{0}, [](auto a, auto b) { return a + b * b; });
+        }
+
+        template<std::floating_point R = float>
+        constexpr R magnitude() const
+        {
+            return math::sqrt(static_cast<R>(sqr_magnitude()));
         }
     };
 

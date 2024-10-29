@@ -16,4 +16,5 @@ function(orion_add_gtest name src)
 endfunction()
 
 orion_add_gtest(matrix matrix.cpp)
+orion_add_gtest(sqrt sqrt.cpp)
 orion_add_gtest(vector vector.cpp)

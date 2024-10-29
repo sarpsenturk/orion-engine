@@ -1,4 +1,4 @@
-#include "orion/math/matrix/matrix.h"
+#include "orion/math/matrix/matrix.hpp"
 
 #include <gtest/gtest.h>
 

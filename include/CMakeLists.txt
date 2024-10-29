@@ -8,6 +8,8 @@ target_sources(
         orion/platform.hpp
         orion/window.hpp
 
+        orion/math/sqrt.hpp
+
         orion/math/matrix/matrix.hpp
         orion/math/matrix/matrix2.hpp
         orion/math/matrix/matrix3.hpp
