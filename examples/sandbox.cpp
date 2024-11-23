@@ -36,7 +36,7 @@ public:
     }
 
 private:
-    void on_update() override
+    void on_update(duration dt) override
     {
         WindowEvent event;
         while ((event = window_.poll_event())) {

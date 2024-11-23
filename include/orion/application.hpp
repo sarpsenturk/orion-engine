@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <span>
 #include <string>
@@ -9,6 +10,10 @@ namespace orion
     class Application
     {
     public:
+        using clock = std::chrono::high_resolution_clock;
+        using time_point = clock::time_point;
+        using duration = std::chrono::duration<float>;
+
         Application();
         virtual ~Application() = default;
 
@@ -25,10 +30,12 @@ namespace orion
         [[noreturn]] void orion_abort(const std::string& what);
 
     private:
-        virtual void on_update() = 0;
+        virtual void on_update(duration dt) = 0;
         virtual void on_render() = 0;
 
         bool should_exit_ = false;
+
+        time_point last_update_ = {};
     };
 } // namespace orion
 

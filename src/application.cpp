@@ -22,7 +22,10 @@ namespace orion
 
     void Application::update()
     {
-        on_update();
+        const auto now = std::chrono::high_resolution_clock::now();
+        const auto dt = std::chrono::duration<float>(now - last_update_);
+        last_update_ = now;
+        on_update(dt);
     }
 
     void Application::render()
