@@ -25,7 +25,7 @@ for a full list of dependencies.
 - [x] Create a Window
 - [x] Render a triangle
 - [x] Render a quad
+- [x] Render multiple quads
+- [x] Game: Pong
 - [ ] Render a textured quad
-- [ ] Render multiple quads
-- [ ] Game: Pong
 - [ ] Game: Breakout
