@@ -47,10 +47,10 @@ add_subdirectory(src)
 add_subdirectory(examples)
 
 # Add entry point
-add_library(orion-main src/entry_point.cpp)
-add_library(orion::orion-main ALIAS orion-main)
-target_link_libraries(orion-main PRIVATE orion)
-target_compile_features(orion-main PUBLIC cxx_std_20)
+add_library(orion_main src/entry_point.cpp)
+add_library(orion::orion_main ALIAS orion_main)
+target_link_libraries(orion_main PRIVATE orion)
+target_compile_features(orion_main PUBLIC cxx_std_20)
 
 # Add & enable tests
 if (PROJECT_IS_TOP_LEVEL)
@@ -82,7 +82,7 @@ install(
 
 # Install orion libs, headers
 install(
-        TARGETS orion orion-main
+        TARGETS orion orion_main
         EXPORT OrionTargets
         LIBRARY DESTINATION ${orion_libdir}
         ARCHIVE DESTINATION ${orion_libdir}
