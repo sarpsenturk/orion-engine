@@ -33,6 +33,9 @@ public:
             .image_count = 2,
             .image_format = Format::B8G8R8A8_Unorm,
         });
+
+        // Set camera background to black
+        camera_.set_clear_color(colors::black);
     }
 
 private:
@@ -112,7 +115,7 @@ private:
     void on_render() override
     {
         // Begin a new frame
-        renderer_.begin_frame(colors::black);
+        renderer_.begin_frame(camera_);
 
         // Draw left paddle
         sprite_renderer_.draw(left_paddle_pos_, paddle_scale);
@@ -135,6 +138,7 @@ private:
 
     Window window_;
     Renderer renderer_;
+    Camera camera_;
     SpriteRenderer sprite_renderer_;
     std::unique_ptr<Swapchain> swapchain_;
 

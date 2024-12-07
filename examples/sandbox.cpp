@@ -54,7 +54,7 @@ private:
     void on_render() override
     {
         // Begin a new frame
-        renderer_.begin_frame(colors::black);
+        renderer_.begin_frame(camera_);
 
         // Draw sprite
         sprite_renderer_.draw({1.f, -1.f, 0.f}, {2.f, 1.f});
@@ -71,6 +71,7 @@ private:
 
     Window window_;
     Renderer renderer_;
+    Camera camera_;
     SpriteRenderer sprite_renderer_;
     std::unique_ptr<Swapchain> swapchain_;
 };

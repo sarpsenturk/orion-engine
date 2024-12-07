@@ -1,11 +1,14 @@
 #pragma once
 
 #include "orion/renderer/color.hpp"
+#include "orion/renderer/camera.hpp"
 
 #include "orion/renderapi/render_backend.hpp"
 #include "orion/renderapi/render_command.hpp"
 #include "orion/renderapi/render_device.hpp"
 #include "orion/renderapi/render_queue.hpp"
+
+#include "orion/math/matrix/matrix4.hpp"
 
 #include <cstdint>
 
@@ -22,7 +25,7 @@ namespace orion
     public:
         explicit Renderer(RendererDesc desc);
 
-        void begin_frame(const Color& clear_color);
+        void begin_frame(const Camera& camera);
         void end_frame();
 
         void present(Swapchain* swapchain, std::uint32_t swapchain_width, std::uint32_t swapchain_height);
