@@ -77,13 +77,13 @@ namespace orion
         , queue_(queue)
         , queue_family_index_(queue_family_index)
         , vma_allocator_(create_vma_allocator(device, physical_device, instance))
-        , context_(device_, vma_allocator_)
+        , context_(device_.get(), vma_allocator_.get())
     {
     }
 
     VulkanDevice::~VulkanDevice()
     {
-        vk_assert(vkDeviceWaitIdle(device_));
+        vk_assert(vkDeviceWaitIdle(device_.get()));
     }
 
     std::unique_ptr<CommandQueue> VulkanDevice::create_command_queue_api()
@@ -143,9 +143,9 @@ namespace orion
             .oldSwapchain = VK_NULL_HANDLE,
         };
 
-        vk_assert(vkCreateSwapchainKHR(device_, &info, nullptr, &swapchain));
+        vk_assert(vkCreateSwapchainKHR(device_.get(), &info, nullptr, &swapchain));
         SPDLOG_TRACE("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
-        return std::make_unique<VulkanSwapchain>(device_, instance_, physical_device_, surface, swapchain, info, vulkan_queue, &context_);
+        return std::make_unique<VulkanSwapchain>(device_.get(), instance_, physical_device_, surface, swapchain, info, vulkan_queue, &context_);
     }
 
     std::unique_ptr<ShaderCompiler> VulkanDevice::create_shader_compiler_api()
@@ -163,10 +163,10 @@ namespace orion
                 .flags = 0,
                 .queueFamilyIndex = queue_family_index_,
             };
-            vk_assert(vkCreateCommandPool(device_, &info, nullptr, &command_pool));
+            vk_assert(vkCreateCommandPool(device_.get(), &info, nullptr, &command_pool));
             SPDLOG_TRACE("Created VkCommandPool {}", fmt::ptr(command_pool));
         }
-        return std::make_unique<VulkanCommandAllocator>(device_, command_pool);
+        return std::make_unique<VulkanCommandAllocator>(device_.get(), command_pool);
     }
 
     std::unique_ptr<CommandList> VulkanDevice::create_command_list_api(const CommandListDesc& desc)
@@ -182,10 +182,10 @@ namespace orion
                 .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 .commandBufferCount = 1,
             };
-            vk_assert(vkAllocateCommandBuffers(device_, &info, &command_buffer));
+            vk_assert(vkAllocateCommandBuffers(device_.get(), &info, &command_buffer));
             SPDLOG_TRACE("Created VkCommandBuffer {}", fmt::ptr(command_buffer));
         }
-        return std::make_unique<VulkanCommandList>(device_, command_buffer, queue_family_index_, &context_);
+        return std::make_unique<VulkanCommandList>(device_.get(), command_buffer, queue_family_index_, &context_);
     }
 
     DescriptorSetLayoutHandle VulkanDevice::create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc)
@@ -209,7 +209,7 @@ namespace orion
                 .bindingCount = static_cast<std::uint32_t>(bindings.size()),
                 .pBindings = bindings.data(),
             };
-            vk_assert(vkCreateDescriptorSetLayout(device_, &info, nullptr, &descriptor_set_layout));
+            vk_assert(vkCreateDescriptorSetLayout(device_.get(), &info, nullptr, &descriptor_set_layout));
             SPDLOG_TRACE("Created VkDescriptorSetLayout {}", fmt::ptr(descriptor_set_layout));
         }
         return context_.insert(descriptor_set_layout);
@@ -234,7 +234,7 @@ namespace orion
                 .pushConstantRangeCount = 0,
                 .pPushConstantRanges = nullptr,
             };
-            vk_assert(vkCreatePipelineLayout(device_, &info, nullptr, &pipeline_layout));
+            vk_assert(vkCreatePipelineLayout(device_.get(), &info, nullptr, &pipeline_layout));
             SPDLOG_TRACE("Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
         }
         return context_.insert(pipeline_layout);
@@ -432,13 +432,13 @@ namespace orion
                 .basePipelineHandle = VK_NULL_HANDLE,
                 .basePipelineIndex = 0,
             };
-            vk_assert(vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
+            vk_assert(vkCreateGraphicsPipelines(device_.get(), VK_NULL_HANDLE, 1, &info, nullptr, &pipeline));
             SPDLOG_TRACE("Created VkPipeline {}", fmt::ptr(pipeline));
 
             // Cleanup shaders
             // TODO: Do this automatically
             for (VkShaderModule module : shader_modules) {
-                vkDestroyShaderModule(device_, module, nullptr);
+                vkDestroyShaderModule(device_.get(), module, nullptr);
             }
         }
         return context_.insert(pipeline);
@@ -461,7 +461,7 @@ namespace orion
                 .flags = desc.cpu_visible ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : VmaAllocationCreateFlags{},
                 .usage = VMA_MEMORY_USAGE_AUTO,
             };
-            vk_assert(vmaCreateBuffer(vma_allocator_, &buffer_info, &alloc_info, &buffer, &allocation, nullptr));
+            vk_assert(vmaCreateBuffer(vma_allocator_.get(), &buffer_info, &alloc_info, &buffer, &allocation, nullptr));
             SPDLOG_TRACE("Created VkBuffer {} with VmaAllocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
         }
         return context_.insert(buffer, allocation);
@@ -476,7 +476,7 @@ namespace orion
                 .pNext = nullptr,
                 .flags = {},
             };
-            vk_assert(vkCreateSemaphore(device_, &info, nullptr, &semaphore));
+            vk_assert(vkCreateSemaphore(device_.get(), &info, nullptr, &semaphore));
             SPDLOG_TRACE("Created VkSemaphore {}", fmt::ptr(semaphore));
         }
         return context_.insert(semaphore);
@@ -491,7 +491,7 @@ namespace orion
                 .pNext = nullptr,
                 .flags = desc.signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
             };
-            vk_assert(vkCreateFence(device_, &info, nullptr, &fence));
+            vk_assert(vkCreateFence(device_.get(), &info, nullptr, &fence));
             SPDLOG_TRACE("Created VkFence {}", fmt::ptr(fence));
         }
         return context_.insert(fence);
@@ -511,12 +511,12 @@ namespace orion
             const auto info = VkDescriptorPoolCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                 .pNext = nullptr,
-                .flags = {},
+                .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, // TODO: This is unneeded and should be removed once descriptors are reworked
                 .maxSets = desc.max_descriptor_sets,
                 .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
                 .pPoolSizes = pool_sizes.data(),
             };
-            vk_assert(vkCreateDescriptorPool(device_, &info, nullptr, &descriptor_pool));
+            vk_assert(vkCreateDescriptorPool(device_.get(), &info, nullptr, &descriptor_pool));
             SPDLOG_TRACE("Created VkDescriptorPool {}", fmt::ptr(descriptor_pool));
         }
         return context_.insert(descriptor_pool);
@@ -537,7 +537,7 @@ namespace orion
                 .descriptorSetCount = 1,
                 .pSetLayouts = &descriptor_set_layout,
             };
-            vk_assert(vkAllocateDescriptorSets(device_, &info, &descriptor_set));
+            vk_assert(vkAllocateDescriptorSets(device_.get(), &info, &descriptor_set));
             SPDLOG_TRACE("Created VkDescriptorSet {}", fmt::ptr(descriptor_set));
         }
         return context_.insert(descriptor_set, descriptor_pool);
@@ -568,7 +568,7 @@ namespace orion
             const auto alloc_info = VmaAllocationCreateInfo{
                 .usage = VMA_MEMORY_USAGE_AUTO,
             };
-            vk_assert(vmaCreateImage(vma_allocator_, &image_info, &alloc_info, &image, &allocation, nullptr));
+            vk_assert(vmaCreateImage(vma_allocator_.get(), &image_info, &alloc_info, &image, &allocation, nullptr));
             SPDLOG_TRACE("Created VkImage {} with VmaAllocation {}", fmt::ptr(image), fmt::ptr(allocation));
         }
         return context_.insert(image, allocation);
@@ -598,7 +598,7 @@ namespace orion
             .pBufferInfo = &buffer_info,
             .pTexelBufferView = nullptr,
         };
-        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
     }
 
     void VulkanDevice::create_robuffer_view_api(const ROBufferViewDesc& desc)
@@ -625,7 +625,7 @@ namespace orion
             .pBufferInfo = &buffer_info,
             .pTexelBufferView = nullptr,
         };
-        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
     }
 
     ImageViewHandle VulkanDevice::create_image_view_api(const ImageViewDesc& desc)
@@ -658,7 +658,7 @@ namespace orion
                     .layerCount = 1,
                 },
             };
-            vk_assert(vkCreateImageView(device_, &image_view_info, nullptr, &image_view));
+            vk_assert(vkCreateImageView(device_.get(), &image_view_info, nullptr, &image_view));
             SPDLOG_TRACE("Created VkImageView {}", fmt::ptr(image_view));
         }
         const auto image_view_handle = context_.insert(image_view);
@@ -680,7 +680,7 @@ namespace orion
             .pBufferInfo = nullptr,
             .pTexelBufferView = nullptr,
         };
-        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
         return image_view_handle;
     }
 
@@ -710,7 +710,7 @@ namespace orion
                 .borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
                 .unnormalizedCoordinates = VK_FALSE,
             };
-            vk_assert(vkCreateSampler(device_, &info, nullptr, &sampler));
+            vk_assert(vkCreateSampler(device_.get(), &info, nullptr, &sampler));
             SPDLOG_TRACE("Created VkSampler {}", fmt::ptr(sampler));
         }
         const auto sampler_handle = context_.insert(sampler);
@@ -732,7 +732,7 @@ namespace orion
             .pBufferInfo = nullptr,
             .pTexelBufferView = nullptr,
         };
-        vkUpdateDescriptorSets(device_, 1, &descriptor_write, 0, nullptr);
+        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
         return sampler_handle;
     }
 
@@ -817,7 +817,7 @@ namespace orion
     {
         if (VulkanBuffer vk_buffer = context_.lookup(buffer)) {
             void* ptr;
-            vk_assert(vmaMapMemory(vma_allocator_, vk_buffer.allocation, &ptr));
+            vk_assert(vmaMapMemory(vma_allocator_.get(), vk_buffer.allocation, &ptr));
             return ptr;
         } else {
             SPDLOG_ERROR("Failed to map buffer {}: failed to find buffer", fmt::underlying(buffer));
@@ -828,7 +828,7 @@ namespace orion
     void VulkanDevice::unmap_api(BufferHandle buffer)
     {
         if (VulkanBuffer vk_buffer = context_.lookup(buffer)) {
-            vmaUnmapMemory(vma_allocator_, vk_buffer.allocation);
+            vmaUnmapMemory(vma_allocator_.get(), vk_buffer.allocation);
         } else {
             SPDLOG_ERROR("Failed to unmap buffer {}: failed to find buffer", fmt::underlying(buffer));
         }
@@ -838,8 +838,8 @@ namespace orion
     {
         VkFence vk_fence = context_.lookup(fence);
         ORION_EXPECTS(vk_fence != VK_NULL_HANDLE);
-        vk_assert(vkWaitForFences(device_, 1, &vk_fence, VK_TRUE, UINT64_MAX));
-        vk_assert(vkResetFences(device_, 1, &vk_fence));
+        vk_assert(vkWaitForFences(device_.get(), 1, &vk_fence, VK_TRUE, UINT64_MAX));
+        vk_assert(vkResetFences(device_.get(), 1, &vk_fence));
     }
 
     VkShaderModule VulkanDevice::create_vk_shader_module(std::span<const std::byte> code)
@@ -852,7 +852,7 @@ namespace orion
             .codeSize = code.size_bytes(),
             .pCode = reinterpret_cast<const uint32_t*>(code.data()),
         };
-        vk_assert(vkCreateShaderModule(device_, &info, nullptr, &shader_module));
+        vk_assert(vkCreateShaderModule(device_.get(), &info, nullptr, &shader_module));
         return shader_module;
     }
 } // namespace orion

@@ -13,13 +13,16 @@ target_sources(orion PRIVATE
         vma_impl.cpp
         volk_impl.cpp
         vulkan_backend.hpp vulkan_backend.cpp
+        vulkan_buffer.hpp vulkan_buffer.cpp
         vulkan_command.hpp vulkan_command.cpp
         vulkan_context.hpp vulkan_context.cpp
         vulkan_conversion.hpp vulkan_conversion.cpp
         vulkan_device.hpp vulkan_device.cpp
         vulkan_error.hpp vulkan_error.cpp
+        vulkan_image.hpp vulkan_image.cpp
         vulkan_platform.hpp ${vulkan_platform_impl}
         vulkan_queue.hpp vulkan_queue.cpp
+        vulkan_raii.hpp vulkan_raii.cpp
         vulkan_shader.hpp vulkan_shader.cpp
         vulkan_swapchain.hpp vulkan_swapchain.cpp
 )

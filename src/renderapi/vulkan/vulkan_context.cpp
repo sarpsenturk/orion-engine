@@ -2,355 +2,174 @@
 
 namespace orion
 {
-    namespace
-    {
-        template<typename T>
-        bool is_empty(const VulkanContext::TableEntry<T>& entry)
-        {
-            return entry.value == VK_NULL_HANDLE;
-        }
-
-        template<>
-        bool is_empty(const VulkanContext::TableEntry<VulkanBuffer>& entry)
-        {
-            return entry.value.buffer == VK_NULL_HANDLE;
-        }
-
-        template<>
-        bool is_empty(const VulkanContext::TableEntry<VulkanDescriptorSet>& entry)
-        {
-            return entry.value.set == VK_NULL_HANDLE;
-        }
-
-        template<>
-        bool is_empty(const VulkanContext::TableEntry<VulkanImage>& entry)
-        {
-            return entry.value.image == VK_NULL_HANDLE;
-        }
-
-        template<typename T>
-        std::uint16_t find_empty_slot(const VulkanContext::ResourceTable<T>& table)
-        {
-            for (std::uint16_t i = 0; i < table.size(); ++i) {
-                if (is_empty(table[i])) {
-                    return i;
-                }
-            }
-            return UINT16_MAX;
-        }
-
-        template<typename T>
-        render_device_handle_t get_device_handle(const VulkanContext::ResourceTable<T>& table, std::uint16_t index)
-        {
-            return index | table[index].gen << 16;
-        }
-
-        template<typename T>
-        render_device_handle_t insert_t(VulkanContext::ResourceTable<T>& table, T value)
-        {
-            const auto slot = find_empty_slot(table);
-            if (slot == UINT16_MAX) {
-                return invalid_device_handle;
-            }
-            table[slot].value = value;
-            return get_device_handle(table, slot);
-        }
-
-        struct VulkanHandleImpl {
-            std::uint16_t index = 0;
-            std::uint16_t gen = 0;
-        };
-
-        VulkanHandleImpl to_vulkan_handle(render_device_handle_t handle)
-        {
-            return {.index = static_cast<std::uint16_t>(handle & 0xffff), .gen = static_cast<std::uint16_t>(handle >> 16)};
-        }
-
-        template<typename T>
-        T lookup_t(const VulkanContext::ResourceTable<T>& table, render_device_handle_t handle)
-        {
-            const auto [index, gen] = to_vulkan_handle(handle);
-            if (index >= table.size()) {
-                return {};
-            }
-            const auto& entry = table[index];
-            if (entry.gen != gen) {
-                return {};
-            }
-            return entry.value;
-        }
-
-        template<typename T>
-        bool remove_t(VulkanContext::ResourceTable<T>& table, render_device_handle_t handle, auto deleter)
-        {
-            const auto [index, gen] = to_vulkan_handle(handle);
-            if (index >= table.size()) {
-                return false;
-            }
-            auto& entry = table[index];
-            if (is_empty(entry) || entry.gen != gen) {
-                return false;
-            }
-            deleter(entry.value);
-            entry.value = {};
-            entry.gen += 1;
-            return true;
-        }
-    } // namespace
-
     VulkanContext::VulkanContext(VkDevice device, VmaAllocator allocator)
         : device_(device)
         , allocator_(allocator)
     {
     }
 
-    VulkanContext::~VulkanContext()
-    {
-        for (const auto [sampler, _] : samplers_) {
-            vkDestroySampler(device_, sampler, nullptr);
-        }
-
-        // Don't need to call vkFreeDescriptorSets as vkDestroyDescriptorPool will handle it
-        for (const auto [descriptor_pool, _] : descriptor_pools_) {
-            vkDestroyDescriptorPool(device_, descriptor_pool, nullptr);
-        }
-
-        for (const auto [fence, _] : fences_) {
-            vkDestroyFence(device_, fence, nullptr);
-        }
-
-        for (const auto [semaphore, _] : semaphores_) {
-            vkDestroySemaphore(device_, semaphore, nullptr);
-        }
-
-        for (const auto [image_view, _] : image_views_) {
-            vkDestroyImageView(device_, image_view, nullptr);
-        }
-
-        // TODO: Destroy user created images
-        for (const auto [image, _] : images_) {
-            if (image.is_user_image()) {
-                vmaDestroyImage(allocator_, image.image, image.allocation);
-            }
-        }
-
-        for (const auto [buffer, _] : buffers_) {
-            vmaDestroyBuffer(allocator_, buffer.buffer, buffer.allocation);
-        }
-
-        for (const auto [pipeline, _] : pipelines_) {
-            vkDestroyPipeline(device_, pipeline, nullptr);
-        }
-
-        for (const auto [pipeline_layout, _] : pipeline_layouts_) {
-            vkDestroyPipelineLayout(device_, pipeline_layout, nullptr);
-        }
-
-        for (const auto [descriptor_set_layout, _] : descriptor_set_layouts_) {
-            vkDestroyDescriptorSetLayout(device_, descriptor_set_layout, nullptr);
-        }
-
-        vmaDestroyAllocator(allocator_);
-
-        vkDestroyDevice(device_, nullptr);
-    }
-
     DescriptorSetLayoutHandle VulkanContext::insert(VkDescriptorSetLayout descriptor_set_layout)
     {
-        return DescriptorSetLayoutHandle{insert_t(descriptor_set_layouts_, descriptor_set_layout)};
+        return DescriptorSetLayoutHandle{descriptor_set_layouts_.insert(UniqueVkDescriptorSetLayout{descriptor_set_layout, {device_}})};
     }
 
     PipelineLayoutHandle VulkanContext::insert(VkPipelineLayout pipeline_layout)
     {
-        return PipelineLayoutHandle{insert_t(pipeline_layouts_, pipeline_layout)};
+        return PipelineLayoutHandle{pipeline_layouts_.insert(UniqueVkPipelineLayout{pipeline_layout, {device_}})};
     }
 
     PipelineHandle VulkanContext::insert(VkPipeline pipeline)
     {
-        return PipelineHandle{insert_t(pipelines_, pipeline)};
+        return PipelineHandle{pipelines_.insert(UniqueVkPipeline{pipeline, {device_}})};
     }
 
     BufferHandle VulkanContext::insert(VkBuffer buffer, VmaAllocation allocation)
     {
-        return BufferHandle{insert_t(buffers_, VulkanBuffer{.buffer = buffer, .allocation = allocation})};
+        return BufferHandle{buffers_.insert(UniqueVulkanBuffer{{buffer, allocation}, {allocator_}})};
     }
 
     ImageHandle VulkanContext::insert(VkImage image, VmaAllocation allocation)
     {
-        return ImageHandle{insert_t(images_, VulkanImage{.image = image, .allocation = allocation})};
+        return ImageHandle{images_.insert(UniqueVulkanImage{{image, allocation}, {allocator_}})};
     }
 
     ImageViewHandle VulkanContext::insert(VkImageView image_view)
     {
-        return ImageViewHandle{insert_t(image_views_, image_view)};
+        return ImageViewHandle{image_views_.insert(UniqueVkImageView{image_view, {device_}})};
     }
 
     SemaphoreHandle VulkanContext::insert(VkSemaphore semaphore)
     {
-        return SemaphoreHandle{insert_t(semaphores_, semaphore)};
+        return SemaphoreHandle{semaphores_.insert(UniqueVkSemaphore{semaphore, {device_}})};
     }
 
     FenceHandle VulkanContext::insert(VkFence fence)
     {
-        return FenceHandle{insert_t(fences_, fence)};
+        return FenceHandle{fences_.insert(UniqueVkFence{fence, {device_}})};
     }
 
     DescriptorPoolHandle VulkanContext::insert(VkDescriptorPool descriptor_pool)
     {
-        return DescriptorPoolHandle{insert_t(descriptor_pools_, descriptor_pool)};
+        return DescriptorPoolHandle{descriptor_pools_.insert(UniqueVkDescriptorPool{descriptor_pool, {device_}})};
     }
 
     DescriptorSetHandle VulkanContext::insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool)
     {
-        return DescriptorSetHandle{insert_t(descriptor_sets_, VulkanDescriptorSet{descriptor_set, descriptor_pool})};
+        return DescriptorSetHandle{descriptor_sets_.insert(UniqueVkDescriptorSet{descriptor_set, {device_, descriptor_pool}})};
     }
 
     SamplerHandle VulkanContext::insert(VkSampler sampler)
     {
-        return SamplerHandle{insert_t(samplers_, sampler)};
+        return SamplerHandle{samplers_.insert(UniqueVkSampler{sampler, {device_}})};
     }
 
     VkDescriptorSetLayout VulkanContext::lookup(DescriptorSetLayoutHandle descriptor_set_layout) const
     {
-        return lookup_t(descriptor_set_layouts_, static_cast<render_device_handle_t>(descriptor_set_layout));
+        return descriptor_set_layouts_.lookup(static_cast<render_device_handle_t>(descriptor_set_layout));
     }
 
     VkPipelineLayout VulkanContext::lookup(PipelineLayoutHandle pipeline_layout) const
     {
-        return lookup_t(pipeline_layouts_, static_cast<render_device_handle_t>(pipeline_layout));
+        return pipeline_layouts_.lookup(static_cast<render_device_handle_t>(pipeline_layout));
     }
 
     VkPipeline VulkanContext::lookup(PipelineHandle pipeline) const
     {
-        return lookup_t(pipelines_, static_cast<render_device_handle_t>(pipeline));
+        return pipelines_.lookup(static_cast<render_device_handle_t>(pipeline));
     }
 
     VulkanBuffer VulkanContext::lookup(BufferHandle buffer) const
     {
-        return lookup_t(buffers_, static_cast<render_device_handle_t>(buffer));
+        return buffers_.lookup(static_cast<render_device_handle_t>(buffer));
     }
 
     VkImage VulkanContext::lookup(ImageHandle image) const
     {
-        return lookup_t(images_, static_cast<render_device_handle_t>(image)).image;
+        return images_.lookup(static_cast<render_device_handle_t>(image)).image;
     }
 
     VkImageView VulkanContext::lookup(ImageViewHandle image_view) const
     {
-        return lookup_t(image_views_, static_cast<render_device_handle_t>(image_view));
+        return image_views_.lookup(static_cast<render_device_handle_t>(image_view));
     }
 
     VkSemaphore VulkanContext::lookup(SemaphoreHandle semaphore) const
     {
-        return lookup_t(semaphores_, static_cast<render_device_handle_t>(semaphore));
+        return semaphores_.lookup(static_cast<render_device_handle_t>(semaphore));
     }
 
     VkFence VulkanContext::lookup(FenceHandle fence) const
     {
-        return lookup_t(fences_, static_cast<render_device_handle_t>(fence));
+        return fences_.lookup(static_cast<render_device_handle_t>(fence));
     }
 
     VkDescriptorPool VulkanContext::lookup(DescriptorPoolHandle descriptor_pool) const
     {
-        return lookup_t(descriptor_pools_, static_cast<render_device_handle_t>(descriptor_pool));
+        return descriptor_pools_.lookup(static_cast<render_device_handle_t>(descriptor_pool));
     }
 
     VkDescriptorSet VulkanContext::lookup(DescriptorSetHandle descriptor_set) const
     {
-        return lookup_t(descriptor_sets_, static_cast<render_device_handle_t>(descriptor_set)).set;
+        return descriptor_sets_.lookup(static_cast<render_device_handle_t>(descriptor_set));
     }
 
     VkSampler VulkanContext::lookup(SamplerHandle sampler) const
     {
-        return lookup_t(samplers_, static_cast<render_device_handle_t>(sampler));
+        return samplers_.lookup(static_cast<render_device_handle_t>(sampler));
     }
 
     bool VulkanContext::remove(DescriptorSetLayoutHandle descriptor_set_layout)
     {
-        auto deleter = [this](VkDescriptorSetLayout descriptor_set_layout) {
-            vkDestroyDescriptorSetLayout(device_, descriptor_set_layout, nullptr);
-        };
-        return remove_t(descriptor_set_layouts_, static_cast<render_device_handle_t>(descriptor_set_layout), deleter);
+        return descriptor_set_layouts_.remove(static_cast<render_device_handle_t>(descriptor_set_layout));
     }
 
     bool VulkanContext::remove(PipelineLayoutHandle pipeline_layout)
     {
-        auto deleter = [this](VkPipelineLayout pipeline_layout) {
-            vkDestroyPipelineLayout(device_, pipeline_layout, nullptr);
-        };
-        return remove_t(pipeline_layouts_, static_cast<render_device_handle_t>(pipeline_layout), deleter);
+        return pipeline_layouts_.remove(static_cast<render_device_handle_t>(pipeline_layout));
     }
 
     bool VulkanContext::remove(PipelineHandle pipeline)
     {
-        auto deleter = [this](VkPipeline pipeline) {
-            vkDestroyPipeline(device_, pipeline, nullptr);
-        };
-        return remove_t(pipelines_, static_cast<render_device_handle_t>(pipeline), deleter);
+        return pipelines_.remove(static_cast<render_device_handle_t>(pipeline));
     }
 
     bool VulkanContext::remove(BufferHandle buffer)
     {
-        auto deleter = [this](VulkanBuffer buffer) {
-            vmaDestroyBuffer(allocator_, buffer.buffer, buffer.allocation);
-        };
-        return remove_t(buffers_, static_cast<render_device_handle_t>(buffer), deleter);
+        return buffers_.remove(static_cast<render_device_handle_t>(buffer));
     }
 
     bool VulkanContext::remove(ImageHandle image)
     {
-        return remove_t(images_, static_cast<render_device_handle_t>(image), [this](VulkanImage vk_image) {
-            if (vk_image.is_user_image()) {
-                vmaDestroyImage(allocator_, vk_image.image, vk_image.allocation);
-            }
-        });
+        return images_.remove(static_cast<render_device_handle_t>(image));
     }
 
     bool VulkanContext::remove(ImageViewHandle render_target)
     {
-        auto deleter = [this](VkImageView image_view) {
-            vkDestroyImageView(device_, image_view, nullptr);
-        };
-        return remove_t(image_views_, static_cast<render_device_handle_t>(render_target), deleter);
+        return image_views_.remove(static_cast<render_device_handle_t>(render_target));
     }
 
     bool VulkanContext::remove(SemaphoreHandle semaphore)
     {
-        auto deleter = [this](VkSemaphore semaphore) {
-            vkDestroySemaphore(device_, semaphore, nullptr);
-        };
-        return remove_t(semaphores_, static_cast<render_device_handle_t>(semaphore), deleter);
+        return semaphores_.remove(static_cast<render_device_handle_t>(semaphore));
     }
 
     bool VulkanContext::remove(FenceHandle fence)
     {
-        auto deleter = [this](VkFence fence) {
-            vkDestroyFence(device_, fence, nullptr);
-        };
-        return remove_t(fences_, static_cast<render_device_handle_t>(fence), deleter);
+        return fences_.remove(static_cast<render_device_handle_t>(fence));
     }
 
     bool VulkanContext::remove(DescriptorPoolHandle descriptor_pool)
     {
-        auto deleter = [this](VkDescriptorPool descriptor_pool) {
-            vkDestroyDescriptorPool(device_, descriptor_pool, nullptr);
-        };
-        return remove_t(descriptor_pools_, static_cast<render_device_handle_t>(descriptor_pool), deleter);
+        return descriptor_pools_.remove(static_cast<render_device_handle_t>(descriptor_pool));
     }
 
     bool VulkanContext::remove(DescriptorSetHandle descriptor_set)
     {
-        auto deleter = [this](const VulkanDescriptorSet& descriptor_set) {
-            vkFreeDescriptorSets(device_, descriptor_set.pool, 1, &descriptor_set.set);
-        };
-        return remove_t(descriptor_sets_, static_cast<render_device_handle_t>(descriptor_set), deleter);
+        return descriptor_sets_.remove(static_cast<render_device_handle_t>(descriptor_set));
     }
 
     bool VulkanContext::remove(SamplerHandle sampler)
     {
-        auto deleter = [this](VkSampler sampler) {
-            vkDestroySampler(device_, sampler, nullptr);
-        };
-        return remove_t(samplers_, static_cast<render_device_handle_t>(sampler), deleter);
+        return samplers_.remove(static_cast<render_device_handle_t>(sampler));
     }
 } // namespace orion

@@ -3,6 +3,7 @@
 #include "orion/renderapi/render_device.hpp"
 
 #include "vulkan_context.hpp"
+#include "vulkan_raii.hpp"
 
 #include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
@@ -58,13 +59,13 @@ namespace orion
 
         VkShaderModule create_vk_shader_module(std::span<const std::byte> code);
 
-        VkDevice device_;
+        UniqueVkDevice device_;
         VkInstance instance_;
         VkPhysicalDevice physical_device_;
         VkQueue queue_;
         std::uint32_t queue_family_index_;
 
-        VmaAllocator vma_allocator_;
+        UniqueVmaAllocator vma_allocator_;
         VulkanContext context_;
     };
 } // namespace orion

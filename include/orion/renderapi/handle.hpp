@@ -5,7 +5,7 @@
 
 namespace orion
 {
-    using render_device_handle_t = std::uint64_t;
+    using render_device_handle_t = std::uint32_t;
     inline constexpr render_device_handle_t invalid_device_handle = std::numeric_limits<render_device_handle_t>::max();
 
     enum class DescriptorSetLayoutHandle : render_device_handle_t { Invalid = invalid_device_handle };

@@ -2,46 +2,76 @@
 
 #include "orion/renderapi/handle.hpp"
 
+#include "vulkan_raii.hpp"
+
 #include <Volk/volk.h>
 #include <vma/vk_mem_alloc.h>
 
 #include <array>
+#include <stdexcept>
 
 namespace orion
 {
-    struct VulkanBuffer {
-        VkBuffer buffer = VK_NULL_HANDLE;
-        VmaAllocation allocation = VK_NULL_HANDLE;
+    template<typename T>
+    class VulkanPool
+    {
+    public:
+        render_device_handle_t insert(T vk_handle)
+        {
+            const auto index = find_empty_index();
+            if (index == UINT16_MAX) {
+                throw std::runtime_error("exceeded maximum number of resources (65535)");
+            }
+            vk_handles_[index] = std::move(vk_handle);
+            const auto gen = gens_[index];
+            const auto handle = static_cast<render_device_handle_t>(gen << 16 | index);
+            return handle;
+        }
 
-        explicit(false) operator bool() const noexcept { return buffer != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE; }
-    };
+        auto lookup(render_device_handle_t handle) const -> decltype(std::declval<T>().get())
+        {
+            const auto index = static_cast<std::uint16_t>(handle & 0xff);
+            const auto gen = static_cast<std::uint16_t>(handle >> 16);
+            if (gen != gens_[index]) {
+                return nullptr;
+            } else {
+                return vk_handles_[index].get();
+            }
+        }
 
-    struct VulkanDescriptorSet {
-        VkDescriptorSet set = VK_NULL_HANDLE;
-        VkDescriptorPool pool = VK_NULL_HANDLE;
-    };
+        bool remove(render_device_handle_t handle)
+        {
+            const auto index = static_cast<std::uint16_t>(handle & 0xff);
+            const auto gen = static_cast<std::uint16_t>(handle >> 16);
+            if (gen != gens_[index]) {
+                return false;
+            } else {
+                vk_handles_[index] = nullptr;
+                gens_[index] += 1;
+                return true;
+            }
+        }
 
-    struct VulkanImage {
-        VkImage image = VK_NULL_HANDLE;
-        VmaAllocation allocation = VK_NULL_HANDLE;
+    private:
+        // TODO: We can use a free list here speed things up
+        [[nodiscard]] std::uint16_t find_empty_index() const
+        {
+            for (std::uint16_t i = 0; i < vk_handles_.size(); ++i) {
+                if (vk_handles_[i] == VK_NULL_HANDLE) {
+                    return i;
+                }
+            }
+            return UINT16_MAX;
+        }
 
-        [[nodiscard]] bool is_user_image() const noexcept { return image != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE; }
+        std::array<T, 0xffff> vk_handles_ = {};
+        std::array<std::uint16_t, 0xffff> gens_ = {};
     };
 
     class VulkanContext
     {
     public:
-        template<typename T>
-        struct TableEntry {
-            T value = {};
-            std::uint16_t gen = 0;
-        };
-
-        template<typename T>
-        using ResourceTable = std::array<TableEntry<T>, 0xffff>;
-
         VulkanContext(VkDevice device, VmaAllocator allocator);
-        ~VulkanContext();
 
         DescriptorSetLayoutHandle insert(VkDescriptorSetLayout descriptor_set_layout);
         PipelineLayoutHandle insert(VkPipelineLayout pipeline_layout);
@@ -83,16 +113,16 @@ namespace orion
         VkDevice device_;
         VmaAllocator allocator_;
 
-        ResourceTable<VkDescriptorSetLayout> descriptor_set_layouts_;
-        ResourceTable<VkPipelineLayout> pipeline_layouts_;
-        ResourceTable<VkPipeline> pipelines_;
-        ResourceTable<VulkanBuffer> buffers_;
-        ResourceTable<VulkanImage> images_;
-        ResourceTable<VkImageView> image_views_;
-        ResourceTable<VkSemaphore> semaphores_;
-        ResourceTable<VkFence> fences_;
-        ResourceTable<VkDescriptorPool> descriptor_pools_;
-        ResourceTable<VulkanDescriptorSet> descriptor_sets_;
-        ResourceTable<VkSampler> samplers_;
+        VulkanPool<UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
+        VulkanPool<UniqueVkPipelineLayout> pipeline_layouts_;
+        VulkanPool<UniqueVkPipeline> pipelines_;
+        VulkanPool<UniqueVulkanBuffer> buffers_;
+        VulkanPool<UniqueVulkanImage> images_;
+        VulkanPool<UniqueVkImageView> image_views_;
+        VulkanPool<UniqueVkSemaphore> semaphores_;
+        VulkanPool<UniqueVkFence> fences_;
+        VulkanPool<UniqueVkDescriptorPool> descriptor_pools_;
+        VulkanPool<UniqueVkDescriptorSet> descriptor_sets_;
+        VulkanPool<UniqueVkSampler> samplers_;
     };
 } // namespace orion
