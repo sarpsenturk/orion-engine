@@ -4,8 +4,8 @@ target_sources(
         input.cpp
         window.cpp
 
+        renderapi/bind_group.cpp
         renderapi/buffer.cpp
-        renderapi/descriptor.cpp
         renderapi/format.cpp
         renderapi/image.cpp
         renderapi/pipeline.cpp

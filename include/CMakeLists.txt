@@ -22,8 +22,8 @@ target_sources(
         orion/math/vector/vector3.hpp
         orion/math/vector/vector4.hpp
 
+        orion/renderapi/bind_group.hpp
         orion/renderapi/buffer.hpp
-        orion/renderapi/descriptor.hpp
         orion/renderapi/format.hpp
         orion/renderapi/handle.hpp
         orion/renderapi/image.hpp

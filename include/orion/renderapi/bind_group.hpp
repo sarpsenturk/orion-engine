@@ -19,7 +19,7 @@ namespace orion
         std::uint32_t size;
     };
 
-    struct DescriptorSetLayoutDesc {
+    struct BindGroupLayoutDesc {
         std::span<const DescriptorSetBindingDesc> bindings;
     };
 
@@ -33,15 +33,15 @@ namespace orion
         std::span<const DescriptorPoolSize> descriptor_sizes;
     };
 
-    struct DescriptorSetDesc {
-        DescriptorLayoutHandle layout;
+    struct BindGroupDesc {
+        BindGroupLayoutHandle layout;
     };
 
     struct ConstantBufferViewDesc {
         BufferHandle buffer;
         std::uint32_t offset;
         std::uint32_t size;
-        DescriptorHandle descriptor_set;
+        BindGroupHandle descriptor_set;
         std::uint32_t descriptor_binding;
     };
 
@@ -59,7 +59,7 @@ namespace orion
         ImageHandle image;
         Format format;
         ImageViewType type;
-        DescriptorHandle descriptor_set;
+        BindGroupHandle descriptor_set;
         std::uint32_t descriptor_binding;
     };
 
@@ -96,7 +96,7 @@ namespace orion
         CompareOp compare_op;
         float min_lod;
         float max_lod;
-        DescriptorHandle descriptor_set;
+        BindGroupHandle descriptor_set;
         std::uint32_t descriptor_binding;
     };
 
@@ -105,7 +105,7 @@ namespace orion
         std::uint32_t first_element;
         std::uint32_t element_count;
         std::uint32_t element_size_bytes;
-        DescriptorHandle descriptor_set;
+        BindGroupHandle descriptor_set;
         std::uint32_t descriptor_binding;
     };
 } // namespace orion

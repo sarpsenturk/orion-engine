@@ -47,8 +47,8 @@ namespace orion
     {
         auto* render_device = desc.render_device;
 
-        // Create descriptor set layouts
-        descriptor_set_layout_ = render_device->create_descriptor_set_layout({
+        // Create bind layouts
+        bind_layout_ = render_device->create_bind_group_layout({
             .bindings = {{
                 DescriptorSetBindingDesc{.type = DescriptorType::ConstantBuffer, .size = 1},
                 DescriptorSetBindingDesc{.type = DescriptorType::StructuredBuffer, .size = 1},
@@ -56,7 +56,7 @@ namespace orion
         });
 
         // Create pipeline layout
-        pipeline_layout_ = render_device->create_pipeline_layout({.descriptor_set_layouts = {{descriptor_set_layout_}}});
+        pipeline_layout_ = render_device->create_pipeline_layout({.bind_group_layouts = {{bind_layout_}}});
 
         // Compile shaders for pipeline
         auto shader_compiler = render_device->create_shader_compiler();
@@ -96,8 +96,8 @@ namespace orion
             .render_target_formats = {{Format::B8G8R8A8_Unorm}},
         });
 
-        // Create descriptor pool and descriptor sets
-        descriptor_set_ = render_device->create_descriptor_set({.layout = descriptor_set_layout_});
+        // Create bind group
+        bind_group_ = render_device->create_bind_group({.layout = bind_layout_});
 
         // Create constant buffer for SceneData and create constant buffer view
         constant_buffer_ = render_device->create_buffer({.size = sizeof(SceneData), .usage_flags = BufferUsageFlags::ConstantBuffer, .cpu_visible = true});
@@ -105,7 +105,7 @@ namespace orion
             .buffer = constant_buffer_,
             .offset = 0,
             .size = sizeof(SceneData),
-            .descriptor_set = descriptor_set_,
+            .descriptor_set = bind_group_,
             .descriptor_binding = 0,
         });
 
@@ -117,7 +117,7 @@ namespace orion
             .first_element = 0,
             .element_count = max_batch_size,
             .element_size_bytes = sizeof(SpriteData),
-            .descriptor_set = descriptor_set_,
+            .descriptor_set = bind_group_,
             .descriptor_binding = 1,
         });
 
@@ -182,8 +182,8 @@ namespace orion
             render_device->memcpy(sprite_buffer_, sprites_.data(), sizeof(SpriteData) * sprites_.size());
         }
 
-        // Set descriptor set
-        command_list->set_descriptor_set({.set = 0, .descriptor_set = descriptor_set_, .pipeline_layout = pipeline_layout_});
+        // Set bind group
+        command_list->set_bind_group({.index = 0, .bind_group = bind_group_, .pipeline_layout = pipeline_layout_});
 
         // Draw call
         command_list->draw_instanced({.vertex_count = vertex_count(), .instance_count = 1, .start_vertex = 0, .start_instance = 0});

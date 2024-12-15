@@ -31,7 +31,7 @@ namespace orion
         void set_scissors_api(const CmdSetScissors& cmd) override;
         void set_vertex_buffers_api(const CmdSetVertexBuffers& cmd) override;
         void set_index_buffer_api(const CmdSetIndexBuffer& cmd) override;
-        void set_descriptor_set_api(const CmdSetDescriptorSet& cmd) override;
+        void set_bind_group_api(const CmdSetBindGroup& cmd) override;
 
         void draw_instanced_api(const CmdDrawInstanced& cmd) override;
         void draw_indexed_instanced_api(const CmdDrawIndexedInstanced& cmd) override;

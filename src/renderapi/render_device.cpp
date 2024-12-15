@@ -41,10 +41,10 @@ namespace orion
         return command_list;
     }
 
-    DescriptorLayoutHandle RenderDevice::create_descriptor_set_layout(const DescriptorSetLayoutDesc& desc)
+    BindGroupLayoutHandle RenderDevice::create_bind_group_layout(const BindGroupLayoutDesc& desc)
     {
-        auto descriptor_set_layout = create_descriptor_set_layout_api(desc);
-        SPDLOG_DEBUG("Created descriptor set layout {}", fmt::underlying(descriptor_set_layout));
+        auto descriptor_set_layout = create_bind_group_layout_api(desc);
+        SPDLOG_DEBUG("Created bind group layout {}", fmt::underlying(descriptor_set_layout));
         return descriptor_set_layout;
     }
 
@@ -83,10 +83,10 @@ namespace orion
         return fence;
     }
 
-    DescriptorHandle RenderDevice::create_descriptor_set(const DescriptorSetDesc& desc)
+    BindGroupHandle RenderDevice::create_bind_group(const BindGroupDesc& desc)
     {
-        auto descriptor_set = create_descriptor_set_api(desc);
-        SPDLOG_DEBUG("Created descriptor set {}", fmt::underlying(descriptor_set));
+        auto descriptor_set = create_bind_group_api(desc);
+        SPDLOG_DEBUG("Created bind group {}", fmt::underlying(descriptor_set));
         return descriptor_set;
     }
 
@@ -100,14 +100,14 @@ namespace orion
     void RenderDevice::create_constant_buffer_view(const ConstantBufferViewDesc& desc)
     {
         ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
-        ORION_ASSERT(desc.descriptor_set != DescriptorHandle::Invalid);
+        ORION_ASSERT(desc.descriptor_set != BindGroupHandle::Invalid);
         create_constant_buffer_view_api(desc);
     }
 
     void RenderDevice::create_robuffer_view(const ROBufferViewDesc& desc)
     {
         ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
-        ORION_ASSERT(desc.descriptor_set != DescriptorHandle::Invalid);
+        ORION_ASSERT(desc.descriptor_set != BindGroupHandle::Invalid);
         create_robuffer_view_api(desc);
     }
 
@@ -152,16 +152,16 @@ namespace orion
         SPDLOG_DEBUG("Destroyed fence {}", fmt::underlying(fence));
     }
 
-    void RenderDevice::destroy(DescriptorLayoutHandle descriptor_set_layout)
+    void RenderDevice::destroy(BindGroupLayoutHandle bind_group_layout)
     {
-        destroy_api(descriptor_set_layout);
-        SPDLOG_DEBUG("Destroyed descriptor set_layout {}", fmt::underlying(descriptor_set_layout));
+        destroy_api(bind_group_layout);
+        SPDLOG_DEBUG("Destroyed bind group layout {}", fmt::underlying(bind_group_layout));
     }
 
-    void RenderDevice::destroy(DescriptorHandle descriptor_set)
+    void RenderDevice::destroy(BindGroupHandle bind_group)
     {
-        destroy_api(descriptor_set);
-        SPDLOG_DEBUG("Destroyed descriptor set {}", fmt::underlying(descriptor_set));
+        destroy_api(bind_group);
+        SPDLOG_DEBUG("Destroyed bind group {}", fmt::underlying(bind_group));
     }
 
     void RenderDevice::destroy(ImageHandle image)

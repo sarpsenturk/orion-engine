@@ -8,9 +8,9 @@ namespace orion
     {
     }
 
-    DescriptorLayoutHandle VulkanContext::insert(VulkanDescriptorSetLayout descriptor_set_layout)
+    BindGroupLayoutHandle VulkanContext::insert(VulkanDescriptorSetLayout descriptor_set_layout)
     {
-        return DescriptorLayoutHandle{descriptor_set_layouts_.insert(UniqueVulkanDescriptorSetLayout{descriptor_set_layout, {device_}})};
+        return BindGroupLayoutHandle{descriptor_set_layouts_.insert(UniqueVulkanDescriptorSetLayout{descriptor_set_layout, {device_}})};
     }
 
     PipelineLayoutHandle VulkanContext::insert(VkPipelineLayout pipeline_layout)
@@ -48,9 +48,9 @@ namespace orion
         return FenceHandle{fences_.insert(UniqueVkFence{fence, {device_}})};
     }
 
-    DescriptorHandle VulkanContext::insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool)
+    BindGroupHandle VulkanContext::insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool)
     {
-        return DescriptorHandle{descriptor_sets_.insert(UniqueVkDescriptorSet{descriptor_set, {device_, descriptor_pool}})};
+        return BindGroupHandle{descriptor_sets_.insert(UniqueVkDescriptorSet{descriptor_set, {device_, descriptor_pool}})};
     }
 
     SamplerHandle VulkanContext::insert(VkSampler sampler)
@@ -58,9 +58,9 @@ namespace orion
         return SamplerHandle{samplers_.insert(UniqueVkSampler{sampler, {device_}})};
     }
 
-    VulkanDescriptorSetLayout VulkanContext::lookup(DescriptorLayoutHandle descriptor_set_layout) const
+    VulkanDescriptorSetLayout VulkanContext::lookup(BindGroupLayoutHandle bind_group_layout) const
     {
-        return descriptor_set_layouts_.lookup(static_cast<render_device_handle_t>(descriptor_set_layout));
+        return descriptor_set_layouts_.lookup(static_cast<render_device_handle_t>(bind_group_layout));
     }
 
     VkPipelineLayout VulkanContext::lookup(PipelineLayoutHandle pipeline_layout) const
@@ -98,7 +98,7 @@ namespace orion
         return fences_.lookup(static_cast<render_device_handle_t>(fence));
     }
 
-    VkDescriptorSet VulkanContext::lookup(DescriptorHandle descriptor_set) const
+    VkDescriptorSet VulkanContext::lookup(BindGroupHandle descriptor_set) const
     {
         return descriptor_sets_.lookup(static_cast<render_device_handle_t>(descriptor_set));
     }
@@ -108,9 +108,9 @@ namespace orion
         return samplers_.lookup(static_cast<render_device_handle_t>(sampler));
     }
 
-    bool VulkanContext::remove(DescriptorLayoutHandle descriptor_set_layout)
+    bool VulkanContext::remove(BindGroupLayoutHandle bind_group_layout)
     {
-        return descriptor_set_layouts_.remove(static_cast<render_device_handle_t>(descriptor_set_layout));
+        return descriptor_set_layouts_.remove(static_cast<render_device_handle_t>(bind_group_layout));
     }
 
     bool VulkanContext::remove(PipelineLayoutHandle pipeline_layout)
@@ -148,7 +148,7 @@ namespace orion
         return fences_.remove(static_cast<render_device_handle_t>(fence));
     }
 
-    bool VulkanContext::remove(DescriptorHandle descriptor_set)
+    bool VulkanContext::remove(BindGroupHandle descriptor_set)
     {
         return descriptor_sets_.remove(static_cast<render_device_handle_t>(descriptor_set));
     }

@@ -46,10 +46,10 @@ namespace orion
 
         static constexpr auto sprite_buffer_size = sizeof(SpriteData) * max_batch_size;
 
-        DescriptorLayoutHandle descriptor_set_layout_;
+        BindGroupLayoutHandle bind_layout_;
         PipelineLayoutHandle pipeline_layout_;
         PipelineHandle pipeline_;
-        DescriptorHandle descriptor_set_;
+        BindGroupHandle bind_group_;
         BufferHandle constant_buffer_;
         BufferHandle sprite_buffer_;
 

@@ -25,13 +25,13 @@ namespace orion
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
         std::unique_ptr<CommandList> create_command_list_api(const CommandListDesc& desc) override;
 
-        DescriptorLayoutHandle create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc) override;
+        BindGroupLayoutHandle create_bind_group_layout_api(const BindGroupLayoutDesc& desc) override;
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         BufferHandle create_buffer_api(const BufferDesc& desc) override;
         SemaphoreHandle create_semaphore_api(const SemaphoreDesc& desc) override;
         FenceHandle create_fence_api(const FenceDesc& desc) override;
-        DescriptorHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
+        BindGroupHandle create_bind_group_api(const BindGroupDesc& desc) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
 
         void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) override;
@@ -39,13 +39,13 @@ namespace orion
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
 
-        void destroy_api(DescriptorLayoutHandle descriptor_set_layout) override;
+        void destroy_api(BindGroupLayoutHandle bind_group_layout) override;
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
         void destroy_api(PipelineHandle pipeline) override;
         void destroy_api(BufferHandle buffer) override;
         void destroy_api(SemaphoreHandle semaphore) override;
         void destroy_api(FenceHandle fence) override;
-        void destroy_api(DescriptorHandle descriptor_set) override;
+        void destroy_api(BindGroupHandle descriptor_set) override;
         void destroy_api(ImageHandle image) override;
         void destroy_api(ImageViewHandle image_view) override;
         void destroy_api(SamplerHandle sampler) override;

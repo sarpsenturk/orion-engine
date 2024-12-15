@@ -46,8 +46,8 @@ namespace orion
         , render_width_(desc.width)
         , render_height_(desc.height)
     {
-        // Create the descriptor layout for fullscreen triangle
-        fullscreen_descriptor_layout_ = render_device_->create_descriptor_set_layout({
+        // Create the bind group layout for fullscreen triangle
+        fullscreen_bind_layout_ = render_device_->create_bind_group_layout({
             .bindings = {{
                 DescriptorSetBindingDesc{.type = DescriptorType::Sampler, .size = 1},
                 DescriptorSetBindingDesc{.type = DescriptorType::ImageView, .size = 1},
@@ -55,7 +55,7 @@ namespace orion
         });
 
         // Create the pipeline layout for fullscreen triangle
-        fullscreen_pipeline_layout_ = render_device_->create_pipeline_layout({.descriptor_set_layouts = {{fullscreen_descriptor_layout_}}});
+        fullscreen_pipeline_layout_ = render_device_->create_pipeline_layout({.bind_group_layouts = {{fullscreen_bind_layout_}}});
 
         // Create shader compiler
         auto shader_compiler = render_device_->create_shader_compiler();
@@ -97,8 +97,8 @@ namespace orion
             .render_target_formats = {{Format::B8G8R8A8_Unorm}},
         });
 
-        fullscreen_descriptor_set_ = render_device_->create_descriptor_set({
-            .layout = fullscreen_descriptor_layout_,
+        fullscreen_bind_group_ = render_device_->create_bind_group({
+            .layout = fullscreen_bind_layout_,
         });
 
         // Create internal render image
@@ -121,7 +121,7 @@ namespace orion
             .compare_op = CompareOp::Always,
             .min_lod = 0.f,
             .max_lod = 0.f,
-            .descriptor_set = fullscreen_descriptor_set_,
+            .descriptor_set = fullscreen_bind_group_,
             .descriptor_binding = 0,
         });
 
@@ -130,7 +130,7 @@ namespace orion
             .image = render_image_,
             .format = Format::B8G8R8A8_Unorm,
             .type = ImageViewType::View2D,
-            .descriptor_set = fullscreen_descriptor_set_,
+            .descriptor_set = fullscreen_bind_group_,
             .descriptor_binding = 1,
         });
 
@@ -240,8 +240,8 @@ namespace orion
             }},
         });
 
-        // Set fullscreen descriptor set
-        present_command_->set_descriptor_set({.set = 0, .descriptor_set = fullscreen_descriptor_set_, .pipeline_layout = fullscreen_pipeline_layout_});
+        // Set fullscreen bind group
+        present_command_->set_bind_group({.index = 0, .bind_group = fullscreen_bind_group_, .pipeline_layout = fullscreen_pipeline_layout_});
 
         // Draw fullscreen triangle
         present_command_->draw_instanced({.vertex_count = 3, .instance_count = 1, .start_vertex = 0, .start_instance = 0});

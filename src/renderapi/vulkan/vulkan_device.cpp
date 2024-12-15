@@ -188,7 +188,7 @@ namespace orion
         return std::make_unique<VulkanCommandList>(device_.get(), command_buffer, queue_family_index_, &context_);
     }
 
-    DescriptorLayoutHandle VulkanDevice::create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc)
+    BindGroupLayoutHandle VulkanDevice::create_bind_group_layout_api(const BindGroupLayoutDesc& desc)
     {
         VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
         {
@@ -239,9 +239,9 @@ namespace orion
     {
         VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
         {
-            std::vector<VkDescriptorSetLayout> descriptor_set_layouts(desc.descriptor_set_layouts.size());
-            std::ranges::transform(desc.descriptor_set_layouts, descriptor_set_layouts.begin(), [this](DescriptorLayoutHandle descriptor_set_layout) {
-                VkDescriptorSetLayout vk_descriptor_set_layout = context_.lookup(descriptor_set_layout).layout;
+            std::vector<VkDescriptorSetLayout> descriptor_set_layouts(desc.bind_group_layouts.size());
+            std::ranges::transform(desc.bind_group_layouts, descriptor_set_layouts.begin(), [this](BindGroupLayoutHandle bind_group_layout) {
+                VkDescriptorSetLayout vk_descriptor_set_layout = context_.lookup(bind_group_layout).layout;
                 ORION_EXPECTS(vk_descriptor_set_layout != VK_NULL_HANDLE);
                 return vk_descriptor_set_layout;
             });
@@ -517,7 +517,7 @@ namespace orion
         return context_.insert(fence);
     }
 
-    DescriptorHandle VulkanDevice::create_descriptor_set_api(const DescriptorSetDesc& desc)
+    BindGroupHandle VulkanDevice::create_bind_group_api(const BindGroupDesc& desc)
     {
         VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
         auto [layout, pool] = context_.lookup(desc.layout);
@@ -730,10 +730,10 @@ namespace orion
         return sampler_handle;
     }
 
-    void VulkanDevice::destroy_api(DescriptorLayoutHandle descriptor_set_layout)
+    void VulkanDevice::destroy_api(BindGroupLayoutHandle bind_group_layout)
     {
-        if (!context_.remove(descriptor_set_layout)) {
-            SPDLOG_WARN("Attempting to destroy descriptor set layout with handle {}, which is not a valid handle", fmt::underlying(descriptor_set_layout));
+        if (!context_.remove(bind_group_layout)) {
+            SPDLOG_WARN("Attempting to destroy bind group layout with handle {}, which is not a valid handle", fmt::underlying(bind_group_layout));
         }
     }
 
@@ -772,10 +772,10 @@ namespace orion
         }
     }
 
-    void VulkanDevice::destroy_api(DescriptorHandle descriptor_set)
+    void VulkanDevice::destroy_api(BindGroupHandle descriptor_set)
     {
         if (!context_.remove(descriptor_set)) {
-            SPDLOG_WARN("Attempting to destroy descriptor set with handle {}, which is not a valid handle", fmt::underlying(descriptor_set));
+            SPDLOG_WARN("Attempting to destroy bind group with handle {}, which is not a valid handle", fmt::underlying(descriptor_set));
         }
     }
 

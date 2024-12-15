@@ -287,9 +287,9 @@ namespace orion
         vkCmdBindIndexBuffer(command_buffer_, index_buffer, 0, to_vk_index_type(cmd.index_type));
     }
 
-    void VulkanCommandList::set_descriptor_set_api(const CmdSetDescriptorSet& cmd)
+    void VulkanCommandList::set_bind_group_api(const CmdSetBindGroup& cmd)
     {
-        VkDescriptorSet descriptor_set = context_->lookup(cmd.descriptor_set);
+        VkDescriptorSet descriptor_set = context_->lookup(cmd.bind_group);
         ORION_ASSERT(descriptor_set != VK_NULL_HANDLE);
         VkPipelineLayout pipeline_layout = context_->lookup(cmd.pipeline_layout);
         ORION_ASSERT(pipeline_layout != VK_NULL_HANDLE);

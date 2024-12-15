@@ -1,7 +1,7 @@
 #pragma once
 
+#include "orion/renderapi/bind_group.hpp"
 #include "orion/renderapi/buffer.hpp"
-#include "orion/renderapi/descriptor.hpp"
 #include "orion/renderapi/format.hpp"
 #include "orion/renderapi/image.hpp"
 #include "orion/renderapi/pipeline.hpp"

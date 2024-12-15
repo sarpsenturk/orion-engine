@@ -82,9 +82,9 @@ namespace orion
         IndexType index_type;
     };
 
-    struct CmdSetDescriptorSet {
-        std::uint32_t set;
-        DescriptorHandle descriptor_set;
+    struct CmdSetBindGroup {
+        std::uint32_t index;
+        BindGroupHandle bind_group;
         PipelineLayoutHandle pipeline_layout;
     };
 
@@ -122,7 +122,7 @@ namespace orion
         void set_scissors(const CmdSetScissors& cmd);
         void set_vertex_buffers(const CmdSetVertexBuffers& cmd);
         void set_index_buffer(const CmdSetIndexBuffer& cmd);
-        void set_descriptor_set(const CmdSetDescriptorSet& cmd);
+        void set_bind_group(const CmdSetBindGroup& cmd);
 
         void draw_instanced(const CmdDrawInstanced& cmd);
         void draw_indexed_instanced(const CmdDrawIndexedInstanced& cmd);
@@ -147,7 +147,7 @@ namespace orion
         virtual void set_scissors_api(const CmdSetScissors& cmd) = 0;
         virtual void set_vertex_buffers_api(const CmdSetVertexBuffers& cmd) = 0;
         virtual void set_index_buffer_api(const CmdSetIndexBuffer& cmd) = 0;
-        virtual void set_descriptor_set_api(const CmdSetDescriptorSet& cmd) = 0;
+        virtual void set_bind_group_api(const CmdSetBindGroup& cmd) = 0;
 
         virtual void draw_instanced_api(const CmdDrawInstanced& cmd) = 0;
         virtual void draw_indexed_instanced_api(const CmdDrawIndexedInstanced& cmd) = 0;

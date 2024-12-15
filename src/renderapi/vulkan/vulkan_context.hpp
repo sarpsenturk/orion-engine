@@ -76,7 +76,7 @@ namespace orion
     public:
         VulkanContext(VkDevice device, VmaAllocator allocator);
 
-        DescriptorLayoutHandle insert(VulkanDescriptorSetLayout descriptor_set_layout);
+        BindGroupLayoutHandle insert(VulkanDescriptorSetLayout descriptor_set_layout);
         PipelineLayoutHandle insert(VkPipelineLayout pipeline_layout);
         PipelineHandle insert(VkPipeline pipeline);
         BufferHandle insert(VulkanBuffer buffer);
@@ -84,10 +84,10 @@ namespace orion
         ImageViewHandle insert(VkImageView image_view);
         SemaphoreHandle insert(VkSemaphore semaphore);
         FenceHandle insert(VkFence fence);
-        DescriptorHandle insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool);
+        BindGroupHandle insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool);
         SamplerHandle insert(VkSampler sampler);
 
-        [[nodiscard]] VulkanDescriptorSetLayout lookup(DescriptorLayoutHandle descriptor_set_layout) const;
+        [[nodiscard]] VulkanDescriptorSetLayout lookup(BindGroupLayoutHandle bind_group_layout) const;
         [[nodiscard]] VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
         [[nodiscard]] VkPipeline lookup(PipelineHandle pipeline) const;
         [[nodiscard]] VulkanBuffer lookup(BufferHandle buffer) const;
@@ -95,7 +95,7 @@ namespace orion
         [[nodiscard]] VkImageView lookup(ImageViewHandle image_view) const;
         [[nodiscard]] VkSemaphore lookup(SemaphoreHandle semaphore) const;
         [[nodiscard]] VkFence lookup(FenceHandle fence) const;
-        [[nodiscard]] VkDescriptorSet lookup(DescriptorHandle descriptor_set) const;
+        [[nodiscard]] VkDescriptorSet lookup(BindGroupHandle descriptor_set) const;
         [[nodiscard]] VkSampler lookup(SamplerHandle sampler) const;
 
         bool remove(PipelineLayoutHandle pipeline_layout);
@@ -105,8 +105,8 @@ namespace orion
         bool remove(ImageViewHandle image_view);
         bool remove(SemaphoreHandle semaphore);
         bool remove(FenceHandle fence);
-        bool remove(DescriptorLayoutHandle descriptor_set_layout);
-        bool remove(DescriptorHandle descriptor_set);
+        bool remove(BindGroupLayoutHandle bind_group_layout);
+        bool remove(BindGroupHandle descriptor_set);
         bool remove(SamplerHandle sampler);
 
     private:
