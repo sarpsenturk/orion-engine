@@ -24,9 +24,9 @@ VSOut main(uint id : SV_VertexID)
 
 static constexpr auto fullscreen_pixel_shader = R"hlsl(
 [[vk::binding(0, 0)]]
-SamplerState _Sampler : register(s0);
-[[vk::binding(1, 0)]]
 Texture2D _Texture : register(t0);
+[[vk::binding(1, 0)]]
+SamplerState _Sampler : register(s0);
 
 float4 main(float2 uv : TEXCOORD) : SV_Target
 {
@@ -49,8 +49,8 @@ namespace orion
         // Create the bind group layout for fullscreen triangle
         fullscreen_bind_layout_ = render_device_->create_bind_group_layout({
             .bindings = {{
-                DescriptorSetBindingDesc{.type = DescriptorType::Sampler, .size = 1},
                 DescriptorSetBindingDesc{.type = DescriptorType::ImageView, .size = 1},
+                DescriptorSetBindingDesc{.type = DescriptorType::Sampler, .size = 1},
             }},
         });
 
@@ -97,10 +97,6 @@ namespace orion
             .render_target_formats = {{Format::B8G8R8A8_Unorm}},
         });
 
-        fullscreen_bind_group_ = render_device_->create_bind_group({
-            .layout = fullscreen_bind_layout_,
-        });
-
         // Create internal render image
         render_image_ = render_device_->create_image({
             .width = render_width_,
@@ -111,7 +107,13 @@ namespace orion
             .usage_flags = ImageUsageFlags::RenderTarget | ImageUsageFlags::ShaderResource,
         });
 
-        // Create render image sampler
+        // Create internal render image view
+        render_image_view_ = render_device_->create_image_view({
+            .image = render_image_,
+            .type = ImageViewType::View2D,
+        });
+
+        // Create fullscreen image sampler
         render_image_sampler_ = render_device_->create_sampler({
             .filter = Filter::Nearest,
             .address_mode_u = SamplerAddressMode::Border,
@@ -123,10 +125,15 @@ namespace orion
             .max_lod = 0.f,
         });
 
-        // Create internal render image view
-        render_image_view_ = render_device_->create_image_view({
-            .image = render_image_,
-            .type = ImageViewType::View2D,
+        // Create fullscreen bind group
+        fullscreen_bind_group_ = render_device_->create_bind_group({
+            .layout = fullscreen_bind_layout_,
+            .views = {{
+                ImageViewBindingDesc{.binding = 0, .image_view = render_image_view_},
+            }},
+            .samplers = {{
+                SamplerBindingDesc{.binding = 1, .sampler = render_image_sampler_},
+            }},
         });
 
         // Create frame sync objects

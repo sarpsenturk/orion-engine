@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <numeric>
 #include <stdexcept>
 #include <vector>
 
@@ -534,6 +535,86 @@ namespace orion
             vk_assert(vkAllocateDescriptorSets(device_.get(), &info, &descriptor_set));
             SPDLOG_TRACE("Created VkDescriptorSet {}", fmt::ptr(descriptor_set));
         }
+
+        // Preallocate buffers
+        std::vector<VkDescriptorBufferInfo> buffers;
+        buffers.reserve(desc.buffers.size());
+        std::vector<VkDescriptorImageInfo> images;
+        images.reserve(desc.views.size() + desc.samplers.size());
+        std::vector<VkWriteDescriptorSet> writes;
+        writes.reserve(buffers.size() + images.size());
+
+        // Binding index
+        std::uint32_t binding = 0;
+
+        // Create descriptor updates
+        for (const auto& buffer : desc.buffers) {
+            VkBuffer vk_buffer = context_.lookup(buffer.buffer).buffer;
+            ORION_EXPECTS(vk_buffer != VK_NULL_HANDLE);
+            buffers.push_back(VkDescriptorBufferInfo{
+                .buffer = vk_buffer,
+                .offset = buffer.offset,
+                .range = buffer.size,
+            });
+            writes.push_back(VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = nullptr,
+                .dstSet = descriptor_set,
+                .dstBinding = binding++,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = to_vk_descriptor_type(buffer.type),
+                .pImageInfo = nullptr,
+                .pBufferInfo = &buffers.back(),
+                .pTexelBufferView = nullptr,
+            });
+        }
+        for (const auto& image : desc.views) {
+            VkImageView vk_image_view = context_.lookup(image.image_view);
+            ORION_EXPECTS(vk_image_view != VK_NULL_HANDLE);
+            images.push_back(VkDescriptorImageInfo{
+                .sampler = VK_NULL_HANDLE,
+                .imageView = vk_image_view,
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            });
+            writes.push_back(VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = nullptr,
+                .dstSet = descriptor_set,
+                .dstBinding = binding++,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                .pImageInfo = &images.back(),
+                .pBufferInfo = nullptr,
+                .pTexelBufferView = nullptr,
+            });
+        }
+        for (const auto& sampler : desc.samplers) {
+            VkSampler vk_sampler = context_.lookup(sampler.sampler);
+            ORION_EXPECTS(vk_sampler != VK_NULL_HANDLE);
+            images.push_back(VkDescriptorImageInfo{
+                .sampler = vk_sampler,
+                .imageView = VK_NULL_HANDLE,
+                .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            });
+            writes.push_back(VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = nullptr,
+                .dstSet = descriptor_set,
+                .dstBinding = binding++,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+                .pImageInfo = &images.back(),
+                .pBufferInfo = nullptr,
+                .pTexelBufferView = nullptr,
+            });
+        }
+
+        // Update descriptor set
+        vkUpdateDescriptorSets(device_.get(), static_cast<std::uint32_t>(writes.size()), writes.data(), 0, nullptr);
+
         return context_.insert(descriptor_set, pool);
     }
 

@@ -96,15 +96,21 @@ namespace orion
             .render_target_formats = {{Format::B8G8R8A8_Unorm}},
         });
 
-        // Create bind group
-        bind_group_ = render_device->create_bind_group({.layout = bind_layout_});
-
         // Create constant buffer for SceneData and create constant buffer view
         constant_buffer_ = render_device->create_buffer({.size = sizeof(SceneData), .usage_flags = BufferUsageFlags::ConstantBuffer, .cpu_visible = true});
 
         // Create structured buffer for SpriteData and create robuffer_view
         // TODO: Consider making this not CPU visible and use a staging buffer for this
         sprite_buffer_ = render_device->create_buffer({.size = sprite_buffer_size, .usage_flags = BufferUsageFlags::StructuredBuffer, .cpu_visible = true});
+
+        // Create bind group
+        bind_group_ = render_device->create_bind_group({
+            .layout = bind_layout_,
+            .buffers = {{
+                BufferBindingDesc{.binding = 0, .buffer = constant_buffer_, .type = DescriptorType::ConstantBuffer, .offset = 0, .size = sizeof(SceneData)},
+                BufferBindingDesc{.binding = 1, .buffer = sprite_buffer_, .type = DescriptorType::StructuredBuffer, .offset = 0, .size = sprite_buffer_size},
+            }},
+        });
 
         // Allocate CPU memory for sprites
         sprites_.reserve(max_batch_size);
