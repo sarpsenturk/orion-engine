@@ -121,17 +121,12 @@ namespace orion
             .compare_op = CompareOp::Always,
             .min_lod = 0.f,
             .max_lod = 0.f,
-            .descriptor_set = fullscreen_bind_group_,
-            .descriptor_binding = 0,
         });
 
         // Create internal render image view
         render_image_view_ = render_device_->create_image_view({
             .image = render_image_,
-            .format = Format::B8G8R8A8_Unorm,
             .type = ImageViewType::View2D,
-            .descriptor_set = fullscreen_bind_group_,
-            .descriptor_binding = 1,
         });
 
         // Create frame sync objects

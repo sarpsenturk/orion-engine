@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion/renderapi/format.hpp"
+#include "orion/renderapi/handle.hpp"
 
 #include <cstdint>
 #include <type_traits>
@@ -37,5 +38,55 @@ namespace orion
         Format format;
         ImageType type;
         ImageUsageFlags usage_flags;
+    };
+
+    enum class ImageViewType {
+        View1D,
+        View2D,
+        View3D,
+        ViewCube,
+        View1DArray,
+        View2DArray,
+        ViewCubeArray,
+    };
+
+    struct ImageViewDesc {
+        ImageHandle image;
+        ImageViewType type;
+    };
+
+    enum class Filter {
+        Nearest,
+        Linear,
+    };
+
+    enum class SamplerAddressMode {
+        Wrap,
+        Mirror,
+        Clamp,
+        Border,
+    };
+
+    enum class CompareOp {
+        None = 0,
+        Never,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        Always,
+    };
+
+    struct SamplerDesc {
+        Filter filter;
+        SamplerAddressMode address_mode_u;
+        SamplerAddressMode address_mode_v;
+        SamplerAddressMode address_mode_w;
+        float mip_lod_bias;
+        CompareOp compare_op;
+        float min_lod;
+        float max_lod;
     };
 } // namespace orion

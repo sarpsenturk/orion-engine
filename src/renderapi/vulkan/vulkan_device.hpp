@@ -33,9 +33,6 @@ namespace orion
         FenceHandle create_fence_api(const FenceDesc& desc) override;
         BindGroupHandle create_bind_group_api(const BindGroupDesc& desc) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
-
-        void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) override;
-        void create_robuffer_view_api(const ROBufferViewDesc& desc) override;
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
 

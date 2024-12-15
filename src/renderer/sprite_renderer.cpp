@@ -101,25 +101,10 @@ namespace orion
 
         // Create constant buffer for SceneData and create constant buffer view
         constant_buffer_ = render_device->create_buffer({.size = sizeof(SceneData), .usage_flags = BufferUsageFlags::ConstantBuffer, .cpu_visible = true});
-        render_device->create_constant_buffer_view({
-            .buffer = constant_buffer_,
-            .offset = 0,
-            .size = sizeof(SceneData),
-            .descriptor_set = bind_group_,
-            .descriptor_binding = 0,
-        });
 
         // Create structured buffer for SpriteData and create robuffer_view
         // TODO: Consider making this not CPU visible and use a staging buffer for this
         sprite_buffer_ = render_device->create_buffer({.size = sprite_buffer_size, .usage_flags = BufferUsageFlags::StructuredBuffer, .cpu_visible = true});
-        render_device->create_robuffer_view({
-            .buffer = sprite_buffer_,
-            .first_element = 0,
-            .element_count = max_batch_size,
-            .element_size_bytes = sizeof(SpriteData),
-            .descriptor_set = bind_group_,
-            .descriptor_binding = 1,
-        });
 
         // Allocate CPU memory for sprites
         sprites_.reserve(max_batch_size);

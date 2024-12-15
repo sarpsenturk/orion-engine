@@ -164,7 +164,7 @@ namespace orion
     void VulkanCommandList::transition_barrier_api(const CmdTransitionBarrier& cmd)
     {
         // Find image with handle
-        VkImage vk_image = context_->lookup(cmd.image);
+        VkImage vk_image = context_->lookup(cmd.image).image;
         ORION_ASSERT(vk_image != VK_NULL_HANDLE);
 
         // Get src & dst pairs of VkPipelineStageFlags, VkAccessFlags & VkImageLayout

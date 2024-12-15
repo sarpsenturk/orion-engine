@@ -541,109 +541,51 @@ namespace orion
     {
         VkImage image = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
-        {
-            const auto image_info = VkImageCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = {},
-                .imageType = to_vk_image_type(desc.type),
-                .format = to_vk_format(desc.format),
-                .extent = {.width = desc.width, .height = desc.height, .depth = desc.depth},
-                .mipLevels = 1,
-                .arrayLayers = 1,
-                .samples = VK_SAMPLE_COUNT_1_BIT,
-                .tiling = VK_IMAGE_TILING_OPTIMAL,
-                .usage = to_vk_image_usage(desc.usage_flags),
-                .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-                .queueFamilyIndexCount = 0,
-                .pQueueFamilyIndices = nullptr,
-                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            };
-            const auto alloc_info = VmaAllocationCreateInfo{
-                .usage = VMA_MEMORY_USAGE_AUTO,
-            };
-            vk_assert(vmaCreateImage(vma_allocator_.get(), &image_info, &alloc_info, &image, &allocation, nullptr));
-            SPDLOG_TRACE("Created VkImage {} with VmaAllocation {}", fmt::ptr(image), fmt::ptr(allocation));
-        }
-        return context_.insert(VulkanImage(image, allocation));
-    }
-
-    void VulkanDevice::create_constant_buffer_view_api(const ConstantBufferViewDesc& desc)
-    {
-        VkBuffer vk_buffer = context_.lookup(desc.buffer).buffer;
-        ORION_EXPECTS(vk_buffer != VK_NULL_HANDLE);
-        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
-        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
-
-        const auto buffer_info = VkDescriptorBufferInfo{
-            .buffer = vk_buffer,
-            .offset = desc.offset,
-            .range = desc.size,
-        };
-        const auto descriptor_write = VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        const auto image_info = VkImageCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .pNext = nullptr,
-            .dstSet = vk_descriptor_set,
-            .dstBinding = desc.descriptor_binding,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .pImageInfo = nullptr,
-            .pBufferInfo = &buffer_info,
-            .pTexelBufferView = nullptr,
+            .flags = {},
+            .imageType = to_vk_image_type(desc.type),
+            .format = to_vk_format(desc.format),
+            .extent = {.width = desc.width, .height = desc.height, .depth = desc.depth},
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = to_vk_image_usage(desc.usage_flags),
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices = nullptr,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         };
-        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
-    }
-
-    void VulkanDevice::create_robuffer_view_api(const ROBufferViewDesc& desc)
-    {
-        VkBuffer vk_buffer = context_.lookup(desc.buffer).buffer;
-        ORION_EXPECTS(vk_buffer != VK_NULL_HANDLE);
-        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
-        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
-
-        const auto buffer_info = VkDescriptorBufferInfo{
-            .buffer = vk_buffer,
-            .offset = desc.first_element * desc.element_size_bytes,
-            .range = desc.element_count * desc.element_size_bytes,
+        const auto alloc_info = VmaAllocationCreateInfo{
+            .usage = VMA_MEMORY_USAGE_AUTO,
         };
-        const auto descriptor_write = VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = vk_descriptor_set,
-            .dstBinding = desc.descriptor_binding,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            .pImageInfo = nullptr,
-            .pBufferInfo = &buffer_info,
-            .pTexelBufferView = nullptr,
-        };
-        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
+        vk_assert(vmaCreateImage(vma_allocator_.get(), &image_info, &alloc_info, &image, &allocation, nullptr));
+        SPDLOG_TRACE("Created VkImage {} with VmaAllocation {}", fmt::ptr(image), fmt::ptr(allocation));
+        return context_.insert(VulkanImage(image, allocation), {.create_info = image_info});
     }
 
     ImageViewHandle VulkanDevice::create_image_view_api(const ImageViewDesc& desc)
     {
-        VkImage vk_image = context_.lookup(desc.image);
-        ORION_EXPECTS(vk_image != VK_NULL_HANDLE);
-        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
-        ORION_EXPECTS(vk_descriptor_set != VK_NULL_HANDLE);
-
         VkImageView image_view = VK_NULL_HANDLE;
         {
-            const auto image_view_info = VkImageViewCreateInfo{
+            VkImage vk_image = context_.lookup(desc.image).image;
+            VkFormat format = context_.lookup_data(desc.image)->create_info.format;
+            const auto info = VkImageViewCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = {},
                 .image = vk_image,
                 .viewType = to_vk_image_view_type(desc.type),
-                .format = to_vk_format(desc.format),
+                .format = format,
                 .components = {
                     .r = VK_COMPONENT_SWIZZLE_IDENTITY,
                     .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                     .b = VK_COMPONENT_SWIZZLE_IDENTITY,
                     .a = VK_COMPONENT_SWIZZLE_IDENTITY,
                 },
+                // TODO: Make this customizable
                 .subresourceRange = {
                     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                     .baseMipLevel = 0,
@@ -652,36 +594,14 @@ namespace orion
                     .layerCount = 1,
                 },
             };
-            vk_assert(vkCreateImageView(device_.get(), &image_view_info, nullptr, &image_view));
+            vk_assert(vkCreateImageView(device_.get(), &info, nullptr, &image_view));
             SPDLOG_TRACE("Created VkImageView {}", fmt::ptr(image_view));
         }
-        const auto image_view_handle = context_.insert(image_view);
-
-        const auto image_info = VkDescriptorImageInfo{
-            .sampler = VK_NULL_HANDLE,
-            .imageView = image_view,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        };
-        const auto descriptor_write = VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = vk_descriptor_set,
-            .dstBinding = desc.descriptor_binding,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            .pImageInfo = &image_info,
-            .pBufferInfo = nullptr,
-            .pTexelBufferView = nullptr,
-        };
-        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
-        return image_view_handle;
+        return context_.insert(image_view);
     }
 
     SamplerHandle VulkanDevice::create_sampler_api(const SamplerDesc& desc)
     {
-        VkDescriptorSet vk_descriptor_set = context_.lookup(desc.descriptor_set);
-
         VkSampler sampler = VK_NULL_HANDLE;
         {
             const auto info = VkSamplerCreateInfo{
@@ -707,27 +627,7 @@ namespace orion
             vk_assert(vkCreateSampler(device_.get(), &info, nullptr, &sampler));
             SPDLOG_TRACE("Created VkSampler {}", fmt::ptr(sampler));
         }
-        const auto sampler_handle = context_.insert(sampler);
-
-        const auto image_info = VkDescriptorImageInfo{
-            .sampler = sampler,
-            .imageView = VK_NULL_HANDLE,
-            .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        };
-        const auto descriptor_write = VkWriteDescriptorSet{
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = vk_descriptor_set,
-            .dstBinding = desc.descriptor_binding,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-            .pImageInfo = &image_info,
-            .pBufferInfo = nullptr,
-            .pTexelBufferView = nullptr,
-        };
-        vkUpdateDescriptorSets(device_.get(), 1, &descriptor_write, 0, nullptr);
-        return sampler_handle;
+        return context_.insert(sampler);
     }
 
     void VulkanDevice::destroy_api(BindGroupLayoutHandle bind_group_layout)

@@ -21,4 +21,8 @@ namespace orion
 
         [[nodiscard]] bool is_user_image() const noexcept { return image != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE; }
     };
+
+    struct VulkanImageData {
+        VkImageCreateInfo create_info;
+    };
 } // namespace orion

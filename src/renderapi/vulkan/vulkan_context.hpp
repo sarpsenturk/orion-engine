@@ -15,23 +15,27 @@
 
 namespace orion
 {
-    template<typename T>
+    struct VulkanEmptyData {
+    };
+
+    template<typename T, typename D = VulkanEmptyData>
     class VulkanPool
     {
     public:
-        render_device_handle_t insert(T vk_handle)
+        render_device_handle_t insert(T vk_handle, D data = {})
         {
             const auto index = find_empty_index();
             if (index == UINT16_MAX) {
                 throw std::runtime_error("exceeded maximum number of resources (65535)");
             }
             vk_handles_[index] = std::move(vk_handle);
+            data_[index] = std::move(data);
             const auto gen = gens_[index];
             const auto handle = static_cast<render_device_handle_t>(gen << 16 | index);
             return handle;
         }
 
-        auto lookup(render_device_handle_t handle) const -> decltype(std::declval<T>().get())
+        [[nodiscard]] auto lookup(render_device_handle_t handle) const -> decltype(std::declval<T>().get())
         {
             const auto index = static_cast<std::uint16_t>(handle & 0xff);
             const auto gen = static_cast<std::uint16_t>(handle >> 16);
@@ -41,6 +45,29 @@ namespace orion
                 return vk_handles_[index].get();
             }
         }
+
+        [[nodiscard]] D* lookup_data(render_device_handle_t handle)
+        {
+            const auto index = static_cast<std::uint16_t>(handle & 0xff);
+            const auto gen = static_cast<std::uint16_t>(handle >> 16);
+            if (gen != gens_[index]) {
+                return nullptr;
+            } else {
+                return &data_[index];
+            }
+        }
+
+        [[nodiscard]] const D* lookup_data(render_device_handle_t handle) const
+        {
+            const auto index = static_cast<std::uint16_t>(handle & 0xff);
+            const auto gen = static_cast<std::uint16_t>(handle >> 16);
+            if (gen != gens_[index]) {
+                return nullptr;
+            } else {
+                return &data_[index];
+            }
+        }
+
 
         bool remove(render_device_handle_t handle)
         {
@@ -68,6 +95,7 @@ namespace orion
         }
 
         std::array<T, 0xffff> vk_handles_ = {};
+        std::array<D, 0xffff> data_ = {};
         std::array<std::uint16_t, 0xffff> gens_ = {};
     };
 
@@ -80,7 +108,7 @@ namespace orion
         PipelineLayoutHandle insert(VkPipelineLayout pipeline_layout);
         PipelineHandle insert(VkPipeline pipeline);
         BufferHandle insert(VulkanBuffer buffer);
-        ImageHandle insert(VulkanImage image);
+        ImageHandle insert(VulkanImage image, VulkanImageData data);
         ImageViewHandle insert(VkImageView image_view);
         SemaphoreHandle insert(VkSemaphore semaphore);
         FenceHandle insert(VkFence fence);
@@ -91,14 +119,17 @@ namespace orion
         [[nodiscard]] VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
         [[nodiscard]] VkPipeline lookup(PipelineHandle pipeline) const;
         [[nodiscard]] VulkanBuffer lookup(BufferHandle buffer) const;
-        [[nodiscard]] VkImage lookup(ImageHandle image) const;
+        [[nodiscard]] VulkanImage lookup(ImageHandle image) const;
         [[nodiscard]] VkImageView lookup(ImageViewHandle image_view) const;
         [[nodiscard]] VkSemaphore lookup(SemaphoreHandle semaphore) const;
         [[nodiscard]] VkFence lookup(FenceHandle fence) const;
         [[nodiscard]] VkDescriptorSet lookup(BindGroupHandle descriptor_set) const;
         [[nodiscard]] VkSampler lookup(SamplerHandle sampler) const;
 
-        bool remove(PipelineLayoutHandle pipeline_layout);
+        [[nodiscard]] VulkanImageData* lookup_data(ImageHandle image);
+
+        bool
+        remove(PipelineLayoutHandle pipeline_layout);
         bool remove(PipelineHandle pipeline);
         bool remove(BufferHandle buffer);
         bool remove(ImageHandle image);
@@ -117,7 +148,7 @@ namespace orion
         VulkanPool<UniqueVkPipelineLayout> pipeline_layouts_;
         VulkanPool<UniqueVkPipeline> pipelines_;
         VulkanPool<UniqueVulkanBuffer> buffers_;
-        VulkanPool<UniqueVulkanImage> images_;
+        VulkanPool<UniqueVulkanImage, VulkanImageData> images_;
         VulkanPool<UniqueVkImageView> image_views_;
         VulkanPool<UniqueVkSemaphore> semaphores_;
         VulkanPool<UniqueVkFence> fences_;

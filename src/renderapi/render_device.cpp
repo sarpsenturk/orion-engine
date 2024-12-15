@@ -85,9 +85,9 @@ namespace orion
 
     BindGroupHandle RenderDevice::create_bind_group(const BindGroupDesc& desc)
     {
-        auto descriptor_set = create_bind_group_api(desc);
-        SPDLOG_DEBUG("Created bind group {}", fmt::underlying(descriptor_set));
-        return descriptor_set;
+        auto bind_group = create_bind_group_api(desc);
+        SPDLOG_DEBUG("Created bind group {}", fmt::underlying(bind_group));
+        return bind_group;
     }
 
     ImageHandle RenderDevice::create_image(const ImageDesc& desc)
@@ -97,29 +97,18 @@ namespace orion
         return image;
     }
 
-    void RenderDevice::create_constant_buffer_view(const ConstantBufferViewDesc& desc)
-    {
-        ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
-        ORION_ASSERT(desc.descriptor_set != BindGroupHandle::Invalid);
-        create_constant_buffer_view_api(desc);
-    }
-
-    void RenderDevice::create_robuffer_view(const ROBufferViewDesc& desc)
-    {
-        ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
-        ORION_ASSERT(desc.descriptor_set != BindGroupHandle::Invalid);
-        create_robuffer_view_api(desc);
-    }
-
     ImageViewHandle RenderDevice::create_image_view(const ImageViewDesc& desc)
     {
-        ORION_ASSERT(desc.format != Format::Undefined);
-        return create_image_view_api(desc);
+        auto image_view = create_image_view_api(desc);
+        SPDLOG_DEBUG("Created image view {}", fmt::underlying(image_view));
+        return image_view;
     }
 
     SamplerHandle RenderDevice::create_sampler(const SamplerDesc& desc)
     {
-        return create_sampler_api(desc);
+        auto sampler = create_sampler_api(desc);
+        SPDLOG_DEBUG("Created sampler {}", fmt::underlying(sampler));
+        return sampler;
     }
 
     void RenderDevice::destroy(PipelineLayoutHandle pipeline_layout)

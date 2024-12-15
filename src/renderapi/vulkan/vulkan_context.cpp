@@ -28,9 +28,9 @@ namespace orion
         return BufferHandle{buffers_.insert(UniqueVulkanBuffer(buffer, {allocator_}))};
     }
 
-    ImageHandle VulkanContext::insert(VulkanImage image)
+    ImageHandle VulkanContext::insert(VulkanImage image, VulkanImageData data)
     {
-        return ImageHandle{images_.insert(UniqueVulkanImage(image, {allocator_}))};
+        return ImageHandle{images_.insert(UniqueVulkanImage(image, {allocator_}), data)};
     }
 
     ImageViewHandle VulkanContext::insert(VkImageView image_view)
@@ -78,9 +78,9 @@ namespace orion
         return buffers_.lookup(static_cast<render_device_handle_t>(buffer));
     }
 
-    VkImage VulkanContext::lookup(ImageHandle image) const
+    VulkanImage VulkanContext::lookup(ImageHandle image) const
     {
-        return images_.lookup(static_cast<render_device_handle_t>(image)).image;
+        return images_.lookup(static_cast<render_device_handle_t>(image));
     }
 
     VkImageView VulkanContext::lookup(ImageViewHandle image_view) const
@@ -106,6 +106,11 @@ namespace orion
     VkSampler VulkanContext::lookup(SamplerHandle sampler) const
     {
         return samplers_.lookup(static_cast<render_device_handle_t>(sampler));
+    }
+
+    VulkanImageData* VulkanContext::lookup_data(ImageHandle image)
+    {
+        return images_.lookup_data(static_cast<render_device_handle_t>(image));
     }
 
     bool VulkanContext::remove(BindGroupLayoutHandle bind_group_layout)
