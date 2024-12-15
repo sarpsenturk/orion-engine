@@ -45,11 +45,10 @@ namespace orion
         std::unique_ptr<CommandList> draw_command_;
         std::unique_ptr<CommandList> present_command_;
 
-        DescriptorSetLayoutHandle fullscreen_descriptor_layout_;
+        DescriptorLayoutHandle fullscreen_descriptor_layout_;
         PipelineLayoutHandle fullscreen_pipeline_layout_;
         PipelineHandle fullscreen_pipeline_;
-        DescriptorPoolHandle fullscreen_descriptor_pool_;
-        DescriptorSetHandle fullscreen_descriptor_set_;
+        DescriptorHandle fullscreen_descriptor_set_;
 
         std::uint32_t render_width_;
         std::uint32_t render_height_;

@@ -97,14 +97,7 @@ namespace orion
         });
 
         // Create descriptor pool and descriptor sets
-        descriptor_pool_ = render_device->create_descriptor_pool({
-            .max_descriptor_sets = 1,
-            .descriptor_sizes = {{
-                DescriptorPoolSize{.type = DescriptorType::ConstantBuffer, .count = 1},
-                DescriptorPoolSize{.type = DescriptorType::StructuredBuffer, .count = 1},
-            }},
-        });
-        descriptor_set_ = render_device->create_descriptor_set({.layout = descriptor_set_layout_, .pool = descriptor_pool_});
+        descriptor_set_ = render_device->create_descriptor_set({.layout = descriptor_set_layout_});
 
         // Create constant buffer for SceneData and create constant buffer view
         constant_buffer_ = render_device->create_buffer({.size = sizeof(SceneData), .usage_flags = BufferUsageFlags::ConstantBuffer, .cpu_visible = true});

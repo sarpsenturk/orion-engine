@@ -128,7 +128,7 @@ namespace orion
 
         // Insert images into context
         std::ranges::for_each(images, [&](VkImage image) {
-            images_.push_back(context_->insert(image));
+            images_.push_back(context_->insert(VulkanImage(image)));
         });
 
         return images;

@@ -8,11 +8,9 @@ namespace orion
     struct VulkanImage {
         VulkanImage() = default;
 
-        VulkanImage(VkImage _image, VmaAllocation _allocation)
-            : image(_image)
-            , allocation(_allocation)
-        {
-        }
+        explicit VulkanImage(VkImage _image);
+
+        VulkanImage(VkImage _image, VmaAllocation _allocation);
 
         VulkanImage(std::nullptr_t) {}
 

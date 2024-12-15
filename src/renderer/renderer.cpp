@@ -97,17 +97,8 @@ namespace orion
             .render_target_formats = {{Format::B8G8R8A8_Unorm}},
         });
 
-        // Create descriptor for full screen rendering
-        fullscreen_descriptor_pool_ = render_device_->create_descriptor_pool({
-            .max_descriptor_sets = 1,
-            .descriptor_sizes = {{
-                DescriptorPoolSize{.type = DescriptorType::ImageView, .count = 1},
-                DescriptorPoolSize{.type = DescriptorType::Sampler, .count = 1},
-            }},
-        });
         fullscreen_descriptor_set_ = render_device_->create_descriptor_set({
             .layout = fullscreen_descriptor_layout_,
-            .pool = fullscreen_descriptor_pool_,
         });
 
         // Create internal render image
@@ -161,12 +152,12 @@ namespace orion
 
         // Begin rendering
         draw_command_->begin_rendering({
-            .render_targets = {
-                {RenderAttachment{
+            .render_targets = {{
+                RenderAttachment{
                     .render_target = render_image_view_,
                     .clear_color = camera.clear_color().as_array(),
-                }},
-            },
+                },
+            }},
             .render_area = {
                 .width = static_cast<std::int32_t>(render_width_),
                 .height = static_cast<std::int32_t>(render_height_),

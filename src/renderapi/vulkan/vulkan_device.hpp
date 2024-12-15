@@ -25,14 +25,13 @@ namespace orion
         std::unique_ptr<CommandAllocator> create_command_allocator_api(const CommandAllocatorDesc& desc) override;
         std::unique_ptr<CommandList> create_command_list_api(const CommandListDesc& desc) override;
 
-        DescriptorSetLayoutHandle create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc) override;
+        DescriptorLayoutHandle create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc) override;
         PipelineLayoutHandle create_pipeline_layout_api(const PipelineLayoutDesc& desc) override;
         PipelineHandle create_graphics_pipeline_api(const GraphicsPipelineDesc& desc) override;
         BufferHandle create_buffer_api(const BufferDesc& desc) override;
         SemaphoreHandle create_semaphore_api(const SemaphoreDesc& desc) override;
         FenceHandle create_fence_api(const FenceDesc& desc) override;
-        DescriptorPoolHandle create_descriptor_pool_api(const DescriptorPoolDesc& desc) override;
-        DescriptorSetHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
+        DescriptorHandle create_descriptor_set_api(const DescriptorSetDesc& desc) override;
         ImageHandle create_image_api(const ImageDesc& desc) override;
 
         void create_constant_buffer_view_api(const ConstantBufferViewDesc& desc) override;
@@ -40,14 +39,13 @@ namespace orion
         ImageViewHandle create_image_view_api(const ImageViewDesc& desc) override;
         SamplerHandle create_sampler_api(const SamplerDesc& desc) override;
 
-        void destroy_api(DescriptorSetLayoutHandle descriptor_set_layout) override;
+        void destroy_api(DescriptorLayoutHandle descriptor_set_layout) override;
         void destroy_api(PipelineLayoutHandle pipeline_layout) override;
         void destroy_api(PipelineHandle pipeline) override;
         void destroy_api(BufferHandle buffer) override;
         void destroy_api(SemaphoreHandle semaphore) override;
         void destroy_api(FenceHandle fence) override;
-        void destroy_api(DescriptorPoolHandle descriptor_pool) override;
-        void destroy_api(DescriptorSetHandle descriptor_set) override;
+        void destroy_api(DescriptorHandle descriptor_set) override;
         void destroy_api(ImageHandle image) override;
         void destroy_api(ImageViewHandle image_view) override;
         void destroy_api(SamplerHandle sampler) override;

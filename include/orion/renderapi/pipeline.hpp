@@ -10,7 +10,7 @@
 namespace orion
 {
     struct PipelineLayoutDesc {
-        std::span<const DescriptorSetLayoutHandle> descriptor_set_layouts;
+        std::span<const DescriptorLayoutHandle> descriptor_set_layouts;
     };
 
     struct VertexAttribute {

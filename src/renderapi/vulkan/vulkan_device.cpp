@@ -188,7 +188,7 @@ namespace orion
         return std::make_unique<VulkanCommandList>(device_.get(), command_buffer, queue_family_index_, &context_);
     }
 
-    DescriptorSetLayoutHandle VulkanDevice::create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc)
+    DescriptorLayoutHandle VulkanDevice::create_descriptor_set_layout_api(const DescriptorSetLayoutDesc& desc)
     {
         VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
         {
@@ -212,7 +212,27 @@ namespace orion
             vk_assert(vkCreateDescriptorSetLayout(device_.get(), &info, nullptr, &descriptor_set_layout));
             SPDLOG_TRACE("Created VkDescriptorSetLayout {}", fmt::ptr(descriptor_set_layout));
         }
-        return context_.insert(descriptor_set_layout);
+        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        {
+            std::vector<VkDescriptorPoolSize> pool_sizes(desc.bindings.size());
+            std::ranges::transform(desc.bindings, pool_sizes.begin(), [](const DescriptorSetBindingDesc& binding) {
+                return VkDescriptorPoolSize{
+                    .type = to_vk_descriptor_type(binding.type),
+                    .descriptorCount = binding.size,
+                };
+            });
+            const auto info = VkDescriptorPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .maxSets = 1, // TODO: Allow descriptor set layout reuse
+                .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
+                .pPoolSizes = pool_sizes.data(),
+            };
+            vk_assert(vkCreateDescriptorPool(device_.get(), &info, nullptr, &descriptor_pool));
+            SPDLOG_TRACE("Created VkDescriptorPool {}", fmt::ptr(descriptor_pool));
+        }
+        return context_.insert(VulkanDescriptorSetLayout(descriptor_set_layout, descriptor_pool));
     }
 
     PipelineLayoutHandle VulkanDevice::create_pipeline_layout_api([[maybe_unused]] const PipelineLayoutDesc& desc)
@@ -220,8 +240,8 @@ namespace orion
         VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
         {
             std::vector<VkDescriptorSetLayout> descriptor_set_layouts(desc.descriptor_set_layouts.size());
-            std::ranges::transform(desc.descriptor_set_layouts, descriptor_set_layouts.begin(), [this](DescriptorSetLayoutHandle descriptor_set_layout) {
-                VkDescriptorSetLayout vk_descriptor_set_layout = context_.lookup(descriptor_set_layout);
+            std::ranges::transform(desc.descriptor_set_layouts, descriptor_set_layouts.begin(), [this](DescriptorLayoutHandle descriptor_set_layout) {
+                VkDescriptorSetLayout vk_descriptor_set_layout = context_.lookup(descriptor_set_layout).layout;
                 ORION_EXPECTS(vk_descriptor_set_layout != VK_NULL_HANDLE);
                 return vk_descriptor_set_layout;
             });
@@ -464,7 +484,7 @@ namespace orion
             vk_assert(vmaCreateBuffer(vma_allocator_.get(), &buffer_info, &alloc_info, &buffer, &allocation, nullptr));
             SPDLOG_TRACE("Created VkBuffer {} with VmaAllocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
         }
-        return context_.insert(buffer, allocation);
+        return context_.insert(VulkanBuffer(buffer, allocation));
     }
 
     SemaphoreHandle VulkanDevice::create_semaphore_api(const SemaphoreDesc&)
@@ -497,50 +517,24 @@ namespace orion
         return context_.insert(fence);
     }
 
-    DescriptorPoolHandle VulkanDevice::create_descriptor_pool_api(const DescriptorPoolDesc& desc)
-    {
-        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-        {
-            std::vector<VkDescriptorPoolSize> pool_sizes(desc.descriptor_sizes.size());
-            std::ranges::transform(desc.descriptor_sizes, pool_sizes.begin(), [](const DescriptorPoolSize& pool_size) {
-                return VkDescriptorPoolSize{
-                    .type = to_vk_descriptor_type(pool_size.type),
-                    .descriptorCount = pool_size.count,
-                };
-            });
-            const auto info = VkDescriptorPoolCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, // TODO: This is unneeded and should be removed once descriptors are reworked
-                .maxSets = desc.max_descriptor_sets,
-                .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
-                .pPoolSizes = pool_sizes.data(),
-            };
-            vk_assert(vkCreateDescriptorPool(device_.get(), &info, nullptr, &descriptor_pool));
-            SPDLOG_TRACE("Created VkDescriptorPool {}", fmt::ptr(descriptor_pool));
-        }
-        return context_.insert(descriptor_pool);
-    }
-
-    DescriptorSetHandle VulkanDevice::create_descriptor_set_api(const DescriptorSetDesc& desc)
+    DescriptorHandle VulkanDevice::create_descriptor_set_api(const DescriptorSetDesc& desc)
     {
         VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-        VkDescriptorPool descriptor_pool = context_.lookup(desc.pool);
-        ORION_ENSURES(descriptor_pool != VK_NULL_HANDLE);
+        auto [layout, pool] = context_.lookup(desc.layout);
+        ORION_ENSURES(layout != VK_NULL_HANDLE);
+        ORION_ENSURES(pool != VK_NULL_HANDLE);
         {
-            VkDescriptorSetLayout descriptor_set_layout = context_.lookup(desc.layout);
-            ORION_ENSURES(descriptor_set_layout != VK_NULL_HANDLE);
             const auto info = VkDescriptorSetAllocateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
                 .pNext = nullptr,
-                .descriptorPool = descriptor_pool,
+                .descriptorPool = pool,
                 .descriptorSetCount = 1,
-                .pSetLayouts = &descriptor_set_layout,
+                .pSetLayouts = &layout,
             };
             vk_assert(vkAllocateDescriptorSets(device_.get(), &info, &descriptor_set));
             SPDLOG_TRACE("Created VkDescriptorSet {}", fmt::ptr(descriptor_set));
         }
-        return context_.insert(descriptor_set, descriptor_pool);
+        return context_.insert(descriptor_set, pool);
     }
 
     ImageHandle VulkanDevice::create_image_api(const ImageDesc& desc)
@@ -571,7 +565,7 @@ namespace orion
             vk_assert(vmaCreateImage(vma_allocator_.get(), &image_info, &alloc_info, &image, &allocation, nullptr));
             SPDLOG_TRACE("Created VkImage {} with VmaAllocation {}", fmt::ptr(image), fmt::ptr(allocation));
         }
-        return context_.insert(image, allocation);
+        return context_.insert(VulkanImage(image, allocation));
     }
 
     void VulkanDevice::create_constant_buffer_view_api(const ConstantBufferViewDesc& desc)
@@ -736,7 +730,7 @@ namespace orion
         return sampler_handle;
     }
 
-    void VulkanDevice::destroy_api(DescriptorSetLayoutHandle descriptor_set_layout)
+    void VulkanDevice::destroy_api(DescriptorLayoutHandle descriptor_set_layout)
     {
         if (!context_.remove(descriptor_set_layout)) {
             SPDLOG_WARN("Attempting to destroy descriptor set layout with handle {}, which is not a valid handle", fmt::underlying(descriptor_set_layout));
@@ -778,14 +772,7 @@ namespace orion
         }
     }
 
-    void VulkanDevice::destroy_api(DescriptorPoolHandle descriptor_pool)
-    {
-        if (!context_.remove(descriptor_pool)) {
-            SPDLOG_WARN("Attempting to destroy descriptor pool with handle {}, which is not a valid handle", fmt::underlying(descriptor_pool));
-        }
-    }
-
-    void VulkanDevice::destroy_api(DescriptorSetHandle descriptor_set)
+    void VulkanDevice::destroy_api(DescriptorHandle descriptor_set)
     {
         if (!context_.remove(descriptor_set)) {
             SPDLOG_WARN("Attempting to destroy descriptor set with handle {}, which is not a valid handle", fmt::underlying(descriptor_set));

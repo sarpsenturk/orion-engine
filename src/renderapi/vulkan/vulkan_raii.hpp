@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vulkan_buffer.hpp"
+#include "vulkan_descriptor.hpp"
 #include "vulkan_image.hpp"
 
 #include <Volk/volk.h>
@@ -22,12 +23,12 @@ namespace orion
     };
     using UniqueVmaAllocator = std::unique_ptr<VmaAllocator, VmaAllocatorDeleter>;
 
-    struct VkDescriptorSetLayoutDeleter {
-        using pointer = VkDescriptorSetLayout;
+    struct VulkanDescriptorSetLayoutDeleter {
+        using pointer = VulkanDescriptorSetLayout;
         VkDevice device;
-        void operator()(VkDescriptorSetLayout descriptor_set_layout) const;
+        void operator()(VulkanDescriptorSetLayout descriptor_set_layout) const;
     };
-    using UniqueVkDescriptorSetLayout = std::unique_ptr<VkDescriptorSetLayout, VkDescriptorSetLayoutDeleter>;
+    using UniqueVulkanDescriptorSetLayout = std::unique_ptr<VulkanDescriptorSetLayout, VulkanDescriptorSetLayoutDeleter>;
 
     struct VkPipelineLayoutDeleter {
         using pointer = VkPipelineLayout;

@@ -41,7 +41,7 @@ namespace orion
         return command_list;
     }
 
-    DescriptorSetLayoutHandle RenderDevice::create_descriptor_set_layout(const DescriptorSetLayoutDesc& desc)
+    DescriptorLayoutHandle RenderDevice::create_descriptor_set_layout(const DescriptorSetLayoutDesc& desc)
     {
         auto descriptor_set_layout = create_descriptor_set_layout_api(desc);
         SPDLOG_DEBUG("Created descriptor set layout {}", fmt::underlying(descriptor_set_layout));
@@ -83,14 +83,7 @@ namespace orion
         return fence;
     }
 
-    DescriptorPoolHandle RenderDevice::create_descriptor_pool(const DescriptorPoolDesc& desc)
-    {
-        auto descriptor_pool = create_descriptor_pool_api(desc);
-        SPDLOG_DEBUG("Created descriptor pool {}", fmt::underlying(descriptor_pool));
-        return descriptor_pool;
-    }
-
-    DescriptorSetHandle RenderDevice::create_descriptor_set(const DescriptorSetDesc& desc)
+    DescriptorHandle RenderDevice::create_descriptor_set(const DescriptorSetDesc& desc)
     {
         auto descriptor_set = create_descriptor_set_api(desc);
         SPDLOG_DEBUG("Created descriptor set {}", fmt::underlying(descriptor_set));
@@ -107,14 +100,14 @@ namespace orion
     void RenderDevice::create_constant_buffer_view(const ConstantBufferViewDesc& desc)
     {
         ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
-        ORION_ASSERT(desc.descriptor_set != DescriptorSetHandle::Invalid);
+        ORION_ASSERT(desc.descriptor_set != DescriptorHandle::Invalid);
         create_constant_buffer_view_api(desc);
     }
 
     void RenderDevice::create_robuffer_view(const ROBufferViewDesc& desc)
     {
         ORION_ASSERT(desc.buffer != BufferHandle::Invalid);
-        ORION_ASSERT(desc.descriptor_set != DescriptorSetHandle::Invalid);
+        ORION_ASSERT(desc.descriptor_set != DescriptorHandle::Invalid);
         create_robuffer_view_api(desc);
     }
 
@@ -159,19 +152,13 @@ namespace orion
         SPDLOG_DEBUG("Destroyed fence {}", fmt::underlying(fence));
     }
 
-    void RenderDevice::destroy(DescriptorPoolHandle descriptor_pool)
-    {
-        destroy_api(descriptor_pool);
-        SPDLOG_DEBUG("Destroyed descriptor pool {}", fmt::underlying(descriptor_pool));
-    }
-
-    void RenderDevice::destroy(DescriptorSetLayoutHandle descriptor_set_layout)
+    void RenderDevice::destroy(DescriptorLayoutHandle descriptor_set_layout)
     {
         destroy_api(descriptor_set_layout);
         SPDLOG_DEBUG("Destroyed descriptor set_layout {}", fmt::underlying(descriptor_set_layout));
     }
 
-    void RenderDevice::destroy(DescriptorSetHandle descriptor_set)
+    void RenderDevice::destroy(DescriptorHandle descriptor_set)
     {
         destroy_api(descriptor_set);
         SPDLOG_DEBUG("Destroyed descriptor set {}", fmt::underlying(descriptor_set));

@@ -84,7 +84,7 @@ namespace orion
 
     struct CmdSetDescriptorSet {
         std::uint32_t set;
-        DescriptorSetHandle descriptor_set;
+        DescriptorHandle descriptor_set;
         PipelineLayoutHandle pipeline_layout;
     };
 

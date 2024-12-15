@@ -17,6 +17,7 @@ target_sources(orion PRIVATE
         vulkan_command.hpp vulkan_command.cpp
         vulkan_context.hpp vulkan_context.cpp
         vulkan_conversion.hpp vulkan_conversion.cpp
+        vulkan_descriptor.hpp vulkan_descriptor.cpp
         vulkan_device.hpp vulkan_device.cpp
         vulkan_error.hpp vulkan_error.cpp
         vulkan_image.hpp vulkan_image.cpp

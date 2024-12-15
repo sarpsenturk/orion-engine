@@ -14,10 +14,11 @@ namespace orion
         vmaDestroyAllocator(allocator);
     }
 
-    void VkDescriptorSetLayoutDeleter::operator()(VkDescriptorSetLayout descriptor_set_layout) const
+    void VulkanDescriptorSetLayoutDeleter::operator()(VulkanDescriptorSetLayout descriptor_set_layout) const
     {
         ORION_ASSERT(device != VK_NULL_HANDLE);
-        vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
+        vkDestroyDescriptorSetLayout(device, descriptor_set_layout.layout, nullptr);
+        vkDestroyDescriptorPool(device, descriptor_set_layout.pool, nullptr);
     }
 
     void VkPipelineLayoutDeleter::operator()(VkPipelineLayout pipeline_layout) const

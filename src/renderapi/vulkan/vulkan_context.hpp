@@ -2,6 +2,9 @@
 
 #include "orion/renderapi/handle.hpp"
 
+#include "vulkan_buffer.hpp"
+#include "vulkan_descriptor.hpp"
+#include "vulkan_image.hpp"
 #include "vulkan_raii.hpp"
 
 #include <Volk/volk.h>
@@ -73,19 +76,18 @@ namespace orion
     public:
         VulkanContext(VkDevice device, VmaAllocator allocator);
 
-        DescriptorSetLayoutHandle insert(VkDescriptorSetLayout descriptor_set_layout);
+        DescriptorLayoutHandle insert(VulkanDescriptorSetLayout descriptor_set_layout);
         PipelineLayoutHandle insert(VkPipelineLayout pipeline_layout);
         PipelineHandle insert(VkPipeline pipeline);
-        BufferHandle insert(VkBuffer buffer, VmaAllocation allocation);
-        ImageHandle insert(VkImage image, VmaAllocation allocation = VK_NULL_HANDLE);
+        BufferHandle insert(VulkanBuffer buffer);
+        ImageHandle insert(VulkanImage image);
         ImageViewHandle insert(VkImageView image_view);
         SemaphoreHandle insert(VkSemaphore semaphore);
         FenceHandle insert(VkFence fence);
-        DescriptorPoolHandle insert(VkDescriptorPool descriptor_pool);
-        DescriptorSetHandle insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool);
+        DescriptorHandle insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool);
         SamplerHandle insert(VkSampler sampler);
 
-        [[nodiscard]] VkDescriptorSetLayout lookup(DescriptorSetLayoutHandle descriptor_set_layout) const;
+        [[nodiscard]] VulkanDescriptorSetLayout lookup(DescriptorLayoutHandle descriptor_set_layout) const;
         [[nodiscard]] VkPipelineLayout lookup(PipelineLayoutHandle pipeline_layout) const;
         [[nodiscard]] VkPipeline lookup(PipelineHandle pipeline) const;
         [[nodiscard]] VulkanBuffer lookup(BufferHandle buffer) const;
@@ -93,8 +95,7 @@ namespace orion
         [[nodiscard]] VkImageView lookup(ImageViewHandle image_view) const;
         [[nodiscard]] VkSemaphore lookup(SemaphoreHandle semaphore) const;
         [[nodiscard]] VkFence lookup(FenceHandle fence) const;
-        [[nodiscard]] VkDescriptorPool lookup(DescriptorPoolHandle descriptor_pool) const;
-        [[nodiscard]] VkDescriptorSet lookup(DescriptorSetHandle descriptor_set) const;
+        [[nodiscard]] VkDescriptorSet lookup(DescriptorHandle descriptor_set) const;
         [[nodiscard]] VkSampler lookup(SamplerHandle sampler) const;
 
         bool remove(PipelineLayoutHandle pipeline_layout);
@@ -104,16 +105,15 @@ namespace orion
         bool remove(ImageViewHandle image_view);
         bool remove(SemaphoreHandle semaphore);
         bool remove(FenceHandle fence);
-        bool remove(DescriptorPoolHandle descriptor_pool);
-        bool remove(DescriptorSetLayoutHandle descriptor_set_layout);
-        bool remove(DescriptorSetHandle descriptor_set);
+        bool remove(DescriptorLayoutHandle descriptor_set_layout);
+        bool remove(DescriptorHandle descriptor_set);
         bool remove(SamplerHandle sampler);
 
     private:
         VkDevice device_;
         VmaAllocator allocator_;
 
-        VulkanPool<UniqueVkDescriptorSetLayout> descriptor_set_layouts_;
+        VulkanPool<UniqueVulkanDescriptorSetLayout> descriptor_set_layouts_;
         VulkanPool<UniqueVkPipelineLayout> pipeline_layouts_;
         VulkanPool<UniqueVkPipeline> pipelines_;
         VulkanPool<UniqueVulkanBuffer> buffers_;

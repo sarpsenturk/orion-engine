@@ -8,9 +8,9 @@ namespace orion
     {
     }
 
-    DescriptorSetLayoutHandle VulkanContext::insert(VkDescriptorSetLayout descriptor_set_layout)
+    DescriptorLayoutHandle VulkanContext::insert(VulkanDescriptorSetLayout descriptor_set_layout)
     {
-        return DescriptorSetLayoutHandle{descriptor_set_layouts_.insert(UniqueVkDescriptorSetLayout{descriptor_set_layout, {device_}})};
+        return DescriptorLayoutHandle{descriptor_set_layouts_.insert(UniqueVulkanDescriptorSetLayout{descriptor_set_layout, {device_}})};
     }
 
     PipelineLayoutHandle VulkanContext::insert(VkPipelineLayout pipeline_layout)
@@ -23,14 +23,14 @@ namespace orion
         return PipelineHandle{pipelines_.insert(UniqueVkPipeline{pipeline, {device_}})};
     }
 
-    BufferHandle VulkanContext::insert(VkBuffer buffer, VmaAllocation allocation)
+    BufferHandle VulkanContext::insert(VulkanBuffer buffer)
     {
-        return BufferHandle{buffers_.insert(UniqueVulkanBuffer{{buffer, allocation}, {allocator_}})};
+        return BufferHandle{buffers_.insert(UniqueVulkanBuffer(buffer, {allocator_}))};
     }
 
-    ImageHandle VulkanContext::insert(VkImage image, VmaAllocation allocation)
+    ImageHandle VulkanContext::insert(VulkanImage image)
     {
-        return ImageHandle{images_.insert(UniqueVulkanImage{{image, allocation}, {allocator_}})};
+        return ImageHandle{images_.insert(UniqueVulkanImage(image, {allocator_}))};
     }
 
     ImageViewHandle VulkanContext::insert(VkImageView image_view)
@@ -48,14 +48,9 @@ namespace orion
         return FenceHandle{fences_.insert(UniqueVkFence{fence, {device_}})};
     }
 
-    DescriptorPoolHandle VulkanContext::insert(VkDescriptorPool descriptor_pool)
+    DescriptorHandle VulkanContext::insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool)
     {
-        return DescriptorPoolHandle{descriptor_pools_.insert(UniqueVkDescriptorPool{descriptor_pool, {device_}})};
-    }
-
-    DescriptorSetHandle VulkanContext::insert(VkDescriptorSet descriptor_set, VkDescriptorPool descriptor_pool)
-    {
-        return DescriptorSetHandle{descriptor_sets_.insert(UniqueVkDescriptorSet{descriptor_set, {device_, descriptor_pool}})};
+        return DescriptorHandle{descriptor_sets_.insert(UniqueVkDescriptorSet{descriptor_set, {device_, descriptor_pool}})};
     }
 
     SamplerHandle VulkanContext::insert(VkSampler sampler)
@@ -63,7 +58,7 @@ namespace orion
         return SamplerHandle{samplers_.insert(UniqueVkSampler{sampler, {device_}})};
     }
 
-    VkDescriptorSetLayout VulkanContext::lookup(DescriptorSetLayoutHandle descriptor_set_layout) const
+    VulkanDescriptorSetLayout VulkanContext::lookup(DescriptorLayoutHandle descriptor_set_layout) const
     {
         return descriptor_set_layouts_.lookup(static_cast<render_device_handle_t>(descriptor_set_layout));
     }
@@ -103,12 +98,7 @@ namespace orion
         return fences_.lookup(static_cast<render_device_handle_t>(fence));
     }
 
-    VkDescriptorPool VulkanContext::lookup(DescriptorPoolHandle descriptor_pool) const
-    {
-        return descriptor_pools_.lookup(static_cast<render_device_handle_t>(descriptor_pool));
-    }
-
-    VkDescriptorSet VulkanContext::lookup(DescriptorSetHandle descriptor_set) const
+    VkDescriptorSet VulkanContext::lookup(DescriptorHandle descriptor_set) const
     {
         return descriptor_sets_.lookup(static_cast<render_device_handle_t>(descriptor_set));
     }
@@ -118,7 +108,7 @@ namespace orion
         return samplers_.lookup(static_cast<render_device_handle_t>(sampler));
     }
 
-    bool VulkanContext::remove(DescriptorSetLayoutHandle descriptor_set_layout)
+    bool VulkanContext::remove(DescriptorLayoutHandle descriptor_set_layout)
     {
         return descriptor_set_layouts_.remove(static_cast<render_device_handle_t>(descriptor_set_layout));
     }
@@ -158,12 +148,7 @@ namespace orion
         return fences_.remove(static_cast<render_device_handle_t>(fence));
     }
 
-    bool VulkanContext::remove(DescriptorPoolHandle descriptor_pool)
-    {
-        return descriptor_pools_.remove(static_cast<render_device_handle_t>(descriptor_pool));
-    }
-
-    bool VulkanContext::remove(DescriptorSetHandle descriptor_set)
+    bool VulkanContext::remove(DescriptorHandle descriptor_set)
     {
         return descriptor_sets_.remove(static_cast<render_device_handle_t>(descriptor_set));
     }
