@@ -225,7 +225,7 @@ namespace orion
             const auto info = VkDescriptorPoolCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                 .pNext = nullptr,
-                .flags = {},
+                .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
                 .maxSets = 1, // TODO: Allow descriptor set layout reuse
                 .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
                 .pPoolSizes = pool_sizes.data(),

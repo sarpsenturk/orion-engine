@@ -1,6 +1,5 @@
 #include "orion/application.hpp"
 
-#include "orion/compiler.hpp"
 #include "orion/config.h"
 #include "orion/platform.hpp"
 

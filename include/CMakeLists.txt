@@ -3,7 +3,6 @@ target_sources(
         FILE_SET HEADERS FILES
         orion/application.hpp
         orion/assertion.hpp
-        orion/compiler.hpp
         orion/input.hpp
         orion/platform.hpp
         orion/window.hpp
