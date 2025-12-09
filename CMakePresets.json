@@ -58,7 +58,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "ORION_CXX_FLAGS": "/permissive-;/Wall;/WX;/external:anglebrackets;/external:W0"
+        "ORION_CXX_FLAGS": "/permissive-;/W4;/WX;/external:anglebrackets;/external:W0"
       }
     },
     {
