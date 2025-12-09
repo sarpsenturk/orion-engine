@@ -15,6 +15,9 @@ project(
 
 include(GNUInstallDirs)
 
+# Find dependencies
+find_package(spdlog CONFIG REQUIRED)
+
 # Create library target
 add_library(orion "")
 target_compile_features(orion PUBLIC cxx_std_20)
@@ -25,6 +28,11 @@ target_include_directories(
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_options(orion PRIVATE ${ORION_CXX_FLAGS}) # Set in CMakePresets.json
+target_link_libraries(
+	orion
+	PUBLIC
+	spdlog::spdlog
+)
 
 # Add library sources
 add_subdirectory(src)

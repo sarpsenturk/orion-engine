@@ -5,6 +5,7 @@
       "name": "base",
       "hidden": true,
       "generator": "Ninja",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "binaryDir": "${sourceDir}/build/${presetName}"
     },
     {
@@ -39,13 +40,15 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
-      }
+      },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
           "hostOS": "Windows",
           "intelliSenseMode": "windows-msvc-x64",
           "disableExternalAnalysis": true,
-          "enableClangTidyCodeAnalysis": true
+          "enableMicrosoftCodeAnalysis": true,
+          "enableClangTidyCodeAnalysis": true,
+          "clangTidyChecks": "-*"
         }
       },
       "architecture": {
@@ -55,7 +58,7 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "ORION_CXX_FLAGS": "/permissive- /Wall /WX /external:anglebrackets /external:W0"
+        "ORION_CXX_FLAGS": "/permissive-;/Wall;/WX;/external:anglebrackets;/external:W0"
       }
     },
     {

@@ -3,4 +3,5 @@ target_sources(
 	PRIVATE
 	orion.cpp
 	application.cpp
+	log.cpp
 )

@@ -3,4 +3,5 @@ target_sources(
 	PUBLIC FILE_SET HEADERS FILES
 	orion/orion.hpp
 	orion/application.hpp
+	orion/log.hpp
 )

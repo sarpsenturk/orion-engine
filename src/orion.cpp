@@ -1,12 +1,17 @@
 #include "orion/orion.hpp"
 
-#include <cstdio>
+#include "orion/log.hpp"
+
+#include <stdexcept>
 
 namespace orion
 {
     Engine::Engine()
     {
-        std::puts("Hello world");
+        if (!Log::init()) {
+            throw std::runtime_error("Failed to initialize log");
+        }
+        ORION_CORE_LOG_INFO("Hello world");
     }
 
     void Engine::run(std::unique_ptr<Application> app)
