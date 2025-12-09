@@ -4,4 +4,5 @@ target_sources(
 	orion.cpp
 	application.cpp
 	log.cpp
+	assert.cpp
 )

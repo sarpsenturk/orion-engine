@@ -28,6 +28,11 @@ target_include_directories(
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_options(orion PRIVATE ${ORION_CXX_FLAGS}) # Set in CMakePresets.json
+target_compile_definitions(
+	orion
+	PRIVATE
+	$<$<CONFIG:Debug>:ORION_ENABLE_ASSERTIONS=1>
+)
 target_link_libraries(
 	orion
 	PUBLIC

@@ -5,4 +5,5 @@ target_sources(
 	orion/application.hpp
 	orion/log.hpp
 	orion/platform.hpp
+	orion/assert.hpp
 )
