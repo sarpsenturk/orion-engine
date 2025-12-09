@@ -24,6 +24,7 @@ target_include_directories(
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_compile_options(orion PRIVATE ${ORION_CXX_FLAGS}) # Set in CMakePresets.json
 
 # Add library sources
 add_subdirectory(src)
