@@ -1,0 +1,17 @@
+# Build files
+[Bb]uild/
+[Oo]ut/
+[Bb]in/
+cmake-build-*/
+
+# IDE files
+.vs/
+.idea/
+.vscode/
+
+# User specific files
+CMakeUserPresets.json
+
+# clangd
+compile_commands.json
+.cache/
