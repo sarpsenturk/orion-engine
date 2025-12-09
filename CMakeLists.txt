@@ -17,6 +17,7 @@ include(GNUInstallDirs)
 
 # Find dependencies
 find_package(spdlog CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
 # Create library target
 add_library(orion "")
@@ -37,6 +38,8 @@ target_link_libraries(
 	orion
 	PUBLIC
 	spdlog::spdlog
+	PRIVATE
+	glfw
 )
 
 # Add library sources

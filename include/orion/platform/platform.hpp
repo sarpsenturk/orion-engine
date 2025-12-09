@@ -41,3 +41,9 @@
     #define ORION_COMPILER_UNKNOWN 1
     #define ORION_COMPILER_NAME "unknown"
 #endif
+
+namespace orion
+{
+    bool platform_init();
+    void platform_shutdown();
+} // namespace orion

@@ -10,7 +10,11 @@ namespace orion
     {
     public:
         Engine();
+        ~Engine();
 
         void run(std::unique_ptr<Application> app);
+
+    private:
+        struct Window* window_;
     };
 } // namespace orion

@@ -1,6 +1,6 @@
 #include "orion/assert.hpp"
 
-#include "orion/platform.hpp"
+#include "orion/platform/platform.hpp"
 #if defined(ORION_COMPILER_MSVC)
     #define ORION_DEBUG_BREAK() __debugbreak()
 #elif defined(ORION_COMPILER_CLANG) || defined(ORION_COMPILER_GCC)
