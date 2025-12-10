@@ -10,4 +10,6 @@ target_sources(
 	orion/platform/window.hpp
 	orion/platform/input.hpp
 	orion/platform/time.hpp
+
+	orion/math/vector.hpp
 )

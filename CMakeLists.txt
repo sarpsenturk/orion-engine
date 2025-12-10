@@ -49,6 +49,12 @@ add_subdirectory(include)
 # Add example executables
 add_subdirectory(examples)
 
+# Add tests
+include(CTest)
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
 # Install targets
 install(
 	TARGETS orion
