@@ -12,4 +12,5 @@ target_sources(
 	orion/platform/time.hpp
 
 	orion/math/vector.hpp
+	orion/math/matrix.hpp
 )

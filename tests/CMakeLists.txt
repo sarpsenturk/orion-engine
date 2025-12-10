@@ -16,3 +16,4 @@ function(orion_add_test name src)
 endfunction()
 
 orion_add_test(vector vector.cpp)
+orion_add_test(matrix matrix.cpp)
