@@ -19,6 +19,7 @@ namespace orion
         std::array<int, GLFW_MOUSE_BUTTON_LAST> mouse_button_states;
         double cursor_xpos, cursor_ypos;
         double scroll_xoffset, scroll_yoffet;
+        bool resized;
     };
 
     static void glfw_error_callback(int code, const char* description)
@@ -50,6 +51,14 @@ namespace orion
         auto* impl = static_cast<Window*>(glfwGetWindowUserPointer(window));
         impl->scroll_xoffset = xoffset;
         impl->scroll_yoffet = yoffset;
+    }
+
+    static void glfw_framebuffer_size_callback(GLFWwindow* window, int width, int height)
+    {
+        auto* impl = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        impl->width = width;
+        impl->height = height;
+        impl->resized = true;
     }
 
     bool platform_init()
@@ -90,6 +99,7 @@ namespace orion
         glfwSetCursorPosCallback(window->window, glfw_cursor_pos_callback);
         glfwSetMouseButtonCallback(window->window, glfw_mouse_button_callback);
         glfwSetScrollCallback(window->window, glfw_scroll_callback);
+        glfwSetFramebufferSizeCallback(window->window, glfw_framebuffer_size_callback);
 
         // Get created framebuffer dimensions
         glfwGetFramebufferSize(window->window, &window->width, &window->height);
@@ -126,6 +136,22 @@ namespace orion
     {
         ORION_ASSERT(window != nullptr, "platform_window_should_close() expected window != nullptr");
         return glfwWindowShouldClose(window->window);
+    }
+
+    bool platform_window_was_resized(Window* window)
+    {
+        return window->resized;
+    }
+
+    void platform_window_clear_resized(Window* window)
+    {
+        window->resized = false;
+    }
+
+    void platform_window_get_size(Window* window, int* width, int* height)
+    {
+        *width = window->width;
+        *height = window->height;
     }
 
     bool platform_input_key_pressed(Window* window, KeyCode key)

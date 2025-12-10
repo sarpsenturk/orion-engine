@@ -9,4 +9,7 @@ namespace orion
     void platform_window_destroy(Window* window);
     void platform_window_poll_events(Window* window);
     bool platform_window_should_close(Window* window);
+    bool platform_window_was_resized(Window* window);
+    void platform_window_clear_resized(Window* window);
+    void platform_window_get_size(Window* window, int* width, int* height);
 } // namespace orion
