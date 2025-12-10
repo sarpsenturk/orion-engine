@@ -17,3 +17,4 @@ endfunction()
 
 orion_add_test(vector vector.cpp)
 orion_add_test(matrix matrix.cpp)
+orion_add_test(transform transform.cpp)

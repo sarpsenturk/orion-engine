@@ -13,4 +13,6 @@ target_sources(
 
 	orion/math/vector.hpp
 	orion/math/matrix.hpp
+	orion/math/angles.hpp
+	orion/math/transform.hpp
 )
