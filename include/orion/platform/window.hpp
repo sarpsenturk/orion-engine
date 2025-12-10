@@ -8,8 +8,8 @@ namespace orion
     Window* platform_window_create(const char* title, int width, int height);
     void platform_window_destroy(Window* window);
     void platform_window_poll_events(Window* window);
-    bool platform_window_should_close(Window* window);
-    bool platform_window_was_resized(Window* window);
+    bool platform_window_should_close(const Window* window);
+    bool platform_window_was_resized(const Window* window);
     void platform_window_clear_resized(Window* window);
-    void platform_window_get_size(Window* window, int* width, int* height);
+    void platform_window_get_size(const Window* window, int* width, int* height);
 } // namespace orion

@@ -156,10 +156,10 @@ namespace orion
     };
 
     struct Window;
-    bool platform_input_key_pressed(Window* window, KeyCode key);
-    bool platform_input_key_released(Window* window, KeyCode key);
-    void platform_input_cursor_position(Window* window, double* xpos, double* ypos);
-    bool platform_input_mouse_button_pressed(Window* window, MouseButton button);
-    bool platform_input_mouse_button_released(Window* window, MouseButton button);
-    void platform_input_scroll_delta(Window* window, double* xdelta, double* ydelta);
+    bool platform_input_key_pressed(const Window* window, KeyCode key);
+    bool platform_input_key_released(const Window* window, KeyCode key);
+    void platform_input_cursor_position(const Window* window, double* xpos, double* ypos);
+    bool platform_input_mouse_button_pressed(const Window* window, MouseButton button);
+    bool platform_input_mouse_button_released(const Window* window, MouseButton button);
+    void platform_input_scroll_delta(const Window* window, double* xdelta, double* ydelta);
 } // namespace orion

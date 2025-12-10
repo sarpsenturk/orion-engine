@@ -132,13 +132,13 @@ namespace orion
         glfwPollEvents();
     }
 
-    bool platform_window_should_close(Window* window)
+    bool platform_window_should_close(const Window* window)
     {
         ORION_ASSERT(window != nullptr, "platform_window_should_close() expected window != nullptr");
         return glfwWindowShouldClose(window->window);
     }
 
-    bool platform_window_was_resized(Window* window)
+    bool platform_window_was_resized(const Window* window)
     {
         return window->resized;
     }
@@ -148,40 +148,40 @@ namespace orion
         window->resized = false;
     }
 
-    void platform_window_get_size(Window* window, int* width, int* height)
+    void platform_window_get_size(const Window* window, int* width, int* height)
     {
         *width = window->width;
         *height = window->height;
     }
 
-    bool platform_input_key_pressed(Window* window, KeyCode key)
+    bool platform_input_key_pressed(const Window* window, KeyCode key)
     {
         return window->key_states[static_cast<int>(key)] == GLFW_PRESS ||
                window->key_states[static_cast<int>(key)] == GLFW_REPEAT;
     }
 
-    bool platform_input_key_released(Window* window, KeyCode key)
+    bool platform_input_key_released(const Window* window, KeyCode key)
     {
         return window->key_states[static_cast<int>(key)] == GLFW_RELEASE;
     }
 
-    void platform_input_cursor_position(Window* window, double* xpos, double* ypos)
+    void platform_input_cursor_position(const Window* window, double* xpos, double* ypos)
     {
         *xpos = window->cursor_xpos;
         *ypos = window->cursor_ypos;
     }
 
-    bool platform_input_mouse_button_pressed(Window* window, MouseButton button)
+    bool platform_input_mouse_button_pressed(const Window* window, MouseButton button)
     {
         return window->mouse_button_states[static_cast<int>(button)] == GLFW_PRESS;
     }
 
-    bool platform_input_mouse_button_released(Window* window, MouseButton button)
+    bool platform_input_mouse_button_released(const Window* window, MouseButton button)
     {
         return window->mouse_button_states[static_cast<int>(button)] == GLFW_RELEASE;
     }
 
-    void platform_input_scroll_delta(Window* window, double* xdelta, double* ydelta)
+    void platform_input_scroll_delta(const Window* window, double* xdelta, double* ydelta)
     {
         *xdelta = window->scroll_xoffset;
         *ydelta = window->scroll_yoffet;
