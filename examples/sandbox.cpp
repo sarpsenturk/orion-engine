@@ -2,9 +2,8 @@
 
 class Sandbox : public orion::Application
 {
-    void on_update() override {}
-    void on_render() override {}
-    bool on_should_close() const override { return true; }
+    void on_update(float /*dt*/) override {}
+    void on_render(float /*alpha*/) override {}
 };
 
 int main()

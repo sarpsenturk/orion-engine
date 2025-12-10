@@ -9,4 +9,5 @@ target_sources(
 	orion/platform/platform.hpp
 	orion/platform/window.hpp
 	orion/platform/input.hpp
+	orion/platform/time.hpp
 )

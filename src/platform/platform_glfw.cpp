@@ -1,4 +1,6 @@
 #include "orion/platform/input.hpp"
+#include "orion/platform/platform.hpp"
+#include "orion/platform/time.hpp"
 #include "orion/platform/window.hpp"
 
 #include "orion/assert.hpp"
@@ -185,5 +187,10 @@ namespace orion
     {
         *xdelta = window->scroll_xoffset;
         *ydelta = window->scroll_yoffet;
+    }
+
+    double platform_time_get_time()
+    {
+        return glfwGetTime();
     }
 } // namespace orion

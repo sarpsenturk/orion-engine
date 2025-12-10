@@ -3,6 +3,7 @@
 #include "orion/log.hpp"
 
 #include "orion/platform/platform.hpp"
+#include "orion/platform/time.hpp"
 #include "orion/platform/window.hpp"
 
 #include <stdexcept>
@@ -31,10 +32,30 @@ namespace orion
 
     void Engine::run(std::unique_ptr<Application> app)
     {
+        const double dt = 1 / 60.0;
+
+        double current_time = platform_time_get_time();
+        double accumulator = 0.0;
+
         while (!platform_window_should_close(window_)) {
+            double new_time = platform_time_get_time();
+            double frame_time = new_time - current_time;
+            current_time = new_time;
+
+            if (frame_time > 0.25) {
+                frame_time = 0.25;
+            }
+
+            accumulator += frame_time;
+
             platform_window_poll_events(window_);
-            app->update();
-            app->render();
+            while (accumulator > dt) {
+                app->update(static_cast<float>(dt));
+                accumulator -= dt;
+            }
+
+            const double alpha = accumulator / dt;
+            app->render(static_cast<float>(alpha));
         }
     }
 } // namespace orion

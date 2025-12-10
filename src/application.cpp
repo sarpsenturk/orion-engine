@@ -2,18 +2,13 @@
 
 namespace orion
 {
-    void Application::update()
+    void Application::update(float dt)
     {
-        on_update();
+        on_update(dt);
     }
 
-    void Application::render()
+    void Application::render(float alpha)
     {
-        on_render();
-    }
-
-    bool Application::should_close() const
-    {
-        return on_should_close();
+        on_render(alpha);
     }
 } // namespace orion

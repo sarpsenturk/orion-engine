@@ -8,8 +8,8 @@ namespace orion
         Application() = default;
         virtual ~Application() = default;
 
-        void update();
-        void render();
+        void update(float dt);
+        void render(float alpha);
 
         [[nodiscard]] bool should_close() const;
 
@@ -20,9 +20,7 @@ namespace orion
         Application& operator=(Application&&) = default;
 
     private:
-        virtual void on_update() = 0;
-        virtual void on_render() = 0;
-
-        [[nodiscard]] virtual bool on_should_close() const = 0;
+        virtual void on_update(float dt) = 0;
+        virtual void on_render(float alpha) = 0;
     };
 } // namespace orion
