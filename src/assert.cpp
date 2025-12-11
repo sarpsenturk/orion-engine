@@ -22,9 +22,18 @@
 
 namespace orion
 {
-    void orion::debugbreak()
+    void debugbreak()
     {
         ORION_DEBUG_BREAK();
+    }
+
+    void unreachable()
+    {
+#if defined(ORION_COMPILER_MSVC)
+        __assume(false);
+#else
+        __builtin_unreachable();
+#endif
     }
 
     void output_debug_string(const char* str)

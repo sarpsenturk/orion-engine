@@ -19,5 +19,7 @@
 namespace orion
 {
     [[noreturn]] void debugbreak();
+    [[noreturn]] void unreachable();
+
     void output_debug_string(const char* str);
 } // namespace orion
