@@ -1,6 +1,8 @@
 #include "orion/rhi/command.hpp"
 #include "orion/rhi/device.hpp"
+#include "orion/rhi/format.hpp"
 #include "orion/rhi/rhi.hpp"
+#include "orion/rhi/swapchain.hpp"
 
 #include "orion/assert.hpp"
 #include "orion/log.hpp"
@@ -9,6 +11,7 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vk_enum_string_helper.h>
 
+#include "platform_glfw.hpp"
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
@@ -21,6 +24,15 @@ namespace orion
     namespace
     {
         constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
+
+        VkFormat to_vk_format(RHIFormat format)
+        {
+            switch (format) {
+                case RHIFormat::B8G8R8A8_Unorm_Srgb:
+                    return VK_FORMAT_B8G8R8A8_SRGB;
+            }
+            unreachable();
+        }
 
         VkBool32 vulkan_debug_callback(
             VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -55,6 +67,34 @@ namespace orion
         private:
             std::uint32_t queue_family_;
             VkQueue queue_;
+        };
+
+        class RHIVulkanSwapchain : public RHISwapchain
+        {
+        public:
+            RHIVulkanSwapchain(VkInstance instance, VkDevice device, VkSurfaceKHR surface, VkSwapchainKHR swapchain)
+                : instance_(instance)
+                , device_(device)
+                , surface_(surface)
+                , swapchain_(swapchain)
+            {
+                ORION_ASSERT(instance != VK_NULL_HANDLE, "VkInstance must not be VK_NULL_HANDLE");
+                ORION_ASSERT(device != VK_NULL_HANDLE, "VkDevice must not be VK_NULL_HANDLE");
+                ORION_ASSERT(surface != VK_NULL_HANDLE, "VkSurfaceKHR must not be VK_NULL_HANDLE");
+                ORION_ASSERT(swapchain != VK_NULL_HANDLE, "VkSwapchainKHR must not be VK_NULL_HANDLE");
+            }
+
+            ~RHIVulkanSwapchain() override
+            {
+                vkDestroySwapchainKHR(device_, swapchain_, nullptr);
+                vkDestroySurfaceKHR(instance_, surface_, nullptr);
+            }
+
+        private:
+            VkInstance instance_;
+            VkDevice device_;
+            VkSurfaceKHR surface_;
+            VkSwapchainKHR swapchain_;
         };
 
         class RHIVulkanDevice : public RHIDevice
@@ -92,6 +132,103 @@ namespace orion
                 }
                 ORION_CORE_LOG_ERROR("Invalid queue type");
                 unreachable();
+            }
+
+            std::unique_ptr<RHISwapchain> create_swapchain_api(const RHISwapchainDesc& desc) override
+            {
+                // Create surface
+                GLFWwindow* window = desc.window->window;
+                VkSurfaceKHR surface = VK_NULL_HANDLE;
+                if (VkResult err = glfwCreateWindowSurface(instance_, window, nullptr, &surface)) {
+                    ORION_CORE_LOG_ERROR("Failed to create VkSurface with GLFWwindow* {}: {}", (void*)window, string_VkResult(err));
+                    return nullptr;
+                }
+                ORION_CORE_LOG_INFO("Created VkSurfaceKHR {} with GLFWwindow* {}", (void*)surface, (void*)window);
+
+                // Get surface capabilties
+                VkSurfaceCapabilitiesKHR surface_capabilities;
+                if (VkResult err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface, &surface_capabilities)) {
+                    ORION_CORE_LOG_ERROR("Failed to get VkSurfaceKHR ({}) surface capabilities: {}", (void*)surface, string_VkResult(err));
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                    return nullptr;
+                }
+
+                // Check if requested dimensions match currentExtent
+                if (desc.width != surface_capabilities.currentExtent.width || desc.height != surface_capabilities.currentExtent.height) {
+                    ORION_CORE_LOG_ERROR("Requested dimensions ({}, {}) do not match currentExtent ({}, {}) of VkSurfaceKHR ({})",
+                                         desc.width, desc.height,
+                                         surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height,
+                                         (void*)surface);
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                    return nullptr;
+                }
+
+                // Check if requested image count is supported
+                const auto image_count = desc.image_count;
+                if (image_count < surface_capabilities.minImageCount || image_count > surface_capabilities.maxImageCount) {
+                    ORION_CORE_LOG_ERROR("Requested image count ({}) is not in range of supported image counts [{}, {}]",
+                                         image_count, surface_capabilities.minImageCount, surface_capabilities.maxImageCount);
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                    return nullptr;
+                }
+                ORION_CORE_LOG_DEBUG("Using image_count = {} for VkSwapchainKHR", image_count);
+
+                // Get list of supported surface formats
+                std::uint32_t surface_format_count = 0;
+                if (VkResult err = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_, surface, &surface_format_count, nullptr)) {
+                    ORION_CORE_LOG_ERROR("Failed to get VkPhysicalDevice {} surface formats for VkSurfaceKHR {}: {}",
+                                         (void*)physical_device_, (void*)surface, string_VkResult(err));
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                    return nullptr;
+                }
+                std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
+                if (VkResult err = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_, surface, &surface_format_count, surface_formats.data())) {
+                    ORION_CORE_LOG_ERROR("Failed to get VkPhysicalDevice {} surface formats for VkSurfaceKHR {}: {}",
+                                         (void*)physical_device_, (void*)surface, string_VkResult(err));
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                    return nullptr;
+                }
+
+                // Check if requested surface format is supported
+                const auto format = to_vk_format(desc.format);
+                const auto colorspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+                const auto format_cmp = [format, colorspace](const VkSurfaceFormatKHR& surface_format) {
+                    return surface_format.format == format && surface_format.colorSpace == colorspace;
+                };
+                if (auto iter = std::ranges::find_if(surface_formats, format_cmp); iter == surface_formats.end()) {
+                    ORION_CORE_LOG_ERROR("Requested surface format ({}, {}) is not supported for VkSurfaceKHR {}",
+                                         string_VkFormat(format), string_VkColorSpaceKHR(colorspace), (void*)surface);
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                    return nullptr;
+                }
+                ORION_CORE_LOG_DEBUG("Using format = {}, {} for VkSwapchainKHR", string_VkFormat(format), string_VkColorSpaceKHR(colorspace));
+
+                const auto swapchain_info = VkSwapchainCreateInfoKHR{
+                    .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                    .pNext = nullptr,
+                    .flags = {},
+                    .surface = surface,
+                    .minImageCount = image_count,
+                    .imageFormat = format,
+                    .imageColorSpace = colorspace,
+                    .imageExtent = surface_capabilities.currentExtent,
+                    .imageArrayLayers = 1,
+                    .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, // TODO: Make this customizable
+                    .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                    .queueFamilyIndexCount = 0,
+                    .pQueueFamilyIndices = nullptr,
+                    .preTransform = surface_capabilities.currentTransform,
+                    .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+                    .presentMode = VK_PRESENT_MODE_FIFO_KHR, // TODO: Make this customizable
+                    .clipped = VK_TRUE,
+                };
+                VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+                if (VkResult err = vkCreateSwapchainKHR(device_, &swapchain_info, nullptr, &swapchain)) {
+                    ORION_CORE_LOG_ERROR("Failed to create VkSwapchainKHR with VkSurface {}: {}", (void*)surface, string_VkResult(err));
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                }
+                ORION_CORE_LOG_INFO("Created VkSwapchainKHR {}", (void*)swapchain);
+                return std::make_unique<RHIVulkanSwapchain>(instance_, device_, surface, swapchain);
             }
 
             VkInstance instance_;
@@ -193,6 +330,7 @@ namespace orion
 
                 // Enabled device extensions
                 std::vector<const char*> enabled_extensions;
+                enabled_extensions.push_back("VK_KHR_swapchain");
 
                 // Create the device
                 const auto device_info = VkDeviceCreateInfo{
@@ -231,11 +369,22 @@ namespace orion
             ORION_CORE_LOG_ERROR("Failed to initialize volk. Vulkan may not be installed on your system");
             return nullptr;
         }
+        glfwInitVulkanLoader(vkGetInstanceProcAddr);
 
+        // Enabled instance layers
         std::vector<const char*> enabled_layers;
         enabled_layers.push_back("VK_LAYER_KHRONOS_validation");
+
+        // Enabled instance extensions
         std::vector<const char*> enabled_extensions;
         enabled_extensions.push_back("VK_EXT_debug_utils");
+
+        // Add GLFW required extensions
+        std::uint32_t glfw_extension_count;
+        const char** extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+        for (std::uint32_t i = 0; i < glfw_extension_count; ++i) {
+            enabled_extensions.push_back(extensions[i]);
+        }
 
         const auto app_info = VkApplicationInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,

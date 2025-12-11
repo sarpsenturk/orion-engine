@@ -2,6 +2,8 @@
 
 #include "orion/rhi/rhi.hpp"
 
+#include "orion/platform/window.hpp"
+
 #include "orion/assert.hpp"
 #include "orion/log.hpp"
 
@@ -10,23 +12,52 @@ namespace orion
     namespace
     {
         std::unique_ptr<RHIInstance> rhi;
-        std::unique_ptr<RHIDevice> rhi_device;
-        std::unique_ptr<RHICommandQueue> rhi_command_queue;
+        std::unique_ptr<RHIDevice> device;
+        std::unique_ptr<RHICommandQueue> command_queue;
+        std::unique_ptr<RHISwapchain> swapchain;
+
+        constexpr auto swapchain_format = RHIFormat::B8G8R8A8_Unorm_Srgb;
+        constexpr auto swapchain_image_count = 2;
     } // namespace
 
-    bool Renderer::init()
+    bool Renderer::init(const struct Window* window)
     {
         ORION_ASSERT(rhi == nullptr, "Renderer has already been initialized");
-        if (rhi = rhi_create_instance(); rhi == nullptr) {
+        ORION_ASSERT(window != nullptr, "Window must not be nullptr");
+
+        int window_width, window_height;
+        platform_window_get_size(window, &window_width, &window_height);
+        ORION_ASSERT(window_width > 0, "Window width must be greater than 0");
+        ORION_ASSERT(window_height > 0, "Window height must be greater than 0");
+
+        rhi = rhi_create_instance();
+        if (rhi == nullptr) {
             ORION_CORE_LOG_ERROR("Failed to create RHIInstance");
             return false;
         }
-        if (rhi_device = rhi->create_device(); rhi == nullptr) {
+
+        device = rhi->create_device();
+        if (rhi == nullptr) {
             ORION_CORE_LOG_ERROR("Failed to create RHIDevice");
             return false;
         }
-        if (rhi_command_queue = rhi_device->create_command_queue({.type = RHICommandQueueType::Graphics}); rhi_command_queue == nullptr) {
+
+        command_queue = device->create_command_queue({.type = RHICommandQueueType::Graphics});
+        if (command_queue == nullptr) {
             ORION_CORE_LOG_ERROR("Failed to create RHICommandQueue");
+            return false;
+        }
+
+        swapchain = device->create_swapchain({
+            .window = window,
+            .queue = command_queue.get(),
+            .width = static_cast<std::uint32_t>(window_width),
+            .height = static_cast<std::uint32_t>(window_height),
+            .format = swapchain_format,
+            .image_count = swapchain_image_count,
+        });
+        if (swapchain == nullptr) {
+            ORION_CORE_LOG_ERROR("Failed to create RHISwapchain");
             return false;
         }
         return true;
@@ -35,8 +66,9 @@ namespace orion
     void Renderer::shutdown()
     {
         ORION_ASSERT(rhi != nullptr, "Renderer has not been initialized or has already been shut down");
-        rhi_command_queue = nullptr;
-        rhi_device = nullptr;
+        swapchain = nullptr;
+        command_queue = nullptr;
+        device = nullptr;
         rhi = nullptr;
     }
 } // namespace orion

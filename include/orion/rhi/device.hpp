@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion/rhi/command.hpp"
+#include "orion/rhi/swapchain.hpp"
 
 #include <memory>
 
@@ -13,6 +14,7 @@ namespace orion
         virtual ~RHIDevice() = default;
 
         std::unique_ptr<RHICommandQueue> create_command_queue(const RHICommandQueueDesc& desc);
+        std::unique_ptr<RHISwapchain> create_swapchain(const RHISwapchainDesc& desc);
 
     protected:
         RHIDevice(const RHIDevice&) = default;
@@ -22,5 +24,6 @@ namespace orion
 
     private:
         virtual std::unique_ptr<RHICommandQueue> create_command_queue_api(const RHICommandQueueDesc& desc) = 0;
+        virtual std::unique_ptr<RHISwapchain> create_swapchain_api(const RHISwapchainDesc& desc) = 0;
     };
 } // namespace orion

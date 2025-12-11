@@ -1,3 +1,5 @@
+#include "platform_glfw.hpp"
+
 #include "orion/platform/input.hpp"
 #include "orion/platform/platform.hpp"
 #include "orion/platform/time.hpp"
@@ -6,24 +8,10 @@
 #include "orion/assert.hpp"
 #include "orion/log.hpp"
 
-#include <GLFW/glfw3.h>
-
 #include <array>
 
 namespace orion
 {
-    struct Window {
-        GLFWwindow* window;
-        int width;
-        int height;
-
-        std::array<int, GLFW_KEY_LAST> key_states;
-        std::array<int, GLFW_MOUSE_BUTTON_LAST> mouse_button_states;
-        double cursor_xpos, cursor_ypos;
-        double scroll_xoffset, scroll_yoffet;
-        bool resized;
-    };
-
     static void glfw_error_callback(int code, const char* description)
     {
         ORION_CORE_LOG_ERROR("GLFW error ({}): {}", code, description);

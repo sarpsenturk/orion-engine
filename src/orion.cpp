@@ -24,7 +24,7 @@ namespace orion
         if (window_ = platform_window_create("Orion", 800, 600); !window_) {
             throw std::runtime_error("Failed to create main window");
         }
-        if (!Renderer::init()) {
+        if (!Renderer::init(window_)) {
             throw std::runtime_error("Failed to initialize renderer");
         }
     }

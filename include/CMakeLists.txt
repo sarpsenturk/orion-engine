@@ -19,6 +19,8 @@ target_sources(
 	orion/rhi/rhi.hpp
 	orion/rhi/device.hpp
 	orion/rhi/command.hpp
+	orion/rhi/swapchain.hpp
+	orion/rhi/format.hpp
 
 	orion/renderer/renderer.hpp
 )
