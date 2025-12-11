@@ -18,6 +18,7 @@ target_sources(
 
 	orion/rhi/rhi_instance.hpp
 	orion/rhi/rhi_device.hpp
+	orion/rhi/command.hpp
 
 	orion/renderer/renderer.hpp
 )

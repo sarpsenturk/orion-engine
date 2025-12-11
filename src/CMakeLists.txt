@@ -11,6 +11,7 @@ target_sources(
 
 	rhi/rhi_instance.cpp
 	rhi/rhi_device.cpp
+	rhi/command.cpp
 
 	renderer/renderer.cpp
 )

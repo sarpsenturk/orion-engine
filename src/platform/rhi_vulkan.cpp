@@ -1,3 +1,4 @@
+#include "orion/rhi/command.hpp"
 #include "orion/rhi/rhi_device.hpp"
 #include "orion/rhi/rhi_instance.hpp"
 
@@ -7,6 +8,8 @@
 #include <volk.h>
 #define VK_NO_PROTOTYPES
 #include <vulkan/vk_enum_string_helper.h>
+
+#include <GLFW/glfw3.h>
 
 #include <algorithm>
 #include <array>
@@ -40,6 +43,20 @@ namespace orion
             VkQueue queue;
         };
 
+        class RHIVulkanCommandQueue : public RHICommandQueue
+        {
+        public:
+            RHIVulkanCommandQueue(const std::uint32_t& queue_family, const VkQueue& queue)
+                : queue_family_(queue_family)
+                , queue_(queue)
+            {
+            }
+
+        private:
+            std::uint32_t queue_family_;
+            VkQueue queue_;
+        };
+
         class RHIVulkanDevice : public RHIDevice
         {
         public:
@@ -67,6 +84,16 @@ namespace orion
             }
 
         private:
+            std::unique_ptr<RHICommandQueue> create_command_queue_api(const RHICommandQueueDesc& desc) override
+            {
+                switch (desc.type) {
+                    case RHICommandQueueType::Graphics:
+                        return std::make_unique<RHIVulkanCommandQueue>(graphics_queue_.family, graphics_queue_.queue);
+                }
+                ORION_CORE_LOG_ERROR("Invalid queue type");
+                unreachable();
+            }
+
             VkInstance instance_;
             VkPhysicalDevice physical_device_;
             VkDevice device_;
