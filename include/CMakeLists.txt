@@ -23,4 +23,6 @@ target_sources(
 	orion/rhi/format.hpp
 
 	orion/renderer/renderer.hpp
+
+	orion/utils/handle_pool.hpp
 )
