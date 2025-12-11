@@ -1,6 +1,6 @@
 #include "orion/renderer/renderer.hpp"
 
-#include "orion/rhi/rhi_instance.hpp"
+#include "orion/rhi/rhi.hpp"
 
 #include "orion/assert.hpp"
 #include "orion/log.hpp"

@@ -1,4 +1,4 @@
-#include "orion/rhi/rhi_instance.hpp"
+#include "orion/rhi/rhi.hpp"
 
 namespace orion
 {

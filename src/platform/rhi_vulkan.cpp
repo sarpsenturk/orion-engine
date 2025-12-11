@@ -1,6 +1,6 @@
 #include "orion/rhi/command.hpp"
-#include "orion/rhi/rhi_device.hpp"
-#include "orion/rhi/rhi_instance.hpp"
+#include "orion/rhi/device.hpp"
+#include "orion/rhi/rhi.hpp"
 
 #include "orion/assert.hpp"
 #include "orion/log.hpp"

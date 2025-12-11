@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/rhi/rhi_device.hpp"
+#include "orion/rhi/device.hpp"
 
 #include <memory>
 

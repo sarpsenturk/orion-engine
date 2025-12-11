@@ -16,8 +16,8 @@ target_sources(
 	orion/math/angles.hpp
 	orion/math/transform.hpp
 
-	orion/rhi/rhi_instance.hpp
-	orion/rhi/rhi_device.hpp
+	orion/rhi/rhi.hpp
+	orion/rhi/device.hpp
 	orion/rhi/command.hpp
 
 	orion/renderer/renderer.hpp
