@@ -15,4 +15,8 @@ target_sources(
 	orion/math/matrix.hpp
 	orion/math/angles.hpp
 	orion/math/transform.hpp
+
+	orion/rhi/rhi_instance.hpp
+
+	orion/renderer/renderer.hpp
 )

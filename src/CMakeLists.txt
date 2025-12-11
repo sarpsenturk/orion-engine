@@ -7,4 +7,9 @@ target_sources(
 	assert.cpp
 
 	platform/platform_glfw.cpp
+	platform/rhi_vulkan.cpp
+
+	rhi/rhi_instance.cpp
+
+	renderer/renderer.cpp
 )

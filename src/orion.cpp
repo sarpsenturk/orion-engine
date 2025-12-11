@@ -6,6 +6,8 @@
 #include "orion/platform/time.hpp"
 #include "orion/platform/window.hpp"
 
+#include "orion/renderer/renderer.hpp"
+
 #include <stdexcept>
 
 namespace orion
@@ -22,10 +24,14 @@ namespace orion
         if (window_ = platform_window_create("Orion", 800, 600); !window_) {
             throw std::runtime_error("Failed to create main window");
         }
+        if (!Renderer::init()) {
+            throw std::runtime_error("Failed to initialize renderer");
+        }
     }
 
     Engine::~Engine()
     {
+        Renderer::shutdown();
         platform_window_destroy(window_);
         platform_shutdown();
     }

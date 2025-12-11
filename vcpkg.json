@@ -1,6 +1,8 @@
 {
   "dependencies": [
+    "glfw3",
     "spdlog",
-    "glfw3"
+    "volk",
+    "vulkan-utility-libraries"
   ]
 }
