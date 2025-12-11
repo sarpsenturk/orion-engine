@@ -17,6 +17,7 @@ target_sources(
 	orion/math/transform.hpp
 
 	orion/rhi/rhi_instance.hpp
+	orion/rhi/rhi_device.hpp
 
 	orion/renderer/renderer.hpp
 )

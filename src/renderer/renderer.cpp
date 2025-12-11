@@ -9,8 +9,9 @@ namespace orion
 {
     namespace
     {
-        RHIInstance* rhi;
-    }
+        std::unique_ptr<RHIInstance> rhi;
+        std::unique_ptr<RHIDevice> rhi_device;
+    } // namespace
 
     bool Renderer::init()
     {
@@ -19,13 +20,17 @@ namespace orion
             ORION_CORE_LOG_ERROR("Failed to create RHIInstance");
             return false;
         }
+        if (rhi_device = rhi->create_device(); rhi == nullptr) {
+            ORION_CORE_LOG_ERROR("Failed to create RHIDevice");
+            return false;
+        }
         return true;
     }
 
     void Renderer::shutdown()
     {
         ORION_ASSERT(rhi != nullptr, "Renderer has not been initialized or has already been shut down");
-        rhi_destroy_instance(rhi);
+        rhi_device = nullptr;
         rhi = nullptr;
     }
 } // namespace orion

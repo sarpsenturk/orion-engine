@@ -10,6 +10,7 @@ target_sources(
 	platform/rhi_vulkan.cpp
 
 	rhi/rhi_instance.cpp
+	rhi/rhi_device.cpp
 
 	renderer/renderer.cpp
 )

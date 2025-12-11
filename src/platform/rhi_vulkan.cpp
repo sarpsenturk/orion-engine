@@ -1,3 +1,4 @@
+#include "orion/rhi/rhi_device.hpp"
 #include "orion/rhi/rhi_instance.hpp"
 
 #include "orion/assert.hpp"
@@ -7,6 +8,8 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vk_enum_string_helper.h>
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -32,6 +35,44 @@ namespace orion
             return VK_FALSE;
         }
 
+        struct VulkanQueue {
+            std::uint32_t family;
+            VkQueue queue;
+        };
+
+        class RHIVulkanDevice : public RHIDevice
+        {
+        public:
+            RHIVulkanDevice(
+                VkInstance instance,
+                VkPhysicalDevice physical_device,
+                VkDevice device,
+                VulkanQueue graphics_queue)
+                : instance_(instance)
+                , physical_device_(physical_device)
+                , device_(device)
+                , graphics_queue_(graphics_queue)
+            {
+                ORION_ASSERT(instance != VK_NULL_HANDLE, "VkInstance must not be VK_NULL_HANDLE");
+                ORION_ASSERT(physical_device != VK_NULL_HANDLE, "VkPhysicalDevice must not be VK_NULL_HANDLE");
+                ORION_ASSERT(device != VK_NULL_HANDLE, "VkDevice must not be VK_NULL_HANDLE");
+                ORION_ASSERT(graphics_queue.queue != VK_NULL_HANDLE, "VkQueue (graphics) must not be VK_NULL_HANDLE");
+            }
+
+            ~RHIVulkanDevice() override
+            {
+                vkDeviceWaitIdle(device_);
+                vkDestroyDevice(device_, nullptr);
+                ORION_CORE_LOG_INFO("Destroyed VkDevice {}", (void*)device_);
+            }
+
+        private:
+            VkInstance instance_;
+            VkPhysicalDevice physical_device_;
+            VkDevice device_;
+            VulkanQueue graphics_queue_;
+        };
+
         class RHIVulkanInstance : public RHIInstance
         {
         public:
@@ -52,12 +93,112 @@ namespace orion
             }
 
         private:
+            std::unique_ptr<RHIDevice> create_device_api() override
+            {
+                // Enumerate physical devices
+                std::uint32_t physical_device_count = 0;
+                if (VkResult result = vkEnumeratePhysicalDevices(instance_, &physical_device_count, nullptr); result != VK_SUCCESS) {
+                    ORION_CORE_LOG_ERROR("Failed to enumerate Vulkan physical devices: {}", string_VkResult(result));
+                    return nullptr;
+                }
+                if (physical_device_count == 0) {
+                    ORION_CORE_LOG_ERROR("No valid Vulkan physical devices found");
+                    return nullptr;
+                }
+                std::vector<VkPhysicalDevice> physical_devices(physical_device_count);
+                if (VkResult result = vkEnumeratePhysicalDevices(instance_, &physical_device_count, physical_devices.data()); result != VK_SUCCESS) {
+                    ORION_CORE_LOG_ERROR("Failed to enumerate Vulkan physical devices: {}", string_VkResult(result));
+                    return nullptr;
+                }
+
+                // Get physical device properties
+                std::vector<VkPhysicalDeviceProperties> physical_device_properties(physical_device_count);
+                std::ranges::transform(physical_devices, physical_device_properties.begin(), [](VkPhysicalDevice physical_device) {
+                    VkPhysicalDeviceProperties properties;
+                    vkGetPhysicalDeviceProperties(physical_device, &properties);
+                    ORION_CORE_LOG_DEBUG("Found VkPhysicalDevice ({}): {} - {}", (void*)physical_device, properties.deviceName, string_VkPhysicalDeviceType(properties.deviceType));
+                    return properties;
+                });
+
+                // Select physical device
+                // TODO: Allow proper control over physical device selection
+                VkPhysicalDevice physical_device = physical_devices[0];
+                ORION_CORE_LOG_INFO("Selected VkPhysicalDevice ({}): {}", (void*)physical_device, physical_device_properties[0].deviceName);
+
+                // Enumerate queue families
+                std::uint32_t queue_family_count = 0;
+                vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
+                if (queue_family_count == 0) {
+                    ORION_CORE_LOG_ERROR("No queue families found!");
+                    return nullptr;
+                }
+                std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+                vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families.data());
+                for (std::uint32_t idx = 0; const auto& queue_family : queue_families) {
+                    ORION_CORE_LOG_DEBUG("Queue family {}: {{ flags: {}, queue_count: {} }}", idx++, string_VkQueueFlags(queue_family.queueFlags), queue_family.queueCount);
+                }
+
+                // Find graphics queue
+                std::uint32_t graphics_queue_family = UINT32_MAX;
+                for (std::uint32_t idx = 0; idx < queue_family_count; ++idx) {
+                    if (queue_families[idx].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                        graphics_queue_family = idx;
+                        break;
+                    }
+                }
+                if (graphics_queue_family == UINT32_MAX) {
+                    ORION_CORE_LOG_ERROR("Failed to find a Vulkan queue family with VK_QUEUE_GRAPHICS_BIT");
+                    return nullptr;
+                }
+
+                // Queue create info
+                const auto queue_priorities = std::array{1.0f};
+                const auto queue_infos = std::array{
+                    VkDeviceQueueCreateInfo{
+                        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                        .pNext = nullptr,
+                        .flags = {},
+                        .queueFamilyIndex = graphics_queue_family,
+                        .queueCount = 1,
+                        .pQueuePriorities = queue_priorities.data(),
+                    },
+                };
+
+                // Enabled device extensions
+                std::vector<const char*> enabled_extensions;
+
+                // Create the device
+                const auto device_info = VkDeviceCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = {},
+                    .queueCreateInfoCount = static_cast<std::uint32_t>(queue_infos.size()),
+                    .pQueueCreateInfos = queue_infos.data(),
+                    .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
+                    .ppEnabledExtensionNames = enabled_extensions.data(),
+                    .pEnabledFeatures = nullptr,
+                };
+                VkDevice device = VK_NULL_HANDLE;
+                if (VkResult result = vkCreateDevice(physical_device, &device_info, nullptr, &device); result != VK_SUCCESS) {
+                    ORION_CORE_LOG_ERROR("Failed to create a Vulkan device: {}", string_VkResult(result));
+                    return nullptr;
+                }
+                ORION_CORE_LOG_DEBUG("Created VkDevice {}", (void*)device);
+
+                // Retrieve created queues
+                VulkanQueue graphics_queue = {.family = graphics_queue_family};
+                vkGetDeviceQueue(device, graphics_queue_family, 0, &graphics_queue.queue);
+                ORION_CORE_LOG_DEBUG("Got VkQueue (graphics) {}", (void*)graphics_queue.queue);
+
+                return std::make_unique<RHIVulkanDevice>(instance_, physical_device, device, graphics_queue);
+            }
+
             VkInstance instance_;
             VkDebugUtilsMessengerEXT debug_messenger_;
         };
     } // namespace
 
-    RHIInstance* rhi_vulkan_create_instance()
+    std::unique_ptr<RHIInstance> rhi_vulkan_create_instance()
     {
         if (volkInitialize() != VK_SUCCESS) {
             ORION_CORE_LOG_ERROR("Failed to initialize volk. Vulkan may not be installed on your system");
@@ -116,11 +257,6 @@ namespace orion
         }
         ORION_CORE_LOG_INFO("Created VkDebugUtilsMessengerEXT {}", (void*)debug_messenger);
 
-        return new RHIVulkanInstance(instance, debug_messenger);
-    }
-
-    void rhi_vulkan_destroy_instance(RHIInstance* instance)
-    {
-        delete instance;
+        return std::make_unique<RHIVulkanInstance>(instance, debug_messenger);
     }
 } // namespace orion
