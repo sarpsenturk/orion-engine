@@ -582,6 +582,7 @@ namespace orion
                     ORION_CORE_LOG_ERROR("Failed to create Vulkan pipeline layout: {}", string_VkResult(err));
                     return RHIPipeline::invalid();
                 }
+                ORION_CORE_LOG_INFO("Created VkPipelineLayout (placeholder) {}", (void*)pipeline_layout);
 
                 // Pipeline
                 const auto pipeline_info = VkGraphicsPipelineCreateInfo{
@@ -607,6 +608,7 @@ namespace orion
                     vkDestroyPipelineLayout(device_, pipeline_layout, nullptr);
                     return RHIPipeline::invalid();
                 }
+                ORION_CORE_LOG_INFO("Created VkPipeline (graphics) {}", (void*)pipeline);
 
                 const auto handle = resources_.pipelines.insert(VulkanPipeline{pipeline, pipeline_layout});
                 return RHIPipeline{handle.as_uint64_t()};
@@ -617,6 +619,8 @@ namespace orion
                 if (const auto* pipeline = resources_.pipelines.get(handle.value)) {
                     vkDestroyPipeline(device_, pipeline->pipeline, nullptr);
                     vkDestroyPipelineLayout(device_, pipeline->layout, nullptr);
+                    ORION_CORE_LOG_INFO("Destroyed VkPipeline {}", (void*)pipeline->pipeline);
+                    ORION_CORE_LOG_INFO("Destroyed VkPipelineLayout {}", (void*)pipeline->layout);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIPipeline ({}) which not a valid Vulkan handle", handle.value);
                 }

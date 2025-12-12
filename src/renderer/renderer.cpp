@@ -7,6 +7,11 @@
 #include "orion/assert.hpp"
 #include "orion/log.hpp"
 
+#include "orion/config.h"
+
+#include <fstream>
+#include <vector>
+
 namespace orion
 {
     namespace
@@ -19,6 +24,16 @@ namespace orion
 
         constexpr auto swapchain_format = RHIFormat::B8G8R8A8_Unorm_Srgb;
         constexpr auto swapchain_image_count = 2;
+
+        auto load_shader(const char* path)
+        {
+            std::ifstream file(path, std::ios::binary | std::ios::ate);
+            const auto size = file.tellg();
+            file.seekg(std::ios::beg);
+            std::vector<std::byte> buffer(size);
+            file.read(reinterpret_cast<char*>(buffer.data()), size);
+            return buffer;
+        }
     } // namespace
 
     bool Renderer::init(const struct Window* window)
@@ -63,8 +78,8 @@ namespace orion
         }
 
         pipeline = device->create_graphics_pipeline({
-            .VS = {},
-            .FS = {},
+            .VS = load_shader(ORION_SHADER_DIR "/vertex.spv"),
+            .FS = load_shader(ORION_SHADER_DIR "/fragment.spv"),
             .vertex_bindings = {},
             .input_assembly = {.topology = RHIPrimitiveTopology::TriangleList},
             .rasterizer = {
