@@ -24,6 +24,8 @@ namespace orion
         std::unique_ptr<RHIDevice> device;
         std::unique_ptr<RHICommandQueue> command_queue;
         RHISwapchain swapchain;
+        std::array<RHIImage, swapchain_image_count> swapchain_images;
+        std::array<RHIImageView, swapchain_image_count> swapchain_rtvs;
         RHIPipeline pipeline;
         std::array<RHISemaphore, swapchain_image_count> image_acquired_semaphores;
         RHIFence render_finished_fence;
@@ -81,8 +83,8 @@ namespace orion
         }
 
         for (std::uint32_t i = 0; i < swapchain_image_count; ++i) {
-            const auto image = device->get_swapchain_image(swapchain, i);
-            ORION_CORE_LOG_TRACE("Got RHIImage {} from RHISwapchain", image.value, swapchain.value);
+            swapchain_images[i] = device->get_swapchain_image(swapchain, i);
+            swapchain_rtvs[i] = device->create_render_target_view({.image = swapchain_images[i], .format = swapchain_format});
         }
 
         pipeline = device->create_graphics_pipeline({
@@ -134,6 +136,7 @@ namespace orion
         device->destroy(render_finished_fence);
         for (int i = 0; i < swapchain_image_count; ++i) {
             device->destroy(image_acquired_semaphores[i]);
+            device->destroy(swapchain_rtvs[i]);
         }
         device->destroy(pipeline);
         device->destroy(swapchain);

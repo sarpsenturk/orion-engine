@@ -27,6 +27,11 @@ namespace orion
         return create_fence_api(desc);
     }
 
+    RHIImageView RHIDevice::create_render_target_view(const RHIRenderTargetViewDesc& desc)
+    {
+        return create_render_target_view_api(desc);
+    }
+
     void RHIDevice::destroy(RHISwapchain handle)
     {
         return destroy_api(handle);
@@ -43,6 +48,11 @@ namespace orion
     }
 
     void RHIDevice::destroy(RHIFence handle)
+    {
+        return destroy_api(handle);
+    }
+
+    void RHIDevice::destroy(RHIImageView handle)
     {
         return destroy_api(handle);
     }

@@ -46,12 +46,17 @@ namespace orion
             VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         };
 
+        struct VulkanImageView {
+            VkImageView image_view;
+        };
+
         struct VulkanResourceTable {
             HandlePool<VulkanSwapchain> swapchains;
             HandlePool<VulkanPipeline> pipelines;
             HandlePool<VkSemaphore> semaphores;
             HandlePool<VkFence> fences;
             HandlePool<VulkanImage> images;
+            HandlePool<VulkanImageView> image_views;
         };
 
         VkFormat to_vk_format(RHIFormat format)
@@ -655,6 +660,46 @@ namespace orion
                 return RHIFence{handle.as_uint64_t()};
             }
 
+            RHIImageView create_render_target_view_api(const RHIRenderTargetViewDesc& desc) override
+            {
+                const auto* image = resources_.images.get(desc.image.value);
+                if (!image) {
+                    ORION_CORE_LOG_ERROR("Invalid RHIImage {} when creating render target view", desc.image.value);
+                    return RHIImageView::invalid();
+                }
+
+                const auto image_view_info = VkImageViewCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = {},
+                    .image = image->image,
+                    .viewType = VK_IMAGE_VIEW_TYPE_2D, // TODO: Make this customizable
+                    .format = to_vk_format(desc.format),
+                    .components = {
+                        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    },
+                    .subresourceRange = {
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = 0,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+                };
+                VkImageView image_view = VK_NULL_HANDLE;
+                if (VkResult err = vkCreateImageView(device_, &image_view_info, nullptr, &image_view)) {
+                    ORION_CORE_LOG_ERROR("Failed to create Vulkan render target image view: {}", string_VkResult(err));
+                    return RHIImageView::invalid();
+                }
+                ORION_CORE_LOG_INFO("Created VkImageView (rtv) {}", (void*)image_view);
+
+                const auto handle = resources_.image_views.insert(VulkanImageView{image_view});
+                return RHIImageView{handle.as_uint64_t()};
+            }
+
             void destroy_api(RHISwapchain handle) override
             {
                 if (const auto* swapchain = resources_.swapchains.get(handle.value)) {
@@ -715,6 +760,20 @@ namespace orion
                     ORION_CORE_LOG_INFO("Destroyed VkFence {}", (void*)*fence);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIFence ({}) which not a valid Vulkan handle", handle.value);
+                }
+            }
+
+            void destroy_api(RHIImageView handle) override
+            {
+                if (const auto* image_view = resources_.image_views.get(handle.value)) {
+                    // Release resource handles
+                    resources_.image_views.remove(handle.value);
+
+                    // Destroy resources
+                    vkDestroyImageView(device_, image_view->image_view, nullptr);
+                    ORION_CORE_LOG_INFO("Destroyed VkImageView {}", (void*)image_view->image_view);
+                } else {
+                    ORION_CORE_LOG_WARN("Attempting to destroy RHIImageView ({}) which not a valid Vulkan handle", handle.value);
                 }
             }
 

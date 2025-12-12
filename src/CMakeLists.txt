@@ -17,6 +17,7 @@ target_sources(
 	rhi/handle.cpp
 	rhi/pipeline.cpp
 	rhi/synchronization.cpp
+	rhi/image.cpp
 
 	renderer/renderer.cpp
 )
