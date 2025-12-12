@@ -29,6 +29,7 @@ target_include_directories(
 	orion
 	PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include> # config.h.in -> config.h
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_options(orion PRIVATE ${ORION_CXX_FLAGS}) # Set in CMakePresets.json
@@ -46,6 +47,9 @@ target_link_libraries(
 	volk::volk
 	Vulkan::UtilityHeaders
 )
+
+# Configuration file
+configure_file(config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/orion/config.h)
 
 # Add library sources
 add_subdirectory(src)
@@ -99,4 +103,10 @@ install(
     ${CMAKE_CURRENT_BINARY_DIR}/OrionConfig.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/OrionConfigVersion.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/orion
+)
+
+# Install configuration header
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/include/orion/config.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/orion
 )

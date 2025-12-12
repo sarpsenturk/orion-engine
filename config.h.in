@@ -1,0 +1,12 @@
+#pragma once
+
+// clang-format off
+
+#define ORION_VERSION_MAJOR @ORION_VERSION_MAJOR@
+#define ORION_VERSION_MINOR @ORION_VERSION_MINOR@
+#define ORION_VERSION_PATCH @ORION_VERSION_PATCH@
+#define ORION_VERSION "@ORION_VERSION@"
+
+#define ORION_SHADER_DIR "@ORION_SHADER_DIR@"
+
+// clang-format on
