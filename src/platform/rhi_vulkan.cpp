@@ -658,6 +658,13 @@ namespace orion
             void destroy_api(RHISwapchain handle) override
             {
                 if (const auto* swapchain = resources_.swapchains.get(handle.value)) {
+                    // Release resource handles
+                    for (RHIImage image : swapchain->images) {
+                        resources_.images.remove(image.value);
+                    }
+                    resources_.swapchains.remove(handle.value);
+
+                    // Destroy resources
                     vkDestroySwapchainKHR(device_, swapchain->swapchain, nullptr);
                     vkDestroySurfaceKHR(instance_, swapchain->surface, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkSwapchainKHR {}", (void*)swapchain->swapchain);
@@ -670,6 +677,10 @@ namespace orion
             void destroy_api(RHIPipeline handle) override
             {
                 if (const auto* pipeline = resources_.pipelines.get(handle.value)) {
+                    // Release resource handles
+                    resources_.pipelines.remove(handle.value);
+
+                    // Destroy resources
                     vkDestroyPipeline(device_, pipeline->pipeline, nullptr);
                     vkDestroyPipelineLayout(device_, pipeline->layout, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkPipeline {}", (void*)pipeline->pipeline);
@@ -682,6 +693,10 @@ namespace orion
             void destroy_api(RHISemaphore handle) override
             {
                 if (const auto* semaphore = resources_.semaphores.get(handle.value)) {
+                    // Release resource handles
+                    resources_.semaphores.remove(handle.value);
+
+                    // Destroy resources
                     vkDestroySemaphore(device_, *semaphore, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkSemaphore {}", (void*)*semaphore);
                 } else {
@@ -692,6 +707,10 @@ namespace orion
             void destroy_api(RHIFence handle) override
             {
                 if (const auto* fence = resources_.fences.get(handle.value)) {
+                    // Release resource handles
+                    resources_.fences.remove(handle.value);
+
+                    // Destroy resources
                     vkDestroyFence(device_, *fence, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkFence {}", (void*)*fence);
                 } else {
