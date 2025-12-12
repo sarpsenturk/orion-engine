@@ -15,6 +15,7 @@ namespace orion
         std::unique_ptr<RHIDevice> device;
         std::unique_ptr<RHICommandQueue> command_queue;
         std::unique_ptr<RHISwapchain> swapchain;
+        RHIPipeline pipeline;
 
         constexpr auto swapchain_format = RHIFormat::B8G8R8A8_Unorm_Srgb;
         constexpr auto swapchain_image_count = 2;
@@ -60,12 +61,40 @@ namespace orion
             ORION_CORE_LOG_ERROR("Failed to create RHISwapchain");
             return false;
         }
+
+        pipeline = device->create_graphics_pipeline({
+            .VS = {},
+            .FS = {},
+            .vertex_bindings = {},
+            .input_assembly = {.topology = RHIPrimitiveTopology::TriangleList},
+            .rasterizer = {
+                .fill_mode = RHIFillMode::Solid,
+                .cull_mode = RHICullMode::Back,
+                .front_face = RHIFrontFace::CounterClockwise,
+            },
+            .depth_stencil = {
+                .depth_enable = false,
+            },
+            .blend = {
+                .render_targets = {{
+                    RHIRenderTargetBlendDesc{.blend_enable = false, .color_write_mask = RHIColorWriteFlags::All},
+                }},
+            },
+            .rtv_formats = {{swapchain_format}},
+        });
+        if (!pipeline.is_valid()) {
+            ORION_CORE_LOG_ERROR("Failed to create RHIPipeline");
+            return false;
+        }
+
         return true;
     }
 
     void Renderer::shutdown()
     {
         ORION_ASSERT(rhi != nullptr, "Renderer has not been initialized or has already been shut down");
+
+        device->destroy(pipeline);
         swapchain = nullptr;
         command_queue = nullptr;
         device = nullptr;

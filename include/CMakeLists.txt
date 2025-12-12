@@ -21,8 +21,11 @@ target_sources(
 	orion/rhi/command.hpp
 	orion/rhi/swapchain.hpp
 	orion/rhi/format.hpp
+	orion/rhi/handle.hpp
+	orion/rhi/pipeline.hpp
 
 	orion/renderer/renderer.hpp
 
 	orion/utils/handle_pool.hpp
+	orion/utils/finally.hpp
 )

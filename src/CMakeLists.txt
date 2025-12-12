@@ -14,6 +14,8 @@ target_sources(
 	rhi/device.cpp
 	rhi/command.cpp
 	rhi/swapchain.cpp
+	rhi/handle.cpp
+	rhi/pipeline.cpp
 
 	renderer/renderer.cpp
 )

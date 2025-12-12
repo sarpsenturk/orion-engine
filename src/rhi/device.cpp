@@ -11,4 +11,14 @@ namespace orion
     {
         return create_swapchain_api(desc);
     }
+
+    RHIPipeline RHIDevice::create_graphics_pipeline(const RHIGraphicsPipelineDesc& desc)
+    {
+        return create_graphics_pipeline_api(desc);
+    }
+
+    void RHIDevice::destroy(RHIPipeline handle)
+    {
+        return destroy_api(handle);
+    }
 } // namespace orion
