@@ -71,4 +71,9 @@ namespace orion
     {
         return get_swapchain_image_api(swapchain, image_idx);
     }
+
+    std::uint32_t RHIDevice::acquire_swapchain_image(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence)
+    {
+        return acquire_swapchain_image_api(swapchain, semaphore, fence);
+    }
 } // namespace orion

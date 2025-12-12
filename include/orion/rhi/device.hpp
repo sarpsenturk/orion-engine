@@ -34,6 +34,7 @@ namespace orion
         void destroy(RHIImageView handle);
 
         RHIImage get_swapchain_image(RHISwapchain swapchain, std::uint32_t image_idx);
+        std::uint32_t acquire_swapchain_image(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence);
 
     protected:
         RHIDevice(const RHIDevice&) = default;
@@ -59,5 +60,6 @@ namespace orion
         virtual void destroy_api(RHIImageView handle) = 0;
 
         virtual RHIImage get_swapchain_image_api(RHISwapchain swapchain, std::uint32_t image_idx) = 0;
+        virtual std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence) = 0;
     };
 } // namespace orion

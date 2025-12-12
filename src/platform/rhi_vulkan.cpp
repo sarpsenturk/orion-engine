@@ -904,6 +904,41 @@ namespace orion
                 }
             }
 
+            std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence) override
+            {
+                const auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value);
+                if (!vulkan_swapchain) {
+                    ORION_CORE_LOG_ERROR("Cannot acquire image for invalid Vulkan RHISwapchain {}", swapchain.value);
+                    return UINT32_MAX;
+                }
+
+                VkSemaphore vk_semaphore = VK_NULL_HANDLE;
+                if (semaphore.is_valid()) {
+                    if (const auto* vulkan_semaphore = resources_.semaphores.get(semaphore.value)) {
+                        vk_semaphore = *vulkan_semaphore;
+                    } else {
+                        ORION_CORE_LOG_ERROR("Invalid Vulkan RHISemaphore {}", semaphore.value);
+                        return UINT32_MAX;
+                    }
+                }
+                VkFence vk_fence = VK_NULL_HANDLE;
+                if (fence.is_valid()) {
+                    if (const auto* vulkan_fence = resources_.fences.get(fence.value)) {
+                        vk_fence = *vulkan_fence;
+                    } else {
+                        ORION_CORE_LOG_ERROR("Invalid Vulkan RHIFence {}", fence.value);
+                        return UINT32_MAX;
+                    }
+                }
+
+                std::uint32_t image_index = 0;
+                if (VkResult err = vkAcquireNextImageKHR(device_, vulkan_swapchain->swapchain, UINT64_MAX, vk_semaphore, vk_fence, &image_index)) {
+                    ORION_CORE_LOG_ERROR("Failed to acquire image for VkSwapchainKHR {}: {}", (void*)vulkan_swapchain->swapchain, string_VkResult(err));
+                    return UINT32_MAX;
+                }
+                return image_index;
+            }
+
             VkResult create_shader_module(std::span<const std::byte> code, VkShaderModule* shader_module) const
             {
                 const auto shader_info = VkShaderModuleCreateInfo{
