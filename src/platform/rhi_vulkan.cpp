@@ -30,6 +30,11 @@ namespace orion
     {
         constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
 
+        struct VulkanQueue {
+            std::uint32_t family;
+            VkQueue queue;
+        };
+
         struct VulkanSwapchain {
             VkSurfaceKHR surface;
             VkSwapchainKHR swapchain;
@@ -211,9 +216,73 @@ namespace orion
             return VK_FALSE;
         }
 
-        struct VulkanQueue {
-            std::uint32_t family;
-            VkQueue queue;
+        class RHIVulkanCommandAllocator : public RHICommandAllocator
+        {
+        public:
+            RHIVulkanCommandAllocator(VkDevice device, VkCommandPool command_pool)
+                : device_(device)
+                , command_pool_(command_pool)
+            {
+                ORION_ASSERT(device != VK_NULL_HANDLE, "VkDevice must not be VK_NULL_HANDLE");
+                ORION_ASSERT(command_pool != VK_NULL_HANDLE, "VkCommandPool must not be VK_NULL_HANDLE");
+            }
+
+            ~RHIVulkanCommandAllocator() override
+            {
+                vkDestroyCommandPool(device_, command_pool_, nullptr);
+                ORION_CORE_LOG_INFO("Destroyed VkCommandPool {}", (void*)command_pool_);
+            }
+
+            [[nodiscard]] VkCommandPool command_pool() const noexcept { return command_pool_; }
+
+        private:
+            bool reset_api() override
+            {
+                if (VkResult err = vkResetCommandPool(device_, command_pool_, {})) {
+                    ORION_CORE_LOG_ERROR("Failed to reset VkCommandPool {}: {}", (void*)command_pool_, string_VkResult(err));
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+
+            VkDevice device_;
+            VkCommandPool command_pool_;
+        };
+
+        class RHIVulkanCommandList : public RHICommandList
+        {
+        public:
+            RHIVulkanCommandList(VkDevice device, VkCommandPool command_pool, VkCommandBuffer command_buffer)
+                : device_(device)
+                , command_pool_(command_pool)
+                , command_buffer_(command_buffer)
+            {
+                ORION_ASSERT(device != VK_NULL_HANDLE, "VkDevice must not be VK_NULL_HANDLE");
+                ORION_ASSERT(command_pool != VK_NULL_HANDLE, "VkCommandPool must not be VK_NULL_HANDLE");
+                ORION_ASSERT(command_buffer != VK_NULL_HANDLE, "VkCommandBuffer must not be VK_NULL_HANDLE");
+            }
+
+            ~RHIVulkanCommandList() override
+            {
+                vkFreeCommandBuffers(device_, command_pool_, 1, &command_buffer_);
+                ORION_CORE_LOG_INFO("Freed VkCommandBuffer {}", (void*)command_buffer_);
+            }
+
+        private:
+            bool reset_api() override
+            {
+                if (VkResult err = vkResetCommandBuffer(command_buffer_, {})) {
+                    ORION_CORE_LOG_ERROR("Failed to reset VkCommandBuffer {}: {}", (void*)command_buffer_, string_VkResult(err));
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+
+            VkDevice device_;
+            VkCommandPool command_pool_;
+            VkCommandBuffer command_buffer_;
         };
 
         class RHIVulkanCommandQueue : public RHICommandQueue
@@ -263,8 +332,50 @@ namespace orion
                     case RHICommandQueueType::Graphics:
                         return std::make_unique<RHIVulkanCommandQueue>(graphics_queue_.family, graphics_queue_.queue);
                 }
-                ORION_CORE_LOG_ERROR("Invalid queue type");
                 unreachable();
+            }
+
+            std::unique_ptr<RHICommandAllocator> create_command_allocator_api(const RHICommandAllocatorDesc& desc) override
+            {
+                const auto queue_family_index = get_queue_family_index(desc.type);
+                const auto command_pool_info = VkCommandPoolCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                    .queueFamilyIndex = queue_family_index,
+                };
+                VkCommandPool command_pool = VK_NULL_HANDLE;
+                if (VkResult err = vkCreateCommandPool(device_, &command_pool_info, nullptr, &command_pool)) {
+                    ORION_CORE_LOG_ERROR("Failed to create Vulkan command pool: {}", string_VkResult(err));
+                    return nullptr;
+                }
+                ORION_CORE_LOG_INFO("Created VkCommandPool {} with queueFamilyIndex = {}", (void*)command_pool, queue_family_index);
+                return std::make_unique<RHIVulkanCommandAllocator>(device_, command_pool);
+            }
+
+            std::unique_ptr<RHICommandList> create_command_list_api(const RHICommandListDesc& desc) override
+            {
+                const auto* vulkan_command_allocator = dynamic_cast<const RHIVulkanCommandAllocator*>(desc.command_allocator);
+                if (!vulkan_command_allocator) {
+                    ORION_CORE_LOG_ERROR("Invalid Vulkan RHICommandAllocator* {}", (void*)desc.command_allocator);
+                    return nullptr;
+                }
+                VkCommandPool command_pool = vulkan_command_allocator->command_pool();
+
+                const auto command_buffer_info = VkCommandBufferAllocateInfo{
+                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                    .pNext = nullptr,
+                    .commandPool = command_pool,
+                    .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                    .commandBufferCount = 1,
+                };
+                VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+                if (VkResult err = vkAllocateCommandBuffers(device_, &command_buffer_info, &command_buffer)) {
+                    ORION_CORE_LOG_ERROR("Failed to allocate Vulkan command buffer: {}", string_VkResult(err));
+                    return nullptr;
+                }
+                ORION_CORE_LOG_INFO("Allocated VkCommandBuffer {} from VkCommandPool {}", (void*)command_buffer, (void*)command_pool);
+                return std::make_unique<RHIVulkanCommandList>(device_, command_pool, command_buffer);
             }
 
             RHISwapchain create_swapchain_api(const RHISwapchainDesc& desc) override
@@ -803,6 +914,15 @@ namespace orion
                     .pCode = reinterpret_cast<const std::uint32_t*>(code.data()),
                 };
                 return vkCreateShaderModule(device_, &shader_info, nullptr, shader_module);
+            }
+
+            std::uint32_t get_queue_family_index(RHICommandQueueType type) const
+            {
+                switch (type) {
+                    case RHICommandQueueType::Graphics:
+                        return graphics_queue_.family;
+                }
+                unreachable();
             }
 
             VkInstance instance_;

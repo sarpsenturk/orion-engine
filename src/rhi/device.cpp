@@ -7,6 +7,16 @@ namespace orion
         return create_command_queue_api(desc);
     }
 
+    std::unique_ptr<RHICommandAllocator> RHIDevice::create_command_allocator(const RHICommandAllocatorDesc& desc)
+    {
+        return create_command_allocator_api(desc);
+    }
+
+    std::unique_ptr<RHICommandList> RHIDevice::create_command_list(const RHICommandListDesc& desc)
+    {
+        return create_command_list_api(desc);
+    }
+
     RHISwapchain RHIDevice::create_swapchain(const RHISwapchainDesc& desc)
     {
         return create_swapchain_api(desc);

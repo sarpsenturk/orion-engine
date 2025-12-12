@@ -23,6 +23,8 @@ namespace orion
         std::unique_ptr<RHIInstance> rhi;
         std::unique_ptr<RHIDevice> device;
         std::unique_ptr<RHICommandQueue> command_queue;
+        std::unique_ptr<RHICommandAllocator> command_allocator;
+        std::unique_ptr<RHICommandList> command_list;
         RHISwapchain swapchain;
         std::array<RHIImage, swapchain_image_count> swapchain_images;
         std::array<RHIImageView, swapchain_image_count> swapchain_rtvs;
@@ -66,6 +68,18 @@ namespace orion
         command_queue = device->create_command_queue({.type = RHICommandQueueType::Graphics});
         if (command_queue == nullptr) {
             ORION_CORE_LOG_ERROR("Failed to create RHICommandQueue");
+            return false;
+        }
+
+        command_allocator = device->create_command_allocator({.type = RHICommandQueueType::Graphics});
+        if (command_allocator == nullptr) {
+            ORION_CORE_LOG_ERROR("Failed to create RHICommandAllocator");
+            return false;
+        }
+
+        command_list = device->create_command_list({.command_allocator = command_allocator.get()});
+        if (command_list == nullptr) {
+            ORION_CORE_LOG_ERROR("Failed to create RHICommandList");
             return false;
         }
 
@@ -140,6 +154,8 @@ namespace orion
         }
         device->destroy(pipeline);
         device->destroy(swapchain);
+        command_list = nullptr;
+        command_allocator = nullptr;
         command_queue = nullptr;
         device = nullptr;
         rhi = nullptr;

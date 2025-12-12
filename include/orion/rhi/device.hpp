@@ -18,6 +18,8 @@ namespace orion
         virtual ~RHIDevice() = default;
 
         std::unique_ptr<RHICommandQueue> create_command_queue(const RHICommandQueueDesc& desc);
+        std::unique_ptr<RHICommandAllocator> create_command_allocator(const RHICommandAllocatorDesc& desc);
+        std::unique_ptr<RHICommandList> create_command_list(const RHICommandListDesc& desc);
 
         RHISwapchain create_swapchain(const RHISwapchainDesc& desc);
         RHIPipeline create_graphics_pipeline(const RHIGraphicsPipelineDesc& desc);
@@ -41,6 +43,8 @@ namespace orion
 
     private:
         virtual std::unique_ptr<RHICommandQueue> create_command_queue_api(const RHICommandQueueDesc& desc) = 0;
+        virtual std::unique_ptr<RHICommandAllocator> create_command_allocator_api(const RHICommandAllocatorDesc& desc) = 0;
+        virtual std::unique_ptr<RHICommandList> create_command_list_api(const RHICommandListDesc& desc) = 0;
 
         virtual RHISwapchain create_swapchain_api(const RHISwapchainDesc& desc) = 0;
         virtual RHIPipeline create_graphics_pipeline_api(const RHIGraphicsPipelineDesc& desc) = 0;
