@@ -19,4 +19,5 @@ namespace orion
     using RHIPipeline = RHIHandle<struct RHIPipeline_Tag>;
     using RHISemaphore = RHIHandle<struct RHISemaphore_Tag>;
     using RHIFence = RHIHandle<struct RHIFence_Tag>;
+    using RHIImage = RHIHandle<struct RHIImage_Tag>;
 } // namespace orion

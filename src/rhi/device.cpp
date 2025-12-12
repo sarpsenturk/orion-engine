@@ -46,4 +46,9 @@ namespace orion
     {
         return destroy_api(handle);
     }
+
+    RHIImage RHIDevice::get_swapchain_image(RHISwapchain swapchain, std::uint32_t image_idx)
+    {
+        return get_swapchain_image_api(swapchain, image_idx);
+    }
 } // namespace orion

@@ -80,6 +80,11 @@ namespace orion
             return false;
         }
 
+        for (std::uint32_t i = 0; i < swapchain_image_count; ++i) {
+            const auto image = device->get_swapchain_image(swapchain, i);
+            ORION_CORE_LOG_TRACE("Got RHIImage {} from RHISwapchain", image.value, swapchain.value);
+        }
+
         pipeline = device->create_graphics_pipeline({
             .VS = load_shader(ORION_SHADER_DIR "/vertex.spv"),
             .FS = load_shader(ORION_SHADER_DIR "/fragment.spv"),

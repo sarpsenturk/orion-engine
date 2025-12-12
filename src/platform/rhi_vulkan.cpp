@@ -33,6 +33,7 @@ namespace orion
         struct VulkanSwapchain {
             VkSurfaceKHR surface;
             VkSwapchainKHR swapchain;
+            std::vector<RHIImage> images;
         };
 
         struct VulkanPipeline {
@@ -40,11 +41,17 @@ namespace orion
             VkPipelineLayout layout;
         };
 
+        struct VulkanImage {
+            VkImage image;
+            VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        };
+
         struct VulkanResourceTable {
             HandlePool<VulkanSwapchain> swapchains;
             HandlePool<VulkanPipeline> pipelines;
             HandlePool<VkSemaphore> semaphores;
             HandlePool<VkFence> fences;
+            HandlePool<VulkanImage> images;
         };
 
         VkFormat to_vk_format(RHIFormat format)
@@ -257,6 +264,7 @@ namespace orion
 
             RHISwapchain create_swapchain_api(const RHISwapchainDesc& desc) override
             {
+
                 // Create surface
                 GLFWwindow* window = desc.window->window;
                 VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -285,7 +293,7 @@ namespace orion
                 }
 
                 // Check if requested image count is supported
-                const auto image_count = desc.image_count;
+                auto image_count = desc.image_count;
                 if (image_count < surface_capabilities.minImageCount || image_count > surface_capabilities.maxImageCount) {
                     ORION_CORE_LOG_ERROR("Requested image count ({}) is not in range of supported image counts [{}, {}]",
                                          image_count, surface_capabilities.minImageCount, surface_capabilities.maxImageCount);
@@ -346,11 +354,26 @@ namespace orion
                 VkSwapchainKHR swapchain = VK_NULL_HANDLE;
                 if (VkResult err = vkCreateSwapchainKHR(device_, &swapchain_info, nullptr, &swapchain)) {
                     ORION_CORE_LOG_ERROR("Failed to create VkSwapchainKHR with VkSurface {}: {}", (void*)surface, string_VkResult(err));
-                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                    return RHISwapchain::invalid();
                 }
                 ORION_CORE_LOG_INFO("Created VkSwapchainKHR {}", (void*)swapchain);
 
-                const auto handle = resources_.swapchains.insert(VulkanSwapchain{surface, swapchain});
+                // Acquire swapchain images
+                std::vector<VkImage> images(image_count);
+                if (VkResult err = vkGetSwapchainImagesKHR(device_, swapchain, &image_count, images.data())) {
+                    ORION_CORE_LOG_ERROR("Failed to acquire VkSwapchainKHR {} images: {}", (void*)swapchain, string_VkResult(err));
+                    vkDestroySwapchainKHR(device_, swapchain, nullptr);
+                    vkDestroySurfaceKHR(instance_, surface, nullptr);
+                }
+
+                // Add swapchain images to handle table
+                std::vector<RHIImage> image_handles(image_count);
+                std::ranges::transform(images, image_handles.begin(), [&](VkImage image) {
+                    const auto handle = resources_.images.insert(VulkanImage{image});
+                    return RHIImage{handle.as_uint64_t()};
+                });
+
+                const auto handle = resources_.swapchains.insert(VulkanSwapchain{surface, swapchain, std::move(image_handles)});
                 return RHISwapchain{handle.as_uint64_t()};
             }
 
@@ -673,6 +696,22 @@ namespace orion
                     ORION_CORE_LOG_INFO("Destroyed VkFence {}", (void*)*fence);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIFence ({}) which not a valid Vulkan handle", handle.value);
+                }
+            }
+
+            RHIImage get_swapchain_image_api(RHISwapchain swapchain, std::uint32_t image_idx) override
+            {
+                if (const auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value)) {
+                    if (image_idx < vulkan_swapchain->images.size()) {
+                        return vulkan_swapchain->images[image_idx];
+                    } else {
+                        ORION_CORE_LOG_ERROR("Cannot get image {} from VkSwapchainKHR {} (image_count = {})",
+                                             image_idx, (void*)vulkan_swapchain->swapchain, vulkan_swapchain->images.size());
+                        return RHIImage::invalid();
+                    }
+                } else {
+                    ORION_CORE_LOG_ERROR("Cannot get images from invalid RHISwapchain {}", swapchain.value);
+                    return RHIImage::invalid();
                 }
             }
 
