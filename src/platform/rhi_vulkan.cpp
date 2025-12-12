@@ -37,6 +37,8 @@ namespace orion
 
         struct VulkanResourceTable {
             HandlePool<VulkanPipeline> pipelines;
+            HandlePool<VkSemaphore> semaphores;
+            HandlePool<VkFence> fences;
         };
 
         VkFormat to_vk_format(RHIFormat format)
@@ -614,6 +616,42 @@ namespace orion
                 return RHIPipeline{handle.as_uint64_t()};
             }
 
+            RHISemaphore create_semaphore_api(const RHISemaphoreDesc& /*desc*/) override
+            {
+                const auto semaphore_info = VkSemaphoreCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = {},
+                };
+                VkSemaphore semaphore = VK_NULL_HANDLE;
+                if (VkResult err = vkCreateSemaphore(device_, &semaphore_info, nullptr, &semaphore)) {
+                    ORION_CORE_LOG_ERROR("Failed to create Vulkan semaphore: {}", string_VkResult(err));
+                    return RHISemaphore::invalid();
+                }
+                ORION_CORE_LOG_INFO("Created VkSemaphore {}", (void*)semaphore);
+
+                const auto handle = resources_.semaphores.insert(semaphore);
+                return RHISemaphore{handle.as_uint64_t()};
+            }
+
+            RHIFence create_fence_api(const RHIFenceDesc& desc) override
+            {
+                const auto fence_info = VkFenceCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = desc.create_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
+                };
+                VkFence fence = VK_NULL_HANDLE;
+                if (VkResult err = vkCreateFence(device_, &fence_info, nullptr, &fence)) {
+                    ORION_CORE_LOG_ERROR("Failed to create Vulkan fence: {}", string_VkResult(err));
+                    return RHIFence::invalid();
+                }
+                ORION_CORE_LOG_INFO("Created VkFence {}", (void*)fence);
+
+                const auto handle = resources_.fences.insert(fence);
+                return RHIFence{handle.as_uint64_t()};
+            }
+
             void destroy_api(RHIPipeline handle) override
             {
                 if (const auto* pipeline = resources_.pipelines.get(handle.value)) {
@@ -623,6 +661,26 @@ namespace orion
                     ORION_CORE_LOG_INFO("Destroyed VkPipelineLayout {}", (void*)pipeline->layout);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIPipeline ({}) which not a valid Vulkan handle", handle.value);
+                }
+            }
+
+            void destroy_api(RHISemaphore handle) override
+            {
+                if (const auto* semaphore = resources_.semaphores.get(handle.value)) {
+                    vkDestroySemaphore(device_, *semaphore, nullptr);
+                    ORION_CORE_LOG_INFO("Destroyed VkSemaphore {}", (void*)*semaphore);
+                } else {
+                    ORION_CORE_LOG_WARN("Attempting to destroy RHISemaphore ({}) which not a valid Vulkan handle", handle.value);
+                }
+            }
+
+            void destroy_api(RHIFence handle) override
+            {
+                if (const auto* fence = resources_.fences.get(handle.value)) {
+                    vkDestroyFence(device_, *fence, nullptr);
+                    ORION_CORE_LOG_INFO("Destroyed VkFence {}", (void*)*fence);
+                } else {
+                    ORION_CORE_LOG_WARN("Attempting to destroy RHIFence ({}) which not a valid Vulkan handle", handle.value);
                 }
             }
 

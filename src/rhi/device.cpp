@@ -17,7 +17,27 @@ namespace orion
         return create_graphics_pipeline_api(desc);
     }
 
+    RHISemaphore RHIDevice::create_semaphore(const RHISemaphoreDesc& desc)
+    {
+        return create_semaphore_api(desc);
+    }
+
+    RHIFence RHIDevice::create_fence(const RHIFenceDesc& desc)
+    {
+        return create_fence_api(desc);
+    }
+
     void RHIDevice::destroy(RHIPipeline handle)
+    {
+        return destroy_api(handle);
+    }
+
+    void RHIDevice::destroy(RHISemaphore handle)
+    {
+        return destroy_api(handle);
+    }
+
+    void RHIDevice::destroy(RHIFence handle)
     {
         return destroy_api(handle);
     }

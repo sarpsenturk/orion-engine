@@ -9,6 +9,7 @@
 
 #include "orion/config.h"
 
+#include <array>
 #include <fstream>
 #include <vector>
 
@@ -16,14 +17,16 @@ namespace orion
 {
     namespace
     {
+        constexpr auto swapchain_format = RHIFormat::B8G8R8A8_Unorm_Srgb;
+        constexpr auto swapchain_image_count = 2;
+
         std::unique_ptr<RHIInstance> rhi;
         std::unique_ptr<RHIDevice> device;
         std::unique_ptr<RHICommandQueue> command_queue;
         std::unique_ptr<RHISwapchain> swapchain;
         RHIPipeline pipeline;
-
-        constexpr auto swapchain_format = RHIFormat::B8G8R8A8_Unorm_Srgb;
-        constexpr auto swapchain_image_count = 2;
+        std::array<RHISemaphore, swapchain_image_count> image_acquired_semaphores;
+        RHIFence render_finished_fence;
 
         auto load_shader(const char* path)
         {
@@ -102,6 +105,20 @@ namespace orion
             return false;
         }
 
+        for (int i = 0; i < swapchain_image_count; ++i) {
+            image_acquired_semaphores[i] = device->create_semaphore({});
+            if (!image_acquired_semaphores[i].is_valid()) {
+                ORION_CORE_LOG_ERROR("Failed to create RHISemaphore");
+                return false;
+            }
+        }
+
+        render_finished_fence = device->create_fence({.create_signaled = true});
+        if (!render_finished_fence.is_valid()) {
+            ORION_CORE_LOG_ERROR("Failed to create RHIFence");
+            return false;
+        }
+
         return true;
     }
 
@@ -109,6 +126,10 @@ namespace orion
     {
         ORION_ASSERT(rhi != nullptr, "Renderer has not been initialized or has already been shut down");
 
+        device->destroy(render_finished_fence);
+        for (int i = 0; i < swapchain_image_count; ++i) {
+            device->destroy(image_acquired_semaphores[i]);
+        }
         device->destroy(pipeline);
         swapchain = nullptr;
         command_queue = nullptr;

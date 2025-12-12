@@ -23,6 +23,7 @@ target_sources(
 	orion/rhi/format.hpp
 	orion/rhi/handle.hpp
 	orion/rhi/pipeline.hpp
+	orion/rhi/synchronization.hpp
 
 	orion/renderer/renderer.hpp
 

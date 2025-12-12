@@ -16,6 +16,7 @@ target_sources(
 	rhi/swapchain.cpp
 	rhi/handle.cpp
 	rhi/pipeline.cpp
+	rhi/synchronization.cpp
 
 	renderer/renderer.cpp
 )
