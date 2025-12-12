@@ -939,6 +939,44 @@ namespace orion
                 return image_index;
             }
 
+            bool wait_for_fences_api(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout) override
+            {
+                std::vector<VkFence> vk_fences(fences.size());
+                for (int i = 0; i < fences.size(); ++i) {
+                    if (const auto* vk_fence = resources_.fences.get(fences[i].value)) {
+                        vk_fences.push_back(*vk_fence);
+                    } else {
+                        ORION_CORE_LOG_ERROR("Invalid Vulkan RHIFence {}", fences[i].value);
+                        return false;
+                    }
+                }
+                if (VkResult err = vkWaitForFences(device_, static_cast<std::uint32_t>(fences.size()), vk_fences.data(), wait_all, timeout)) {
+                    ORION_CORE_LOG_ERROR("vkWaitForFences failed: {}", string_VkResult(err));
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+
+            bool reset_fences_api(std::span<const RHIFence> fences) override
+            {
+                std::vector<VkFence> vk_fences(fences.size());
+                for (int i = 0; i < fences.size(); ++i) {
+                    if (const auto* vk_fence = resources_.fences.get(fences[i].value)) {
+                        vk_fences.push_back(*vk_fence);
+                    } else {
+                        ORION_CORE_LOG_ERROR("Invalid Vulkan RHIFence {}", fences[i].value);
+                        return false;
+                    }
+                }
+                if (VkResult err = vkResetFences(device_, static_cast<std::uint32_t>(fences.size()), vk_fences.data())) {
+                    ORION_CORE_LOG_ERROR("vkResetFences failed: {}", string_VkResult(err));
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+
             VkResult create_shader_module(std::span<const std::byte> code, VkShaderModule* shader_module) const
             {
                 const auto shader_info = VkShaderModuleCreateInfo{

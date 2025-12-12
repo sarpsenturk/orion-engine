@@ -36,6 +36,9 @@ namespace orion
         RHIImage get_swapchain_image(RHISwapchain swapchain, std::uint32_t image_idx);
         std::uint32_t acquire_swapchain_image(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence);
 
+        bool wait_for_fences(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout);
+        bool reset_fences(std::span<const RHIFence> fences);
+
     protected:
         RHIDevice(const RHIDevice&) = default;
         RHIDevice& operator=(const RHIDevice&) = default;
@@ -61,5 +64,8 @@ namespace orion
 
         virtual RHIImage get_swapchain_image_api(RHISwapchain swapchain, std::uint32_t image_idx) = 0;
         virtual std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence) = 0;
+
+        virtual bool wait_for_fences_api(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout) = 0;
+        virtual bool reset_fences_api(std::span<const RHIFence> fences) = 0;
     };
 } // namespace orion

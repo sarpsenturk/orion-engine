@@ -76,4 +76,14 @@ namespace orion
     {
         return acquire_swapchain_image_api(swapchain, semaphore, fence);
     }
+
+    bool RHIDevice::wait_for_fences(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout)
+    {
+        return wait_for_fences_api(fences, wait_all, timeout);
+    }
+
+    bool RHIDevice::reset_fences(std::span<const RHIFence> fences)
+    {
+        return reset_fences_api(fences);
+    }
 } // namespace orion
