@@ -280,6 +280,26 @@ namespace orion
                 }
             }
 
+            void begin_api() override
+            {
+                const auto begin_info = VkCommandBufferBeginInfo{
+                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                    .pNext = nullptr,
+                    .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, // Profile if this makes a difference
+                    .pInheritanceInfo = nullptr,
+                };
+                if (VkResult err = vkBeginCommandBuffer(command_buffer_, &begin_info)) {
+                    throw std::runtime_error(fmt::format("vkBeginCommandBuffer failed: {}", string_VkResult(err)));
+                }
+            }
+
+            void end_api() override
+            {
+                if (VkResult err = vkEndCommandBuffer(command_buffer_)) {
+                    throw std::runtime_error(fmt::format("vkEndCommandBuffer failed: {}", string_VkResult(err)));
+                }
+            }
+
             VkDevice device_;
             VkCommandPool command_pool_;
             VkCommandBuffer command_buffer_;

@@ -11,4 +11,14 @@ namespace orion
     {
         return reset_api();
     }
+
+    void RHICommandList::begin()
+    {
+        return begin_api();
+    }
+
+    void RHICommandList::end()
+    {
+        return end_api();
+    }
 } // namespace orion

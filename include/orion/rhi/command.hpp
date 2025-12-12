@@ -40,6 +40,9 @@ namespace orion
 
         bool reset();
 
+        void begin();
+        void end();
+
     protected:
         RHICommandList(const RHICommandList&) = default;
         RHICommandList& operator=(const RHICommandList&) = default;
@@ -48,6 +51,9 @@ namespace orion
 
     private:
         virtual bool reset_api() = 0;
+
+        virtual void begin_api() = 0;
+        virtual void end_api() = 0;
     };
 
     struct RHICommandQueueDesc {
