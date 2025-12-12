@@ -51,6 +51,9 @@ target_link_libraries(
 add_subdirectory(src)
 add_subdirectory(include)
 
+# Add assets (shaders, textures, etc.)
+add_subdirectory(assets)
+
 # Add example executables
 add_subdirectory(examples)
 
