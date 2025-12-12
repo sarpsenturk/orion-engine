@@ -7,7 +7,7 @@ namespace orion
         return create_command_queue_api(desc);
     }
 
-    std::unique_ptr<RHISwapchain> RHIDevice::create_swapchain(const RHISwapchainDesc& desc)
+    RHISwapchain RHIDevice::create_swapchain(const RHISwapchainDesc& desc)
     {
         return create_swapchain_api(desc);
     }
@@ -25,6 +25,11 @@ namespace orion
     RHIFence RHIDevice::create_fence(const RHIFenceDesc& desc)
     {
         return create_fence_api(desc);
+    }
+
+    void RHIDevice::destroy(RHISwapchain handle)
+    {
+        return destroy_api(handle);
     }
 
     void RHIDevice::destroy(RHIPipeline handle)

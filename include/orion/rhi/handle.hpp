@@ -15,6 +15,7 @@ namespace orion
         explicit operator std::uint64_t() const noexcept { return value; }
     };
 
+    using RHISwapchain = RHIHandle<struct RHISwapchain_Tag>;
     using RHIPipeline = RHIHandle<struct RHIPipeline_Tag>;
     using RHISemaphore = RHIHandle<struct RHISemaphore_Tag>;
     using RHIFence = RHIHandle<struct RHIFence_Tag>;

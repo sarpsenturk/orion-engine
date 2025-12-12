@@ -30,12 +30,18 @@ namespace orion
     {
         constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
 
+        struct VulkanSwapchain {
+            VkSurfaceKHR surface;
+            VkSwapchainKHR swapchain;
+        };
+
         struct VulkanPipeline {
             VkPipeline pipeline;
             VkPipelineLayout layout;
         };
 
         struct VulkanResourceTable {
+            HandlePool<VulkanSwapchain> swapchains;
             HandlePool<VulkanPipeline> pipelines;
             HandlePool<VkSemaphore> semaphores;
             HandlePool<VkFence> fences;
@@ -212,34 +218,6 @@ namespace orion
             VkQueue queue_;
         };
 
-        class RHIVulkanSwapchain : public RHISwapchain
-        {
-        public:
-            RHIVulkanSwapchain(VkInstance instance, VkDevice device, VkSurfaceKHR surface, VkSwapchainKHR swapchain)
-                : instance_(instance)
-                , device_(device)
-                , surface_(surface)
-                , swapchain_(swapchain)
-            {
-                ORION_ASSERT(instance != VK_NULL_HANDLE, "VkInstance must not be VK_NULL_HANDLE");
-                ORION_ASSERT(device != VK_NULL_HANDLE, "VkDevice must not be VK_NULL_HANDLE");
-                ORION_ASSERT(surface != VK_NULL_HANDLE, "VkSurfaceKHR must not be VK_NULL_HANDLE");
-                ORION_ASSERT(swapchain != VK_NULL_HANDLE, "VkSwapchainKHR must not be VK_NULL_HANDLE");
-            }
-
-            ~RHIVulkanSwapchain() override
-            {
-                vkDestroySwapchainKHR(device_, swapchain_, nullptr);
-                vkDestroySurfaceKHR(instance_, surface_, nullptr);
-            }
-
-        private:
-            VkInstance instance_;
-            VkDevice device_;
-            VkSurfaceKHR surface_;
-            VkSwapchainKHR swapchain_;
-        };
-
         class RHIVulkanDevice : public RHIDevice
         {
         public:
@@ -277,14 +255,14 @@ namespace orion
                 unreachable();
             }
 
-            std::unique_ptr<RHISwapchain> create_swapchain_api(const RHISwapchainDesc& desc) override
+            RHISwapchain create_swapchain_api(const RHISwapchainDesc& desc) override
             {
                 // Create surface
                 GLFWwindow* window = desc.window->window;
                 VkSurfaceKHR surface = VK_NULL_HANDLE;
                 if (VkResult err = glfwCreateWindowSurface(instance_, window, nullptr, &surface)) {
                     ORION_CORE_LOG_ERROR("Failed to create VkSurface with GLFWwindow* {}: {}", (void*)window, string_VkResult(err));
-                    return nullptr;
+                    return RHISwapchain::invalid();
                 }
                 ORION_CORE_LOG_INFO("Created VkSurfaceKHR {} with GLFWwindow* {}", (void*)surface, (void*)window);
 
@@ -293,7 +271,7 @@ namespace orion
                 if (VkResult err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device_, surface, &surface_capabilities)) {
                     ORION_CORE_LOG_ERROR("Failed to get VkSurfaceKHR ({}) surface capabilities: {}", (void*)surface, string_VkResult(err));
                     vkDestroySurfaceKHR(instance_, surface, nullptr);
-                    return nullptr;
+                    return RHISwapchain::invalid();
                 }
 
                 // Check if requested dimensions match currentExtent
@@ -303,7 +281,7 @@ namespace orion
                                          surface_capabilities.currentExtent.width, surface_capabilities.currentExtent.height,
                                          (void*)surface);
                     vkDestroySurfaceKHR(instance_, surface, nullptr);
-                    return nullptr;
+                    return RHISwapchain::invalid();
                 }
 
                 // Check if requested image count is supported
@@ -312,7 +290,7 @@ namespace orion
                     ORION_CORE_LOG_ERROR("Requested image count ({}) is not in range of supported image counts [{}, {}]",
                                          image_count, surface_capabilities.minImageCount, surface_capabilities.maxImageCount);
                     vkDestroySurfaceKHR(instance_, surface, nullptr);
-                    return nullptr;
+                    return RHISwapchain::invalid();
                 }
                 ORION_CORE_LOG_DEBUG("Using image_count = {} for VkSwapchainKHR", image_count);
 
@@ -322,14 +300,14 @@ namespace orion
                     ORION_CORE_LOG_ERROR("Failed to get VkPhysicalDevice {} surface formats for VkSurfaceKHR {}: {}",
                                          (void*)physical_device_, (void*)surface, string_VkResult(err));
                     vkDestroySurfaceKHR(instance_, surface, nullptr);
-                    return nullptr;
+                    return RHISwapchain::invalid();
                 }
                 std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
                 if (VkResult err = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device_, surface, &surface_format_count, surface_formats.data())) {
                     ORION_CORE_LOG_ERROR("Failed to get VkPhysicalDevice {} surface formats for VkSurfaceKHR {}: {}",
                                          (void*)physical_device_, (void*)surface, string_VkResult(err));
                     vkDestroySurfaceKHR(instance_, surface, nullptr);
-                    return nullptr;
+                    return RHISwapchain::invalid();
                 }
 
                 // Check if requested surface format is supported
@@ -342,7 +320,7 @@ namespace orion
                     ORION_CORE_LOG_ERROR("Requested surface format ({}, {}) is not supported for VkSurfaceKHR {}",
                                          string_VkFormat(format), string_VkColorSpaceKHR(colorspace), (void*)surface);
                     vkDestroySurfaceKHR(instance_, surface, nullptr);
-                    return nullptr;
+                    return RHISwapchain::invalid();
                 }
                 ORION_CORE_LOG_DEBUG("Using format = {}, {} for VkSwapchainKHR", string_VkFormat(format), string_VkColorSpaceKHR(colorspace));
 
@@ -371,7 +349,9 @@ namespace orion
                     vkDestroySurfaceKHR(instance_, surface, nullptr);
                 }
                 ORION_CORE_LOG_INFO("Created VkSwapchainKHR {}", (void*)swapchain);
-                return std::make_unique<RHIVulkanSwapchain>(instance_, device_, surface, swapchain);
+
+                const auto handle = resources_.swapchains.insert(VulkanSwapchain{surface, swapchain});
+                return RHISwapchain{handle.as_uint64_t()};
             }
 
             RHIPipeline create_graphics_pipeline_api(const RHIGraphicsPipelineDesc& desc) override
@@ -650,6 +630,18 @@ namespace orion
 
                 const auto handle = resources_.fences.insert(fence);
                 return RHIFence{handle.as_uint64_t()};
+            }
+
+            void destroy_api(RHISwapchain handle) override
+            {
+                if (const auto* swapchain = resources_.swapchains.get(handle.value)) {
+                    vkDestroySwapchainKHR(device_, swapchain->swapchain, nullptr);
+                    vkDestroySurfaceKHR(instance_, swapchain->surface, nullptr);
+                    ORION_CORE_LOG_INFO("Destroyed VkSwapchainKHR {}", (void*)swapchain->swapchain);
+                    ORION_CORE_LOG_INFO("Destroyed VkSurfaceKHR {}", (void*)swapchain->surface);
+                } else {
+                    ORION_CORE_LOG_WARN("Attempting to destroy RHISwapchain ({}) which not a valid Vulkan handle", handle.value);
+                }
             }
 
             void destroy_api(RHIPipeline handle) override

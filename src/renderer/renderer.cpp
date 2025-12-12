@@ -23,7 +23,7 @@ namespace orion
         std::unique_ptr<RHIInstance> rhi;
         std::unique_ptr<RHIDevice> device;
         std::unique_ptr<RHICommandQueue> command_queue;
-        std::unique_ptr<RHISwapchain> swapchain;
+        RHISwapchain swapchain;
         RHIPipeline pipeline;
         std::array<RHISemaphore, swapchain_image_count> image_acquired_semaphores;
         RHIFence render_finished_fence;
@@ -75,7 +75,7 @@ namespace orion
             .format = swapchain_format,
             .image_count = swapchain_image_count,
         });
-        if (swapchain == nullptr) {
+        if (!swapchain.is_valid()) {
             ORION_CORE_LOG_ERROR("Failed to create RHISwapchain");
             return false;
         }
@@ -131,7 +131,7 @@ namespace orion
             device->destroy(image_acquired_semaphores[i]);
         }
         device->destroy(pipeline);
-        swapchain = nullptr;
+        device->destroy(swapchain);
         command_queue = nullptr;
         device = nullptr;
         rhi = nullptr;
