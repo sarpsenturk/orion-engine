@@ -466,6 +466,13 @@ namespace orion
                 vkCmdEndRendering(command_buffer_);
             }
 
+            void set_graphics_pipeline_state_api(RHIPipeline pipeline) override
+            {
+                const auto* vulkan_pipeline = resources_->pipelines.get(pipeline.value);
+                ORION_ASSERT(vulkan_pipeline != nullptr, "RHIPipeline must be a valid handle");
+                vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkan_pipeline->pipeline);
+            }
+
             void draw_instanced_api(const RHICmdDrawInstanced& cmd) override
             {
                 vkCmdDraw(command_buffer_, cmd.vertex_count, cmd.instance_count, cmd.first_vertex, cmd.first_instance);

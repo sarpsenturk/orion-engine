@@ -82,6 +82,8 @@ namespace orion
         void begin_rendering(const RHICmdBeginRendering& cmd);
         void end_rendering();
 
+        void set_graphics_pipeline_state(RHIPipeline pipeline);
+
         void draw_instanced(const RHICmdDrawInstanced& cmd);
 
     protected:
@@ -100,6 +102,8 @@ namespace orion
 
         virtual void begin_rendering_api(const RHICmdBeginRendering& cmd) = 0;
         virtual void end_rendering_api() = 0;
+
+        virtual void set_graphics_pipeline_state_api(RHIPipeline pipeline) = 0;
 
         virtual void draw_instanced_api(const RHICmdDrawInstanced& cmd) = 0;
     };

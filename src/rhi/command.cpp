@@ -37,6 +37,11 @@ namespace orion
         end_rendering_api();
     }
 
+    void RHICommandList::set_graphics_pipeline_state(RHIPipeline pipeline)
+    {
+        set_graphics_pipeline_state_api(pipeline);
+    }
+
     void RHICommandList::draw_instanced(const RHICmdDrawInstanced& cmd)
     {
         draw_instanced_api(cmd);
