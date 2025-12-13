@@ -4,10 +4,13 @@ set(ORION_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders CACHE INTERNAL "Orion s
 find_program(
 	DXC_EXECUTABLE
 	NAMES dxc
-	PATHS $ENV{VULKAN_SDK}/Bin
+	PATHS
+	    $ENV{VULKAN_SDK}/Bin
+	    $ENV{VULKAN_SDK}/macOS/bin
 	NO_DEFAULT_PATH
 	REQUIRED
 )
+message(STATUS "Found DirectXShaderCompiler: ${DXC_EXECUTABLE}")
 
 # Add shader for compilation
 function(orion_add_shader input output profile)

@@ -4,8 +4,10 @@
 #if defined(ORION_COMPILER_MSVC)
     #define ORION_DEBUG_BREAK() __debugbreak()
 #elif defined(ORION_COMPILER_CLANG) || defined(ORION_COMPILER_GCC)
-    #if __has_builtin(__builtin_debugtrap)
-        #define ORION_DEBUG_BREAK() __builtin_debugtrap()
+    #if __has_builtin(__builtin_debugtrap) && __has_builtin(__builtin_unreachable)
+        #define ORION_DEBUG_BREAK() \
+            __builtin_debugtrap();  \
+            __builtin_unreachable()
     #else
         #include <signal.h>
         #define ORION_DEBUG_BREAK() raise(SIGTRAP)

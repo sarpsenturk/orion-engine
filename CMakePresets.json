@@ -62,9 +62,30 @@
       }
     },
     {
+	"name": "clang",
+	"hidden": true,
+	"inherits": [ "base" ],
+	"cacheVariables": {
+	    "CMAKE_C_COMPILER": "clang",
+	    "CMAKE_CXX_COMPILER": "clang++",
+	    "ORION_CXX_FLAGS": "-Wall;-Wextra;-Wshadow;-Wnon-virtual-dtor;-Werror;-pedantic",
+	    "CMAKE_EXPORT_COMPILE_COMMANDS": true
+	}
+    },
+    {
       "name": "msvc-x64-debug",
       "inherits": [ "msvc", "debug" ],
       "displayName": "MSVC x64 Debug"
+    },
+    {
+	"name": "clang-arm64-debug",
+	"inherits": [ "clang", "debug" ],
+	"displayName": "Clang ARM64 Debug",
+	"condition": {
+	    "type": "equals",
+	    "lhs": "${hostSystemName}",
+	    "rhs": "Darwin"
+	}
     }
   ]
 }

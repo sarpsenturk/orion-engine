@@ -16,6 +16,11 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vk_enum_string_helper.h>
 
+#include "orion/platform/platform.hpp"
+#ifdef ORION_OS_MACOS
+    #define ORION_VULKAN_MVK 1
+#endif
+
 #include "platform_glfw.hpp"
 #include <GLFW/glfw3.h>
 
@@ -89,6 +94,8 @@ namespace orion
             switch (format) {
                 case VK_FORMAT_B8G8R8A8_SRGB:
                     return 4;
+                default:
+                    ORION_ASSERT(false, "Unhandled format");
             }
             unreachable();
         }
@@ -416,7 +423,7 @@ namespace orion
                         .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                        .clearValue = {.color = {cmd.rtv_clear[0], cmd.rtv_clear[1], cmd.rtv_clear[2], cmd.rtv_clear[3]}},
+                        .clearValue = {.color = {{cmd.rtv_clear[0], cmd.rtv_clear[1], cmd.rtv_clear[2], cmd.rtv_clear[3]}}},
                     };
                 });
                 VkRenderingAttachmentInfo depth_attachment;
@@ -616,8 +623,8 @@ namespace orion
 
                 // Check if requested surface format is supported
                 const auto format = to_vk_format(desc.format);
-                const auto colorspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-                const auto format_cmp = [format, colorspace](const VkSurfaceFormatKHR& surface_format) {
+                constexpr auto colorspace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+                const auto format_cmp = [format](const VkSurfaceFormatKHR& surface_format) {
                     return surface_format.format == format && surface_format.colorSpace == colorspace;
                 };
                 if (auto iter = std::ranges::find_if(surface_formats, format_cmp); iter == surface_formats.end()) {
@@ -1274,6 +1281,11 @@ namespace orion
                 std::vector<const char*> enabled_extensions;
                 enabled_extensions.push_back("VK_KHR_swapchain");
 
+                // MoltenVK requires VK_KHR_portability_subset
+#ifdef ORION_VULKAN_MVK
+                enabled_extensions.push_back("VK_KHR_portability_subset");
+#endif
+
                 // Create the device
                 // Enable dynamic rendering
                 const auto dynamic_rendering_features = VkPhysicalDeviceDynamicRenderingFeatures{
@@ -1319,6 +1331,9 @@ namespace orion
         }
         glfwInitVulkanLoader(vkGetInstanceProcAddr);
 
+        // Instance create flags
+        VkInstanceCreateFlags instance_flags = {};
+
         // Enabled instance layers
         std::vector<const char*> enabled_layers;
         enabled_layers.push_back("VK_LAYER_KHRONOS_validation");
@@ -1326,6 +1341,12 @@ namespace orion
         // Enabled instance extensions
         std::vector<const char*> enabled_extensions;
         enabled_extensions.push_back("VK_EXT_debug_utils");
+
+        // MoltenVK requires VK_KHR_portability_enumeration & VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+#ifdef ORION_VULKAN_MVK
+        enabled_extensions.push_back("VK_KHR_portability_enumeration");
+        instance_flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
         // Add GLFW required extensions
         std::uint32_t glfw_extension_count;
@@ -1346,7 +1367,7 @@ namespace orion
         const auto instance_info = VkInstanceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pNext = nullptr,
-            .flags = {},
+            .flags = instance_flags,
             .pApplicationInfo = &app_info,
             .enabledLayerCount = static_cast<std::uint32_t>(enabled_layers.size()),
             .ppEnabledLayerNames = enabled_layers.data(),

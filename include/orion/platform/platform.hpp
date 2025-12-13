@@ -21,7 +21,7 @@
     #define ORION_ARCH_NAME "x86_64"
 #elif defined(__aarch64__) || defined(_M_ARM64)
     #define ORION_ARCH_ARM64 1
-    #define ORION_ARCH_NAME "ARM64";
+    #define ORION_ARCH_NAME "ARM64"
 #else
     #define ORION_ARCH_UNKNOWN 1
     #define ORION_ARCH_NAME "unknown"
