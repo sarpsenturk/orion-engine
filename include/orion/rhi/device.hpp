@@ -40,6 +40,8 @@ namespace orion
         bool wait_for_fences(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout);
         bool reset_fences(std::span<const RHIFence> fences);
 
+        void wait_idle();
+
     protected:
         RHIDevice(const RHIDevice&) = default;
         RHIDevice& operator=(const RHIDevice&) = default;
@@ -69,5 +71,7 @@ namespace orion
 
         virtual bool wait_for_fences_api(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout) = 0;
         virtual bool reset_fences_api(std::span<const RHIFence> fences) = 0;
+
+        virtual void wait_idle_api() = 0;
     };
 } // namespace orion

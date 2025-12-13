@@ -1307,6 +1307,13 @@ namespace orion
                 }
             }
 
+            void wait_idle_api() override
+            {
+                if (VkResult err = vkDeviceWaitIdle(device_)) {
+                    throw std::runtime_error(fmt::format("vkDeviceWaitIdle failed: {}", string_VkResult(err)));
+                }
+            }
+
             VkResult create_shader_module(std::span<const std::byte> code, VkShaderModule* shader_module) const
             {
                 const auto shader_info = VkShaderModuleCreateInfo{

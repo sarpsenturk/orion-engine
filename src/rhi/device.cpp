@@ -91,4 +91,9 @@ namespace orion
     {
         return reset_fences_api(fences);
     }
+
+    void RHIDevice::wait_idle()
+    {
+        return wait_idle_api();
+    }
 } // namespace orion
