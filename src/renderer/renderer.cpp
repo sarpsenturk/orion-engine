@@ -245,6 +245,17 @@ namespace orion
         // End rendering
         command_list->end_rendering();
 
+        // Transition swapchain image to present src
+        command_list->pipeline_barrier({
+            .transition_barriers = {{
+                RHITransitionBarrier{
+                    .image = swapchain_images[image_index],
+                    .old_layout = RHIImageLayout::RenderTarget,
+                    .new_layout = RHIImageLayout::PresentSrc,
+                },
+            }},
+        });
+
         // End command list recording
         command_list->end();
 
@@ -256,5 +267,8 @@ namespace orion
 
         // Submit command list
         command_queue->submit({{command_list.get()}}, render_finished_fence);
+
+        // Present swapchain image
+        device->swapchain_present(swapchain, {{render_finished_semaphore}});
     }
 } // namespace orion

@@ -11,7 +11,6 @@
 
 #include "orion/utils/finally.hpp"
 #include "orion/utils/handle_pool.hpp"
-#include "vulkan/vulkan_core.h"
 
 #include <volk.h>
 #define VK_NO_PROTOTYPES
@@ -44,7 +43,9 @@ namespace orion
         struct VulkanSwapchain {
             VkSurfaceKHR surface;
             VkSwapchainKHR swapchain;
+            class RHIVulkanCommandQueue* queue;
             std::vector<RHIImage> images;
+            std::uint32_t current_image_index = UINT32_MAX;
         };
 
         struct VulkanPipeline {
@@ -534,6 +535,8 @@ namespace orion
                 ORION_ASSERT(resources != nullptr, "VulkanResourceTable must not be nullptr");
             }
 
+            [[nodiscard]] VkQueue vk_queue() const noexcept { return queue_; }
+
         private:
             void wait_api(RHISemaphore semaphore) override
             {
@@ -629,7 +632,7 @@ namespace orion
             {
                 switch (desc.type) {
                     case RHICommandQueueType::Graphics:
-                        return std::make_unique<RHIVulkanCommandQueue>(graphics_queue_.family, graphics_queue_.queue);
+                        return std::make_unique<RHIVulkanCommandQueue>(graphics_queue_.queue, graphics_queue_.family, &resources_);
                 }
                 unreachable();
             }
@@ -679,6 +682,9 @@ namespace orion
 
             RHISwapchain create_swapchain_api(const RHISwapchainDesc& desc) override
             {
+                // Get Vulkan queue
+                auto* vulkan_queue = dynamic_cast<RHIVulkanCommandQueue*>(desc.queue);
+                ORION_ASSERT(vulkan_queue != nullptr, "RHIcommandQueue must be a valid Vulkan command queue");
 
                 // Create surface
                 GLFWwindow* window = desc.window->window;
@@ -788,7 +794,7 @@ namespace orion
                     return RHIImage{handle.as_uint64_t()};
                 });
 
-                const auto handle = resources_.swapchains.insert(VulkanSwapchain{surface, swapchain, std::move(image_handles)});
+                const auto handle = resources_.swapchains.insert(VulkanSwapchain{surface, swapchain, vulkan_queue, std::move(image_handles)});
                 return RHISwapchain{handle.as_uint64_t()};
             }
 
@@ -1205,7 +1211,7 @@ namespace orion
 
             std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence) override
             {
-                const auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value);
+                auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value);
                 if (!vulkan_swapchain) {
                     ORION_CORE_LOG_ERROR("Cannot acquire image for invalid Vulkan RHISwapchain {}", swapchain.value);
                     return UINT32_MAX;
@@ -1235,7 +1241,35 @@ namespace orion
                     ORION_CORE_LOG_ERROR("Failed to acquire image for VkSwapchainKHR {}: {}", (void*)vulkan_swapchain->swapchain, string_VkResult(err));
                     return UINT32_MAX;
                 }
+                vulkan_swapchain->current_image_index = image_index;
                 return image_index;
+            }
+
+            void swapchain_present_api(RHISwapchain swapchain, std::span<const RHISemaphore> wait_semaphores) override
+            {
+                const auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value);
+                ORION_ASSERT(vulkan_swapchain != nullptr, "RHISwapchain must be a valid handle");
+
+                std::vector<VkSemaphore> vk_wait_semaphores(wait_semaphores.size());
+                std::ranges::transform(wait_semaphores, vk_wait_semaphores.begin(), [&](RHISemaphore semaphore) {
+                    const auto vk_semaphore = resources_.semaphores.get(semaphore.value);
+                    ORION_ASSERT(vk_semaphore != nullptr, "All RHISemaphore's must be valid handles");
+                    return *vk_semaphore;
+                });
+
+                const auto present_info = VkPresentInfoKHR{
+                    .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                    .pNext = nullptr,
+                    .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores.size()),
+                    .pWaitSemaphores = vk_wait_semaphores.data(),
+                    .swapchainCount = 1,
+                    .pSwapchains = &vulkan_swapchain->swapchain,
+                    .pImageIndices = &vulkan_swapchain->current_image_index,
+                    .pResults = nullptr,
+                };
+                if (VkResult err = vkQueuePresentKHR(vulkan_swapchain->queue->vk_queue(), &present_info)) {
+                    throw std::runtime_error(fmt::format("vkQueuePresentKHR failed: {}", string_VkResult(err)));
+                }
             }
 
             bool wait_for_fences_api(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout) override
