@@ -31,6 +31,9 @@ namespace orion
         RHIPipeline pipeline;
         std::array<RHISemaphore, swapchain_image_count> image_acquired_semaphores;
         RHIFence render_finished_fence;
+        std::int32_t render_width;
+        std::int32_t render_height;
+        std::int32_t frame_index = 0;
 
         auto load_shader(const char* path)
         {
@@ -52,6 +55,8 @@ namespace orion
         platform_window_get_size(window, &window_width, &window_height);
         ORION_ASSERT(window_width > 0, "Window width must be greater than 0");
         ORION_ASSERT(window_height > 0, "Window height must be greater than 0");
+        render_width = window_width;
+        render_height = window_height;
 
         rhi = rhi_create_instance();
         if (rhi == nullptr) {
@@ -159,5 +164,47 @@ namespace orion
         command_queue = nullptr;
         device = nullptr;
         rhi = nullptr;
+    }
+
+    void Renderer::render()
+    {
+        // Wait for previous render to finish
+        device->wait_for_fences({{render_finished_fence}}, true, UINT64_MAX);
+        device->reset_fences({{render_finished_fence}});
+
+        // Reset command list
+        command_allocator->reset();
+        command_list->reset();
+
+        // Acquire swapchain image index
+        const auto image_index = device->acquire_swapchain_image(swapchain, image_acquired_semaphores[frame_index], RHIFence::invalid());
+
+        // Begin command list recording
+        command_list->begin();
+
+        // Transition swapchain image to render target
+        command_list->pipeline_barrier({
+            .transition_barriers = {{
+                RHITransitionBarrier{
+                    .image = swapchain_images[image_index],
+                    .old_layout = RHIImageLayout::Undefined,
+                    .new_layout = RHIImageLayout::RenderTarget,
+                },
+            }},
+        });
+
+        // Begin rendering
+        command_list->begin_rendering({
+            .render_width = static_cast<std::uint32_t>(render_width),
+            .render_height = static_cast<std::uint32_t>(render_height),
+            .rtvs = {{swapchain_rtvs[image_index]}},
+            .rtv_clear = {1.0f, 0.0f, 1.0f, 1.0f},
+        });
+
+        // End rendering
+        command_list->end_rendering();
+
+        // End command list recording
+        command_list->end();
     }
 } // namespace orion

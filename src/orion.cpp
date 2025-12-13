@@ -62,6 +62,7 @@ namespace orion
 
             const double alpha = accumulator / dt;
             app->render(static_cast<float>(alpha));
+            Renderer::render();
         }
     }
 } // namespace orion
