@@ -5,6 +5,12 @@
 
 namespace orion
 {
+    enum class RHIImageLayout {
+        Undefined = 0,
+        RenderTarget,
+        PresentSrc,
+    };
+
     struct RHIRenderTargetViewDesc {
         RHIImage image;
         RHIFormat format;

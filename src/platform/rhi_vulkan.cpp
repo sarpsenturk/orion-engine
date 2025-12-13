@@ -49,6 +49,15 @@ namespace orion
         struct VulkanImage {
             VkImage image;
             VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+            VkImageAspectFlags aspect_flags() const
+            {
+                if (current_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+                    return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+                } else {
+                    return VK_IMAGE_ASPECT_COLOR_BIT;
+                }
+            }
         };
 
         struct VulkanImageView {
@@ -200,6 +209,45 @@ namespace orion
             unreachable();
         }
 
+        VkPipelineStageFlags to_vk_stage_flags(RHIImageLayout layout)
+        {
+            switch (layout) {
+                case RHIImageLayout::Undefined:
+                    return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                case RHIImageLayout::RenderTarget:
+                    return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                case RHIImageLayout::PresentSrc:
+                    return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            }
+            unreachable();
+        }
+
+        VkAccessFlags to_vk_access_flags(RHIImageLayout layout)
+        {
+            switch (layout) {
+                case RHIImageLayout::Undefined:
+                    return {};
+                case RHIImageLayout::RenderTarget:
+                    return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                case RHIImageLayout::PresentSrc:
+                    return {};
+            }
+            unreachable();
+        }
+
+        VkImageLayout to_vk_image_layout(RHIImageLayout layout)
+        {
+            switch (layout) {
+                case RHIImageLayout::Undefined:
+                    return VK_IMAGE_LAYOUT_UNDEFINED;
+                case RHIImageLayout::RenderTarget:
+                    return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                case RHIImageLayout::PresentSrc:
+                    return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            }
+            unreachable();
+        }
+
         VkBool32 vulkan_debug_callback(
             VkDebugUtilsMessageSeverityFlagBitsEXT severity,
             VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
@@ -253,14 +301,20 @@ namespace orion
         class RHIVulkanCommandList : public RHICommandList
         {
         public:
-            RHIVulkanCommandList(VkDevice device, VkCommandPool command_pool, VkCommandBuffer command_buffer)
+            RHIVulkanCommandList(
+                VkDevice device,
+                VkCommandPool command_pool,
+                VkCommandBuffer command_buffer,
+                VulkanResourceTable* resources)
                 : device_(device)
                 , command_pool_(command_pool)
                 , command_buffer_(command_buffer)
+                , resources_(resources)
             {
                 ORION_ASSERT(device != VK_NULL_HANDLE, "VkDevice must not be VK_NULL_HANDLE");
                 ORION_ASSERT(command_pool != VK_NULL_HANDLE, "VkCommandPool must not be VK_NULL_HANDLE");
                 ORION_ASSERT(command_buffer != VK_NULL_HANDLE, "VkCommandBuffer must not be VK_NULL_HANDLE");
+                ORION_ASSERT(resources != VK_NULL_HANDLE, "VulkanResourceTable must not be nullptr");
             }
 
             ~RHIVulkanCommandList() override
@@ -300,9 +354,57 @@ namespace orion
                 }
             }
 
+            void pipeline_barrier_api(const RHICmdPipelineBarrier& cmd) override
+            {
+                VkPipelineStageFlags src_stage_mask = {};
+                VkPipelineStageFlags dst_stage_mask = {};
+
+                std::vector<VkImageMemoryBarrier> image_barriers(cmd.transition_barriers.size());
+                std::ranges::transform(cmd.transition_barriers, image_barriers.begin(), [&](const RHITransitionBarrier& barrier) {
+                    // Find image resource & update it's state
+                    auto* vulkan_image = resources_->images.get(barrier.image.value);
+                    ORION_ASSERT(vulkan_image != nullptr, "RHIImage must be valid");
+                    vulkan_image->current_layout = to_vk_image_layout(barrier.new_layout);
+
+                    // Update pipeline stage flags
+                    src_stage_mask |= to_vk_stage_flags(barrier.old_layout);
+                    dst_stage_mask |= to_vk_stage_flags(barrier.new_layout);
+
+                    return VkImageMemoryBarrier{
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .pNext = nullptr,
+                        .srcAccessMask = to_vk_access_flags(barrier.old_layout),
+                        .dstAccessMask = to_vk_access_flags(barrier.new_layout),
+                        .oldLayout = to_vk_image_layout(barrier.old_layout),
+                        .newLayout = vulkan_image->current_layout,
+                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        .image = vulkan_image->image,
+                        .subresourceRange = {
+                            .aspectMask = vulkan_image->aspect_flags(),
+                            .baseMipLevel = 0,
+                            .levelCount = 1,
+                            .baseArrayLayer = 0,
+                            .layerCount = 1,
+                        },
+                    };
+                });
+
+                vkCmdPipelineBarrier(
+                    command_buffer_,
+                    src_stage_mask,                                                          // VkDependencyFlags
+                    dst_stage_mask,                                                          // VkDependencyFlags
+                    {},                                                                      // VkDependencyFlags
+                    0, nullptr,                                                              // VkMemoryBarrier
+                    0, nullptr,                                                              // VkBufferMemoryBarrier
+                    static_cast<std::uint32_t>(image_barriers.size()), image_barriers.data() // VkImageMemoryBarrier
+                );
+            }
+
             VkDevice device_;
             VkCommandPool command_pool_;
             VkCommandBuffer command_buffer_;
+            VulkanResourceTable* resources_;
         };
 
         class RHIVulkanCommandQueue : public RHICommandQueue
@@ -395,7 +497,7 @@ namespace orion
                     return nullptr;
                 }
                 ORION_CORE_LOG_INFO("Allocated VkCommandBuffer {} from VkCommandPool {}", (void*)command_buffer, (void*)command_pool);
-                return std::make_unique<RHIVulkanCommandList>(device_, command_pool, command_buffer);
+                return std::make_unique<RHIVulkanCommandList>(device_, command_pool, command_buffer, &resources_);
             }
 
             RHISwapchain create_swapchain_api(const RHISwapchainDesc& desc) override

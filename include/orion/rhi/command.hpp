@@ -1,5 +1,10 @@
 #pragma once
 
+#include "orion/rhi/handle.hpp"
+#include "orion/rhi/image.hpp"
+
+#include <span>
+
 namespace orion
 {
     enum class RHICommandQueueType {
@@ -32,6 +37,16 @@ namespace orion
         RHICommandAllocator* command_allocator;
     };
 
+    struct RHITransitionBarrier {
+        RHIImage image;
+        RHIImageLayout old_layout;
+        RHIImageLayout new_layout;
+    };
+
+    struct RHICmdPipelineBarrier {
+        std::span<const RHITransitionBarrier> transition_barriers;
+    };
+
     class RHICommandList
     {
     public:
@@ -42,6 +57,8 @@ namespace orion
 
         void begin();
         void end();
+
+        void pipeline_barrier(const RHICmdPipelineBarrier& cmd);
 
     protected:
         RHICommandList(const RHICommandList&) = default;
@@ -54,6 +71,8 @@ namespace orion
 
         virtual void begin_api() = 0;
         virtual void end_api() = 0;
+
+        virtual void pipeline_barrier_api(const RHICmdPipelineBarrier& cmd) = 0;
     };
 
     struct RHICommandQueueDesc {

@@ -21,4 +21,9 @@ namespace orion
     {
         return end_api();
     }
+
+    void RHICommandList::pipeline_barrier(const RHICmdPipelineBarrier& cmd)
+    {
+        pipeline_barrier_api(cmd);
+    }
 } // namespace orion
