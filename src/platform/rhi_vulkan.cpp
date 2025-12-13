@@ -11,6 +11,7 @@
 
 #include "orion/utils/finally.hpp"
 #include "orion/utils/handle_pool.hpp"
+#include "vulkan/vulkan_core.h"
 
 #include <volk.h>
 #define VK_NO_PROTOTYPES
@@ -330,6 +331,8 @@ namespace orion
                 ORION_CORE_LOG_INFO("Freed VkCommandBuffer {}", (void*)command_buffer_);
             }
 
+            [[nodiscard]] VkCommandBuffer vk_command_buffer() const noexcept { return command_buffer_; }
+
         private:
             bool reset_api() override
             {
@@ -521,15 +524,78 @@ namespace orion
         class RHIVulkanCommandQueue : public RHICommandQueue
         {
         public:
-            RHIVulkanCommandQueue(const std::uint32_t& queue_family, const VkQueue& queue)
-                : queue_family_(queue_family)
-                , queue_(queue)
+            RHIVulkanCommandQueue(VkQueue queue, std::uint32_t queue_family, VulkanResourceTable* resources)
+                : queue_(queue)
+                , queue_family_(queue_family)
+                , resources_(resources)
             {
+                ORION_ASSERT(queue != VK_NULL_HANDLE, "VkQueue must not be VK_NULL_HANDLE");
+                ORION_ASSERT(queue_family != UINT32_MAX, "Queue family must not be UINT32_MAX");
+                ORION_ASSERT(resources != nullptr, "VulkanResourceTable must not be nullptr");
             }
 
         private:
-            std::uint32_t queue_family_;
+            void wait_api(RHISemaphore semaphore) override
+            {
+                const auto* vk_semaphore = resources_->semaphores.get(semaphore.value);
+                ORION_ASSERT(vk_semaphore != nullptr, "RHISemaphore must be a valid handle");
+                wait_semaphores_.push_back(*vk_semaphore);
+                wait_stages_.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT); // Use queue type to refine this
+            }
+
+            void signal_api(RHISemaphore semaphore) override
+            {
+                const auto* vk_semaphore = resources_->semaphores.get(semaphore.value);
+                ORION_ASSERT(vk_semaphore != nullptr, "RHISemaphore must be a valid handle");
+                signal_semaphores_.push_back(*vk_semaphore);
+            }
+
+            void submit_api(std::span<const RHICommandList* const> command_lists, RHIFence fence) override
+            {
+                // Get VkCommandBuffer's
+                std::vector<VkCommandBuffer> command_buffers(command_lists.size());
+                std::ranges::transform(command_lists, command_buffers.begin(), [](const RHICommandList* command_list) {
+                    const auto* vulkan_command_list = dynamic_cast<const RHIVulkanCommandList*>(command_list);
+                    ORION_ASSERT(vulkan_command_list != nullptr, "All RHICommandList's must be valid Vulkan command lists");
+                    return vulkan_command_list->vk_command_buffer();
+                });
+
+                // If RHIFence is a valid handle, get VkFence
+                VkFence vk_fence = VK_NULL_HANDLE;
+                if (fence.is_valid()) {
+                    const auto* vulkan_fence = resources_->fences.get(fence.value);
+                    ORION_ASSERT(vulkan_fence != nullptr, "If RHIFence was not RHIFence::invalid() it must be a valid handle");
+                    vk_fence = *vulkan_fence;
+                }
+
+                // Submit command buffers
+                const auto submit_info = VkSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores_.size()),
+                    .pWaitDstStageMask = wait_stages_.data(),
+                    .commandBufferCount = static_cast<std::uint32_t>(command_buffers.size()),
+                    .pCommandBuffers = command_buffers.data(),
+                    .signalSemaphoreCount = static_cast<std::uint32_t>(signal_semaphores_.size()),
+                    .pSignalSemaphores = signal_semaphores_.data(),
+                };
+                if (VkResult err = vkQueueSubmit(queue_, 1, &submit_info, vk_fence)) {
+                    throw std::runtime_error(fmt::format("vkQueueSubmit failed: {}", string_VkResult(err)));
+                }
+
+                // Reset list of wait & signal semaphores
+                wait_semaphores_.clear();
+                wait_stages_.clear();
+                signal_semaphores_.clear();
+            }
+
             VkQueue queue_;
+            std::uint32_t queue_family_;
+            VulkanResourceTable* resources_;
+
+            std::vector<VkSemaphore> wait_semaphores_;
+            std::vector<VkPipelineStageFlags> wait_stages_;
+            std::vector<VkSemaphore> signal_semaphores_;
         };
 
         class RHIVulkanDevice : public RHIDevice

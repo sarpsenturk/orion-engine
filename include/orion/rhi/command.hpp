@@ -147,10 +147,20 @@ namespace orion
         RHICommandQueue() = default;
         virtual ~RHICommandQueue() = default;
 
+        void wait(RHISemaphore semaphore);
+        void signal(RHISemaphore semaphore);
+
+        void submit(std::span<const RHICommandList* const> command_lists, RHIFence fence);
+
     protected:
         RHICommandQueue(const RHICommandQueue&) = default;
         RHICommandQueue& operator=(const RHICommandQueue&) = default;
         RHICommandQueue(RHICommandQueue&&) = default;
         RHICommandQueue& operator=(RHICommandQueue&&) = default;
+
+        virtual void wait_api(RHISemaphore semaphore) = 0;
+        virtual void signal_api(RHISemaphore semaphore) = 0;
+
+        virtual void submit_api(std::span<const RHICommandList* const> command_lists, RHIFence fence) = 0;
     };
 } // namespace orion

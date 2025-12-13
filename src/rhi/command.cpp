@@ -56,4 +56,19 @@ namespace orion
     {
         draw_instanced_api(cmd);
     }
+
+    void RHICommandQueue::wait(RHISemaphore semaphore)
+    {
+        wait_api(semaphore);
+    }
+
+    void RHICommandQueue::signal(RHISemaphore semaphore)
+    {
+        signal_api(semaphore);
+    }
+
+    void RHICommandQueue::submit(std::span<const RHICommandList* const> command_lists, RHIFence fence)
+    {
+        submit_api(command_lists, fence);
+    }
 } // namespace orion

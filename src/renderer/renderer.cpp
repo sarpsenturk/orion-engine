@@ -31,6 +31,7 @@ namespace orion
         RHIPipeline pipeline;
         std::array<RHISemaphore, swapchain_image_count> image_acquired_semaphores;
         RHIFence render_finished_fence;
+        RHISemaphore render_finished_semaphore;
         std::int32_t render_width;
         std::int32_t render_height;
         std::int32_t frame_index = 0;
@@ -145,6 +146,12 @@ namespace orion
             return false;
         }
 
+        render_finished_semaphore = device->create_semaphore({});
+        if (!render_finished_semaphore.is_valid()) {
+            ORION_CORE_LOG_ERROR("Failed to create RHISemaphore");
+            return false;
+        }
+
         return true;
     }
 
@@ -152,6 +159,7 @@ namespace orion
     {
         ORION_ASSERT(rhi != nullptr, "Renderer has not been initialized or has already been shut down");
 
+        device->destroy(render_finished_semaphore);
         device->destroy(render_finished_fence);
         for (int i = 0; i < swapchain_image_count; ++i) {
             device->destroy(image_acquired_semaphores[i]);
@@ -239,5 +247,14 @@ namespace orion
 
         // End command list recording
         command_list->end();
+
+        // Wait until swapchain image is acquired to start rendering
+        command_queue->wait(image_acquired_semaphores[frame_index]);
+
+        // Signal render finished semaphore for presentation
+        command_queue->signal(render_finished_semaphore);
+
+        // Submit command list
+        command_queue->submit({{command_list.get()}}, render_finished_fence);
     }
 } // namespace orion
