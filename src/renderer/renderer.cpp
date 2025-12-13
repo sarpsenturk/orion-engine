@@ -201,6 +201,9 @@ namespace orion
             .rtv_clear = {1.0f, 0.0f, 1.0f, 1.0f},
         });
 
+        // Issue draw call
+        command_list->draw_instanced({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
+
         // End rendering
         command_list->end_rendering();
 

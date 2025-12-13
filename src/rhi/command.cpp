@@ -36,4 +36,9 @@ namespace orion
     {
         end_rendering_api();
     }
+
+    void RHICommandList::draw_instanced(const RHICmdDrawInstanced& cmd)
+    {
+        draw_instanced_api(cmd);
+    }
 } // namespace orion

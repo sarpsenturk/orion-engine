@@ -59,6 +59,13 @@ namespace orion
         float depth_clear;
     };
 
+    struct RHICmdDrawInstanced {
+        std::uint32_t vertex_count;
+        std::uint32_t instance_count;
+        std::uint32_t first_vertex;
+        std::uint32_t first_instance;
+    };
+
     class RHICommandList
     {
     public:
@@ -74,6 +81,8 @@ namespace orion
 
         void begin_rendering(const RHICmdBeginRendering& cmd);
         void end_rendering();
+
+        void draw_instanced(const RHICmdDrawInstanced& cmd);
 
     protected:
         RHICommandList(const RHICommandList&) = default;
@@ -91,6 +100,8 @@ namespace orion
 
         virtual void begin_rendering_api(const RHICmdBeginRendering& cmd) = 0;
         virtual void end_rendering_api() = 0;
+
+        virtual void draw_instanced_api(const RHICmdDrawInstanced& cmd) = 0;
     };
 
     struct RHICommandQueueDesc {

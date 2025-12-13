@@ -466,6 +466,11 @@ namespace orion
                 vkCmdEndRendering(command_buffer_);
             }
 
+            void draw_instanced_api(const RHICmdDrawInstanced& cmd) override
+            {
+                vkCmdDraw(command_buffer_, cmd.vertex_count, cmd.instance_count, cmd.first_vertex, cmd.first_instance);
+            }
+
             VkDevice device_;
             VkCommandPool command_pool_;
             VkCommandBuffer command_buffer_;
