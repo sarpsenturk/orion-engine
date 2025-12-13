@@ -3,6 +3,7 @@
 #include "orion/rhi/handle.hpp"
 #include "orion/rhi/image.hpp"
 
+#include <array>
 #include <span>
 
 namespace orion
@@ -37,6 +38,8 @@ namespace orion
         RHICommandAllocator* command_allocator;
     };
 
+    // Command structs
+
     struct RHITransitionBarrier {
         RHIImage image;
         RHIImageLayout old_layout;
@@ -45,6 +48,15 @@ namespace orion
 
     struct RHICmdPipelineBarrier {
         std::span<const RHITransitionBarrier> transition_barriers;
+    };
+
+    struct RHICmdBeginRendering {
+        std::uint32_t render_width;
+        std::uint32_t render_height;
+        std::span<const RHIImageView> rtvs;
+        RHIImageView dsv;
+        std::array<float, 4> rtv_clear;
+        float depth_clear;
     };
 
     class RHICommandList
@@ -60,6 +72,9 @@ namespace orion
 
         void pipeline_barrier(const RHICmdPipelineBarrier& cmd);
 
+        void begin_rendering(const RHICmdBeginRendering& cmd);
+        void end_rendering();
+
     protected:
         RHICommandList(const RHICommandList&) = default;
         RHICommandList& operator=(const RHICommandList&) = default;
@@ -73,6 +88,9 @@ namespace orion
         virtual void end_api() = 0;
 
         virtual void pipeline_barrier_api(const RHICmdPipelineBarrier& cmd) = 0;
+
+        virtual void begin_rendering_api(const RHICmdBeginRendering& cmd) = 0;
+        virtual void end_rendering_api() = 0;
     };
 
     struct RHICommandQueueDesc {

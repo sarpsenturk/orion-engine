@@ -26,4 +26,14 @@ namespace orion
     {
         pipeline_barrier_api(cmd);
     }
+
+    void RHICommandList::begin_rendering(const RHICmdBeginRendering& cmd)
+    {
+        begin_rendering_api(cmd);
+    }
+
+    void RHICommandList::end_rendering()
+    {
+        end_rendering_api();
+    }
 } // namespace orion

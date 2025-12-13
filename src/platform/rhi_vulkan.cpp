@@ -401,6 +401,64 @@ namespace orion
                 );
             }
 
+            void begin_rendering_api(const RHICmdBeginRendering& cmd) override
+            {
+                std::vector<VkRenderingAttachmentInfo> color_attachments(cmd.rtvs.size());
+                std::ranges::transform(cmd.rtvs, color_attachments.begin(), [&](RHIImageView image_view) {
+                    const auto* vulkan_image_view = resources_->image_views.get(image_view.value);
+                    ORION_ASSERT(vulkan_image_view != nullptr, "RHIImageView must be a valid handle");
+                    return VkRenderingAttachmentInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                        .pNext = nullptr,
+                        .imageView = vulkan_image_view->image_view,
+                        .resolveMode = VK_RESOLVE_MODE_NONE,
+                        .resolveImageView = VK_NULL_HANDLE,
+                        .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .clearValue = {.color = {cmd.rtv_clear[0], cmd.rtv_clear[1], cmd.rtv_clear[2], cmd.rtv_clear[3]}},
+                    };
+                });
+                VkRenderingAttachmentInfo depth_attachment;
+                if (cmd.dsv.is_valid()) {
+                    const auto* vulkan_image_view = resources_->image_views.get(cmd.dsv.value);
+                    ORION_ASSERT(vulkan_image_view != nullptr, "RHIImageView must be a valid handle");
+                    depth_attachment = {
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                        .pNext = nullptr,
+                        .imageView = vulkan_image_view->image_view,
+                        .resolveMode = VK_RESOLVE_MODE_NONE,
+                        .resolveImageView = VK_NULL_HANDLE,
+                        .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .clearValue = {.depthStencil = {.depth = cmd.depth_clear}},
+                    };
+                }
+
+                const auto rendering_info = VkRenderingInfo{
+                    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                    .pNext = nullptr,
+                    .flags = {},
+                    .renderArea = {
+                        .offset = {},
+                        .extent = {cmd.render_width, cmd.render_height},
+                    },
+                    .layerCount = 1,
+                    .viewMask = 0,
+                    .colorAttachmentCount = static_cast<std::uint32_t>(cmd.rtvs.size()),
+                    .pColorAttachments = color_attachments.data(),
+                    .pDepthAttachment = cmd.dsv.is_valid() ? &depth_attachment : nullptr,
+                    .pStencilAttachment = nullptr,
+                };
+                vkCmdBeginRendering(command_buffer_, &rendering_info);
+            }
+
+            void end_rendering_api() override
+            {
+                vkCmdEndRendering(command_buffer_);
+            }
+
             VkDevice device_;
             VkCommandPool command_pool_;
             VkCommandBuffer command_buffer_;
