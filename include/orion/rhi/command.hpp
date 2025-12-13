@@ -59,6 +59,31 @@ namespace orion
         float depth_clear;
     };
 
+    struct RHIViewport {
+        float x;
+        float y;
+        float width;
+        float height;
+        float min_depth;
+        float max_depth;
+    };
+
+    struct RHICmdSetViewports {
+        std::uint32_t first_viewport;
+        std::span<const RHIViewport> viewports;
+    };
+
+    struct RHIRect {
+        std::int32_t left;
+        std::int32_t top;
+        std::int32_t right;
+        std::int32_t bottom;
+    };
+
+    struct RHICmdSetScissors {
+        std::span<const RHIRect> scissors;
+    };
+
     struct RHICmdDrawInstanced {
         std::uint32_t vertex_count;
         std::uint32_t instance_count;
@@ -83,6 +108,8 @@ namespace orion
         void end_rendering();
 
         void set_graphics_pipeline_state(RHIPipeline pipeline);
+        void set_viewports(const RHICmdSetViewports& cmd);
+        void set_scissors(const RHICmdSetScissors& cmd);
 
         void draw_instanced(const RHICmdDrawInstanced& cmd);
 
@@ -104,6 +131,8 @@ namespace orion
         virtual void end_rendering_api() = 0;
 
         virtual void set_graphics_pipeline_state_api(RHIPipeline pipeline) = 0;
+        virtual void set_viewports_api(const RHICmdSetViewports& cmd) = 0;
+        virtual void set_scissors_api(const RHICmdSetScissors& cmd) = 0;
 
         virtual void draw_instanced_api(const RHICmdDrawInstanced& cmd) = 0;
     };

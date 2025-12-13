@@ -204,6 +204,33 @@ namespace orion
         // Bind graphics pipeline
         command_list->set_graphics_pipeline_state(pipeline);
 
+        // Set viewport
+        command_list->set_viewports({
+            .first_viewport = 0,
+            .viewports = {{
+                RHIViewport{
+                    .x = 0,
+                    .y = 0,
+                    .width = static_cast<float>(render_width),
+                    .height = static_cast<float>(render_height),
+                    .min_depth = 0.0f,
+                    .max_depth = 1.0f,
+                },
+            }},
+        });
+
+        // Set scissor
+        command_list->set_scissors({
+            .scissors = {{
+                RHIRect{
+                    .left = 0,
+                    .top = 0,
+                    .right = static_cast<std::int32_t>(render_width),
+                    .bottom = static_cast<std::int32_t>(render_height),
+                },
+            }},
+        });
+
         // Issue draw call
         command_list->draw_instanced({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
 

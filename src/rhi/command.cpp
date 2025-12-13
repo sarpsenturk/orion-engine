@@ -42,6 +42,16 @@ namespace orion
         set_graphics_pipeline_state_api(pipeline);
     }
 
+    void RHICommandList::set_viewports(const RHICmdSetViewports& cmd)
+    {
+        set_viewports_api(cmd);
+    }
+
+    void RHICommandList::set_scissors(const RHICmdSetScissors& cmd)
+    {
+        set_scissors_api(cmd);
+    }
+
     void RHICommandList::draw_instanced(const RHICmdDrawInstanced& cmd)
     {
         draw_instanced_api(cmd);

@@ -478,6 +478,40 @@ namespace orion
                 vkCmdDraw(command_buffer_, cmd.vertex_count, cmd.instance_count, cmd.first_vertex, cmd.first_instance);
             }
 
+            void set_viewports_api(const RHICmdSetViewports& cmd) override
+            {
+                std::vector<VkViewport> viewports(cmd.viewports.size());
+                std::ranges::transform(cmd.viewports, viewports.begin(), [](const RHIViewport& viewport) {
+                    return VkViewport{
+                        .x = viewport.x,
+                        .y = viewport.y,
+                        .width = viewport.width,
+                        .height = viewport.height,
+                        .minDepth = viewport.min_depth,
+                        .maxDepth = viewport.max_depth,
+                    };
+                });
+                vkCmdSetViewport(command_buffer_, cmd.first_viewport, static_cast<std::uint32_t>(cmd.viewports.size()), viewports.data());
+            }
+
+            void set_scissors_api(const RHICmdSetScissors& cmd) override
+            {
+                std::vector<VkRect2D> scissors(cmd.scissors.size());
+                std::ranges::transform(cmd.scissors, scissors.begin(), [](const RHIRect& rect) {
+                    return VkRect2D{
+                        .offset = {
+                            .x = rect.left,
+                            .y = rect.top,
+                        },
+                        .extent = {
+                            .width = static_cast<std::uint32_t>(rect.right - rect.left),
+                            .height = static_cast<std::uint32_t>(rect.bottom - rect.top),
+                        },
+                    };
+                });
+                vkCmdSetScissor(command_buffer_, 0, static_cast<std::uint32_t>(cmd.scissors.size()), scissors.data());
+            }
+
             VkDevice device_;
             VkCommandPool command_pool_;
             VkCommandBuffer command_buffer_;
