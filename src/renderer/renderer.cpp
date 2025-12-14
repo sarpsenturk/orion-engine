@@ -30,8 +30,8 @@ namespace orion
         std::array<RHIImageView, swapchain_image_count> swapchain_rtvs;
         RHIPipeline pipeline;
         std::array<RHISemaphore, swapchain_image_count> image_acquired_semaphores;
+        std::array<RHISemaphore, swapchain_image_count> render_finished_semaphores;
         RHIFence render_finished_fence;
-        RHISemaphore render_finished_semaphore;
         std::int32_t render_width;
         std::int32_t render_height;
         std::int32_t frame_index = 0;
@@ -134,7 +134,8 @@ namespace orion
 
         for (int i = 0; i < swapchain_image_count; ++i) {
             image_acquired_semaphores[i] = device->create_semaphore({});
-            if (!image_acquired_semaphores[i].is_valid()) {
+            render_finished_semaphores[i] = device->create_semaphore({});
+            if (!image_acquired_semaphores[i].is_valid() || !render_finished_semaphores[i].is_valid()) {
                 ORION_CORE_LOG_ERROR("Failed to create RHISemaphore");
                 return false;
             }
@@ -146,12 +147,6 @@ namespace orion
             return false;
         }
 
-        render_finished_semaphore = device->create_semaphore({});
-        if (!render_finished_semaphore.is_valid()) {
-            ORION_CORE_LOG_ERROR("Failed to create RHISemaphore");
-            return false;
-        }
-
         return true;
     }
 
@@ -159,9 +154,11 @@ namespace orion
     {
         ORION_ASSERT(rhi != nullptr, "Renderer has not been initialized or has already been shut down");
 
-        device->destroy(render_finished_semaphore);
+        device->wait_idle();
+
         device->destroy(render_finished_fence);
         for (int i = 0; i < swapchain_image_count; ++i) {
+            device->destroy(render_finished_semaphores[i]);
             device->destroy(image_acquired_semaphores[i]);
             device->destroy(swapchain_rtvs[i]);
         }
@@ -263,12 +260,15 @@ namespace orion
         command_queue->wait(image_acquired_semaphores[frame_index]);
 
         // Signal render finished semaphore for presentation
-        command_queue->signal(render_finished_semaphore);
+        command_queue->signal(render_finished_semaphores[frame_index]);
 
         // Submit command list
         command_queue->submit({{command_list.get()}}, render_finished_fence);
 
         // Present swapchain image
-        device->swapchain_present(swapchain, {{render_finished_semaphore}});
+        device->swapchain_present(swapchain, {{render_finished_semaphores[frame_index]}});
+
+        // Increment frame index
+        frame_index = (frame_index + 1) % swapchain_image_count;
     }
 } // namespace orion
