@@ -488,11 +488,12 @@ namespace orion
             {
                 std::vector<VkViewport> viewports(cmd.viewports.size());
                 std::ranges::transform(cmd.viewports, viewports.begin(), [](const RHIViewport& viewport) {
+                    // Flip viewport with negative height to match other APIs
                     return VkViewport{
                         .x = viewport.x,
-                        .y = viewport.y,
+                        .y = viewport.y + viewport.height,
                         .width = viewport.width,
-                        .height = viewport.height,
+                        .height = -viewport.height,
                         .minDepth = viewport.min_depth,
                         .maxDepth = viewport.max_depth,
                     };
