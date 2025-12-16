@@ -27,11 +27,6 @@ namespace orion
         return create_graphics_pipeline_api(desc);
     }
 
-    RHISemaphore RHIDevice::create_semaphore(const RHISemaphoreDesc& desc)
-    {
-        return create_semaphore_api(desc);
-    }
-
     RHIFence RHIDevice::create_fence(const RHIFenceDesc& desc)
     {
         return create_fence_api(desc);
@@ -48,11 +43,6 @@ namespace orion
     }
 
     void RHIDevice::destroy(RHIPipeline handle)
-    {
-        return destroy_api(handle);
-    }
-
-    void RHIDevice::destroy(RHISemaphore handle)
     {
         return destroy_api(handle);
     }
@@ -82,14 +72,14 @@ namespace orion
         return swapchain_present_api(swapchain);
     }
 
-    bool RHIDevice::wait_for_fences(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout)
+    void RHIDevice::fence_wait(RHIFence fence, std::uint64_t value, std::uint64_t timeout)
     {
-        return wait_for_fences_api(fences, wait_all, timeout);
+        return fence_wait_api(fence, value, timeout);
     }
 
-    bool RHIDevice::reset_fences(std::span<const RHIFence> fences)
+    void RHIDevice::fence_signal(RHIFence fence, std::uint64_t value)
     {
-        return reset_fences_api(fences);
+        return fence_signal_api(fence, value);
     }
 
     void RHIDevice::wait_idle()

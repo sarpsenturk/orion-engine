@@ -57,6 +57,12 @@ namespace orion
             VkPipelineLayout layout;
         };
 
+        struct VulkanFence {
+            // Implemented with timeline semaphores
+            VkSemaphore semaphore;
+            std::uint64_t value;
+        };
+
         struct VulkanImage {
             VkImage image;
             VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -78,8 +84,7 @@ namespace orion
         struct VulkanResourceTable {
             HandlePool<VulkanSwapchain> swapchains;
             HandlePool<VulkanPipeline> pipelines;
-            HandlePool<VkSemaphore> semaphores;
-            HandlePool<VkFence> fences;
+            HandlePool<VulkanFence> timeline_semaphores;
             HandlePool<VulkanImage> images;
             HandlePool<VulkanImageView> image_views;
         };
@@ -547,33 +552,54 @@ namespace orion
                 ORION_ASSERT(semaphore != VK_NULL_HANDLE, "VkSemaphore must not be VK_NULL_HANDLE");
                 wait_semaphores_.push_back(semaphore);
                 wait_stages_.push_back(wait_stages);
+                wait_values_.push_back(0); // Ignored
             }
 
             void vk_signal(VkSemaphore semaphore)
             {
                 ORION_ASSERT(semaphore != VK_NULL_HANDLE, "VkSemaphore must not be VK_NULL_HANDLE");
                 signal_semaphores_.push_back(semaphore);
+                signal_values_.push_back(0); // Ignored
             }
 
             [[nodiscard]] VkQueue vk_queue() const noexcept { return queue_; }
 
         private:
-            void wait_api(RHISemaphore semaphore) override
+            void wait_api(RHIFence fence, std::uint64_t value) override
             {
-                const auto* vk_semaphore = resources_->semaphores.get(semaphore.value);
-                ORION_ASSERT(vk_semaphore != nullptr, "RHISemaphore must be a valid handle");
-                wait_semaphores_.push_back(*vk_semaphore);
-                wait_stages_.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT); // Use queue type to refine this
+                auto* timeline_semaphore = resources_->timeline_semaphores.get(fence.value);
+                ORION_ASSERT(timeline_semaphore != nullptr, "RHIFence must be a valid handle");
+
+                wait_semaphores_.push_back(timeline_semaphore->semaphore);
+                wait_values_.push_back(value);
+                timeline_semaphore->value = value; // Consider updating this on submit
             }
 
-            void signal_api(RHISemaphore semaphore) override
+            void signal_api(RHIFence fence, std::uint64_t value) override
             {
-                const auto* vk_semaphore = resources_->semaphores.get(semaphore.value);
-                ORION_ASSERT(vk_semaphore != nullptr, "RHISemaphore must be a valid handle");
-                signal_semaphores_.push_back(*vk_semaphore);
+                auto* timeline_semaphore = resources_->timeline_semaphores.get(fence.value);
+                ORION_ASSERT(timeline_semaphore != nullptr, "RHIFence must be a valid handle");
+
+                // Submit "empty" batch, only signaling semaphore
+                const auto timeline_semaphore_info = VkTimelineSemaphoreSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .signalSemaphoreValueCount = 1,
+                    .pSignalSemaphoreValues = &value,
+                };
+                const auto submit_info = VkSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                    .pNext = &timeline_semaphore_info,
+                    .signalSemaphoreCount = 1,
+                    .pSignalSemaphores = &timeline_semaphore->semaphore,
+                };
+                if (VkResult err = vkQueueSubmit(queue_, 1, &submit_info, VK_NULL_HANDLE)) {
+                    throw std::runtime_error(fmt::format("vkQueueSubmit failed: {}", string_VkResult(err)));
+                }
+                timeline_semaphore->value = value; // Consider updating this on submit
             }
 
-            void submit_api(std::span<const RHICommandList* const> command_lists, RHIFence fence) override
+            void submit_api(std::span<const RHICommandList* const> command_lists) override
             {
                 // Get VkCommandBuffer's
                 std::vector<VkCommandBuffer> command_buffers(command_lists.size());
@@ -583,18 +609,18 @@ namespace orion
                     return vulkan_command_list->vk_command_buffer();
                 });
 
-                // If RHIFence is a valid handle, get VkFence
-                VkFence vk_fence = VK_NULL_HANDLE;
-                if (fence.is_valid()) {
-                    const auto* vulkan_fence = resources_->fences.get(fence.value);
-                    ORION_ASSERT(vulkan_fence != nullptr, "If RHIFence was not RHIFence::invalid() it must be a valid handle");
-                    vk_fence = *vulkan_fence;
-                }
-
                 // Submit command buffers
+                const auto timeline_semaphore_info = VkTimelineSemaphoreSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .waitSemaphoreValueCount = static_cast<std::uint32_t>(wait_values_.size()),
+                    .pWaitSemaphoreValues = wait_values_.data(),
+                    .signalSemaphoreValueCount = static_cast<std::uint32_t>(signal_values_.size()),
+                    .pSignalSemaphoreValues = signal_values_.data(),
+                };
                 const auto submit_info = VkSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                    .pNext = nullptr,
+                    .pNext = &timeline_semaphore_info,
                     .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores_.size()),
                     .pWaitSemaphores = wait_semaphores_.data(),
                     .pWaitDstStageMask = wait_stages_.data(),
@@ -603,14 +629,16 @@ namespace orion
                     .signalSemaphoreCount = static_cast<std::uint32_t>(signal_semaphores_.size()),
                     .pSignalSemaphores = signal_semaphores_.data(),
                 };
-                if (VkResult err = vkQueueSubmit(queue_, 1, &submit_info, vk_fence)) {
+                if (VkResult err = vkQueueSubmit(queue_, 1, &submit_info, VK_NULL_HANDLE)) {
                     throw std::runtime_error(fmt::format("vkQueueSubmit failed: {}", string_VkResult(err)));
                 }
 
                 // Reset list of wait & signal semaphores
                 wait_semaphores_.clear();
                 wait_stages_.clear();
+                wait_values_.clear();
                 signal_semaphores_.clear();
+                signal_values_.clear();
             }
 
             VkQueue queue_;
@@ -619,7 +647,9 @@ namespace orion
 
             std::vector<VkSemaphore> wait_semaphores_;
             std::vector<VkPipelineStageFlags> wait_stages_;
+            std::vector<std::uint64_t> wait_values_;
             std::vector<VkSemaphore> signal_semaphores_;
+            std::vector<std::uint64_t> signal_values_;
         };
 
         class RHIVulkanDevice : public RHIDevice
@@ -1100,39 +1130,27 @@ namespace orion
                 return RHIPipeline{handle.as_uint64_t()};
             }
 
-            RHISemaphore create_semaphore_api(const RHISemaphoreDesc& /*desc*/) override
+            RHIFence create_fence_api(const RHIFenceDesc& desc) override
             {
+                const auto semaphore_type_info = VkSemaphoreTypeCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+                    .initialValue = desc.initial_value,
+                };
                 const auto semaphore_info = VkSemaphoreCreateInfo{
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-                    .pNext = nullptr,
+                    .pNext = &semaphore_type_info,
                     .flags = {},
                 };
                 VkSemaphore semaphore = VK_NULL_HANDLE;
                 if (VkResult err = vkCreateSemaphore(device_, &semaphore_info, nullptr, &semaphore)) {
-                    ORION_CORE_LOG_ERROR("Failed to create Vulkan semaphore: {}", string_VkResult(err));
-                    return RHISemaphore::invalid();
-                }
-                ORION_CORE_LOG_INFO("Created VkSemaphore {}", (void*)semaphore);
-
-                const auto handle = resources_.semaphores.insert(semaphore);
-                return RHISemaphore{handle.as_uint64_t()};
-            }
-
-            RHIFence create_fence_api(const RHIFenceDesc& desc) override
-            {
-                const auto fence_info = VkFenceCreateInfo{
-                    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                    .pNext = nullptr,
-                    .flags = desc.create_signaled ? VK_FENCE_CREATE_SIGNALED_BIT : VkFenceCreateFlags{},
-                };
-                VkFence fence = VK_NULL_HANDLE;
-                if (VkResult err = vkCreateFence(device_, &fence_info, nullptr, &fence)) {
-                    ORION_CORE_LOG_ERROR("Failed to create Vulkan fence: {}", string_VkResult(err));
+                    ORION_CORE_LOG_ERROR("Failed to create Vulkan timeline semaphore: {}", string_VkResult(err));
                     return RHIFence::invalid();
                 }
-                ORION_CORE_LOG_INFO("Created VkFence {}", (void*)fence);
+                ORION_CORE_LOG_INFO("Created VkSemaphore (timeline) {}", (void*)semaphore);
 
-                const auto handle = resources_.fences.insert(fence);
+                const auto handle = resources_.timeline_semaphores.insert(VulkanFence{semaphore, desc.initial_value});
                 return RHIFence{handle.as_uint64_t()};
             }
 
@@ -1216,29 +1234,15 @@ namespace orion
                 }
             }
 
-            void destroy_api(RHISemaphore handle) override
-            {
-                if (const auto* semaphore = resources_.semaphores.get(handle.value)) {
-                    // Destroy resources
-                    vkDestroySemaphore(device_, *semaphore, nullptr);
-                    ORION_CORE_LOG_INFO("Destroyed VkSemaphore {}", (void*)*semaphore);
-
-                    // Release resource handles
-                    resources_.semaphores.remove(handle.value);
-                } else {
-                    ORION_CORE_LOG_WARN("Attempting to destroy RHISemaphore ({}) which not a valid Vulkan handle", handle.value);
-                }
-            }
-
             void destroy_api(RHIFence handle) override
             {
-                if (const auto* fence = resources_.fences.get(handle.value)) {
+                if (const auto* timeline_semaphore = resources_.timeline_semaphores.get(handle.value)) {
                     // Destroy resources
-                    vkDestroyFence(device_, *fence, nullptr);
-                    ORION_CORE_LOG_INFO("Destroyed VkFence {}", (void*)*fence);
+                    vkDestroySemaphore(device_, timeline_semaphore->semaphore, nullptr);
+                    ORION_CORE_LOG_INFO("Destroyed VkSemaphore (timeline) {}", (void*)timeline_semaphore->semaphore);
 
                     // Release resource handles
-                    resources_.fences.remove(handle.value);
+                    resources_.timeline_semaphores.remove(handle.value);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIFence ({}) which not a valid Vulkan handle", handle.value);
                 }
@@ -1318,36 +1322,48 @@ namespace orion
                 }
             }
 
-            bool wait_for_fences_api(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout) override
+            void fence_wait_api(RHIFence fence, std::uint64_t value, std::uint64_t timeout) override
             {
-                std::vector<VkFence> vk_fences(fences.size());
-                std::ranges::transform(fences, vk_fences.begin(), [&](RHIFence fence) {
-                    const auto* vk_fence = resources_.fences.get(fence.value);
-                    ORION_ASSERT(vk_fence != nullptr, "RHIFence must be a valid handle");
-                    return *vk_fence;
-                });
-                if (VkResult err = vkWaitForFences(device_, static_cast<std::uint32_t>(fences.size()), vk_fences.data(), wait_all, timeout)) {
-                    ORION_CORE_LOG_ERROR("vkWaitForFences failed: {}", string_VkResult(err));
-                    return false;
-                } else {
-                    return true;
+                // Get semaphore from handle
+                auto* timeline_semaphore = resources_.timeline_semaphores.get(fence.value);
+                ORION_ASSERT(timeline_semaphore != nullptr, "RHIFence must be a valid handle");
+
+                // Wait for semaphore value on CPU side
+                const auto wait_info = VkSemaphoreWaitInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                    .pNext = nullptr,
+                    .flags = {},
+                    .semaphoreCount = 1,
+                    .pSemaphores = &timeline_semaphore->semaphore,
+                    .pValues = &value,
+                };
+                if (VkResult err = vkWaitSemaphores(device_, &wait_info, timeout)) {
+                    throw std::runtime_error(fmt::format("vkWaitSemaphores failed: {}", string_VkResult(err)));
                 }
+
+                // Update semaphore value
+                timeline_semaphore->value = value;
             }
 
-            bool reset_fences_api(std::span<const RHIFence> fences) override
+            void fence_signal_api(RHIFence fence, std::uint64_t value) override
             {
-                std::vector<VkFence> vk_fences(fences.size());
-                std::ranges::transform(fences, vk_fences.begin(), [&](RHIFence fence) {
-                    const auto* vk_fence = resources_.fences.get(fence.value);
-                    ORION_ASSERT(vk_fence != nullptr, "RHIFence must be a valid handle");
-                    return *vk_fence;
-                });
-                if (VkResult err = vkResetFences(device_, static_cast<std::uint32_t>(fences.size()), vk_fences.data())) {
-                    ORION_CORE_LOG_ERROR("vkResetFences failed: {}", string_VkResult(err));
-                    return false;
-                } else {
-                    return true;
+                // Get semaphore from handle
+                auto* timeline_semaphore = resources_.timeline_semaphores.get(fence.value);
+                ORION_ASSERT(timeline_semaphore != nullptr, "RHIFence must be a valid handle");
+
+                // Signal semaphore from CPU side
+                const auto signal_info = VkSemaphoreSignalInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+                    .pNext = nullptr,
+                    .semaphore = timeline_semaphore->semaphore,
+                    .value = value,
+                };
+                if (VkResult err = vkSignalSemaphore(device_, &signal_info)) {
+                    throw std::runtime_error(fmt::format("vkSignalSemaphore failed: {}", string_VkResult(err)));
                 }
+
+                // Update semaphore value
+                timeline_semaphore->value = value;
             }
 
             void wait_idle_api() override
@@ -1486,10 +1502,16 @@ namespace orion
 #endif
 
                 // Create the device
+                // Enable timeline semaphores
+                auto timeline_semaphore_features = VkPhysicalDeviceTimelineSemaphoreFeatures{
+                    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
+                    .pNext = nullptr,
+                    .timelineSemaphore = VK_TRUE,
+                };
                 // Enable dynamic rendering
                 const auto dynamic_rendering_features = VkPhysicalDeviceDynamicRenderingFeatures{
                     .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
-                    .pNext = nullptr,
+                    .pNext = &timeline_semaphore_features,
                     .dynamicRendering = VK_TRUE,
                 };
                 const auto device_info = VkDeviceCreateInfo{

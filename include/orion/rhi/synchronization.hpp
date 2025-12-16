@@ -1,11 +1,10 @@
 #pragma once
 
+#include <cstdint>
+
 namespace orion
 {
-    struct RHISemaphoreDesc {
-    };
-
     struct RHIFenceDesc {
-        bool create_signaled;
+        std::uint64_t initial_value;
     };
 } // namespace orion

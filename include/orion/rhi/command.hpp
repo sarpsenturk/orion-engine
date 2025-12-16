@@ -147,10 +147,10 @@ namespace orion
         RHICommandQueue() = default;
         virtual ~RHICommandQueue() = default;
 
-        void wait(RHISemaphore semaphore);
-        void signal(RHISemaphore semaphore);
+        void wait(RHIFence fence, std::uint64_t value);
+        void signal(RHIFence fence, std::uint64_t value);
 
-        void submit(std::span<const RHICommandList* const> command_lists, RHIFence fence);
+        void submit(std::span<const RHICommandList* const> command_lists);
 
     protected:
         RHICommandQueue(const RHICommandQueue&) = default;
@@ -158,9 +158,9 @@ namespace orion
         RHICommandQueue(RHICommandQueue&&) = default;
         RHICommandQueue& operator=(RHICommandQueue&&) = default;
 
-        virtual void wait_api(RHISemaphore semaphore) = 0;
-        virtual void signal_api(RHISemaphore semaphore) = 0;
+        virtual void wait_api(RHIFence fence, std::uint64_t value) = 0;
+        virtual void signal_api(RHIFence fence, std::uint64_t value) = 0;
 
-        virtual void submit_api(std::span<const RHICommandList* const> command_lists, RHIFence fence) = 0;
+        virtual void submit_api(std::span<const RHICommandList* const> command_lists) = 0;
     };
 } // namespace orion

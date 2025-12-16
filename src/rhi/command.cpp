@@ -57,18 +57,18 @@ namespace orion
         draw_instanced_api(cmd);
     }
 
-    void RHICommandQueue::wait(RHISemaphore semaphore)
+    void RHICommandQueue::wait(RHIFence fence, std::uint64_t value)
     {
-        wait_api(semaphore);
+        wait_api(fence, value);
     }
 
-    void RHICommandQueue::signal(RHISemaphore semaphore)
+    void RHICommandQueue::signal(RHIFence fence, std::uint64_t value)
     {
-        signal_api(semaphore);
+        signal_api(fence, value);
     }
 
-    void RHICommandQueue::submit(std::span<const RHICommandList* const> command_lists, RHIFence fence)
+    void RHICommandQueue::submit(std::span<const RHICommandList* const> command_lists)
     {
-        submit_api(command_lists, fence);
+        submit_api(command_lists);
     }
 } // namespace orion

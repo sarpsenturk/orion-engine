@@ -23,13 +23,11 @@ namespace orion
 
         RHISwapchain create_swapchain(const RHISwapchainDesc& desc);
         RHIPipeline create_graphics_pipeline(const RHIGraphicsPipelineDesc& desc);
-        RHISemaphore create_semaphore(const RHISemaphoreDesc& desc);
         RHIFence create_fence(const RHIFenceDesc& desc);
         RHIImageView create_render_target_view(const RHIRenderTargetViewDesc& desc);
 
         void destroy(RHISwapchain handle);
         void destroy(RHIPipeline handle);
-        void destroy(RHISemaphore handle);
         void destroy(RHIFence handle);
         void destroy(RHIImageView handle);
 
@@ -37,8 +35,8 @@ namespace orion
         std::uint32_t swapchain_acquire_image(RHISwapchain swapchain);
         void swapchain_present(RHISwapchain swapchain);
 
-        bool wait_for_fences(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout);
-        bool reset_fences(std::span<const RHIFence> fences);
+        void fence_wait(RHIFence fence, std::uint64_t value, std::uint64_t timeout);
+        void fence_signal(RHIFence fence, std::uint64_t value);
 
         void wait_idle();
 
@@ -55,13 +53,11 @@ namespace orion
 
         virtual RHISwapchain create_swapchain_api(const RHISwapchainDesc& desc) = 0;
         virtual RHIPipeline create_graphics_pipeline_api(const RHIGraphicsPipelineDesc& desc) = 0;
-        virtual RHISemaphore create_semaphore_api(const RHISemaphoreDesc& desc) = 0;
         virtual RHIFence create_fence_api(const RHIFenceDesc& desc) = 0;
         virtual RHIImageView create_render_target_view_api(const RHIRenderTargetViewDesc& desc) = 0;
 
         virtual void destroy_api(RHISwapchain handle) = 0;
         virtual void destroy_api(RHIPipeline handle) = 0;
-        virtual void destroy_api(RHISemaphore handle) = 0;
         virtual void destroy_api(RHIFence handle) = 0;
         virtual void destroy_api(RHIImageView handle) = 0;
 
@@ -69,8 +65,8 @@ namespace orion
         virtual std::uint32_t swapchain_acquire_image_api(RHISwapchain swapchain) = 0;
         virtual void swapchain_present_api(RHISwapchain swapchain) = 0;
 
-        virtual bool wait_for_fences_api(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout) = 0;
-        virtual bool reset_fences_api(std::span<const RHIFence> fences) = 0;
+        virtual void fence_wait_api(RHIFence fence, std::uint64_t value, std::uint64_t timeout) = 0;
+        virtual void fence_signal_api(RHIFence fence, std::uint64_t value) = 0;
 
         virtual void wait_idle_api() = 0;
     };

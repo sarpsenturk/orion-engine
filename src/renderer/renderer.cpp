@@ -130,7 +130,7 @@ namespace orion
             return false;
         }
 
-        render_finished_fence = device->create_fence({.create_signaled = true});
+        render_finished_fence = device->create_fence({.initial_value = 0});
         if (!render_finished_fence.is_valid()) {
             ORION_CORE_LOG_ERROR("Failed to create RHIFence");
             return false;
@@ -161,8 +161,7 @@ namespace orion
     void Renderer::render()
     {
         // Wait for previous render to finish
-        device->wait_for_fences({{render_finished_fence}}, true, UINT64_MAX);
-        device->reset_fences({{render_finished_fence}});
+        device->fence_wait(render_finished_fence, frame_index, UINT64_MAX);
 
         // Reset command list
         command_allocator->reset();
@@ -243,14 +242,13 @@ namespace orion
         // End command list recording
         command_list->end();
 
-
         // Submit command list
-        command_queue->submit({{command_list.get()}}, render_finished_fence);
+        command_queue->submit({{command_list.get()}});
 
         // Present swapchain image
         device->swapchain_present(swapchain);
 
-        // Increment frame index
-        frame_index = (frame_index + 1) % swapchain_image_count;
+        // Increment frame index & signal when render is complete
+        command_queue->signal(render_finished_fence, ++frame_index);
     }
 } // namespace orion
