@@ -101,7 +101,7 @@ namespace orion
         }
 
         for (std::uint32_t i = 0; i < swapchain_image_count; ++i) {
-            swapchain_images[i] = device->get_swapchain_image(swapchain, i);
+            swapchain_images[i] = device->swapchain_get_image(swapchain, i);
             swapchain_rtvs[i] = device->create_render_target_view({.image = swapchain_images[i], .format = swapchain_format});
         }
 
@@ -169,7 +169,7 @@ namespace orion
         command_list->reset();
 
         // Acquire swapchain image index
-        const auto image_index = device->acquire_swapchain_image(swapchain);
+        const auto image_index = device->swapchain_acquire_image(swapchain);
 
         // Begin command list recording
         command_list->begin();

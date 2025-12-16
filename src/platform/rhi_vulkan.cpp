@@ -1258,7 +1258,7 @@ namespace orion
                 }
             }
 
-            RHIImage get_swapchain_image_api(RHISwapchain swapchain, std::uint32_t image_idx) override
+            RHIImage swapchain_get_image_api(RHISwapchain swapchain, std::uint32_t image_idx) override
             {
                 if (const auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value)) {
                     if (image_idx < vulkan_swapchain->images.size()) {
@@ -1274,7 +1274,7 @@ namespace orion
                 }
             }
 
-            std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain) override
+            std::uint32_t swapchain_acquire_image_api(RHISwapchain swapchain) override
             {
                 auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value);
                 if (!vulkan_swapchain) {

@@ -33,8 +33,8 @@ namespace orion
         void destroy(RHIFence handle);
         void destroy(RHIImageView handle);
 
-        RHIImage get_swapchain_image(RHISwapchain swapchain, std::uint32_t image_idx);
-        std::uint32_t acquire_swapchain_image(RHISwapchain swapchain);
+        RHIImage swapchain_get_image(RHISwapchain swapchain, std::uint32_t image_idx);
+        std::uint32_t swapchain_acquire_image(RHISwapchain swapchain);
         void swapchain_present(RHISwapchain swapchain);
 
         bool wait_for_fences(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout);
@@ -65,8 +65,8 @@ namespace orion
         virtual void destroy_api(RHIFence handle) = 0;
         virtual void destroy_api(RHIImageView handle) = 0;
 
-        virtual RHIImage get_swapchain_image_api(RHISwapchain swapchain, std::uint32_t image_idx) = 0;
-        virtual std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain) = 0;
+        virtual RHIImage swapchain_get_image_api(RHISwapchain swapchain, std::uint32_t image_idx) = 0;
+        virtual std::uint32_t swapchain_acquire_image_api(RHISwapchain swapchain) = 0;
         virtual void swapchain_present_api(RHISwapchain swapchain) = 0;
 
         virtual bool wait_for_fences_api(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout) = 0;

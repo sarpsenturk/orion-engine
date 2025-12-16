@@ -67,14 +67,14 @@ namespace orion
         return destroy_api(handle);
     }
 
-    RHIImage RHIDevice::get_swapchain_image(RHISwapchain swapchain, std::uint32_t image_idx)
+    RHIImage RHIDevice::swapchain_get_image(RHISwapchain swapchain, std::uint32_t image_idx)
     {
-        return get_swapchain_image_api(swapchain, image_idx);
+        return swapchain_get_image_api(swapchain, image_idx);
     }
 
-    std::uint32_t RHIDevice::acquire_swapchain_image(RHISwapchain swapchain)
+    std::uint32_t RHIDevice::swapchain_acquire_image(RHISwapchain swapchain)
     {
-        return acquire_swapchain_image_api(swapchain);
+        return swapchain_acquire_image_api(swapchain);
     }
 
     void RHIDevice::swapchain_present(RHISwapchain swapchain)
