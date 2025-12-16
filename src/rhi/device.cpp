@@ -72,14 +72,14 @@ namespace orion
         return get_swapchain_image_api(swapchain, image_idx);
     }
 
-    std::uint32_t RHIDevice::acquire_swapchain_image(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence)
+    std::uint32_t RHIDevice::acquire_swapchain_image(RHISwapchain swapchain)
     {
-        return acquire_swapchain_image_api(swapchain, semaphore, fence);
+        return acquire_swapchain_image_api(swapchain);
     }
 
-    void RHIDevice::swapchain_present(RHISwapchain swapchain, std::span<const RHISemaphore> wait_semaphores)
+    void RHIDevice::swapchain_present(RHISwapchain swapchain)
     {
-        return swapchain_present_api(swapchain, wait_semaphores);
+        return swapchain_present_api(swapchain);
     }
 
     bool RHIDevice::wait_for_fences(std::span<const RHIFence> fences, bool wait_all, std::uint64_t timeout)

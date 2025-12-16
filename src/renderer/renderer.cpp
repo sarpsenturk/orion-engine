@@ -29,8 +29,6 @@ namespace orion
         std::array<RHIImage, swapchain_image_count> swapchain_images;
         std::array<RHIImageView, swapchain_image_count> swapchain_rtvs;
         RHIPipeline pipeline;
-        std::array<RHISemaphore, swapchain_image_count> image_acquired_semaphores;
-        std::array<RHISemaphore, swapchain_image_count> render_finished_semaphores;
         RHIFence render_finished_fence;
         std::int32_t render_width;
         std::int32_t render_height;
@@ -132,15 +130,6 @@ namespace orion
             return false;
         }
 
-        for (int i = 0; i < swapchain_image_count; ++i) {
-            image_acquired_semaphores[i] = device->create_semaphore({});
-            render_finished_semaphores[i] = device->create_semaphore({});
-            if (!image_acquired_semaphores[i].is_valid() || !render_finished_semaphores[i].is_valid()) {
-                ORION_CORE_LOG_ERROR("Failed to create RHISemaphore");
-                return false;
-            }
-        }
-
         render_finished_fence = device->create_fence({.create_signaled = true});
         if (!render_finished_fence.is_valid()) {
             ORION_CORE_LOG_ERROR("Failed to create RHIFence");
@@ -158,8 +147,6 @@ namespace orion
 
         device->destroy(render_finished_fence);
         for (int i = 0; i < swapchain_image_count; ++i) {
-            device->destroy(render_finished_semaphores[i]);
-            device->destroy(image_acquired_semaphores[i]);
             device->destroy(swapchain_rtvs[i]);
         }
         device->destroy(pipeline);
@@ -182,7 +169,7 @@ namespace orion
         command_list->reset();
 
         // Acquire swapchain image index
-        const auto image_index = device->acquire_swapchain_image(swapchain, image_acquired_semaphores[frame_index], RHIFence::invalid());
+        const auto image_index = device->acquire_swapchain_image(swapchain);
 
         // Begin command list recording
         command_list->begin();
@@ -256,17 +243,12 @@ namespace orion
         // End command list recording
         command_list->end();
 
-        // Wait until swapchain image is acquired to start rendering
-        command_queue->wait(image_acquired_semaphores[frame_index]);
-
-        // Signal render finished semaphore for presentation
-        command_queue->signal(render_finished_semaphores[frame_index]);
 
         // Submit command list
         command_queue->submit({{command_list.get()}}, render_finished_fence);
 
         // Present swapchain image
-        device->swapchain_present(swapchain, {{render_finished_semaphores[frame_index]}});
+        device->swapchain_present(swapchain);
 
         // Increment frame index
         frame_index = (frame_index + 1) % swapchain_image_count;

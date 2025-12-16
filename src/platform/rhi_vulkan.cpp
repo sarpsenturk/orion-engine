@@ -45,7 +45,11 @@ namespace orion
             VkSwapchainKHR swapchain;
             class RHIVulkanCommandQueue* queue;
             std::vector<RHIImage> images;
+            std::vector<VkSemaphore> image_acquired_semaphores;
+            std::vector<VkSemaphore> present_semaphores;
+            std::uint32_t image_count;
             std::uint32_t current_image_index = UINT32_MAX;
+            std::uint64_t frame_index = 0;
         };
 
         struct VulkanPipeline {
@@ -538,6 +542,19 @@ namespace orion
                 ORION_ASSERT(resources != nullptr, "VulkanResourceTable must not be nullptr");
             }
 
+            void vk_wait(VkSemaphore semaphore, VkPipelineStageFlags wait_stages)
+            {
+                ORION_ASSERT(semaphore != VK_NULL_HANDLE, "VkSemaphore must not be VK_NULL_HANDLE");
+                wait_semaphores_.push_back(semaphore);
+                wait_stages_.push_back(wait_stages);
+            }
+
+            void vk_signal(VkSemaphore semaphore)
+            {
+                ORION_ASSERT(semaphore != VK_NULL_HANDLE, "VkSemaphore must not be VK_NULL_HANDLE");
+                signal_semaphores_.push_back(semaphore);
+            }
+
             [[nodiscard]] VkQueue vk_queue() const noexcept { return queue_; }
 
         private:
@@ -798,7 +815,46 @@ namespace orion
                     return RHIImage{handle.as_uint64_t()};
                 });
 
-                const auto handle = resources_.swapchains.insert(VulkanSwapchain{surface, swapchain, vulkan_queue, std::move(image_handles)});
+                // Create semaphores
+                std::vector<VkSemaphore> image_acquired_semaphores(image_count);
+                std::vector<VkSemaphore> present_semaphores(image_count);
+                for (std::uint32_t i = 0; i < image_count; ++i) {
+                    const auto semaphore_info = VkSemaphoreCreateInfo{
+                        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+                        .pNext = nullptr,
+                        .flags = {},
+                    };
+                    if (VkResult err = vkCreateSemaphore(device_, &semaphore_info, nullptr, &image_acquired_semaphores[i])) {
+                        ORION_CORE_LOG_ERROR("Failed to create Vulkan semaphore: {}", string_VkResult(err));
+                        vkDestroySwapchainKHR(device_, swapchain, nullptr);
+                        vkDestroySurfaceKHR(instance_, surface, nullptr);
+                        for (std::uint32_t j = 0; j < i; ++j) {
+                            vkDestroySemaphore(device_, image_acquired_semaphores[i], nullptr);
+                            vkDestroySemaphore(device_, present_semaphores[i], nullptr);
+                        }
+                        return RHISwapchain::invalid();
+                    }
+                    if (VkResult err = vkCreateSemaphore(device_, &semaphore_info, nullptr, &present_semaphores[i])) {
+                        ORION_CORE_LOG_ERROR("Failed to create Vulkan semaphore: {}", string_VkResult(err));
+                        vkDestroySwapchainKHR(device_, swapchain, nullptr);
+                        vkDestroySurfaceKHR(instance_, surface, nullptr);
+                        for (std::uint32_t j = 0; j < i; ++j) {
+                            vkDestroySemaphore(device_, image_acquired_semaphores[i], nullptr);
+                            vkDestroySemaphore(device_, present_semaphores[i], nullptr);
+                        }
+                        return RHISwapchain::invalid();
+                    }
+                }
+
+                const auto handle = resources_.swapchains.insert(VulkanSwapchain{
+                    surface,
+                    swapchain,
+                    vulkan_queue,
+                    std::move(image_handles),
+                    std::move(image_acquired_semaphores),
+                    std::move(present_semaphores),
+                    image_count,
+                });
                 return RHISwapchain{handle.as_uint64_t()};
             }
 
@@ -1123,17 +1179,22 @@ namespace orion
             void destroy_api(RHISwapchain handle) override
             {
                 if (const auto* swapchain = resources_.swapchains.get(handle.value)) {
+                    // Destroy resources
+                    for (std::uint32_t i = 0; i < swapchain->image_count; ++i) {
+                        vkDestroySemaphore(device_, swapchain->present_semaphores[i], nullptr);
+                        vkDestroySemaphore(device_, swapchain->image_acquired_semaphores[i], nullptr);
+                    }
+
+                    vkDestroySwapchainKHR(device_, swapchain->swapchain, nullptr);
+                    vkDestroySurfaceKHR(instance_, swapchain->surface, nullptr);
+                    ORION_CORE_LOG_INFO("Destroyed VkSwapchainKHR {}", (void*)swapchain->swapchain);
+                    ORION_CORE_LOG_INFO("Destroyed VkSurfaceKHR {}", (void*)swapchain->surface);
+
                     // Release resource handles
                     for (RHIImage image : swapchain->images) {
                         resources_.images.remove(image.value);
                     }
                     resources_.swapchains.remove(handle.value);
-
-                    // Destroy resources
-                    vkDestroySwapchainKHR(device_, swapchain->swapchain, nullptr);
-                    vkDestroySurfaceKHR(instance_, swapchain->surface, nullptr);
-                    ORION_CORE_LOG_INFO("Destroyed VkSwapchainKHR {}", (void*)swapchain->swapchain);
-                    ORION_CORE_LOG_INFO("Destroyed VkSurfaceKHR {}", (void*)swapchain->surface);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHISwapchain ({}) which not a valid Vulkan handle", handle.value);
                 }
@@ -1213,7 +1274,7 @@ namespace orion
                 }
             }
 
-            std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain, RHISemaphore semaphore, RHIFence fence) override
+            std::uint32_t acquire_swapchain_image_api(RHISwapchain swapchain) override
             {
                 auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value);
                 if (!vulkan_swapchain) {
@@ -1221,51 +1282,32 @@ namespace orion
                     return UINT32_MAX;
                 }
 
-                VkSemaphore vk_semaphore = VK_NULL_HANDLE;
-                if (semaphore.is_valid()) {
-                    if (const auto* vulkan_semaphore = resources_.semaphores.get(semaphore.value)) {
-                        vk_semaphore = *vulkan_semaphore;
-                    } else {
-                        ORION_CORE_LOG_ERROR("Invalid Vulkan RHISemaphore {}", semaphore.value);
-                        return UINT32_MAX;
-                    }
-                }
-                VkFence vk_fence = VK_NULL_HANDLE;
-                if (fence.is_valid()) {
-                    if (const auto* vulkan_fence = resources_.fences.get(fence.value)) {
-                        vk_fence = *vulkan_fence;
-                    } else {
-                        ORION_CORE_LOG_ERROR("Invalid Vulkan RHIFence {}", fence.value);
-                        return UINT32_MAX;
-                    }
-                }
-
-                std::uint32_t image_index = 0;
-                if (VkResult err = vkAcquireNextImageKHR(device_, vulkan_swapchain->swapchain, UINT64_MAX, vk_semaphore, vk_fence, &image_index)) {
+                VkSemaphore semaphore = vulkan_swapchain->image_acquired_semaphores[vulkan_swapchain->frame_index++ % vulkan_swapchain->image_count];
+                if (VkResult err = vkAcquireNextImageKHR(device_, vulkan_swapchain->swapchain, UINT64_MAX, semaphore, VK_NULL_HANDLE, &vulkan_swapchain->current_image_index)) {
                     ORION_CORE_LOG_ERROR("Failed to acquire image for VkSwapchainKHR {}: {}", (void*)vulkan_swapchain->swapchain, string_VkResult(err));
                     return UINT32_MAX;
                 }
-                vulkan_swapchain->current_image_index = image_index;
-                return image_index;
+
+                // Add image acquired semaphore to next submits wait semaphore list
+                vulkan_swapchain->queue->vk_wait(semaphore, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+                // Add present semaphore to next submits signal semaphore list
+                vulkan_swapchain->queue->vk_signal(vulkan_swapchain->present_semaphores[vulkan_swapchain->current_image_index]);
+
+                return vulkan_swapchain->current_image_index;
             }
 
-            void swapchain_present_api(RHISwapchain swapchain, std::span<const RHISemaphore> wait_semaphores) override
+            void swapchain_present_api(RHISwapchain swapchain) override
             {
                 const auto* vulkan_swapchain = resources_.swapchains.get(swapchain.value);
                 ORION_ASSERT(vulkan_swapchain != nullptr, "RHISwapchain must be a valid handle");
 
-                std::vector<VkSemaphore> vk_wait_semaphores(wait_semaphores.size());
-                std::ranges::transform(wait_semaphores, vk_wait_semaphores.begin(), [&](RHISemaphore semaphore) {
-                    const auto vk_semaphore = resources_.semaphores.get(semaphore.value);
-                    ORION_ASSERT(vk_semaphore != nullptr, "All RHISemaphore's must be valid handles");
-                    return *vk_semaphore;
-                });
-
+                VkSemaphore present_semaphore = vulkan_swapchain->present_semaphores[vulkan_swapchain->current_image_index];
                 const auto present_info = VkPresentInfoKHR{
                     .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
                     .pNext = nullptr,
-                    .waitSemaphoreCount = static_cast<std::uint32_t>(wait_semaphores.size()),
-                    .pWaitSemaphores = vk_wait_semaphores.data(),
+                    .waitSemaphoreCount = 1,
+                    .pWaitSemaphores = &present_semaphore,
                     .swapchainCount = 1,
                     .pSwapchains = &vulkan_swapchain->swapchain,
                     .pImageIndices = &vulkan_swapchain->current_image_index,
