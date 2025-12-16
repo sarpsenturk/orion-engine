@@ -1203,14 +1203,14 @@ namespace orion
             void destroy_api(RHIPipeline handle) override
             {
                 if (const auto* pipeline = resources_.pipelines.get(handle.value)) {
-                    // Release resource handles
-                    resources_.pipelines.remove(handle.value);
-
                     // Destroy resources
                     vkDestroyPipeline(device_, pipeline->pipeline, nullptr);
                     vkDestroyPipelineLayout(device_, pipeline->layout, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkPipeline {}", (void*)pipeline->pipeline);
                     ORION_CORE_LOG_INFO("Destroyed VkPipelineLayout {}", (void*)pipeline->layout);
+
+                    // Release resource handles
+                    resources_.pipelines.remove(handle.value);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIPipeline ({}) which not a valid Vulkan handle", handle.value);
                 }
@@ -1219,12 +1219,12 @@ namespace orion
             void destroy_api(RHISemaphore handle) override
             {
                 if (const auto* semaphore = resources_.semaphores.get(handle.value)) {
-                    // Release resource handles
-                    resources_.semaphores.remove(handle.value);
-
                     // Destroy resources
                     vkDestroySemaphore(device_, *semaphore, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkSemaphore {}", (void*)*semaphore);
+
+                    // Release resource handles
+                    resources_.semaphores.remove(handle.value);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHISemaphore ({}) which not a valid Vulkan handle", handle.value);
                 }
@@ -1233,12 +1233,12 @@ namespace orion
             void destroy_api(RHIFence handle) override
             {
                 if (const auto* fence = resources_.fences.get(handle.value)) {
-                    // Release resource handles
-                    resources_.fences.remove(handle.value);
-
                     // Destroy resources
                     vkDestroyFence(device_, *fence, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkFence {}", (void*)*fence);
+
+                    // Release resource handles
+                    resources_.fences.remove(handle.value);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIFence ({}) which not a valid Vulkan handle", handle.value);
                 }
@@ -1247,12 +1247,12 @@ namespace orion
             void destroy_api(RHIImageView handle) override
             {
                 if (const auto* image_view = resources_.image_views.get(handle.value)) {
-                    // Release resource handles
-                    resources_.image_views.remove(handle.value);
-
                     // Destroy resources
                     vkDestroyImageView(device_, image_view->image_view, nullptr);
                     ORION_CORE_LOG_INFO("Destroyed VkImageView {}", (void*)image_view->image_view);
+
+                    // Release resource handles
+                    resources_.image_views.remove(handle.value);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIImageView ({}) which not a valid Vulkan handle", handle.value);
                 }
