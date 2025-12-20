@@ -16,6 +16,11 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vk_enum_string_helper.h>
 
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+
 #include "orion/platform/platform.hpp"
 #ifdef ORION_OS_MACOS
     #define ORION_VULKAN_MVK 1
@@ -659,21 +664,27 @@ namespace orion
                 VkInstance instance,
                 VkPhysicalDevice physical_device,
                 VkDevice device,
+                VmaAllocator vma_allocator,
                 VulkanQueue graphics_queue)
                 : instance_(instance)
                 , physical_device_(physical_device)
                 , device_(device)
+                , vma_allocator_(vma_allocator)
                 , graphics_queue_(graphics_queue)
             {
                 ORION_ASSERT(instance != VK_NULL_HANDLE, "VkInstance must not be VK_NULL_HANDLE");
                 ORION_ASSERT(physical_device != VK_NULL_HANDLE, "VkPhysicalDevice must not be VK_NULL_HANDLE");
                 ORION_ASSERT(device != VK_NULL_HANDLE, "VkDevice must not be VK_NULL_HANDLE");
+                ORION_ASSERT(vma_allocator != VK_NULL_HANDLE, "VmaAllocator must not be VK_NULL_HANDLE");
                 ORION_ASSERT(graphics_queue.queue != VK_NULL_HANDLE, "VkQueue (graphics) must not be VK_NULL_HANDLE");
             }
 
             ~RHIVulkanDevice() override
             {
                 vkDeviceWaitIdle(device_);
+
+                vmaDestroyAllocator(vma_allocator_);
+                ORION_CORE_LOG_INFO("Destroyed VmaAllocator {}", (void*)vma_allocator_);
                 vkDestroyDevice(device_, nullptr);
                 ORION_CORE_LOG_INFO("Destroyed VkDevice {}", (void*)device_);
             }
@@ -1397,6 +1408,7 @@ namespace orion
             VkInstance instance_;
             VkPhysicalDevice physical_device_;
             VkDevice device_;
+            VmaAllocator vma_allocator_;
             VulkanQueue graphics_queue_;
             VulkanResourceTable resources_;
         };
@@ -1529,14 +1541,59 @@ namespace orion
                     ORION_CORE_LOG_ERROR("Failed to create a Vulkan device: {}", string_VkResult(result));
                     return nullptr;
                 }
+                volkLoadDevice(device);
                 ORION_CORE_LOG_DEBUG("Created VkDevice {}", (void*)device);
+
+                // Create VMA allocator
+                // NOTE: Using vmaImportVulkanFunctionsFromVolk() is causing a segfault with MoltenVK. Needs investigation.
+                const auto vma_vulkan_functions = VmaVulkanFunctions{
+                    .vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+                    .vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+                    .vkAllocateMemory = vkAllocateMemory,
+                    .vkFreeMemory = vkFreeMemory,
+                    .vkMapMemory = vkMapMemory,
+                    .vkUnmapMemory = vkUnmapMemory,
+                    .vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+                    .vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+                    .vkBindBufferMemory = vkBindBufferMemory,
+                    .vkBindImageMemory = vkBindImageMemory,
+                    .vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+                    .vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+                    .vkCreateBuffer = vkCreateBuffer,
+                    .vkDestroyBuffer = vkDestroyBuffer,
+                    .vkCreateImage = vkCreateImage,
+                    .vkDestroyImage = vkDestroyImage,
+                    .vkCmdCopyBuffer = vkCmdCopyBuffer,
+                    .vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
+                    .vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
+                    .vkBindBufferMemory2KHR = vkBindBufferMemory2,
+                    .vkBindImageMemory2KHR = vkBindImageMemory2,
+                    .vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
+                    .vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
+                    .vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
+
+                };
+                const auto allocator_info = VmaAllocatorCreateInfo{
+                    .flags = {},
+                    .physicalDevice = physical_device,
+                    .device = device,
+                    .pVulkanFunctions = &vma_vulkan_functions,
+                    .instance = instance_,
+                    .vulkanApiVersion = vulkan_api_version,
+                };
+                VmaAllocator allocator = VK_NULL_HANDLE;
+                if (VkResult err = vmaCreateAllocator(&allocator_info, &allocator)) {
+                    ORION_CORE_LOG_ERROR("Failed to create VMA allocator: {}", string_VkResult(err));
+                    return nullptr;
+                }
+                ORION_CORE_LOG_INFO("Created VmaAllocator {}", (void*)allocator);
 
                 // Retrieve created queues
                 VulkanQueue graphics_queue = {.family = graphics_queue_family};
                 vkGetDeviceQueue(device, graphics_queue_family, 0, &graphics_queue.queue);
                 ORION_CORE_LOG_DEBUG("Got VkQueue (graphics) {}", (void*)graphics_queue.queue);
 
-                return std::make_unique<RHIVulkanDevice>(instance_, physical_device, device, graphics_queue);
+                return std::make_unique<RHIVulkanDevice>(instance_, physical_device, device, allocator, graphics_queue);
             }
 
             VkInstance instance_;

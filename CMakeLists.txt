@@ -21,6 +21,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(volk CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 # Create library target
 add_library(orion "")
@@ -46,6 +47,7 @@ target_link_libraries(
 	glfw
 	volk::volk
 	Vulkan::UtilityHeaders
+	GPUOpen::VulkanMemoryAllocator
 )
 
 # Configuration file

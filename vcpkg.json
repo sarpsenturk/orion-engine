@@ -3,6 +3,7 @@
     "glfw3",
     "spdlog",
     "volk",
-    "vulkan-utility-libraries"
+    "vulkan-utility-libraries",
+    "vulkan-memory-allocator"
   ]
 }
