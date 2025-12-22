@@ -108,6 +108,10 @@ namespace orion
                     return VK_FORMAT_UNDEFINED;
                 case RHIFormat::B8G8R8A8_Unorm_Srgb:
                     return VK_FORMAT_B8G8R8A8_SRGB;
+                case RHIFormat::R16_Uint:
+                    return VK_FORMAT_R16_UINT;
+                case RHIFormat::R32_Uint:
+                    return VK_FORMAT_R32_UINT;
                 case RHIFormat::R32_Float:
                     return VK_FORMAT_R32_SFLOAT;
                 case RHIFormat::R32G32_Float:
@@ -124,6 +128,10 @@ namespace orion
         {
             switch (format) {
                 case VK_FORMAT_B8G8R8A8_SRGB:
+                    return 4;
+                case VK_FORMAT_R16_UINT:
+                    return 2;
+                case VK_FORMAT_R32_UINT:
                     return 4;
                 case VK_FORMAT_R32_SFLOAT:
                     return 4;
@@ -313,6 +321,18 @@ namespace orion
                 out |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
             }
             return out;
+        }
+
+        VkIndexType to_vk_index_type(RHIFormat format)
+        {
+            switch (format) {
+                case RHIFormat::R16_Uint:
+                    return VK_INDEX_TYPE_UINT16;
+                case RHIFormat::R32_Uint:
+                    return VK_INDEX_TYPE_UINT32;
+                default:
+                    return VK_INDEX_TYPE_MAX_ENUM;
+            }
         }
 
         VkBool32 vulkan_debug_callback(
@@ -593,6 +613,20 @@ namespace orion
                     buffers.data(),
                     offsets.data() // Buffer offsets
                 );
+            }
+
+            void set_index_buffer_api(const RHICmdSetIndexBuffer& cmd) override
+            {
+                const auto* vulkan_buffer = resources_->buffers.get(cmd.buffer.value);
+                ORION_ASSERT(vulkan_buffer != nullptr, "RHIBuffer must be a valid handle");
+                const auto index_type = to_vk_index_type(cmd.format);
+                ORION_ASSERT(index_type != VK_INDEX_TYPE_MAX_ENUM, "RHIFormat must be one of R16_Uint | R32_Uint");
+                vkCmdBindIndexBuffer(command_buffer_, vulkan_buffer->buffer, cmd.offset, index_type);
+            }
+
+            void draw_indexed_instanced_api(const RHICmdDrawIndexedInstanced& cmd) override
+            {
+                vkCmdDrawIndexed(command_buffer_, cmd.index_count, cmd.instance_count, cmd.first_index, cmd.vertex_offset, cmd.first_instance);
             }
 
             VkDevice device_;

@@ -6,6 +6,9 @@ namespace orion
         Unknown = 0,
         B8G8R8A8_Unorm_Srgb,
 
+        R16_Uint,
+        R32_Uint,
+
         R32_Float,
         R32G32_Float,
         R32G32B32_Float,

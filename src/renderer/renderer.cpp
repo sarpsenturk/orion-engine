@@ -26,8 +26,12 @@ namespace orion
         static const auto vertices = std::array{
             Vertex{.position = {-0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f, 1.0f}},
             Vertex{.position = {0.5f, -0.5f, 0.0f}, .color = {0.0f, 1.0f, 0.0f, 1.0f}},
-            Vertex{.position = {0.0f, 0.5f, 0.0f}, .color = {0.0f, 0.0f, 1.0f, 1.0f}},
+            Vertex{.position = {0.5f, 0.5f, 0.0f}, .color = {0.0f, 0.0f, 1.0f, 1.0f}},
+            Vertex{.position = {-0.5f, 0.5f, 0.0f}, .color = {1.0f, 1.0f, 0.0f, 1.0f}},
         };
+        static const auto indices = std::array{
+            0, 1, 2,
+            2, 3, 0};
 
         constexpr auto swapchain_format = RHIFormat::B8G8R8A8_Unorm_Srgb;
         constexpr auto swapchain_image_count = 2;
@@ -42,6 +46,7 @@ namespace orion
         std::array<RHIImageView, swapchain_image_count> swapchain_rtvs;
         RHIPipeline pipeline;
         RHIBuffer vertex_buffer;
+        RHIBuffer index_buffer;
         RHIFence render_finished_fence;
         std::int32_t render_width;
         std::int32_t render_height;
@@ -160,6 +165,16 @@ namespace orion
             return false;
         }
 
+        index_buffer = device->create_buffer({
+            .size = sizeof(vertices),
+            .usage = RHIBufferUsageFlags::IndexBuffer,
+            .initial_data = std::as_bytes(std::span{indices}),
+        });
+        if (!index_buffer.is_valid()) {
+            ORION_CORE_LOG_ERROR("Failed to create RHIBuffer");
+            return false;
+        }
+
         render_finished_fence = device->create_fence({.initial_value = 0});
         if (!render_finished_fence.is_valid()) {
             ORION_CORE_LOG_ERROR("Failed to create RHIFence");
@@ -179,6 +194,7 @@ namespace orion
         for (int i = 0; i < swapchain_image_count; ++i) {
             device->destroy(swapchain_rtvs[i]);
         }
+        device->destroy(index_buffer);
         device->destroy(vertex_buffer);
         device->destroy(pipeline);
         device->destroy(swapchain);
@@ -256,8 +272,11 @@ namespace orion
         // Set vertex buffer
         command_list->set_vertex_buffers({.first_slot = 0, .buffers = {{vertex_buffer}}, .offsets = {{0}}});
 
+        // Set index buffer
+        command_list->set_index_buffer({.buffer = index_buffer, .offset = 0, .format = RHIFormat::R32_Uint});
+
         // Issue draw call
-        command_list->draw_instanced({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});
+        command_list->draw_indexed_instanced({.index_count = 6, .instance_count = 1, .first_index = 0, .vertex_offset = 0, .first_instance = 0});
 
         // End rendering
         command_list->end_rendering();

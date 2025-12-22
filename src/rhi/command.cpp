@@ -57,9 +57,19 @@ namespace orion
         set_vertex_buffers_api(cmd);
     }
 
+    void RHICommandList::set_index_buffer(const RHICmdSetIndexBuffer& cmd)
+    {
+        set_index_buffer_api(cmd);
+    }
+
     void RHICommandList::draw_instanced(const RHICmdDrawInstanced& cmd)
     {
         draw_instanced_api(cmd);
+    }
+
+    void RHICommandList::draw_indexed_instanced(const RHICmdDrawIndexedInstanced& cmd)
+    {
+        draw_indexed_instanced_api(cmd);
     }
 
     void RHICommandQueue::wait(RHIFence fence, std::uint64_t value)

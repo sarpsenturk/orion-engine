@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion/rhi/format.hpp"
 #include "orion/rhi/handle.hpp"
 #include "orion/rhi/image.hpp"
 
@@ -90,10 +91,24 @@ namespace orion
         std::span<const std::size_t> offsets;
     };
 
+    struct RHICmdSetIndexBuffer {
+        RHIBuffer buffer;
+        std::size_t offset;
+        RHIFormat format;
+    };
+
     struct RHICmdDrawInstanced {
         std::uint32_t vertex_count;
         std::uint32_t instance_count;
         std::uint32_t first_vertex;
+        std::uint32_t first_instance;
+    };
+
+    struct RHICmdDrawIndexedInstanced {
+        std::uint32_t index_count;
+        std::uint32_t instance_count;
+        std::uint32_t first_index;
+        std::int32_t vertex_offset;
         std::uint32_t first_instance;
     };
 
@@ -117,8 +132,10 @@ namespace orion
         void set_viewports(const RHICmdSetViewports& cmd);
         void set_scissors(const RHICmdSetScissors& cmd);
         void set_vertex_buffers(const RHICmdSetVertexBuffers& cmd);
+        void set_index_buffer(const RHICmdSetIndexBuffer& cmd);
 
         void draw_instanced(const RHICmdDrawInstanced& cmd);
+        void draw_indexed_instanced(const RHICmdDrawIndexedInstanced& cmd);
 
     protected:
         RHICommandList(const RHICommandList&) = default;
@@ -141,8 +158,10 @@ namespace orion
         virtual void set_viewports_api(const RHICmdSetViewports& cmd) = 0;
         virtual void set_scissors_api(const RHICmdSetScissors& cmd) = 0;
         virtual void set_vertex_buffers_api(const RHICmdSetVertexBuffers& cmd) = 0;
+        virtual void set_index_buffer_api(const RHICmdSetIndexBuffer& cmd) = 0;
 
         virtual void draw_instanced_api(const RHICmdDrawInstanced& cmd) = 0;
+        virtual void draw_indexed_instanced_api(const RHICmdDrawIndexedInstanced& cmd) = 0;
     };
 
     struct RHICommandQueueDesc {
