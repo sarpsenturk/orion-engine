@@ -1312,8 +1312,8 @@ namespace orion
                     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
                 };
                 const auto allocation_info = VmaAllocationCreateInfo{
-                    .usage = VMA_MEMORY_USAGE_AUTO,
                     .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, // TODO: Rework this to allow transfer
+                    .usage = VMA_MEMORY_USAGE_AUTO,
                 };
                 VkBuffer buffer = VK_NULL_HANDLE;
                 VmaAllocation allocation = VK_NULL_HANDLE;
