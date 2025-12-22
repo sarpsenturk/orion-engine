@@ -25,6 +25,7 @@ target_sources(
 	orion/rhi/pipeline.hpp
 	orion/rhi/synchronization.hpp
 	orion/rhi/image.hpp
+	orion/rhi/buffer.hpp
 
 	orion/renderer/renderer.hpp
 

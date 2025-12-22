@@ -1,10 +1,17 @@
-static const float3 vertices[] = {
-    float3(-0.5, -0.5, 0.0),
-    float3(0.5, -0.5, 0.0),
-    float3(0.0, 0.5, 0.0),
+struct VSInput {
+    float3 position: POSITION;
+    float4 color: COLOR;
 };
 
-float4 main(uint vertex_id: SV_VertexID): SV_Position
+struct VSOutput {
+    float4 position: SV_Position;
+    float4 color: COLOR;
+};
+
+VSOutput main(VSInput input)
 {
-    return float4(vertices[vertex_id], 1.0);
+    VSOutput output;
+    output.position = float4(input.position, 1.0);
+    output.color = input.color;
+    return output;
 }

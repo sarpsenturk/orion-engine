@@ -52,6 +52,11 @@ namespace orion
         set_scissors_api(cmd);
     }
 
+    void RHICommandList::set_vertex_buffers(const RHICmdSetVertexBuffers& cmd)
+    {
+        set_vertex_buffers_api(cmd);
+    }
+
     void RHICommandList::draw_instanced(const RHICmdDrawInstanced& cmd)
     {
         draw_instanced_api(cmd);

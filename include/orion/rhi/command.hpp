@@ -84,6 +84,12 @@ namespace orion
         std::span<const RHIRect> scissors;
     };
 
+    struct RHICmdSetVertexBuffers {
+        std::uint32_t first_slot;
+        std::span<const RHIBuffer> buffers;
+        std::span<const std::size_t> offsets;
+    };
+
     struct RHICmdDrawInstanced {
         std::uint32_t vertex_count;
         std::uint32_t instance_count;
@@ -110,6 +116,7 @@ namespace orion
         void set_graphics_pipeline_state(RHIPipeline pipeline);
         void set_viewports(const RHICmdSetViewports& cmd);
         void set_scissors(const RHICmdSetScissors& cmd);
+        void set_vertex_buffers(const RHICmdSetVertexBuffers& cmd);
 
         void draw_instanced(const RHICmdDrawInstanced& cmd);
 
@@ -133,6 +140,7 @@ namespace orion
         virtual void set_graphics_pipeline_state_api(RHIPipeline pipeline) = 0;
         virtual void set_viewports_api(const RHICmdSetViewports& cmd) = 0;
         virtual void set_scissors_api(const RHICmdSetScissors& cmd) = 0;
+        virtual void set_vertex_buffers_api(const RHICmdSetVertexBuffers& cmd) = 0;
 
         virtual void draw_instanced_api(const RHICmdDrawInstanced& cmd) = 0;
     };

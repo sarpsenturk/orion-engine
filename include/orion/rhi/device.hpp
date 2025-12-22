@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orion/rhi/buffer.hpp"
 #include "orion/rhi/command.hpp"
 #include "orion/rhi/handle.hpp"
 #include "orion/rhi/image.hpp"
@@ -25,11 +26,13 @@ namespace orion
         RHIPipeline create_graphics_pipeline(const RHIGraphicsPipelineDesc& desc);
         RHIFence create_fence(const RHIFenceDesc& desc);
         RHIImageView create_render_target_view(const RHIRenderTargetViewDesc& desc);
+        RHIBuffer create_buffer(const RHIBufferDesc& desc);
 
         void destroy(RHISwapchain handle);
         void destroy(RHIPipeline handle);
         void destroy(RHIFence handle);
         void destroy(RHIImageView handle);
+        void destroy(RHIBuffer handle);
 
         RHIImage swapchain_get_image(RHISwapchain swapchain, std::uint32_t image_idx);
         std::uint32_t swapchain_acquire_image(RHISwapchain swapchain);
@@ -55,11 +58,13 @@ namespace orion
         virtual RHIPipeline create_graphics_pipeline_api(const RHIGraphicsPipelineDesc& desc) = 0;
         virtual RHIFence create_fence_api(const RHIFenceDesc& desc) = 0;
         virtual RHIImageView create_render_target_view_api(const RHIRenderTargetViewDesc& desc) = 0;
+        virtual RHIBuffer create_buffer_api(const RHIBufferDesc& desc) = 0;
 
         virtual void destroy_api(RHISwapchain handle) = 0;
         virtual void destroy_api(RHIPipeline handle) = 0;
         virtual void destroy_api(RHIFence handle) = 0;
         virtual void destroy_api(RHIImageView handle) = 0;
+        virtual void destroy_api(RHIBuffer handle) = 0;
 
         virtual RHIImage swapchain_get_image_api(RHISwapchain swapchain, std::uint32_t image_idx) = 0;
         virtual std::uint32_t swapchain_acquire_image_api(RHISwapchain swapchain) = 0;

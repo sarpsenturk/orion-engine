@@ -20,4 +20,5 @@ namespace orion
     using RHIFence = RHIHandle<struct RHIFence_Tag>;
     using RHIImage = RHIHandle<struct RHIImage_Tag>;
     using RHIImageView = RHIHandle<struct RHIImageView_Tag>;
+    using RHIBuffer = RHIHandle<struct RHIBuffer_Tag>;
 } // namespace orion

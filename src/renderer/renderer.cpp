@@ -7,6 +7,8 @@
 #include "orion/assert.hpp"
 #include "orion/log.hpp"
 
+#include "orion/math/vector.hpp"
+
 #include "orion/config.h"
 
 #include <array>
@@ -17,6 +19,16 @@ namespace orion
 {
     namespace
     {
+        struct Vertex {
+            Vector3f position;
+            Vector4f color;
+        };
+        static const auto vertices = std::array{
+            Vertex{.position = {-0.5f, -0.5f, 0.0f}, .color = {1.0f, 0.0f, 0.0f, 1.0f}},
+            Vertex{.position = {0.5f, -0.5f, 0.0f}, .color = {0.0f, 1.0f, 0.0f, 1.0f}},
+            Vertex{.position = {0.0f, 0.5f, 0.0f}, .color = {0.0f, 0.0f, 1.0f, 1.0f}},
+        };
+
         constexpr auto swapchain_format = RHIFormat::B8G8R8A8_Unorm_Srgb;
         constexpr auto swapchain_image_count = 2;
 
@@ -29,6 +41,7 @@ namespace orion
         std::array<RHIImage, swapchain_image_count> swapchain_images;
         std::array<RHIImageView, swapchain_image_count> swapchain_rtvs;
         RHIPipeline pipeline;
+        RHIBuffer vertex_buffer;
         RHIFence render_finished_fence;
         std::int32_t render_width;
         std::int32_t render_height;
@@ -108,7 +121,14 @@ namespace orion
         pipeline = device->create_graphics_pipeline({
             .VS = load_shader(ORION_SHADER_DIR "/vertex.spv"),
             .FS = load_shader(ORION_SHADER_DIR "/fragment.spv"),
-            .vertex_bindings = {},
+            .vertex_bindings = {{
+                RHIVertexBinding{
+                    .attributes = {{
+                        RHIVertexAttribute{.name = "POSITION", .format = RHIFormat::R32G32B32_Float},
+                        RHIVertexAttribute{.name = "COLOR", .format = RHIFormat::R32G32B32A32_Float},
+                    }},
+                },
+            }},
             .input_assembly = {.topology = RHIPrimitiveTopology::TriangleList},
             .rasterizer = {
                 .fill_mode = RHIFillMode::Solid,
@@ -127,6 +147,16 @@ namespace orion
         });
         if (!pipeline.is_valid()) {
             ORION_CORE_LOG_ERROR("Failed to create RHIPipeline");
+            return false;
+        }
+
+        vertex_buffer = device->create_buffer({
+            .size = sizeof(vertices),
+            .usage = RHIBufferUsageFlags::VertexBuffer,
+            .initial_data = std::as_bytes(std::span{vertices}),
+        });
+        if (!vertex_buffer.is_valid()) {
+            ORION_CORE_LOG_ERROR("Failed to create RHIBuffer");
             return false;
         }
 
@@ -149,6 +179,7 @@ namespace orion
         for (int i = 0; i < swapchain_image_count; ++i) {
             device->destroy(swapchain_rtvs[i]);
         }
+        device->destroy(vertex_buffer);
         device->destroy(pipeline);
         device->destroy(swapchain);
         command_list = nullptr;
@@ -221,6 +252,9 @@ namespace orion
                 },
             }},
         });
+
+        // Set vertex buffer
+        command_list->set_vertex_buffers({.first_slot = 0, .buffers = {{vertex_buffer}}, .offsets = {{0}}});
 
         // Issue draw call
         command_list->draw_instanced({.vertex_count = 3, .instance_count = 1, .first_vertex = 0, .first_instance = 0});

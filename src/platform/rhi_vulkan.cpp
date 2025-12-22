@@ -1,3 +1,4 @@
+#include "orion/rhi/buffer.hpp"
 #include "orion/rhi/command.hpp"
 #include "orion/rhi/device.hpp"
 #include "orion/rhi/format.hpp"
@@ -86,12 +87,18 @@ namespace orion
             VkImageView image_view;
         };
 
+        struct VulkanBuffer {
+            VkBuffer buffer;
+            VmaAllocation allocation;
+        };
+
         struct VulkanResourceTable {
             HandlePool<VulkanSwapchain> swapchains;
             HandlePool<VulkanPipeline> pipelines;
             HandlePool<VulkanFence> timeline_semaphores;
             HandlePool<VulkanImage> images;
             HandlePool<VulkanImageView> image_views;
+            HandlePool<VulkanBuffer> buffers;
         };
 
         VkFormat to_vk_format(RHIFormat format)
@@ -101,6 +108,14 @@ namespace orion
                     return VK_FORMAT_UNDEFINED;
                 case RHIFormat::B8G8R8A8_Unorm_Srgb:
                     return VK_FORMAT_B8G8R8A8_SRGB;
+                case RHIFormat::R32_Float:
+                    return VK_FORMAT_R32_SFLOAT;
+                case RHIFormat::R32G32_Float:
+                    return VK_FORMAT_R32G32_SFLOAT;
+                case RHIFormat::R32G32B32_Float:
+                    return VK_FORMAT_R32G32B32_SFLOAT;
+                case RHIFormat::R32G32B32A32_Float:
+                    return VK_FORMAT_R32G32B32A32_SFLOAT;
             }
             unreachable();
         }
@@ -110,6 +125,14 @@ namespace orion
             switch (format) {
                 case VK_FORMAT_B8G8R8A8_SRGB:
                     return 4;
+                case VK_FORMAT_R32_SFLOAT:
+                    return 4;
+                case VK_FORMAT_R32G32_SFLOAT:
+                    return 8;
+                case VK_FORMAT_R32G32B32_SFLOAT:
+                    return 12;
+                case VK_FORMAT_R32G32B32A32_SFLOAT:
+                    return 16;
                 default:
                     ORION_ASSERT(false, "Unhandled format");
             }
@@ -269,6 +292,27 @@ namespace orion
                     return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
             }
             unreachable();
+        }
+
+        VkBufferUsageFlags to_vk_buffer_usage_flags(RHIBufferUsageFlags usage)
+        {
+            VkBufferUsageFlags out = {};
+            if ((usage & RHIBufferUsageFlags::TransferSrc) != RHIBufferUsageFlags::None) {
+                out |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            }
+            if ((usage & RHIBufferUsageFlags::TransferDst) != RHIBufferUsageFlags::None) {
+                out |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            }
+            if ((usage & RHIBufferUsageFlags::VertexBuffer) != RHIBufferUsageFlags::None) {
+                out |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            }
+            if ((usage & RHIBufferUsageFlags::IndexBuffer) != RHIBufferUsageFlags::None) {
+                out |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+            }
+            if ((usage & RHIBufferUsageFlags::ConstantBuffer) != RHIBufferUsageFlags::None) {
+                out |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            }
+            return out;
         }
 
         VkBool32 vulkan_debug_callback(
@@ -531,6 +575,24 @@ namespace orion
                     };
                 });
                 vkCmdSetScissor(command_buffer_, 0, static_cast<std::uint32_t>(cmd.scissors.size()), scissors.data());
+            }
+
+            void set_vertex_buffers_api(const RHICmdSetVertexBuffers& cmd) override
+            {
+                std::vector<VkBuffer> buffers(cmd.buffers.size());
+                std::ranges::transform(cmd.buffers, buffers.begin(), [&](RHIBuffer buffer) {
+                    const auto* vulkan_buffer = resources_->buffers.get(buffer.value);
+                    ORION_ASSERT(vulkan_buffer != nullptr, "All RHIBuffer's must be valid handles");
+                    return vulkan_buffer->buffer;
+                });
+                std::vector<VkDeviceSize> offsets(cmd.offsets.begin(), cmd.offsets.end());
+                vkCmdBindVertexBuffers(
+                    command_buffer_,
+                    cmd.first_slot,
+                    static_cast<std::uint32_t>(buffers.size()),
+                    buffers.data(),
+                    offsets.data() // Buffer offsets
+                );
             }
 
             VkDevice device_;
@@ -1205,6 +1267,42 @@ namespace orion
                 return RHIImageView{handle.as_uint64_t()};
             }
 
+            RHIBuffer create_buffer_api(const RHIBufferDesc& desc) override
+            {
+                const auto buffer_info = VkBufferCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = {},
+                    .size = desc.size,
+                    .usage = to_vk_buffer_usage_flags(desc.usage),
+                    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                };
+                const auto allocation_info = VmaAllocationCreateInfo{
+                    .usage = VMA_MEMORY_USAGE_AUTO,
+                    .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, // TODO: Rework this to allow transfer
+                };
+                VkBuffer buffer = VK_NULL_HANDLE;
+                VmaAllocation allocation = VK_NULL_HANDLE;
+                if (VkResult err = vmaCreateBuffer(vma_allocator_, &buffer_info, &allocation_info, &buffer, &allocation, nullptr)) {
+                    ORION_CORE_LOG_ERROR("Failed to create Vulkan buffer: {}", string_VkResult(err));
+                    return RHIBuffer::invalid();
+                }
+                ORION_CORE_LOG_INFO("Created VkBuffer {} with VmaAllocation {}", (void*)buffer, (void*)allocation);
+
+                // Copy initial data
+                if (!desc.initial_data.empty()) {
+                    if (VkResult err = vmaCopyMemoryToAllocation(vma_allocator_, desc.initial_data.data(), allocation, 0, desc.initial_data.size_bytes())) {
+                        ORION_CORE_LOG_ERROR("Failed to copy initial buffer data (ptr: {}, size: {}) to VkBuffer {} with VmaAllocation {}: {}",
+                                             (const void*)desc.initial_data.data(), desc.initial_data.size_bytes(), (void*)buffer, (void*)allocation, string_VkResult(err));
+                        vmaDestroyBuffer(vma_allocator_, buffer, allocation);
+                        return RHIBuffer::invalid();
+                    }
+                }
+
+                const auto handle = resources_.buffers.insert(VulkanBuffer{buffer, allocation});
+                return RHIBuffer{handle.as_uint64_t()};
+            }
+
             void destroy_api(RHISwapchain handle) override
             {
                 if (const auto* swapchain = resources_.swapchains.get(handle.value)) {
@@ -1256,6 +1354,20 @@ namespace orion
                     resources_.timeline_semaphores.remove(handle.value);
                 } else {
                     ORION_CORE_LOG_WARN("Attempting to destroy RHIFence ({}) which not a valid Vulkan handle", handle.value);
+                }
+            }
+
+            void destroy_api(RHIBuffer handle) override
+            {
+                if (const auto* buffer = resources_.buffers.get(handle.value)) {
+                    // Destroy resources
+                    vmaDestroyBuffer(vma_allocator_, buffer->buffer, buffer->allocation);
+                    ORION_CORE_LOG_INFO("Destroyed VkBuffer {} with VmaAllocation {}", (void*)buffer->buffer, (void*)buffer->allocation);
+
+                    // Release resource handles
+                    resources_.buffers.remove(handle.value);
+                } else {
+                    ORION_CORE_LOG_WARN("Attempting to destroy RHIBuffer ({}) which not a valid Vulkan handle", handle.value);
                 }
             }
 

@@ -37,6 +37,11 @@ namespace orion
         return create_render_target_view_api(desc);
     }
 
+    RHIBuffer RHIDevice::create_buffer(const RHIBufferDesc& desc)
+    {
+        return create_buffer_api(desc);
+    }
+
     void RHIDevice::destroy(RHISwapchain handle)
     {
         return destroy_api(handle);
@@ -53,6 +58,11 @@ namespace orion
     }
 
     void RHIDevice::destroy(RHIImageView handle)
+    {
+        return destroy_api(handle);
+    }
+
+    void RHIDevice::destroy(RHIBuffer handle)
     {
         return destroy_api(handle);
     }
