@@ -1,6 +1,14 @@
 #pragma once
 
+#include "orion/application.hpp"
+
+#include <memory>
+
 namespace orion
 {
-    void hello_world();
-}
+    class Engine
+    {
+    public:
+        void run(std::unique_ptr<Application> app);
+    };
+} // namespace orion
