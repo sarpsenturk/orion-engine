@@ -1,0 +1,14 @@
+# Build files
+[Bb]uild/
+:
+# IDE files
+.vs/
+.idea/
+.vscode/
+
+# User specific files
+CMakeUserPresets.json
+
+# clangd
+compile_commands.json
+.cache/

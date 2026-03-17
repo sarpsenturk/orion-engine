@@ -1,0 +1,34 @@
+Checks:
+  -*
+  bugprone-*
+  cert-*
+  concurrency-*
+  cppcoreguidelines-*
+  hicpp-*
+  misc-*
+  -misc-non-private-member-variables-in-classes
+  modernize-*
+  -modernize-use-trailing-return-type
+  performance-*
+  portability-*
+  readability-*
+  -readability-uppercase-literal-suffix
+  -hicpp-uppercase-literal-suffix
+
+
+CheckOptions:
+  bugprone-dangling-handle.HandleClasses: std::basic_string_view;std::span
+  cppcoreguidelines-avoid-do-while.IgnoreMacros: true
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.EnumConstantCase: CamelCase
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.MemberCase: lower_case
+  readability-identifier-naming.MethodCase: lower_case
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: _
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.TemplateParameterCase: CamelCase
+  readability-identifier-naming.VariableCase: lower_case
