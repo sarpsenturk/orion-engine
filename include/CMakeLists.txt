@@ -6,5 +6,6 @@ target_sources(
     orion/orion.hpp
     orion/application.hpp
     orion/log.hpp
+    orion/platform.hpp
 )
 

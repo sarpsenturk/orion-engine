@@ -1,5 +1,8 @@
 #include "orion/orion.hpp"
 
+#include "orion/config.h"
+#include "orion/platform.hpp"
+
 #include <exception>
 
 namespace orion
@@ -7,11 +10,8 @@ namespace orion
     Engine::Engine()
         : logger_(std::make_unique<Logger>())
     {
-        ORION_CORE_LOG_TRACE("{}", "trace");
-        ORION_CORE_LOG_DEBUG("{}", "debug");
-        ORION_CORE_LOG_INFO("{}", "info");
-        ORION_CORE_LOG_WARN("{}", "warn");
-        ORION_CORE_LOG_ERROR("{}", "error");
+        ORION_CORE_LOG_INFO("Orion Engine v{} {}-{}-{}-{}",
+                            ORION_VERSION, ORION_BUILD_TYPE, ORION_ARCH_NAME, ORION_COMPILER_NAME, ORION_PLATFORM_NAME);
     }
 
     void Engine::run(std::unique_ptr<Application> app)
