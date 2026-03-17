@@ -4,5 +4,6 @@ target_sources(
     orion.cpp
     application.cpp
     log.cpp
+    debug.cpp
 )
 
