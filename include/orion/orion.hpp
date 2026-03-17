@@ -2,6 +2,7 @@
 
 #include "orion/application.hpp"
 #include "orion/log.hpp"
+#include "orion/window.hpp"
 
 #include <memory>
 
@@ -16,5 +17,6 @@ namespace orion
 
     private:
         std::shared_ptr<Logger> logger_;
+        std::unique_ptr<Window> window_;
     };
 } // namespace orion

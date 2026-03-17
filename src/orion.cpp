@@ -9,6 +9,7 @@ namespace orion
 {
     Engine::Engine()
         : logger_(std::make_unique<Logger>())
+        , window_(std::make_unique<Window>(WindowDesc{.title = "Orion", .width = 800, .height = 600}))
     {
         ORION_CORE_LOG_INFO("Orion Engine v{} {}-{}-{}-{}",
                             ORION_VERSION, ORION_BUILD_TYPE, ORION_ARCH_NAME, ORION_COMPILER_NAME, ORION_PLATFORM_NAME);
@@ -17,7 +18,8 @@ namespace orion
     void Engine::run(std::unique_ptr<Application> app)
     {
         try {
-            while (!app->should_exit()) {
+            while (!app->should_exit() && !window_->should_close()) {
+                window_->poll_events();
                 app->update();
                 app->render();
             }

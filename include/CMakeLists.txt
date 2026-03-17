@@ -9,5 +9,6 @@ target_sources(
     orion/platform.hpp
     orion/preprocessor.hpp
     orion/debug.hpp
+    orion/window.hpp
 )
 
