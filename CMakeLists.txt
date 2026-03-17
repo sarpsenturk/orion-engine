@@ -27,6 +27,12 @@ option(
 add_library(orion "")
 target_compile_features(orion PUBLIC cxx_std_20)
 target_include_directories(orion PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_options(
+    orion
+    PUBLIC
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /external:anglebrackets /external:W0>
+    $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wconversion -pedantic -Werror>
+)
 
 # Engine core sources
 add_subdirectory(src)
