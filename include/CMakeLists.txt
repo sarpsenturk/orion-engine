@@ -5,5 +5,6 @@ target_sources(
     FILES
     orion/orion.hpp
     orion/application.hpp
+    orion/log.hpp
 )
 

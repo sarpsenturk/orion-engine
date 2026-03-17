@@ -1,10 +1,19 @@
 #include "orion/orion.hpp"
 
-#include <cstdio>
 #include <exception>
 
 namespace orion
 {
+    Engine::Engine()
+        : logger_(std::make_unique<Logger>())
+    {
+        ORION_CORE_LOG_TRACE("{}", "trace");
+        ORION_CORE_LOG_DEBUG("{}", "debug");
+        ORION_CORE_LOG_INFO("{}", "info");
+        ORION_CORE_LOG_WARN("{}", "warn");
+        ORION_CORE_LOG_ERROR("{}", "error");
+    }
+
     void Engine::run(std::unique_ptr<Application> app)
     {
         try {
@@ -13,9 +22,9 @@ namespace orion
                 app->render();
             }
         } catch (const std::exception& ex) {
-            std::fputs(ex.what(), stderr);
+            ORION_CORE_LOG_ERROR("Fatal exception: {}", ex.what());
         } catch (...) {
-            std::fputs("Unknown exception", stderr);
+            ORION_CORE_LOG_ERROR("Fatal exception: unknown");
         }
     }
 } // namespace orion

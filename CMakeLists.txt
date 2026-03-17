@@ -11,6 +11,9 @@ project(
     LANGUAGES C CXX
 )
 
+# Third party dependencies
+find_package(spdlog 1.17.0 CONFIG REQUIRED)
+
 option(
     ORION_BUILD_EXAMPLES
     "Enable building examples. Default: ${PROJECT_IS_TOP_LEVEL}. Values: { ON, OFF }."
@@ -32,6 +35,11 @@ target_compile_options(
     PUBLIC
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /external:anglebrackets /external:W0>
     $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra -Wshadow -Wnon-virtual-dtor -Wconversion -pedantic -Werror>
+)
+target_link_libraries(
+    orion
+    PUBLIC
+    spdlog::spdlog
 )
 
 # Engine core sources
