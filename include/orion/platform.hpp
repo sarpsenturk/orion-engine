@@ -6,7 +6,7 @@
 #elif defined(__linux__)
     #define ORION_PLATFORM_LINUX 1
     #define ORION_PLATFORM_NAME "Linux"
-#elif defined(__apple__)
+#elif defined(__APPLE__)
     #define ORION_PLATFORM_MACOS 1
     #define ORION_PLATFORM_NAME "macOS"
 #else

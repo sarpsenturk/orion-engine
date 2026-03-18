@@ -34,6 +34,14 @@
         "strategy": "external"
       }
     },
+		{
+			"name": "_arm64-base",
+			"hidden": true,
+			"architecture": {
+				"value": "ARM64",
+				"strategy": "external"
+			}
+		},
     {
       "name": "_msvc-base",
       "hidden": true,
@@ -71,6 +79,44 @@
         "rhs": "Windows"
       },
       "displayName": "Release x64 MSVC Windows"
-    }
+    },
+		{
+			"name": "_appleclang-base",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "cc",
+				"CMAKE_CXX_COMPILER": "c++"
+			}
+		},
+		{
+			"name": "debug-arm64-appleclang-macos",
+			"inherits": [
+				"_root-config",
+				"_debug-base",
+				"_arm64-base",
+				"_appleclang-base"
+			],
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Darwin"
+			},
+			"displayName": "Debug ARM64 AppleClang macOS"
+		},
+		{
+			"name": "releas-arm64-appleclang-macos",
+			"inherits": [
+				"_root-config",
+				"_release-base",
+				"_arm64-base",
+				"_appleclang-base"
+			],
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Darwin"
+			},
+			"displayName": "Release ARM64 AppleClang macOS"
+		}
   ]
 }
