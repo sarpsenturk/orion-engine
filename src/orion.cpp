@@ -3,6 +3,8 @@
 #include "orion/config.h"
 #include "orion/platform.hpp"
 
+#include <fmt/std.h>
+
 #include <exception>
 
 namespace orion
@@ -13,6 +15,8 @@ namespace orion
     {
         ORION_CORE_LOG_INFO("Orion Engine v{} {}-{}-{}-{}",
                             ORION_VERSION, ORION_BUILD_TYPE, ORION_ARCH_NAME, ORION_COMPILER_NAME, ORION_PLATFORM_NAME);
+
+        window_->set_event_callback([this](const WindowEvent& event) { on_event(event); });
     }
 
     void Engine::run(std::unique_ptr<Application> app)
@@ -28,5 +32,10 @@ namespace orion
         } catch (...) {
             ORION_CORE_LOG_ERROR("Fatal exception: unknown");
         }
+    }
+
+    void Engine::on_event(const WindowEvent& event)
+    {
+        ORION_CORE_LOG_TRACE("[WindowEvent] {}", event.payload());
     }
 } // namespace orion

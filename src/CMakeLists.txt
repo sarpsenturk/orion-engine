@@ -5,6 +5,7 @@ target_sources(
     application.cpp
     log.cpp
     debug.cpp
+    window.cpp
 
     platform/platform_glfw.cpp
 )

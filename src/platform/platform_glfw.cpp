@@ -4,6 +4,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <functional>
 #include <stdexcept>
 #include <utility>
 
@@ -13,6 +14,7 @@ namespace orion
         GLFWwindow* window;
         int width;
         int height;
+        std::function<void(const WindowEvent&)> on_event;
 
         Impl(GLFWwindow* _window, int _width, int _height)
             : window(_window)
@@ -80,6 +82,20 @@ namespace orion
 
         // Initialize impl
         impl_ = std::make_unique<Impl>(window, width, height);
+
+        // Set GLFWwindow user pointer to impl ptr for event callbacks
+        glfwSetWindowUserPointer(window, impl_.get());
+
+        // Set GLFW event handlers
+        glfwSetWindowCloseCallback(window, [](GLFWwindow* window) {
+            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_event({OnWindowClose{}});
+        });
+        glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_event({OnWindowResize{width, height}});
+        });
+        glfwSetWindowPosCallback(window, [](GLFWwindow* window, int xpos, int ypos) {
+            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_event({OnWindowMove{xpos, ypos}});
+        });
     }
 
     Window::~Window() = default;
@@ -102,5 +118,10 @@ namespace orion
     void Window::poll_events()
     {
         glfwPollEvents();
+    }
+
+    void Window::set_event_callback(std::function<void(const WindowEvent&)> callback)
+    {
+        impl_->on_event = std::move(callback);
     }
 } // namespace orion
