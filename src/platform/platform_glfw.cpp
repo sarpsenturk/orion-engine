@@ -14,7 +14,9 @@ namespace orion
         GLFWwindow* window;
         int width;
         int height;
-        std::function<void(const WindowEvent&)> on_event;
+        Event<OnWindowClose> on_close;
+        Event<OnWindowMove> on_move;
+        Event<OnWindowResize> on_resize;
 
         Impl(GLFWwindow* _window, int _width, int _height)
             : window(_window)
@@ -88,13 +90,13 @@ namespace orion
 
         // Set GLFW event handlers
         glfwSetWindowCloseCallback(window, [](GLFWwindow* window) {
-            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_event({OnWindowClose{}});
+            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_close.invoke(OnWindowClose{});
         });
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
-            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_event({OnWindowResize{width, height}});
+            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_resize.invoke(OnWindowResize{width, height});
         });
         glfwSetWindowPosCallback(window, [](GLFWwindow* window, int xpos, int ypos) {
-            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_event({OnWindowMove{xpos, ypos}});
+            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_move.invoke(OnWindowMove{xpos, ypos});
         });
     }
 
@@ -120,8 +122,18 @@ namespace orion
         glfwPollEvents();
     }
 
-    void Window::set_event_callback(std::function<void(const WindowEvent&)> callback)
+    Event<OnWindowClose>& Window::on_window_close()
     {
-        impl_->on_event = std::move(callback);
+        return impl_->on_close;
+    }
+
+    Event<OnWindowMove>& Window::on_window_move()
+    {
+        return impl_->on_move;
+    }
+
+    Event<OnWindowResize>& Window::on_window_resize()
+    {
+        return impl_->on_resize;
     }
 } // namespace orion

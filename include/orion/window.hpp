@@ -1,9 +1,9 @@
 #pragma once
 
-#include <functional>
+#include "orion/event.hpp"
+
 #include <memory>
 #include <string>
-#include <variant>
 
 namespace orion
 {
@@ -26,25 +26,6 @@ namespace orion
         int height;
     };
 
-    class WindowEvent
-    {
-    public:
-        using EventVariant = std::variant<
-            OnWindowClose,
-            OnWindowMove,
-            OnWindowResize>;
-
-        WindowEvent(EventVariant payload)
-            : payload_(payload)
-        {
-        }
-
-        const EventVariant& payload() const { return payload_; }
-
-    private:
-        EventVariant payload_;
-    };
-
     class Window
     {
     public:
@@ -64,7 +45,10 @@ namespace orion
         [[nodiscard]] bool should_close() const;
 
         void poll_events();
-        void set_event_callback(std::function<void(const WindowEvent&)> callback);
+
+        Event<OnWindowClose>& on_window_close();
+        Event<OnWindowMove>& on_window_move();
+        Event<OnWindowResize>& on_window_resize();
 
     private:
         std::unique_ptr<Impl> impl_;

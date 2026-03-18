@@ -10,5 +10,6 @@ target_sources(
     orion/preprocessor.hpp
     orion/debug.hpp
     orion/window.hpp
+    orion/event.hpp
 )
 

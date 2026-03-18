@@ -16,8 +16,6 @@ namespace orion
         void run(std::unique_ptr<Application> app);
 
     private:
-        void on_event(const WindowEvent& event);
-
         std::shared_ptr<Logger> logger_;
         std::unique_ptr<Window> window_;
     };
