@@ -4,7 +4,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include <functional>
 #include <stdexcept>
 #include <utility>
 
@@ -23,6 +22,9 @@ namespace orion
             , width(_width)
             , height(_height)
         {
+            ORION_LOG_EVENT(on_close);
+            ORION_LOG_EVENT(on_move);
+            ORION_LOG_EVENT(on_resize);
         }
 
         Impl(const Impl&) = delete;

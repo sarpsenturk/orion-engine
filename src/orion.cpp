@@ -13,10 +13,6 @@ namespace orion
     {
         ORION_CORE_LOG_INFO("Orion Engine v{} {}-{}-{}-{}",
                             ORION_VERSION, ORION_BUILD_TYPE, ORION_ARCH_NAME, ORION_COMPILER_NAME, ORION_PLATFORM_NAME);
-        auto log_event = [](const auto& event) { ORION_CORE_LOG_TRACE("[Event] {}", event); return false; };
-        window_->on_window_close().subscribe(log_event);
-        window_->on_window_move().subscribe(log_event);
-        window_->on_window_resize().subscribe(log_event);
     }
 
     void Engine::run(std::unique_ptr<Application> app)
