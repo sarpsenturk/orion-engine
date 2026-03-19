@@ -15,6 +15,8 @@ namespace orion
 
         void run(std::unique_ptr<Application> app);
 
+        [[nodiscard]] Window* window() const { return window_.get(); }
+
     private:
         std::shared_ptr<Logger> logger_;
         std::unique_ptr<Window> window_;

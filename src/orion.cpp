@@ -22,7 +22,7 @@ namespace orion
     void Engine::run(std::unique_ptr<Application> app)
     {
         try {
-            while (!app->should_exit() && !window_->should_close()) {
+            while (!app->should_exit()) {
                 window_->poll_events();
                 app->update();
                 app->render();
