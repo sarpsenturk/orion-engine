@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <flat_map>
+#include <unordered_map>
 #include <functional>
 
 namespace orion
@@ -38,6 +38,6 @@ namespace orion
 
     private:
         HandlerId next_id = 1;
-        std::flat_map<HandlerId, HandlerFn> handlers_;
+        std::unordered_map<HandlerId, HandlerFn> handlers_;
     };
 } // namespace orion

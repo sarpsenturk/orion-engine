@@ -32,7 +32,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/inclu
 
 # Orion core engine library
 add_library(orion "")
-target_compile_features(orion PUBLIC cxx_std_23)
+target_compile_features(orion PUBLIC cxx_std_20)
 target_include_directories(
     orion
     PUBLIC
