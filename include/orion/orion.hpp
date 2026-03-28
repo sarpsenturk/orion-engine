@@ -2,6 +2,7 @@
 
 #include "orion/application.hpp"
 #include "orion/log.hpp"
+#include "orion/renderer/renderer.hpp"
 #include "orion/window.hpp"
 
 #include <tl/expected.hpp>
@@ -22,8 +23,9 @@ namespace orion
         [[nodiscard]] const Window* window() const { return &window_; }
 
     private:
-        Engine(Logger logger, Window window);
+        Engine(Logger logger, Window window, Renderer renderer);
         Logger logger_;
         Window window_;
+        Renderer renderer_;
     };
 } // namespace orion

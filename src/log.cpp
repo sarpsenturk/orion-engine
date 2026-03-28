@@ -7,11 +7,14 @@
 namespace orion
 {
     std::shared_ptr<spdlog::logger> Logger::core_logger;
+    std::shared_ptr<spdlog::logger> Logger::renderer_logger;
 
     tl::expected<Logger, std::string> Logger::initialize()
     {
         core_logger = spdlog::stdout_color_mt("core");
         core_logger->set_level(spdlog::level::trace);
+        renderer_logger = spdlog::stdout_color_mt("renderer");
+        renderer_logger->set_level(spdlog::level::trace);
         return Logger{};
     }
 
@@ -32,6 +35,7 @@ namespace orion
     {
         if (sentinel_ != 0) {
             core_logger = nullptr;
+            renderer_logger = nullptr;
         }
     }
 } // namespace orion

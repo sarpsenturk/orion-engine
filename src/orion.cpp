@@ -21,15 +21,20 @@ namespace orion
             return tl::unexpected(std::move(window.error()));
         }
 
-        return Engine{std::move(*logger), std::move(*window)};
+        // Initialize renderer
+        auto renderer = Renderer::initialize();
+        if (!renderer) {
+            return tl::unexpected(std::move(renderer.error()));
+        }
+        return Engine{std::move(*logger), std::move(*window), std::move(*renderer)};
     }
 
-    Engine::Engine(Logger logger, Window window)
+    Engine::Engine(Logger logger, Window window, Renderer renderer)
         : logger_(std::move(logger))
         , window_(std::move(window))
+        , renderer_(std::move(renderer))
     {
-        ORION_CORE_LOG_INFO("Orion Engine v{} {}-{}-{}-{}",
-                            ORION_VERSION, ORION_BUILD_TYPE, ORION_ARCH_NAME, ORION_COMPILER_NAME, ORION_PLATFORM_NAME);
+        ORION_CORE_LOG_INFO("Orion Engine v{} {}-{}-{}-{}", ORION_VERSION, ORION_BUILD_TYPE, ORION_ARCH_NAME, ORION_COMPILER_NAME, ORION_PLATFORM_NAME);
     }
 
     void Engine::run(std::unique_ptr<Application> app)

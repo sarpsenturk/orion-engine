@@ -11,5 +11,7 @@ target_sources(
     orion/debug.hpp
     orion/window.hpp
     orion/event.hpp
+
+    orion/renderer/renderer.hpp
 )
 

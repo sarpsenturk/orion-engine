@@ -16,9 +16,11 @@ namespace orion
         ~Logger();
 
         static std::shared_ptr<spdlog::logger> get_core_logger() { return core_logger; }
+        static std::shared_ptr<spdlog::logger> get_renderer_logger() { return renderer_logger; }
 
     private:
         static std::shared_ptr<spdlog::logger> core_logger;
+        static std::shared_ptr<spdlog::logger> renderer_logger;
 
         Logger() = default;
         int sentinel_ = 42;
@@ -30,6 +32,12 @@ namespace orion
 #define ORION_CORE_LOG_INFO(...) ::orion::Logger::get_core_logger()->info(__VA_ARGS__)
 #define ORION_CORE_LOG_WARN(...) ::orion::Logger::get_core_logger()->warn(__VA_ARGS__)
 #define ORION_CORE_LOG_ERROR(...) ::orion::Logger::get_core_logger()->error(__VA_ARGS__)
+
+#define ORION_RENDERER_LOG_TRACE(...) ::orion::Logger::get_renderer_logger()->trace(__VA_ARGS__)
+#define ORION_RENDERER_LOG_DEBUG(...) ::orion::Logger::get_renderer_logger()->debug(__VA_ARGS__)
+#define ORION_RENDERER_LOG_INFO(...) ::orion::Logger::get_renderer_logger()->info(__VA_ARGS__)
+#define ORION_RENDERER_LOG_WARN(...) ::orion::Logger::get_renderer_logger()->warn(__VA_ARGS__)
+#define ORION_RENDERER_LOG_ERROR(...) ::orion::Logger::get_renderer_logger()->error(__VA_ARGS__)
 
 #define ORION_LOG_EVENT(event) (event).subscribe([](const auto& e) { \
     ORION_CORE_LOG_TRACE("[Event] {}", e);                           \

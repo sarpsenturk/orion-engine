@@ -9,5 +9,7 @@ target_sources(
     event.cpp
 
     platform/platform_glfw.cpp
+
+    renderer/renderer.cpp
 )
 
