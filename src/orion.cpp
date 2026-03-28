@@ -7,9 +7,26 @@
 
 namespace orion
 {
-    Engine::Engine()
-        : logger_(std::make_unique<Logger>())
-        , window_(std::make_unique<Window>(WindowDesc{.title = "Orion", .width = 800, .height = 600}))
+    tl::expected<Engine, std::string> Engine::initialize()
+    {
+        // Initialize logger
+        auto logger = Logger::initialize();
+        if (!logger) {
+            return tl::unexpected(std::move(logger.error()));
+        }
+
+        // Initialize main window
+        auto window = Window::initialize({.title = "Orion", .width = 800, .height = 600});
+        if (!window) {
+            return tl::unexpected(std::move(window.error()));
+        }
+
+        return Engine{std::move(*logger), std::move(*window)};
+    }
+
+    Engine::Engine(Logger logger, Window window)
+        : logger_(std::move(logger))
+        , window_(std::move(window))
     {
         ORION_CORE_LOG_INFO("Orion Engine v{} {}-{}-{}-{}",
                             ORION_VERSION, ORION_BUILD_TYPE, ORION_ARCH_NAME, ORION_COMPILER_NAME, ORION_PLATFORM_NAME);
@@ -19,7 +36,7 @@ namespace orion
     {
         try {
             while (!app->should_exit()) {
-                window_->poll_events();
+                window_.poll_events();
                 app->update();
                 app->render();
             }

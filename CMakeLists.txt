@@ -14,6 +14,7 @@ project(
 # Third party dependencies
 find_package(spdlog 1.17.0 CONFIG REQUIRED)
 find_package(glfw3 3.4 CONFIG REQUIRED)
+find_package(tl-expected 1.3.1 CONFIG REQUIRED)
 
 option(
     ORION_BUILD_EXAMPLES
@@ -49,6 +50,7 @@ target_link_libraries(
     orion
     PUBLIC
     spdlog::spdlog
+    tl::expected
     PRIVATE
     glfw
 )

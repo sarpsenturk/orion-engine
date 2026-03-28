@@ -2,6 +2,8 @@
 
 #include "orion/event.hpp"
 
+#include <tl/expected.hpp>
+
 #include <memory>
 #include <string>
 
@@ -31,11 +33,11 @@ namespace orion
     public:
         struct Impl;
 
-        explicit Window(const WindowDesc& desc);
+        static tl::expected<Window, std::string> initialize(const WindowDesc& desc);
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
-        Window(Window&&) = default;
-        Window& operator=(Window&&) = default;
+        Window(Window&&) noexcept;
+        Window& operator=(Window&&) noexcept;
         ~Window();
 
         [[nodiscard]] Impl* impl() const noexcept { return impl_.get(); }
@@ -51,6 +53,7 @@ namespace orion
         Event<OnWindowResize>& on_window_resize();
 
     private:
+        explicit Window(std::unique_ptr<Impl> impl);
         std::unique_ptr<Impl> impl_;
     };
 

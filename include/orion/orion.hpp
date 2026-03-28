@@ -4,21 +4,26 @@
 #include "orion/log.hpp"
 #include "orion/window.hpp"
 
+#include <tl/expected.hpp>
+
 #include <memory>
+#include <string>
 
 namespace orion
 {
     class Engine
     {
     public:
-        Engine();
+        static tl::expected<Engine, std::string> initialize();
 
         void run(std::unique_ptr<Application> app);
 
-        [[nodiscard]] Window* window() const { return window_.get(); }
+        [[nodiscard]] Window* window() { return &window_; }
+        [[nodiscard]] const Window* window() const { return &window_; }
 
     private:
-        std::shared_ptr<Logger> logger_;
-        std::unique_ptr<Window> window_;
+        Engine(Logger logger, Window window);
+        Logger logger_;
+        Window window_;
     };
 } // namespace orion

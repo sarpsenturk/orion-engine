@@ -4,7 +4,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include <stdexcept>
 #include <utility>
 
 namespace orion
@@ -58,12 +57,12 @@ namespace orion
         }
     };
 
-    Window::Window(const WindowDesc& desc)
+    tl::expected<Window, std::string> Window::initialize(const WindowDesc& desc)
     {
         // Initialize GLFW
         glfwSetErrorCallback([](int code, const char* description) { ORION_CORE_LOG_ERROR("GLFW error ({}): {}", code, description); });
         if (!glfwInit()) {
-            throw std::runtime_error("glfwInit() failed");
+            return tl::unexpected("glfwInit() failed");
         }
         ORION_CORE_LOG_INFO("GLFW initialized {}", glfwGetVersionString());
 
@@ -71,7 +70,7 @@ namespace orion
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         GLFWwindow* window = glfwCreateWindow(desc.width, desc.height, desc.title, nullptr, nullptr);
         if (!window) {
-            throw std::runtime_error("glfwCreateWindow failed");
+            return tl::unexpected("glfwCreateWindow failed");
         }
         ORION_CORE_LOG_INFO("Created GLFWwindow* {}", (void*)window);
 
@@ -85,10 +84,10 @@ namespace orion
         }
 
         // Initialize impl
-        impl_ = std::make_unique<Impl>(window, width, height);
+        auto impl = std::make_unique<Impl>(window, width, height);
 
         // Set GLFWwindow user pointer to impl ptr for event callbacks
-        glfwSetWindowUserPointer(window, impl_.get());
+        glfwSetWindowUserPointer(window, impl.get());
 
         // Set GLFW event handlers
         glfwSetWindowCloseCallback(window, [](GLFWwindow* window) {
@@ -100,7 +99,18 @@ namespace orion
         glfwSetWindowPosCallback(window, [](GLFWwindow* window, int xpos, int ypos) {
             static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_move.invoke(OnWindowMove{xpos, ypos});
         });
+
+        return Window{std::move(impl)};
     }
+
+    Window::Window(std::unique_ptr<Impl> impl)
+        : impl_(std::move(impl))
+    {
+    }
+
+    // Need to explicity default here where Window::Impl is defined
+    Window::Window(Window&&) noexcept = default;
+    Window& Window::operator=(Window&&) noexcept = default;
 
     Window::~Window() = default;
 

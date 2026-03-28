@@ -1,19 +1,27 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
+#include <tl/expected.hpp>
 
 namespace orion
 {
     class Logger
     {
     public:
-        Logger();
+        static tl::expected<Logger, std::string> initialize();
+        Logger(const Logger&) = delete;
+        Logger& operator=(const Logger&) = delete;
+        Logger(Logger&& other) noexcept;
+        Logger& operator=(Logger&& other) noexcept;
         ~Logger();
 
         static std::shared_ptr<spdlog::logger> get_core_logger() { return core_logger; }
 
     private:
         static std::shared_ptr<spdlog::logger> core_logger;
+
+        Logger() = default;
+        int sentinel_ = 42;
     };
 } // namespace orion
 

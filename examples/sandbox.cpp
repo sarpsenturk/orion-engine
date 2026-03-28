@@ -18,6 +18,11 @@ private:
 
 int main()
 {
-    auto engine = orion::Engine{};
-    engine.run(std::make_unique<SandboxApp>(engine.window()));
+    auto engine = orion::Engine::initialize();
+    if (!engine) {
+        return 1;
+    } else {
+        engine->run(std::make_unique<SandboxApp>(engine->window()));
+        return 0;
+    }
 }
