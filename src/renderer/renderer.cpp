@@ -1,13 +1,22 @@
 #include "orion/renderer/renderer.hpp"
 
+#include "vulkan_impl.hpp"
+
 namespace orion
 {
     struct Renderer::Impl {
+        VulkanInstance vulkan_instance;
     };
 
     tl::expected<Renderer, std::string> Renderer::initialize()
     {
-        return Renderer{std::make_unique<Impl>()};
+        // Create vulkan instance
+        auto vulkan_instance = VulkanInstance::create();
+        if (!vulkan_instance) {
+            return tl::unexpected("Failed to create Vulkan instance");
+        }
+
+        return Renderer{std::make_unique<Impl>(std::move(*vulkan_instance))};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)

@@ -11,5 +11,7 @@ target_sources(
     platform/platform_glfw.cpp
 
     renderer/renderer.cpp
+    renderer/vulkan_impl.hpp
+    renderer/vulkan_impl.cpp
 )
 
