@@ -5,6 +5,9 @@
 
 #include <vulkan/vk_enum_string_helper.h>
 
+#include <GLFW/glfw3.h>
+
+#include <algorithm>
 #include <utility>
 #include <vector>
 
@@ -55,6 +58,10 @@ namespace orion
 
         // Set enabled instance extensions
         std::vector<const char*> enabled_extensions;
+        // GLFW required extensions
+        std::uint32_t glfw_extension_count;
+        const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+        enabled_extensions.insert(enabled_extensions.begin(), glfw_extensions, glfw_extensions + glfw_extension_count);
         // Debug only extensions
         if constexpr (ORION_VK_DEBUG) {
             enabled_extensions.push_back("VK_EXT_debug_utils");
@@ -149,6 +156,133 @@ namespace orion
         if (vk_instance) {
             vkDestroyInstance(vk_instance, nullptr);
             ORION_RENDERER_LOG_INFO("Destroyed VkInstance {}", fmt::ptr(vk_instance));
+        }
+    }
+
+    tl::expected<std::vector<VkPhysicalDevice>, VkResult> VulkanInstance::enumerate_physical_devices()
+    {
+        std::uint32_t count = 0;
+        if (VkResult err = vkEnumeratePhysicalDevices(vk_instance, &count, nullptr)) {
+            ORION_RENDERER_LOG_ERROR("vkEnumeratePhysicalDevices() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        }
+        std::vector<VkPhysicalDevice> physical_devices(count);
+        if (VkResult err = vkEnumeratePhysicalDevices(vk_instance, &count, physical_devices.data())) {
+            ORION_RENDERER_LOG_ERROR("vkEnumeratePhysicalDevices() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        }
+        return physical_devices;
+    }
+
+    tl::expected<VulkanDevice, VkResult> VulkanInstance::create_device(VkPhysicalDevice physical_device)
+    {
+        auto physical_device_properties = VkPhysicalDeviceProperties2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+        vkGetPhysicalDeviceProperties2(physical_device, &physical_device_properties);
+        ORION_RENDERER_LOG_INFO("Using {} to create VkDevice", physical_device_properties.properties.deviceName);
+
+        // Get queue family properties
+        std::uint32_t queue_family_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties2(physical_device, &queue_family_count, nullptr);
+        std::vector<VkQueueFamilyProperties2> queue_families(queue_family_count, VkQueueFamilyProperties2{.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2});
+        vkGetPhysicalDeviceQueueFamilyProperties2(physical_device, &queue_family_count, queue_families.data());
+        ORION_RENDERER_LOG_DEBUG("Found {} queue families...", queue_family_count);
+        std::ranges::for_each(queue_families, [index = 0u](const VkQueueFamilyProperties2& queue_properties) mutable {
+            ORION_RENDERER_LOG_DEBUG("Queue family {}: {{ flags: {}, queueCount: {} }}",
+                                     index++,
+                                     string_VkQueueFlags(queue_properties.queueFamilyProperties.queueFlags),
+                                     queue_properties.queueFamilyProperties.queueCount);
+        });
+
+        // Find a queue that supports graphics && presentation
+        std::uint32_t graphics_queue_family_index = UINT32_MAX;
+        for (std::uint32_t i = 0; i < queue_family_count; ++i) {
+            if (queue_families[i].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT &&
+                glfwGetPhysicalDevicePresentationSupport(vk_instance, physical_device, i)) {
+                graphics_queue_family_index = i;
+                break;
+            }
+        }
+        if (graphics_queue_family_index == UINT32_MAX) {
+            ORION_RENDERER_LOG_ERROR("Failed to find a queue family with VK_QUEUE_GRAPHICS_BIT && glfwGetPhysicalDevicePresentationSupport()");
+            return tl::unexpected(VK_ERROR_INITIALIZATION_FAILED);
+        } else {
+            ORION_RENDERER_LOG_DEBUG("Using queue family {} for graphics & presentation", graphics_queue_family_index);
+        }
+
+        // Create a single graphics/presentation queue
+        const auto queue_priority = 1.0f;
+        const auto queue_info = VkDeviceQueueCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = {},
+            .queueFamilyIndex = graphics_queue_family_index,
+            .queueCount = 1,
+            .pQueuePriorities = &queue_priority,
+        };
+
+        // Enabled device extensions
+        std::vector<const char*> enabled_extensions;
+        enabled_extensions.push_back("VK_KHR_swapchain");
+
+        // Create device
+        const auto device_info = VkDeviceCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = {},
+            .queueCreateInfoCount = 1,
+            .pQueueCreateInfos = &queue_info,
+            .enabledExtensionCount = static_cast<std::uint32_t>(enabled_extensions.size()),
+            .ppEnabledExtensionNames = enabled_extensions.data(),
+        };
+        VkDevice device = VK_NULL_HANDLE;
+        if (VkResult err = vkCreateDevice(physical_device, &device_info, nullptr, &device)) {
+            ORION_RENDERER_LOG_ERROR("vkCreateDevice() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            ORION_RENDERER_LOG_INFO("Created VkDevice {}", fmt::ptr(device));
+            volkLoadDevice(device);
+        }
+
+        return VulkanDevice{device, physical_device, vk_instance, graphics_queue_family_index};
+    }
+
+    VulkanDevice::VulkanDevice(
+        VkDevice device,
+        VkPhysicalDevice physical_device,
+        VkInstance instance,
+        std::uint32_t graphics_queue_family)
+        : vk_device(device)
+        , vk_physical_device(physical_device)
+        , vk_instance(instance)
+        , graphics_queue_family(graphics_queue_family)
+    {
+    }
+
+    VulkanDevice::VulkanDevice(VulkanDevice&& other) noexcept
+        : vk_device(std::exchange(other.vk_device, VK_NULL_HANDLE))
+        , vk_physical_device(other.vk_physical_device)
+        , vk_instance(other.vk_instance)
+        , graphics_queue_family(other.graphics_queue_family)
+    {
+    }
+
+    VulkanDevice& VulkanDevice::operator=(VulkanDevice&& other) noexcept
+    {
+        if (this != &other) {
+            vk_device = std::exchange(other.vk_device, VK_NULL_HANDLE);
+            vk_physical_device = other.vk_physical_device;
+            vk_instance = other.vk_instance;
+            graphics_queue_family = other.graphics_queue_family;
+        }
+        return *this;
+    }
+
+    VulkanDevice::~VulkanDevice()
+    {
+        if (vk_device != VK_NULL_HANDLE) {
+            vkDeviceWaitIdle(vk_device);
+            vkDestroyDevice(vk_device, nullptr);
+            ORION_RENDERER_LOG_INFO("Destroyed VkDevice {}", fmt::ptr(vk_device));
         }
     }
 } // namespace orion

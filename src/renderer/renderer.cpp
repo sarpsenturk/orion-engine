@@ -6,6 +6,7 @@ namespace orion
 {
     struct Renderer::Impl {
         VulkanInstance vulkan_instance;
+        VulkanDevice vulkan_device;
     };
 
     tl::expected<Renderer, std::string> Renderer::initialize()
@@ -16,7 +17,24 @@ namespace orion
             return tl::unexpected("Failed to create Vulkan instance");
         }
 
-        return Renderer{std::make_unique<Impl>(std::move(*vulkan_instance))};
+        // Get list of available GPUs
+        const auto physical_devices = vulkan_instance->enumerate_physical_devices();
+        if (!physical_devices) {
+            return tl::unexpected("Failed to enumerate physical devices");
+        }
+
+        // Create device
+        // Use first available GPU for now
+        // TODO: Allow user to select this
+        VkPhysicalDevice physical_device = (*physical_devices)[0];
+        auto vulkan_device = vulkan_instance->create_device(physical_device);
+        if (!vulkan_device) {
+            return tl::unexpected("Failed to create Vulkan device");
+        }
+
+        return Renderer{std::make_unique<Impl>(
+            std::move(*vulkan_instance),
+            std::move(*vulkan_device))};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)
