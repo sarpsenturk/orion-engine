@@ -2,14 +2,18 @@
 
 #include "vulkan_impl.hpp"
 
+#include "orion/window.hpp"
+
 namespace orion
 {
     struct Renderer::Impl {
         VulkanInstance vulkan_instance;
         VulkanDevice vulkan_device;
+        VulkanSurface vulkan_surface;
+        VulkanSwapchain vulkan_swapchain;
     };
 
-    tl::expected<Renderer, std::string> Renderer::initialize()
+    tl::expected<Renderer, std::string> Renderer::initialize(const RendererDesc& desc)
     {
         // Create vulkan instance
         auto vulkan_instance = VulkanInstance::create();
@@ -32,9 +36,32 @@ namespace orion
             return tl::unexpected("Failed to create Vulkan device");
         }
 
+        // Create window surface
+        auto vulkan_surface = vulkan_device->create_surface(desc.window);
+        if (!vulkan_surface) {
+            return tl::unexpected("Failed to create Vulkan surface");
+        }
+
+        // Create swapchain
+        auto vulkan_swapchain = vulkan_device->create_swapchain({
+            .surface = *vulkan_surface,
+            .requested_extent = {
+                static_cast<std::uint32_t>(desc.window.width()),
+                static_cast<std::uint32_t>(desc.window.height()),
+            },
+            .requested_image_count = 2,
+            .requested_image_format = VK_FORMAT_B8G8R8A8_SRGB,
+            .requested_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+        });
+        if (!vulkan_swapchain) {
+            return tl::unexpected("Failed to create Vulkan swapchain");
+        }
+
         return Renderer{std::make_unique<Impl>(
             std::move(*vulkan_instance),
-            std::move(*vulkan_device))};
+            std::move(*vulkan_device),
+            std::move(*vulkan_surface),
+            std::move(*vulkan_swapchain))};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)

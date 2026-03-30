@@ -7,10 +7,14 @@
 
 namespace orion
 {
+    struct RendererDesc {
+        const class Window& window;
+    };
+
     class Renderer
     {
     public:
-        static tl::expected<Renderer, std::string> initialize();
+        static tl::expected<Renderer, std::string> initialize(const RendererDesc& desc);
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
         Renderer(Renderer&&) noexcept;

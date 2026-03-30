@@ -1,4 +1,4 @@
-#include "orion/window.hpp"
+#include "platform_glfw.hpp"
 
 #include "orion/log.hpp"
 
@@ -8,54 +8,42 @@
 
 namespace orion
 {
-    struct Window::Impl {
-        GLFWwindow* window;
-        int width;
-        int height;
-        Event<OnWindowClose> on_close;
-        Event<OnWindowMove> on_move;
-        Event<OnWindowResize> on_resize;
+    Window::Impl::Impl(GLFWwindow* _window, int _width, int _height)
+        : window(_window)
+        , width(_width)
+        , height(_height)
+    {
+        ORION_LOG_EVENT(on_close);
+        ORION_LOG_EVENT(on_move);
+        ORION_LOG_EVENT(on_resize);
+    }
 
-        Impl(GLFWwindow* _window, int _width, int _height)
-            : window(_window)
-            , width(_width)
-            , height(_height)
-        {
-            ORION_LOG_EVENT(on_close);
-            ORION_LOG_EVENT(on_move);
-            ORION_LOG_EVENT(on_resize);
+    Window::Impl::Impl(Impl&& other) noexcept
+        : window(std::exchange(other.window, nullptr))
+        , width(other.width)
+        , height(other.height)
+    {
+    }
+
+    Window::Impl& Window::Impl::operator=(Impl&& other) noexcept
+    {
+        if (this != &other) {
+            window = std::exchange(other.window, nullptr);
+            width = other.width;
+            height = other.height;
         }
+        return *this;
+    }
 
-        Impl(const Impl&) = delete;
-        Impl& operator=(const Impl&) = delete;
-
-        Impl(Impl&& other) noexcept
-            : window(std::exchange(other.window, nullptr))
-            , width(other.width)
-            , height(other.height)
-        {
+    Window::Impl::~Impl()
+    {
+        if (window != nullptr) {
+            glfwDestroyWindow(window);
+            ORION_CORE_LOG_INFO("Destroyed GLFWwindow* {}", (void*)window);
+            glfwTerminate();
+            ORION_CORE_LOG_INFO("GLFW terminated");
         }
-
-        Impl& operator=(Impl&& other) noexcept
-        {
-            if (this != &other) {
-                window = std::exchange(other.window, nullptr);
-                width = other.width;
-                height = other.height;
-            }
-            return *this;
-        }
-
-        ~Impl()
-        {
-            if (window != nullptr) {
-                glfwDestroyWindow(window);
-                ORION_CORE_LOG_INFO("Destroyed GLFWwindow* {}", (void*)window);
-                glfwTerminate();
-                ORION_CORE_LOG_INFO("GLFW terminated");
-            }
-        }
-    };
+    }
 
     tl::expected<Window, std::string> Window::initialize(const WindowDesc& desc)
     {

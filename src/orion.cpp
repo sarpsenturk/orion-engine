@@ -22,7 +22,7 @@ namespace orion
         }
 
         // Initialize renderer
-        auto renderer = Renderer::initialize();
+        auto renderer = Renderer::initialize({.window = *window});
         if (!renderer) {
             return tl::unexpected(std::move(renderer.error()));
         }

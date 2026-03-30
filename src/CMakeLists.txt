@@ -8,6 +8,7 @@ target_sources(
     window.cpp
     event.cpp
 
+    platform/platform_glfw.hpp
     platform/platform_glfw.cpp
 
     renderer/renderer.cpp
