@@ -86,7 +86,7 @@ namespace orion
         // Create per frame resources
         std::array<PerFrameData, frames_in_flight> frame_data;
         for (int i = 0; i < frames_in_flight; ++i) {
-            auto command_pool = vulkan_device->create_command_pool(vulkan_device->graphics_queue_family, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+            auto command_pool = vulkan_device->create_command_pool({vulkan_device->graphics_queue_family, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT});
             if (!command_pool) {
                 return tl::unexpected("Failed to create Vulkan command pool");
             }
@@ -98,8 +98,7 @@ namespace orion
             std::move(*vulkan_device),
             std::move(*vulkan_surface),
             std::move(*vulkan_swapchain),
-            std::move(frame_data)
-        )};
+            std::move(frame_data))};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)

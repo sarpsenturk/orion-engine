@@ -407,13 +407,13 @@ namespace orion
         return VulkanSwapchain{vk_device, swapchain, image_count, image_extent, image_format, present_mode};
     }
 
-    tl::expected<VulkanCommandPool, VkResult> VulkanDevice::create_command_pool(std::uint32_t queue_family_index, VkCommandPoolCreateFlags flags)
+    tl::expected<VulkanCommandPool, VkResult> VulkanDevice::create_command_pool(const VulkanCommandPoolDesc& desc)
     {
         const auto command_pool_info = VkCommandPoolCreateInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .pNext = nullptr,
-            .flags = flags,
-            .queueFamilyIndex = queue_family_index,
+            .flags = desc.flags,
+            .queueFamilyIndex = desc.queue_family_index,
         };
         VkCommandPool command_pool = VK_NULL_HANDLE;
         if (VkResult err = vkCreateCommandPool(vk_device, &command_pool_info, nullptr, &command_pool)) {
@@ -421,8 +421,26 @@ namespace orion
             return tl::unexpected(err);
         } else {
             ORION_RENDERER_LOG_INFO("Created VkCommandPool {}", fmt::ptr(command_pool));
-            return VulkanCommandPool{vk_device, command_pool};
         }
+
+        // Preallocate max command buffers
+        const auto cb_allocate_info = VkCommandBufferAllocateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .commandPool = command_pool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = VulkanCommandPool::max_command_buffers,
+        };
+        std::array<VkCommandBuffer, VulkanCommandPool::max_command_buffers> command_buffers = {};
+        if (VkResult err = vkAllocateCommandBuffers(vk_device, &cb_allocate_info, command_buffers.data())) {
+            ORION_RENDERER_LOG_ERROR("vkAllocateCommandBuffers() failed: {}", string_VkResult(err));
+            vkDestroyCommandPool(vk_device, command_pool, nullptr);
+            return tl::unexpected(err);
+        } else {
+            ORION_RENDERER_LOG_INFO("Allocated {} VkCommandBuffer(s)", command_buffers.size());
+        }
+
+        return VulkanCommandPool{vk_device, command_pool, command_buffers};
     }
 
     VulkanSurface::VulkanSurface(VkInstance instance, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
@@ -545,15 +563,20 @@ namespace orion
         }
     }
 
-    VulkanCommandPool::VulkanCommandPool(VkDevice device, VkCommandPool command_pool)
+    VulkanCommandPool::VulkanCommandPool(
+        VkDevice device,
+        VkCommandPool command_pool,
+        std::array<VkCommandBuffer, max_command_buffers> command_buffers)
         : vk_device(device)
         , vk_command_pool(command_pool)
+        , vk_command_buffers(command_buffers)
     {
     }
 
     VulkanCommandPool::VulkanCommandPool(VulkanCommandPool&& other) noexcept
         : vk_device(other.vk_device)
         , vk_command_pool(std::exchange(other.vk_command_pool, VK_NULL_HANDLE))
+        , vk_command_buffers(std::exchange(other.vk_command_buffers, {}))
     {
     }
 
@@ -562,6 +585,7 @@ namespace orion
         if (this != &other) {
             vk_device = other.vk_device;
             vk_command_pool = std::exchange(other.vk_command_pool, VK_NULL_HANDLE);
+            vk_command_buffers = std::exchange(other.vk_command_buffers, {});
         }
         return *this;
     }
@@ -569,6 +593,7 @@ namespace orion
     VulkanCommandPool::~VulkanCommandPool()
     {
         if (vk_command_pool != VK_NULL_HANDLE) {
+            vkFreeCommandBuffers(vk_device, vk_command_pool, max_command_buffers, vk_command_buffers.data());
             vkDestroyCommandPool(vk_device, vk_command_pool, nullptr);
             ORION_RENDERER_LOG_INFO("Destroyed VkCommandPool {}", fmt::ptr(vk_command_pool));
         }
