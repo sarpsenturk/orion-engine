@@ -250,18 +250,25 @@ namespace orion
             volkLoadDevice(device);
         }
 
-        return VulkanDevice{device, physical_device, vk_instance, graphics_queue_family_index};
+        // Get created graphics queue
+        VkQueue graphics_queue = VK_NULL_HANDLE;
+        vkGetDeviceQueue(device, graphics_queue_family_index, 0, &graphics_queue);
+        ORION_RENDERER_LOG_INFO("Acquired VkQueue (graphics) {}", fmt::ptr(graphics_queue));
+
+        return VulkanDevice{device, physical_device, vk_instance, graphics_queue_family_index, graphics_queue};
     }
 
     VulkanDevice::VulkanDevice(
         VkDevice device,
         VkPhysicalDevice physical_device,
         VkInstance instance,
-        std::uint32_t graphics_queue_family)
+        std::uint32_t graphics_queue_family,
+        VkQueue graphics_queue)
         : vk_device(device)
         , vk_physical_device(physical_device)
         , vk_instance(instance)
         , graphics_queue_family(graphics_queue_family)
+        , graphics_queue(graphics_queue)
     {
     }
 
@@ -270,6 +277,7 @@ namespace orion
         , vk_physical_device(other.vk_physical_device)
         , vk_instance(other.vk_instance)
         , graphics_queue_family(other.graphics_queue_family)
+        , graphics_queue(other.graphics_queue)
     {
     }
 
@@ -280,6 +288,7 @@ namespace orion
             vk_physical_device = other.vk_physical_device;
             vk_instance = other.vk_instance;
             graphics_queue_family = other.graphics_queue_family;
+            graphics_queue = other.graphics_queue;
         }
         return *this;
     }

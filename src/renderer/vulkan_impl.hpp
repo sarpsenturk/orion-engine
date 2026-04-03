@@ -117,12 +117,14 @@ namespace orion
         VkInstance vk_instance;
 
         std::uint32_t graphics_queue_family;
+        VkQueue graphics_queue;
 
         VulkanDevice(
             VkDevice device,
             VkPhysicalDevice physical_device,
             VkInstance instance,
-            std::uint32_t graphics_queue_family);
+            std::uint32_t graphics_queue_family,
+            VkQueue graphics_queue);
         VulkanDevice(const VulkanDevice&) = delete;
         VulkanDevice& operator=(const VulkanDevice&) = delete;
         VulkanDevice(VulkanDevice&& other) noexcept;
