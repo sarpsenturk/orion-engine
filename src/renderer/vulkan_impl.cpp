@@ -544,6 +544,16 @@ namespace orion
         }
     }
 
+    tl::expected<void, VkResult> VulkanDevice::wait_idle()
+    {
+        if (VkResult err = vkDeviceWaitIdle(vk_device)) {
+            ORION_RENDERER_LOG_ERROR("vkDeviceWaitIdle() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            return {};
+        }
+    }
+
     VulkanSurface::VulkanSurface(VkInstance instance, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
         : vk_instance(instance)
         , vk_physical_device(physical_device)

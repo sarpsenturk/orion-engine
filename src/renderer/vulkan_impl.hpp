@@ -136,6 +136,8 @@ namespace orion
         tl::expected<VulkanCommandPool, VkResult> create_command_pool(const VulkanCommandPoolDesc& desc);
         tl::expected<VulkanSemaphore, VkResult> create_binary_semaphore();
         tl::expected<VulkanSemaphore, VkResult> create_timeline_semaphore(std::uint64_t initial_value);
+
+        tl::expected<void, VkResult> wait_idle();
     };
 
     struct VulkanInstance {
