@@ -64,13 +64,18 @@ namespace orion
         VkFormat image_format;
         VkPresentModeKHR present_mode;
 
+        std::vector<VkImage> vk_images;
+        std::vector<VkImageView> vk_image_views;
+
         VulkanSwapchain(
             VkDevice device,
             VkSwapchainKHR swapchain,
             std::uint32_t image_count,
             VkExtent2D image_extent,
             VkFormat image_format,
-            VkPresentModeKHR present_mode);
+            VkPresentModeKHR present_mode,
+            std::vector<VkImage> images,
+            std::vector<VkImageView> image_views);
         VulkanSwapchain(const VulkanSwapchain&) = delete;
         VulkanSwapchain& operator=(const VulkanSwapchain&) = delete;
         VulkanSwapchain(VulkanSwapchain&& other) noexcept;

@@ -314,7 +314,7 @@ namespace orion
 
         // Clamp image count
         // VkSurfaceCapabilitiesKHR::maxImageCount == 0 means no driver limit
-        const auto image_count = std::clamp(desc.requested_image_count,
+        auto image_count = std::clamp(desc.requested_image_count,
                                             surface_capabilities->minImageCount,
                                             surface_capabilities->maxImageCount != 0 ? surface_capabilities->maxImageCount : VulkanSwapchain::max_image_count);
         ORION_RENDERER_LOG_DEBUG("Using VkSwapchainCreateInfoKHR::minImageCount = {}", image_count);
@@ -410,7 +410,57 @@ namespace orion
         } else {
             ORION_RENDERER_LOG_INFO("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
         }
-        return VulkanSwapchain{vk_device, swapchain, image_count, image_extent, image_format, present_mode};
+
+        // Get created swapchain images
+        std::vector<VkImage> images(image_count);
+        if (VkResult err = vkGetSwapchainImagesKHR(vk_device, swapchain, &image_count, images.data())) {
+            ORION_RENDERER_LOG_ERROR("vkGetSwapchainImagesKHR() failed: {}", string_VkResult(err));
+            vkDestroySwapchainKHR(vk_device, swapchain, nullptr);
+            return tl::unexpected(err);
+        }
+
+        // Create image views
+        std::vector<VkImageView> image_views(image_count);
+        for (std::uint32_t i = 0; i < image_count; ++i) {
+            const auto image_view_info = VkImageViewCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .image = images[i],
+                .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                .format = image_format,
+                .components = {}, // identity
+                .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            };
+            if (VkResult err = vkCreateImageView(vk_device, &image_view_info, nullptr, &image_views[i])) {
+                ORION_RENDERER_LOG_ERROR("vkCreateImageView() failed: {}", string_VkResult(err));
+                // Destroy image views created until now
+                for (std::uint32_t j = 0; j < i; ++j) {
+                    vkDestroyImageView(vk_device, image_views[j], nullptr);
+                }
+                vkDestroySwapchainKHR(vk_device, swapchain, nullptr);
+                return tl::unexpected(err);
+            } else {
+                ORION_RENDERER_LOG_INFO("Created VkImageView {}", fmt::ptr(image_views[i]));
+            }
+        }
+
+        return VulkanSwapchain{
+            vk_device,
+            swapchain,
+            image_count,
+            image_extent,
+            image_format,
+            present_mode,
+            std::move(images),
+            std::move(image_views),
+        };
     }
 
     tl::expected<VulkanCommandPool, VkResult> VulkanDevice::create_command_pool(const VulkanCommandPoolDesc& desc)
@@ -564,13 +614,17 @@ namespace orion
         std::uint32_t image_count,
         VkExtent2D image_extent,
         VkFormat image_format,
-        VkPresentModeKHR present_mode)
+        VkPresentModeKHR present_mode,
+        std::vector<VkImage> images,
+        std::vector<VkImageView> image_views)
         : vk_device(device)
         , vk_swapchain(swapchain)
         , image_count(image_count)
         , image_extent(image_extent)
         , image_format(image_format)
         , present_mode(present_mode)
+        , vk_images(std::move(images))
+        , vk_image_views(std::move(image_views))
     {
     }
 
@@ -581,6 +635,8 @@ namespace orion
         , image_extent(other.image_extent)
         , image_format(other.image_format)
         , present_mode(other.present_mode)
+        , vk_images(std::move(other.vk_images))
+        , vk_image_views(std::move(other.vk_image_views))
     {
     }
 
@@ -593,6 +649,8 @@ namespace orion
             image_extent = other.image_extent;
             image_format = other.image_format;
             present_mode = other.present_mode;
+            vk_images = std::move(other.vk_images);
+            vk_image_views = std::move(other.vk_image_views);
         }
         return *this;
     }
@@ -600,6 +658,11 @@ namespace orion
     VulkanSwapchain::~VulkanSwapchain()
     {
         if (vk_swapchain != VK_NULL_HANDLE) {
+            for (VkImageView vk_image_view : vk_image_views) {
+                vkDestroyImageView(vk_device, vk_image_view, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkImageView {}", fmt::ptr(vk_image_view));
+            }
+
             vkDestroySwapchainKHR(vk_device, vk_swapchain, nullptr);
             ORION_RENDERER_LOG_INFO("Destroyed VkSwapchainKHR {}", fmt::ptr(vk_swapchain));
         }
