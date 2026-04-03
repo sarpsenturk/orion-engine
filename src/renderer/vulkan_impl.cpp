@@ -533,7 +533,11 @@ namespace orion
 
     tl::expected<VulkanSemaphore, VkResult> VulkanDevice::create_binary_semaphore()
     {
-        const auto semaphore_info = VkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        const auto semaphore_info = VkSemaphoreCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = {},
+        };
         VkSemaphore semaphore = VK_NULL_HANDLE;
         if (VkResult err = vkCreateSemaphore(vk_device, &semaphore_info, nullptr, &semaphore)) {
             ORION_RENDERER_LOG_ERROR("vkCreateSemaphore() failed: {}", string_VkResult(err));
