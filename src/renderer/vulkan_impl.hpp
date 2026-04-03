@@ -21,6 +21,8 @@ namespace orion
         VulkanSemaphore(VulkanSemaphore&& other) noexcept;
         VulkanSemaphore& operator=(VulkanSemaphore&& other) noexcept;
         ~VulkanSemaphore();
+
+        tl::expected<void, VkResult> wait(std::uint64_t value, std::uint64_t timeout);
     };
 
     struct VulkanCommandPool {

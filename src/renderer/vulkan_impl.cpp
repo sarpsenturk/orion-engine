@@ -678,4 +678,22 @@ namespace orion
             ORION_RENDERER_LOG_INFO("Destroyed VkSemaphore {}", fmt::ptr(vk_semaphore));
         }
     }
+
+    tl::expected<void, VkResult> VulkanSemaphore::wait(std::uint64_t value, std::uint64_t timeout)
+    {
+        const auto wait_info = VkSemaphoreWaitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            .pNext = nullptr,
+            .flags = {},
+            .semaphoreCount = 1,
+            .pSemaphores = &vk_semaphore,
+            .pValues = &value,
+        };
+        if (VkResult err = vkWaitSemaphores(vk_device, &wait_info, timeout)) {
+            ORION_RENDERER_LOG_ERROR("vkWaitSemaphores() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            return {};
+        }
+    }
 } // namespace orion
