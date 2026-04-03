@@ -42,6 +42,8 @@ namespace orion
         VulkanCommandPool(VulkanCommandPool&& other) noexcept;
         VulkanCommandPool& operator=(VulkanCommandPool&& other) noexcept;
         ~VulkanCommandPool();
+
+        tl::expected<void, VkResult> reset();
     };
 
     struct VulkanCommandPoolDesc {

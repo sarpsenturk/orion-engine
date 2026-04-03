@@ -650,6 +650,16 @@ namespace orion
         }
     }
 
+    tl::expected<void, VkResult> VulkanCommandPool::reset()
+    {
+        if (VkResult err = vkResetCommandPool(vk_device, vk_command_pool, {})) {
+            ORION_RENDERER_LOG_ERROR("vkResetCommandPool() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            return {};
+        }
+    }
+
     VulkanSemaphore::VulkanSemaphore(VkDevice device, VkSemaphore semaphore)
         : vk_device(device)
         , vk_semaphore(semaphore)
