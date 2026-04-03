@@ -31,6 +31,7 @@ namespace orion
         VkDevice vk_device = VK_NULL_HANDLE;
         VkCommandPool vk_command_pool = VK_NULL_HANDLE;
         std::array<VkCommandBuffer, max_command_buffers> vk_command_buffers = {};
+        typename decltype(vk_command_buffers.begin()) current_command_buffer = vk_command_buffers.begin();
 
         VulkanCommandPool() = default;
         VulkanCommandPool(
@@ -44,6 +45,7 @@ namespace orion
         ~VulkanCommandPool();
 
         tl::expected<void, VkResult> reset();
+        tl::expected<VkCommandBuffer, VkResult> begin_command_buffer();
     };
 
     struct VulkanCommandPoolDesc {

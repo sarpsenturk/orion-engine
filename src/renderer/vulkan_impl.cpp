@@ -1,6 +1,7 @@
 #include "vulkan_impl.hpp"
 
 #include "orion/config.h"
+#include "orion/debug.hpp"
 #include "orion/log.hpp"
 
 #include <vulkan/vk_enum_string_helper.h>
@@ -628,6 +629,7 @@ namespace orion
         : vk_device(other.vk_device)
         , vk_command_pool(std::exchange(other.vk_command_pool, VK_NULL_HANDLE))
         , vk_command_buffers(std::exchange(other.vk_command_buffers, {}))
+        , current_command_buffer(other.current_command_buffer)
     {
     }
 
@@ -637,6 +639,7 @@ namespace orion
             vk_device = other.vk_device;
             vk_command_pool = std::exchange(other.vk_command_pool, VK_NULL_HANDLE);
             vk_command_buffers = std::exchange(other.vk_command_buffers, {});
+            current_command_buffer = other.current_command_buffer;
         }
         return *this;
     }
@@ -656,7 +659,30 @@ namespace orion
             ORION_RENDERER_LOG_ERROR("vkResetCommandPool() failed: {}", string_VkResult(err));
             return tl::unexpected(err);
         } else {
+            // Reset iterator to the start of array
+            current_command_buffer = vk_command_buffers.begin();
             return {};
+        }
+    }
+
+    tl::expected<VkCommandBuffer, VkResult> VulkanCommandPool::begin_command_buffer()
+    {
+        // If/when this precondition fails,
+        // we will consider a different command buffer allocation strategy
+        ORION_ASSERT(current_command_buffer != vk_command_buffers.end());
+
+        const auto cb_begin_info = VkCommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, // All command buffers are recorded once per frame
+            .pInheritanceInfo = nullptr,
+        };
+        VkCommandBuffer command_buffer = *(current_command_buffer++);
+        if (VkResult err = vkBeginCommandBuffer(command_buffer, &cb_begin_info)) {
+            ORION_RENDERER_LOG_ERROR("vkBeginCommandBuffer() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            return command_buffer;
         }
     }
 
