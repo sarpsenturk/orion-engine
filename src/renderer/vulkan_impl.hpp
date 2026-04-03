@@ -10,6 +10,19 @@
 
 namespace orion
 {
+    struct VulkanSemaphore {
+        VkDevice vk_device = VK_NULL_HANDLE;
+        VkSemaphore vk_semaphore = VK_NULL_HANDLE;
+
+        VulkanSemaphore() = default;
+        VulkanSemaphore(VkDevice device, VkSemaphore semaphore);
+        VulkanSemaphore(const VulkanSemaphore&) = delete;
+        VulkanSemaphore& operator=(const VulkanSemaphore&) = delete;
+        VulkanSemaphore(VulkanSemaphore&& other) noexcept;
+        VulkanSemaphore& operator=(VulkanSemaphore&& other) noexcept;
+        ~VulkanSemaphore();
+    };
+
     struct VulkanCommandPool {
         static constexpr auto max_command_buffers = 8;
 
@@ -106,6 +119,8 @@ namespace orion
         tl::expected<VulkanSurface, VkResult> create_surface(const class Window& window);
         tl::expected<VulkanSwapchain, VkResult> create_swapchain(const VulkanSwapchainDesc& desc);
         tl::expected<VulkanCommandPool, VkResult> create_command_pool(const VulkanCommandPoolDesc& desc);
+        tl::expected<VulkanSemaphore, VkResult> create_binary_semaphore();
+        tl::expected<VulkanSemaphore, VkResult> create_timeline_semaphore(std::uint64_t initial_value);
     };
 
     struct VulkanInstance {

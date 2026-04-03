@@ -13,6 +13,9 @@ namespace orion
 
     struct PerFrameData {
         VulkanCommandPool vulkan_command_pool;
+
+        VulkanSemaphore image_available_semaphore;
+        VulkanSemaphore render_complete_semaphore;
     };
 
     struct Renderer::Impl {
@@ -23,18 +26,21 @@ namespace orion
 
         std::uint64_t frame_count = 0;
         std::array<PerFrameData, frames_in_flight> frame_data;
+        VulkanSemaphore frame_semaphore;
 
         Impl(
             VulkanInstance instance,
             VulkanDevice device,
             VulkanSurface surface,
             VulkanSwapchain swapchain,
-            std::array<PerFrameData, frames_in_flight> frame_data)
+            std::array<PerFrameData, frames_in_flight> frame_data,
+            VulkanSemaphore frame_semaphore)
             : vulkan_instance(std::move(instance))
             , vulkan_device(std::move(device))
             , vulkan_surface(std::move(surface))
             , vulkan_swapchain(std::move(swapchain))
             , frame_data(std::move(frame_data))
+            , frame_semaphore(std::move(frame_semaphore))
         {
         }
     };
@@ -91,6 +97,23 @@ namespace orion
                 return tl::unexpected("Failed to create Vulkan command pool");
             }
             frame_data[i].vulkan_command_pool = std::move(*command_pool);
+
+            auto image_available_semaphore = vulkan_device->create_binary_semaphore();
+            if (!image_available_semaphore) {
+                return tl::unexpected("Failed to create Vulkan semaphpre");
+            }
+            frame_data[i].image_available_semaphore = std::move(*image_available_semaphore);
+            auto render_complete_semaphore = vulkan_device->create_binary_semaphore();
+            if (!render_complete_semaphore) {
+                return tl::unexpected("Failed to create Vulkan semaphpre");
+            }
+            frame_data[i].render_complete_semaphore = std::move(*render_complete_semaphore);
+        }
+
+        // Create frame counter semaphore
+        auto frame_semaphore = vulkan_device->create_timeline_semaphore(0);
+        if (!frame_semaphore) {
+            return tl::unexpected("Failed to create Vulkan semaphore");
         }
 
         return Renderer{std::make_unique<Impl>(
@@ -98,7 +121,8 @@ namespace orion
             std::move(*vulkan_device),
             std::move(*vulkan_surface),
             std::move(*vulkan_swapchain),
-            std::move(frame_data))};
+            std::move(frame_data),
+            std::move(*frame_semaphore))};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)

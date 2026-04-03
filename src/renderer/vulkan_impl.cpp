@@ -226,9 +226,14 @@ namespace orion
         enabled_extensions.push_back("VK_KHR_swapchain");
 
         // Create device
+        const auto vulkan_12_features = VkPhysicalDeviceVulkan12Features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext = nullptr,
+            .timelineSemaphore = VK_TRUE,
+        };
         const auto device_info = VkDeviceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext = nullptr,
+            .pNext = &vulkan_12_features,
             .flags = {},
             .queueCreateInfoCount = 1,
             .pQueueCreateInfos = &queue_info,
@@ -443,6 +448,42 @@ namespace orion
         return VulkanCommandPool{vk_device, command_pool, command_buffers};
     }
 
+    tl::expected<VulkanSemaphore, VkResult> VulkanDevice::create_binary_semaphore()
+    {
+        const auto semaphore_info = VkSemaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        if (VkResult err = vkCreateSemaphore(vk_device, &semaphore_info, nullptr, &semaphore)) {
+            ORION_RENDERER_LOG_ERROR("vkCreateSemaphore() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            ORION_RENDERER_LOG_INFO("Created VkSemaphore (binary) {}", fmt::ptr(semaphore));
+            return VulkanSemaphore{vk_device, semaphore};
+        }
+    }
+
+    tl::expected<VulkanSemaphore, VkResult> VulkanDevice::create_timeline_semaphore(std::uint64_t initial_value)
+    {
+        const auto semaphore_type_info = VkSemaphoreTypeCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            .pNext = nullptr,
+            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+            .initialValue = initial_value,
+        };
+        const auto semaphore_info = VkSemaphoreCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = &semaphore_type_info,
+            .flags = {},
+        };
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        if (VkResult err = vkCreateSemaphore(vk_device, &semaphore_info, nullptr, &semaphore)) {
+            ORION_RENDERER_LOG_ERROR("vkCreateSemaphore() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            ORION_RENDERER_LOG_INFO("Created VkSemaphore (timeline) {}", fmt::ptr(semaphore));
+            return VulkanSemaphore{vk_device, semaphore};
+        }
+    }
+
     VulkanSurface::VulkanSurface(VkInstance instance, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
         : vk_instance(instance)
         , vk_physical_device(physical_device)
@@ -596,6 +637,35 @@ namespace orion
             vkFreeCommandBuffers(vk_device, vk_command_pool, max_command_buffers, vk_command_buffers.data());
             vkDestroyCommandPool(vk_device, vk_command_pool, nullptr);
             ORION_RENDERER_LOG_INFO("Destroyed VkCommandPool {}", fmt::ptr(vk_command_pool));
+        }
+    }
+
+    VulkanSemaphore::VulkanSemaphore(VkDevice device, VkSemaphore semaphore)
+        : vk_device(device)
+        , vk_semaphore(semaphore)
+    {
+    }
+
+    VulkanSemaphore::VulkanSemaphore(VulkanSemaphore&& other) noexcept
+        : vk_device(other.vk_device)
+        , vk_semaphore(std::exchange(other.vk_semaphore, VK_NULL_HANDLE))
+    {
+    }
+
+    VulkanSemaphore& VulkanSemaphore::operator=(VulkanSemaphore&& other) noexcept
+    {
+        if (this != &other) {
+            vk_device = other.vk_device;
+            vk_semaphore = std::exchange(other.vk_semaphore, VK_NULL_HANDLE);
+        }
+        return *this;
+    }
+
+    VulkanSemaphore::~VulkanSemaphore()
+    {
+        if (vk_semaphore != VK_NULL_HANDLE) {
+            vkDestroySemaphore(vk_device, vk_semaphore, nullptr);
+            ORION_RENDERER_LOG_INFO("Destroyed VkSemaphore {}", fmt::ptr(vk_semaphore));
         }
     }
 } // namespace orion
