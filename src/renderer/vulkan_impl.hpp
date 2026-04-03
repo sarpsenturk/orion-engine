@@ -70,6 +70,8 @@ namespace orion
         VulkanSwapchain(VulkanSwapchain&& other) noexcept;
         VulkanSwapchain& operator=(VulkanSwapchain&& other) noexcept;
         ~VulkanSwapchain();
+
+        tl::expected<std::uint32_t, VkResult> acquire_next_image(const VulkanSemaphore& semaphore, std::uint64_t timeout);
     };
 
     struct VulkanSurface {
