@@ -9,6 +9,19 @@
 
 namespace orion
 {
+    struct VulkanCommandPool {
+        VkDevice vk_device = VK_NULL_HANDLE;
+        VkCommandPool vk_command_pool = VK_NULL_HANDLE;
+
+        VulkanCommandPool() = default;
+        VulkanCommandPool(VkDevice device, VkCommandPool command_pool);
+        VulkanCommandPool(const VulkanCommandPool&) = delete;
+        VulkanCommandPool& operator=(const VulkanCommandPool&) = delete;
+        VulkanCommandPool(VulkanCommandPool&& other) noexcept;
+        VulkanCommandPool& operator=(VulkanCommandPool&& other) noexcept;
+        ~VulkanCommandPool();
+    };
+
     struct VulkanSwapchain {
         static constexpr auto max_image_count = 3u;
 
@@ -80,6 +93,7 @@ namespace orion
 
         tl::expected<VulkanSurface, VkResult> create_surface(const class Window& window);
         tl::expected<VulkanSwapchain, VkResult> create_swapchain(const VulkanSwapchainDesc& desc);
+        tl::expected<VulkanCommandPool, VkResult> create_command_pool(std::uint32_t queue_family_index, VkCommandPoolCreateFlags flags);
     };
 
     struct VulkanInstance {

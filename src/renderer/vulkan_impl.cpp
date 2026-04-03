@@ -309,8 +309,8 @@ namespace orion
         // Clamp image count
         // VkSurfaceCapabilitiesKHR::maxImageCount == 0 means no driver limit
         const auto image_count = std::clamp(desc.requested_image_count,
-                                      surface_capabilities->minImageCount,
-                                      surface_capabilities->maxImageCount != 0 ? surface_capabilities->maxImageCount : VulkanSwapchain::max_image_count);
+                                            surface_capabilities->minImageCount,
+                                            surface_capabilities->maxImageCount != 0 ? surface_capabilities->maxImageCount : VulkanSwapchain::max_image_count);
         ORION_RENDERER_LOG_DEBUG("Using VkSwapchainCreateInfoKHR::minImageCount = {}", image_count);
 
         // Set swapchain extent
@@ -405,6 +405,24 @@ namespace orion
             ORION_RENDERER_LOG_INFO("Created VkSwapchainKHR {}", fmt::ptr(swapchain));
         }
         return VulkanSwapchain{vk_device, swapchain, image_count, image_extent, image_format, present_mode};
+    }
+
+    tl::expected<VulkanCommandPool, VkResult> VulkanDevice::create_command_pool(std::uint32_t queue_family_index, VkCommandPoolCreateFlags flags)
+    {
+        const auto command_pool_info = VkCommandPoolCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = flags,
+            .queueFamilyIndex = queue_family_index,
+        };
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        if (VkResult err = vkCreateCommandPool(vk_device, &command_pool_info, nullptr, &command_pool)) {
+            ORION_RENDERER_LOG_ERROR("vkCreateCommandPool() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            ORION_RENDERER_LOG_INFO("Created VkCommandPool {}", fmt::ptr(command_pool));
+            return VulkanCommandPool{vk_device, command_pool};
+        }
     }
 
     VulkanSurface::VulkanSurface(VkInstance instance, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
@@ -524,6 +542,35 @@ namespace orion
         if (vk_swapchain != VK_NULL_HANDLE) {
             vkDestroySwapchainKHR(vk_device, vk_swapchain, nullptr);
             ORION_RENDERER_LOG_INFO("Destroyed VkSwapchainKHR {}", fmt::ptr(vk_swapchain));
+        }
+    }
+
+    VulkanCommandPool::VulkanCommandPool(VkDevice device, VkCommandPool command_pool)
+        : vk_device(device)
+        , vk_command_pool(command_pool)
+    {
+    }
+
+    VulkanCommandPool::VulkanCommandPool(VulkanCommandPool&& other) noexcept
+        : vk_device(other.vk_device)
+        , vk_command_pool(std::exchange(other.vk_command_pool, VK_NULL_HANDLE))
+    {
+    }
+
+    VulkanCommandPool& VulkanCommandPool::operator=(VulkanCommandPool&& other) noexcept
+    {
+        if (this != &other) {
+            vk_device = other.vk_device;
+            vk_command_pool = std::exchange(other.vk_command_pool, VK_NULL_HANDLE);
+        }
+        return *this;
+    }
+
+    VulkanCommandPool::~VulkanCommandPool()
+    {
+        if (vk_command_pool != VK_NULL_HANDLE) {
+            vkDestroyCommandPool(vk_device, vk_command_pool, nullptr);
+            ORION_RENDERER_LOG_INFO("Destroyed VkCommandPool {}", fmt::ptr(vk_command_pool));
         }
     }
 } // namespace orion

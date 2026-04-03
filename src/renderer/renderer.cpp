@@ -4,13 +4,39 @@
 
 #include "orion/window.hpp"
 
+#include <array>
+#include <cstdint>
+
 namespace orion
 {
+    static constexpr auto frames_in_flight = 2;
+
+    struct PerFrameData {
+        VulkanCommandPool vulkan_command_pool;
+    };
+
     struct Renderer::Impl {
         VulkanInstance vulkan_instance;
         VulkanDevice vulkan_device;
         VulkanSurface vulkan_surface;
         VulkanSwapchain vulkan_swapchain;
+
+        std::uint64_t frame_count = 0;
+        std::array<PerFrameData, frames_in_flight> frame_data;
+
+        Impl(
+            VulkanInstance instance,
+            VulkanDevice device,
+            VulkanSurface surface,
+            VulkanSwapchain swapchain,
+            std::array<PerFrameData, frames_in_flight> frame_data)
+            : vulkan_instance(std::move(instance))
+            , vulkan_device(std::move(device))
+            , vulkan_surface(std::move(surface))
+            , vulkan_swapchain(std::move(swapchain))
+            , frame_data(std::move(frame_data))
+        {
+        }
     };
 
     tl::expected<Renderer, std::string> Renderer::initialize(const RendererDesc& desc)
@@ -57,11 +83,23 @@ namespace orion
             return tl::unexpected("Failed to create Vulkan swapchain");
         }
 
+        // Create per frame resources
+        std::array<PerFrameData, frames_in_flight> frame_data;
+        for (int i = 0; i < frames_in_flight; ++i) {
+            auto command_pool = vulkan_device->create_command_pool(vulkan_device->graphics_queue_family, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+            if (!command_pool) {
+                return tl::unexpected("Failed to create Vulkan command pool");
+            }
+            frame_data[i].vulkan_command_pool = std::move(*command_pool);
+        }
+
         return Renderer{std::make_unique<Impl>(
             std::move(*vulkan_instance),
             std::move(*vulkan_device),
             std::move(*vulkan_surface),
-            std::move(*vulkan_swapchain))};
+            std::move(*vulkan_swapchain),
+            std::move(frame_data)
+        )};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)
