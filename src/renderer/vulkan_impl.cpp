@@ -227,9 +227,15 @@ namespace orion
         enabled_extensions.push_back("VK_KHR_swapchain");
 
         // Create device
+        auto vulkan_13_features = VkPhysicalDeviceVulkan13Features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .pNext = nullptr,
+            .synchronization2 = VK_TRUE,
+            .dynamicRendering = VK_TRUE,
+        };
         const auto vulkan_12_features = VkPhysicalDeviceVulkan12Features{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-            .pNext = nullptr,
+            .pNext = &vulkan_13_features,
             .timelineSemaphore = VK_TRUE,
         };
         const auto device_info = VkDeviceCreateInfo{
@@ -324,8 +330,8 @@ namespace orion
         // Clamp image count
         // VkSurfaceCapabilitiesKHR::maxImageCount == 0 means no driver limit
         auto image_count = std::clamp(desc.requested_image_count,
-                                            surface_capabilities->minImageCount,
-                                            surface_capabilities->maxImageCount != 0 ? surface_capabilities->maxImageCount : VulkanSwapchain::max_image_count);
+                                      surface_capabilities->minImageCount,
+                                      surface_capabilities->maxImageCount != 0 ? surface_capabilities->maxImageCount : VulkanSwapchain::max_image_count);
         ORION_RENDERER_LOG_DEBUG("Using VkSwapchainCreateInfoKHR::minImageCount = {}", image_count);
 
         // Set swapchain extent

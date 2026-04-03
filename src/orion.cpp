@@ -43,7 +43,9 @@ namespace orion
             while (!app->should_exit()) {
                 window_.poll_events();
                 app->update();
+
                 app->render();
+                renderer_.render();
             }
         } catch (const std::exception& ex) {
             ORION_CORE_LOG_ERROR("Fatal exception: {}", ex.what());

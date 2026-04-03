@@ -21,6 +21,8 @@ namespace orion
         Renderer& operator=(Renderer&&) noexcept;
         ~Renderer();
 
+        void render();
+
     private:
         struct Impl;
         explicit Renderer(std::unique_ptr<Impl> impl);

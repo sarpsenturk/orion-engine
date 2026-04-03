@@ -1,18 +1,21 @@
 #include "orion/renderer/renderer.hpp"
 
 #include "vulkan_impl.hpp"
+#include <vulkan/vk_enum_string_helper.h>
 
+#include "orion/log.hpp"
 #include "orion/window.hpp"
 
 #include <array>
 #include <cstdint>
+#include <stdexcept>
 
 namespace orion
 {
     static constexpr auto frames_in_flight = 2;
 
     struct PerFrameData {
-        VulkanCommandPool vulkan_command_pool;
+        VulkanCommandPool command_pool;
 
         VulkanSemaphore image_available_semaphore;
         VulkanSemaphore render_complete_semaphore;
@@ -42,6 +45,200 @@ namespace orion
             , frame_data(std::move(frame_data))
             , frame_semaphore(std::move(frame_semaphore))
         {
+        }
+
+        ~Impl() { (void)vulkan_device.wait_idle(); }
+
+        void render()
+        {
+            // Wait until previous render has finished
+            const auto wait_value = (frame_count >= frames_in_flight) ? frame_count - (frames_in_flight - 1) : 0;
+            if (!frame_semaphore.wait(wait_value, UINT64_MAX)) {
+                throw std::runtime_error("vkWaitSemaphores() failed");
+            }
+
+            // Reset command buffers
+            auto& fd = frame_data[frame_count % frames_in_flight];
+            if (!fd.command_pool.reset()) {
+                throw std::runtime_error("vkResetCommandPool() failed");
+            }
+
+            // Acquire swapchain image
+            const auto image_index = vulkan_swapchain.acquire_next_image(fd.image_available_semaphore, UINT64_MAX);
+            if (!image_index) {
+                throw std::runtime_error("vkAcquireNextImageKHR failed. Swapchain recreation not supported yet");
+            }
+            VkImage swapchain_image = vulkan_swapchain.vk_images[*image_index];
+            VkImageView swapchain_image_view = vulkan_swapchain.vk_image_views[*image_index];
+
+            // Render frame
+            //  Begin command buffer recording
+            auto command_buffer = fd.command_pool.begin_command_buffer();
+            if (!command_buffer) {
+                throw std::runtime_error("vkBeginCommandBuffer failed");
+            }
+
+            //  Transition swapchain image to color attachment
+            const auto to_color_attachment_barrier = VkImageMemoryBarrier2{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                .pNext = nullptr,
+                .srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                .srcAccessMask = VK_ACCESS_2_NONE,
+                .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = swapchain_image,
+                .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            };
+            const auto to_color_attachment_info = VkDependencyInfo{
+                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                .pNext = nullptr,
+                .imageMemoryBarrierCount = 1,
+                .pImageMemoryBarriers = &to_color_attachment_barrier,
+            };
+            vkCmdPipelineBarrier2(*command_buffer, &to_color_attachment_info);
+
+            //  Begin render pass
+            const auto clear_color = VkClearColorValue{{1.0f, 0.0f, 1.0f, 1.0f}};
+            const auto color_attachment_info = VkRenderingAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .pNext = nullptr,
+                .imageView = swapchain_image_view,
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .resolveMode = VK_RESOLVE_MODE_NONE,
+                .resolveImageView = VK_NULL_HANDLE,
+                .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = {clear_color},
+            };
+            const auto rendering_info = VkRenderingInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                .pNext = nullptr,
+                .flags = {},
+                .renderArea = {
+                    .extent = vulkan_swapchain.image_extent,
+                },
+                .layerCount = 1,
+                .viewMask = 0,
+                .colorAttachmentCount = 1,
+                .pColorAttachments = &color_attachment_info,
+            };
+            vkCmdBeginRendering(*command_buffer, &rendering_info);
+
+            // Draw commands
+
+            //  End render pass
+            vkCmdEndRendering(*command_buffer);
+
+            //  Transition swapchain image to present src
+            const auto to_present_src_barrier = VkImageMemoryBarrier2{
+                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                .pNext = nullptr,
+                .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                .dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                .dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
+                .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .image = swapchain_image,
+                .subresourceRange = {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+            };
+            const auto to_present_src_info = VkDependencyInfo{
+                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                .pNext = nullptr,
+                .imageMemoryBarrierCount = 1,
+                .pImageMemoryBarriers = &to_present_src_barrier,
+            };
+            vkCmdPipelineBarrier2(*command_buffer, &to_present_src_info);
+
+            //  End command buffer recording
+            if (VkResult err = vkEndCommandBuffer(*command_buffer)) {
+                ORION_RENDERER_LOG_ERROR("vkEndCommandBuffer() failed: {}", string_VkResult(err));
+                throw std::runtime_error("vkEndCommandBuffer failed");
+            }
+
+            // Submit command buffer to queue
+            const auto wait_semaphores = VkSemaphoreSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .pNext = nullptr,
+                .semaphore = fd.image_available_semaphore.vk_semaphore,
+                .value = 0, // ignored, binary semaphore
+                .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .deviceIndex = 0,
+            };
+            const auto cb_submit_info = VkCommandBufferSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                .pNext = nullptr,
+                .commandBuffer = *command_buffer,
+                .deviceMask = 0,
+            };
+            const auto signal_semaphores = std::array{
+                VkSemaphoreSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .semaphore = fd.render_complete_semaphore.vk_semaphore,
+                    .value = 0, // ignored, binary semaphore
+                    .stageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                    .deviceIndex = 0,
+                },
+                VkSemaphoreSubmitInfo{
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .semaphore = frame_semaphore.vk_semaphore,
+                    .value = ++frame_count, // Increment frame/submission count
+                    .stageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                    .deviceIndex = 0,
+                },
+            };
+            const auto submit_info = VkSubmitInfo2{
+                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                .pNext = nullptr,
+                .flags = {},
+                .waitSemaphoreInfoCount = 1,
+                .pWaitSemaphoreInfos = &wait_semaphores,
+                .commandBufferInfoCount = 1,
+                .pCommandBufferInfos = &cb_submit_info,
+                .signalSemaphoreInfoCount = 2,
+                .pSignalSemaphoreInfos = signal_semaphores.data(),
+            };
+            if (VkResult err = vkQueueSubmit2(vulkan_device.graphics_queue, 1, &submit_info, VK_NULL_HANDLE)) {
+                ORION_RENDERER_LOG_ERROR("vkQueueSubmit2() failed: {}", string_VkResult(err));
+                throw std::runtime_error("vkQueueSubmit2 failed");
+            }
+
+            // Present swapchain image
+            const auto present_info = VkPresentInfoKHR{
+                .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                .pNext = nullptr,
+                .waitSemaphoreCount = 1,
+                .pWaitSemaphores = &fd.render_complete_semaphore.vk_semaphore,
+                .swapchainCount = 1,
+                .pSwapchains = &vulkan_swapchain.vk_swapchain,
+                .pImageIndices = &image_index.value(),
+                .pResults = nullptr,
+            };
+            if (VkResult err = vkQueuePresentKHR(vulkan_device.graphics_queue, &present_info)) {
+                ORION_RENDERER_LOG_ERROR("vkQueuePresentKHR() failed: {}", string_VkResult(err));
+                throw std::runtime_error("vkQueuePresentKHR failed");
+            }
         }
     };
 
@@ -96,7 +293,7 @@ namespace orion
             if (!command_pool) {
                 return tl::unexpected("Failed to create Vulkan command pool");
             }
-            frame_data[i].vulkan_command_pool = std::move(*command_pool);
+            frame_data[i].command_pool = std::move(*command_pool);
 
             auto image_available_semaphore = vulkan_device->create_binary_semaphore();
             if (!image_available_semaphore) {
@@ -133,4 +330,9 @@ namespace orion
     Renderer::Renderer(Renderer&&) noexcept = default;
     Renderer& Renderer::operator=(Renderer&&) noexcept = default;
     Renderer::~Renderer() = default;
+
+    void Renderer::render()
+    {
+        impl_->render();
+    }
 } // namespace orion
