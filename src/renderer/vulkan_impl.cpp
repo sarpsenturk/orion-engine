@@ -4,6 +4,13 @@
 #include "orion/debug.hpp"
 #include "orion/log.hpp"
 
+#include "orion/platform.hpp"
+#ifdef ORION_PLATFORM_MACOS
+    #define ORION_MVK 1
+#else
+    #define ORION_MVK 0
+#endif
+
 #include <vulkan/vk_enum_string_helper.h>
 
 #include "../platform/platform_glfw.hpp"
@@ -60,20 +67,26 @@ namespace orion
 
         // Set enabled instance extensions
         std::vector<const char*> enabled_extensions;
+        // Set enabled instance layers
+        std::vector<const char*> enabled_layers;
+        // Set instance flags
+        VkInstanceCreateFlags instance_flags = {};
+
         // GLFW required extensions
         std::uint32_t glfw_extension_count;
         const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
         enabled_extensions.insert(enabled_extensions.begin(), glfw_extensions, glfw_extensions + glfw_extension_count);
+
         // Debug only extensions
         if constexpr (ORION_VK_DEBUG) {
             enabled_extensions.push_back("VK_EXT_debug_utils");
+            enabled_layers.push_back("VK_LAYER_KHRONOS_validation");
         }
 
-        // Set enabled instance layers
-        std::vector<const char*> enabled_layers;
-        // Debug only layers
-        if constexpr (ORION_VK_DEBUG) {
-            enabled_layers.push_back("VK_LAYER_KHRONOS_validation");
+        // MoltenVK
+        if constexpr (ORION_MVK) {
+            enabled_extensions.push_back("VK_KHR_portability_enumeration");
+            instance_flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 
         // Create VkInstance
@@ -89,7 +102,7 @@ namespace orion
         const auto instance_info = VkInstanceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pNext = nullptr,
-            .flags = {},
+            .flags = instance_flags,
             .pApplicationInfo = &app_info,
             .enabledLayerCount = static_cast<std::uint32_t>(enabled_layers.size()),
             .ppEnabledLayerNames = enabled_layers.data(),
@@ -225,6 +238,10 @@ namespace orion
         // Enabled device extensions
         std::vector<const char*> enabled_extensions;
         enabled_extensions.push_back("VK_KHR_swapchain");
+        // MoltenVK
+        if constexpr (ORION_MVK) {
+            enabled_extensions.push_back("VK_KHR_portability_subset");
+        }
 
         // Create device
         auto vulkan_13_features = VkPhysicalDeviceVulkan13Features{
