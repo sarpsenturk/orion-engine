@@ -18,10 +18,12 @@ namespace orion
 
     void debugbreak()
     {
-#ifdef ORION_COMPILER_MSVC
+#if defined(ORION_COMPILER_MSVC)
         __debugbreak();
-#else
+#elif __has_builtin(__builtin_debugtrap)
         __builtin_debugtrap();
+#elif defined(ORION_ARCH_X64) // fallback for x64 gcc
+        __asm__ volatile("int3");
 #endif
     }
 } // namespace orion
