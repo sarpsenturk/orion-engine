@@ -82,7 +82,10 @@ namespace orion
             static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_close.invoke(OnWindowClose{});
         });
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
-            static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_resize.invoke(OnWindowResize{width, height});
+            auto* impl = static_cast<Window::Impl*>(glfwGetWindowUserPointer(window));
+            impl->width = width;
+            impl->height = height;
+            impl->on_resize.invoke(OnWindowResize{width, height});
         });
         glfwSetWindowPosCallback(window, [](GLFWwindow* window, int xpos, int ypos) {
             static_cast<Window::Impl*>(glfwGetWindowUserPointer(window))->on_move.invoke(OnWindowMove{xpos, ypos});
