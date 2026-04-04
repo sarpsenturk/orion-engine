@@ -34,14 +34,14 @@
         "strategy": "external"
       }
     },
-		{
-			"name": "_arm64-base",
-			"hidden": true,
-			"architecture": {
-				"value": "ARM64",
-				"strategy": "external"
-			}
-		},
+    {
+      "name": "_arm64-base",
+      "hidden": true,
+      "architecture": {
+        "value": "ARM64",
+        "strategy": "external"
+      }
+    },
     {
       "name": "_msvc-base",
       "hidden": true,
@@ -80,43 +80,111 @@
       },
       "displayName": "Release x64 MSVC Windows"
     },
-		{
-			"name": "_appleclang-base",
-			"hidden": true,
-			"cacheVariables": {
-				"CMAKE_C_COMPILER": "cc",
-				"CMAKE_CXX_COMPILER": "c++"
-			}
-		},
-		{
-			"name": "debug-arm64-appleclang-macos",
-			"inherits": [
-				"_root-config",
-				"_debug-base",
-				"_arm64-base",
-				"_appleclang-base"
-			],
-			"condition": {
-				"type": "equals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Darwin"
-			},
-			"displayName": "Debug ARM64 AppleClang macOS"
-		},
-		{
-			"name": "releas-arm64-appleclang-macos",
-			"inherits": [
-				"_root-config",
-				"_release-base",
-				"_arm64-base",
-				"_appleclang-base"
-			],
-			"condition": {
-				"type": "equals",
-				"lhs": "${hostSystemName}",
-				"rhs": "Darwin"
-			},
-			"displayName": "Release ARM64 AppleClang macOS"
-		}
+    {
+      "name": "_clang-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "debug-arm64-clang-macos",
+      "inherits": [
+        "_root-config",
+        "_debug-base",
+        "_arm64-base",
+        "_clang-base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "displayName": "Debug ARM64 AppleClang macOS"
+    },
+    {
+      "name": "release-arm64-clang-macos",
+      "inherits": [
+        "_root-config",
+        "_release-base",
+        "_arm64-base",
+        "_clang-base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "displayName": "Release ARM64 AppleClang macOS"
+    },
+    {
+      "name": "_gcc-base",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "debug-x64-gcc-linux",
+      "inherits": [
+        "_root-config",
+        "_debug-base",
+        "_x64-base",
+        "_gcc-base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "displayName": "Debug x64 GCC Linux"
+    },
+    {
+      "name": "release-x64-gcc-linux",
+      "inherits": [
+        "_root-config",
+        "_release-base",
+        "_x64-base",
+        "_gcc-base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "displayName": "Release x64 GCC Linux"
+    },
+    {
+      "name": "debug-x64-clang-linux",
+      "inherits": [
+        "_root-config",
+        "_debug-base",
+        "_x64-base",
+        "_clang-base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "displayName": "Debug x64 Clang Linux"
+    },
+    {
+      "name": "release-x64-clang-linux",
+      "inherits": [
+        "_root-config",
+        "_release-base",
+        "_x64-base",
+        "_clang-base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "displayName": "Release x64 Clang Linux"
+    }
   ]
 }
