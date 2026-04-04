@@ -56,6 +56,10 @@ jobs:
         if: matrix.runner == 'windows-latest'
         run: choco install ninja
 
+      - name: Set up MSVC environment (Windows)
+        if: matrix.runner == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Set up vcpkg
         uses: actions/checkout@v4
         with:
@@ -99,4 +103,4 @@ jobs:
       - name: Build
         env:
           VCPKG_ROOT: ${{ github.workspace }}/vcpkg
-        run: cmake --build --preset ${{ matrix.preset }}
+        run: cmake --build build/${{ matrix.preset }}
