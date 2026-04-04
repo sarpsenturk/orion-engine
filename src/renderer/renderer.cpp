@@ -6,6 +6,11 @@
 #include "orion/log.hpp"
 #include "orion/window.hpp"
 
+#include "imgui_context.hpp"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+
 #include <array>
 #include <cstdint>
 #include <stdexcept>
@@ -31,23 +36,35 @@ namespace orion
         std::array<PerFrameData, frames_in_flight> frame_data;
         VulkanSemaphore frame_semaphore;
 
+        ImGuiContextWrapper imgui_context;
+
         Impl(
             VulkanInstance instance,
             VulkanDevice device,
             VulkanSurface surface,
             VulkanSwapchain swapchain,
             std::array<PerFrameData, frames_in_flight> frame_data,
-            VulkanSemaphore frame_semaphore)
+            VulkanSemaphore frame_semaphore,
+            ImGuiContextWrapper imgui_context)
             : vulkan_instance(std::move(instance))
             , vulkan_device(std::move(device))
             , vulkan_surface(std::move(surface))
             , vulkan_swapchain(std::move(swapchain))
             , frame_data(std::move(frame_data))
             , frame_semaphore(std::move(frame_semaphore))
+            , imgui_context(std::move(imgui_context))
         {
         }
 
         ~Impl() { (void)vulkan_device.wait_idle(); }
+
+        void new_frame()
+        {
+            // Start the Dear ImGui frame
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+        }
 
         void render()
         {
@@ -136,6 +153,13 @@ namespace orion
             vkCmdBeginRendering(*command_buffer, &rendering_info);
 
             // Draw commands
+
+            // Render ImGui data
+            ImGui::Render();
+            ImDrawData* draw_data = ImGui::GetDrawData();
+
+            // Record dear imgui primitives into command buffer
+            ImGui_ImplVulkan_RenderDrawData(draw_data, *command_buffer);
 
             //  End render pass
             vkCmdEndRendering(*command_buffer);
@@ -313,13 +337,24 @@ namespace orion
             return tl::unexpected("Failed to create Vulkan semaphore");
         }
 
+        // Initialize imgui
+        auto imgui_context = ImGuiContextWrapper::create({
+            desc.window,
+            *vulkan_device,
+            *vulkan_swapchain,
+        });
+        if (!imgui_context) {
+            return tl::unexpected(std::move(imgui_context.error()));
+        }
+
         return Renderer{std::make_unique<Impl>(
             std::move(*vulkan_instance),
             std::move(*vulkan_device),
             std::move(*vulkan_surface),
             std::move(*vulkan_swapchain),
             std::move(frame_data),
-            std::move(*frame_semaphore))};
+            std::move(*frame_semaphore),
+            std::move(*imgui_context))};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)
@@ -330,6 +365,11 @@ namespace orion
     Renderer::Renderer(Renderer&&) noexcept = default;
     Renderer& Renderer::operator=(Renderer&&) noexcept = default;
     Renderer::~Renderer() = default;
+
+    void Renderer::new_frame()
+    {
+        impl_->new_frame();
+    }
 
     void Renderer::render()
     {

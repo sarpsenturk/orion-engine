@@ -14,5 +14,7 @@ target_sources(
     renderer/renderer.cpp
     renderer/vulkan_impl.hpp
     renderer/vulkan_impl.cpp
+    renderer/imgui_context.hpp
+    renderer/imgui_context.cpp
 )
 

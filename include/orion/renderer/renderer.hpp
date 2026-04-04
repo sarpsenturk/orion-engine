@@ -21,6 +21,7 @@ namespace orion
         Renderer& operator=(Renderer&&) noexcept;
         ~Renderer();
 
+        void new_frame();
         void render();
 
     private:

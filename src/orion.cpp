@@ -44,6 +44,7 @@ namespace orion
                 window_.poll_events();
                 app->update();
 
+                renderer_.new_frame();
                 app->render();
                 renderer_.render();
             }

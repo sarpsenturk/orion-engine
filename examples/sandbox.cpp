@@ -1,5 +1,7 @@
 #include <orion/orion.hpp>
 
+#include <imgui.h>
+
 class SandboxApp : public orion::Application
 {
 public:
@@ -10,7 +12,7 @@ public:
 
 private:
     void on_update() override {}
-    void on_render() override {}
+    void on_render() override { ImGui::ShowDemoWindow(); }
     bool should_exit() const override { return window_->should_close(); }
 
     orion::Window* window_;

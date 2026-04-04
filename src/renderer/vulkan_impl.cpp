@@ -31,7 +31,6 @@
 namespace orion
 {
     static constexpr auto orion_vk_version = VK_MAKE_API_VERSION(0, ORION_VERSION_MAJOR, ORION_VERSION_MINOR, ORION_VERSION_PATCH);
-    static constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
 
     static constexpr auto enabled_debug_message_severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                                                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -238,6 +237,7 @@ namespace orion
         // Enabled device extensions
         std::vector<const char*> enabled_extensions;
         enabled_extensions.push_back("VK_KHR_swapchain");
+        enabled_extensions.push_back("VK_KHR_dynamic_rendering");
         // MoltenVK
         if constexpr (ORION_MVK) {
             enabled_extensions.push_back("VK_KHR_portability_subset");

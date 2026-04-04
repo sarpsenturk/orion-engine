@@ -10,6 +10,8 @@
 
 namespace orion
 {
+    inline constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
+
     struct VulkanSemaphore {
         VkDevice vk_device = VK_NULL_HANDLE;
         VkSemaphore vk_semaphore = VK_NULL_HANDLE;

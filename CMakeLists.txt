@@ -18,6 +18,9 @@ find_package(tl-expected 1.3.1 CONFIG REQUIRED)
 find_package(volk 1.4.328.0 CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
 
+# Vendored third party libraries
+add_subdirectory(thirdparty)
+
 option(
     ORION_BUILD_EXAMPLES
     "Enable building examples. Default: ${PROJECT_IS_TOP_LEVEL}. Values: { ON, OFF }."
@@ -53,6 +56,7 @@ target_link_libraries(
     PUBLIC
     spdlog::spdlog
     tl::expected
+    imgui
     PRIVATE
     glfw
     volk::volk # Can link directly, don't need platform defines with glfw
