@@ -155,6 +155,14 @@ namespace orion
     VulkanInstance& VulkanInstance::operator=(VulkanInstance&& other) noexcept
     {
         if (this != &other) {
+            if (vk_debug_messenger) {
+                vkDestroyDebugUtilsMessengerEXT(vk_instance, vk_debug_messenger, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkDebugUtilsMessengerEXT {}", fmt::ptr(vk_debug_messenger));
+            }
+            if (vk_instance) {
+                vkDestroyInstance(vk_instance, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkInstance {}", fmt::ptr(vk_instance));
+            }
             vk_instance = std::exchange(other.vk_instance, VK_NULL_HANDLE);
             vk_debug_messenger = std::exchange(other.vk_debug_messenger, VK_NULL_HANDLE);
         }
@@ -307,6 +315,11 @@ namespace orion
     VulkanDevice& VulkanDevice::operator=(VulkanDevice&& other) noexcept
     {
         if (this != &other) {
+            if (vk_device != VK_NULL_HANDLE) {
+                vkDeviceWaitIdle(vk_device);
+                vkDestroyDevice(vk_device, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkDevice {}", fmt::ptr(vk_device));
+            }
             vk_device = std::exchange(other.vk_device, VK_NULL_HANDLE);
             vk_physical_device = other.vk_physical_device;
             vk_instance = other.vk_instance;
@@ -598,6 +611,10 @@ namespace orion
     VulkanSurface& VulkanSurface::operator=(VulkanSurface&& other) noexcept
     {
         if (this != &other) {
+            if (vk_surface != VK_NULL_HANDLE) {
+                vkDestroySurfaceKHR(vk_instance, vk_surface, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkSurfaceKHR {}", fmt::ptr(vk_surface));
+            }
             vk_surface = std::exchange(other.vk_surface, VK_NULL_HANDLE);
             vk_instance = other.vk_instance;
             vk_physical_device = other.vk_physical_device;
@@ -689,6 +706,14 @@ namespace orion
     VulkanSwapchain& VulkanSwapchain::operator=(VulkanSwapchain&& other) noexcept
     {
         if (this != &other) {
+            if (vk_swapchain != VK_NULL_HANDLE) {
+                for (VkImageView vk_image_view : vk_image_views) {
+                    vkDestroyImageView(vk_device, vk_image_view, nullptr);
+                    ORION_RENDERER_LOG_INFO("Destroyed VkImageView {}", fmt::ptr(vk_image_view));
+                }
+                vkDestroySwapchainKHR(vk_device, vk_swapchain, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkSwapchainKHR {}", fmt::ptr(vk_swapchain));
+            }
             vk_device = other.vk_device;
             vk_swapchain = std::exchange(other.vk_swapchain, VK_NULL_HANDLE);
             image_count = std::exchange(other.image_count, 0);
@@ -708,7 +733,6 @@ namespace orion
                 vkDestroyImageView(vk_device, vk_image_view, nullptr);
                 ORION_RENDERER_LOG_INFO("Destroyed VkImageView {}", fmt::ptr(vk_image_view));
             }
-
             vkDestroySwapchainKHR(vk_device, vk_swapchain, nullptr);
             ORION_RENDERER_LOG_INFO("Destroyed VkSwapchainKHR {}", fmt::ptr(vk_swapchain));
         }
@@ -745,6 +769,11 @@ namespace orion
     VulkanCommandPool& VulkanCommandPool::operator=(VulkanCommandPool&& other) noexcept
     {
         if (this != &other) {
+            if (vk_command_pool != VK_NULL_HANDLE) {
+                vkFreeCommandBuffers(vk_device, vk_command_pool, max_command_buffers, vk_command_buffers.data());
+                vkDestroyCommandPool(vk_device, vk_command_pool, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkCommandPool {}", fmt::ptr(vk_command_pool));
+            }
             vk_device = other.vk_device;
             vk_command_pool = std::exchange(other.vk_command_pool, VK_NULL_HANDLE);
             vk_command_buffers = std::exchange(other.vk_command_buffers, {});
@@ -810,6 +839,10 @@ namespace orion
     VulkanSemaphore& VulkanSemaphore::operator=(VulkanSemaphore&& other) noexcept
     {
         if (this != &other) {
+            if (vk_semaphore != VK_NULL_HANDLE) {
+                vkDestroySemaphore(vk_device, vk_semaphore, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkSemaphore {}", fmt::ptr(vk_semaphore));
+            }
             vk_device = other.vk_device;
             vk_semaphore = std::exchange(other.vk_semaphore, VK_NULL_HANDLE);
         }
