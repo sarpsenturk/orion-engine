@@ -41,17 +41,39 @@ namespace orion
     {
         try {
             while (!app->should_exit()) {
-                window_.poll_events();
-                app->update();
-
-                renderer_.new_frame();
-                app->render();
-                renderer_.render();
+                update(*app);
+                render(*app);
             }
         } catch (const std::exception& ex) {
             ORION_CORE_LOG_ERROR("Fatal exception: {}", ex.what());
         } catch (...) {
             ORION_CORE_LOG_ERROR("Fatal exception: unknown");
         }
+    }
+
+    void Engine::update(Application& app)
+    {
+        window_.poll_events();
+        app.update();
+    }
+
+    void Engine::render(Application& app)
+    {
+        if (renderer_.swapchain_out_of_date()) {
+            const auto width = window_.width();
+            const auto height = window_.height();
+            // Do not recreate swapchain or render with (0,0) extent
+            if (width == 0 || height == 0) {
+                return;
+            }
+            auto result = renderer_.recreate_swapchain(width, height);
+            if (!result) {
+                throw std::runtime_error(std::move(result.error()));
+            }
+        }
+
+        renderer_.new_frame();
+        app.render();
+        renderer_.render();
     }
 } // namespace orion

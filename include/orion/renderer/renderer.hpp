@@ -24,6 +24,9 @@ namespace orion
         void new_frame();
         void render();
 
+        [[nodiscard]] bool swapchain_out_of_date() const noexcept;
+        tl::expected<void, std::string> recreate_swapchain(int width, int height);
+
     private:
         struct Impl;
         explicit Renderer(std::unique_ptr<Impl> impl);

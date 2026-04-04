@@ -37,6 +37,7 @@ namespace orion
         VulkanSemaphore frame_semaphore;
 
         ImGuiContextWrapper imgui_context;
+        VkResult swapchain_status = VK_SUCCESS;
 
         Impl(
             VulkanInstance instance,
@@ -83,7 +84,14 @@ namespace orion
             // Acquire swapchain image
             const auto image_index = vulkan_swapchain.acquire_next_image(fd.image_available_semaphore, UINT64_MAX);
             if (!image_index) {
-                throw std::runtime_error("vkAcquireNextImageKHR failed. Swapchain recreation not supported yet");
+                // Swapchain needs to be recreated, skip rendering this frame
+                if (image_index.error() == VK_ERROR_OUT_OF_DATE_KHR) {
+                    swapchain_status = image_index.error();
+                    return;
+                } else {
+                    // Another, unrecoverable error occured
+                    throw std::runtime_error(fmt::format("vkAcquireNextImageKHR() failed: {}", string_VkResult(image_index.error())));
+                }
             }
             VkImage swapchain_image = vulkan_swapchain.vk_images[*image_index];
             VkImageView swapchain_image_view = vulkan_swapchain.vk_image_views[*image_index];
@@ -259,10 +267,54 @@ namespace orion
                 .pImageIndices = &image_index.value(),
                 .pResults = nullptr,
             };
-            if (VkResult err = vkQueuePresentKHR(vulkan_device.graphics_queue, &present_info)) {
-                ORION_RENDERER_LOG_ERROR("vkQueuePresentKHR() failed: {}", string_VkResult(err));
-                throw std::runtime_error("vkQueuePresentKHR failed");
+            if (VkResult result = vkQueuePresentKHR(vulkan_device.graphics_queue, &present_info)) {
+                // Swapchain needs to be recreated, it will be before next render
+                if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
+                    swapchain_status = result;
+                    return;
+                } else {
+                    // Another, unrecoverable error occured
+                    throw std::runtime_error(fmt::format("vkQueuePresentKHR failed", string_VkResult(result)));
+                }
             }
+        }
+
+        [[nodiscard]] bool swapchain_out_of_date() const noexcept
+        {
+            return swapchain_status == VK_SUBOPTIMAL_KHR || swapchain_status == VK_ERROR_OUT_OF_DATE_KHR;
+        }
+
+        tl::expected<void, std::string> recreate_swapchain(int width, int height)
+        {
+            // Wait until device is idle to make sure swapchain is not in use
+            (void)vulkan_device.wait_idle();
+
+            // Create new swapchain
+            auto new_swapchain = vulkan_device.create_swapchain({
+                .surface = vulkan_surface,
+                .requested_extent = {
+                    .width = static_cast<std::uint32_t>(width),
+                    .height = static_cast<std::uint32_t>(height),
+                },
+                .requested_image_count = vulkan_swapchain.image_count,
+                .requested_image_format = vulkan_swapchain.image_format,
+                .requested_present_mode = vulkan_swapchain.present_mode,
+                .old_swapchain = vulkan_swapchain.vk_swapchain,
+            });
+            if (!new_swapchain) {
+                return tl::unexpected(fmt::format("Failed to recreate swapchain: {}", string_VkResult(new_swapchain.error())));
+            }
+
+            // Reassign swapchain, destroy old swapchain & resources
+            vulkan_swapchain = std::move(*new_swapchain);
+
+            // Override ImGui MinImageCount
+            ImGui_ImplVulkan_SetMinImageCount(vulkan_swapchain.image_count);
+
+            // Reset swapchain status
+            swapchain_status = VK_SUCCESS;
+
+            return {};
         }
     };
 
@@ -374,5 +426,15 @@ namespace orion
     void Renderer::render()
     {
         impl_->render();
+    }
+
+    bool Renderer::swapchain_out_of_date() const noexcept
+    {
+        return impl_->swapchain_out_of_date();
+    }
+
+    tl::expected<void, std::string> Renderer::recreate_swapchain(int width, int height)
+    {
+        return impl_->recreate_swapchain(width, height);
     }
 } // namespace orion

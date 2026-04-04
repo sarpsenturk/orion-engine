@@ -23,6 +23,9 @@ namespace orion
         [[nodiscard]] const Window* window() const { return &window_; }
 
     private:
+        void update(Application& app);
+        void render(Application& app);
+
         Engine(Logger logger, Window window, Renderer renderer);
         Logger logger_;
         Window window_;

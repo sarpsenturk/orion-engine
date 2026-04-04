@@ -741,10 +741,14 @@ namespace orion
     tl::expected<std::uint32_t, VkResult> VulkanSwapchain::acquire_next_image(const VulkanSemaphore& semaphore, std::uint64_t timeout)
     {
         std::uint32_t image_index = 0;
-        if (VkResult err = vkAcquireNextImageKHR(vk_device, vk_swapchain, timeout, semaphore.vk_semaphore, VK_NULL_HANDLE, &image_index)) {
-            return tl::unexpected(err);
-        } else {
-            return image_index;
+        const auto result = vkAcquireNextImageKHR(vk_device, vk_swapchain, timeout, semaphore.vk_semaphore, VK_NULL_HANDLE, &image_index);
+        switch (result) {
+            case VK_SUBOPTIMAL_KHR:
+                [[fallthrough]];
+            case VK_SUCCESS:
+                return image_index;
+            default:
+                return tl::unexpected(result);
         }
     }
 
