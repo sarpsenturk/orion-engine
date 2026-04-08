@@ -26,4 +26,13 @@ namespace orion
         __asm__ volatile("int3");
 #endif
     }
+
+    void unreachable()
+    {
+#if defined(ORION_COMPILER_MSVC)
+        __assume(false);
+#else
+        __builtin_unreachable();
+#endif
+    }
 } // namespace orion

@@ -14,6 +14,7 @@ namespace orion
 {
     void output_debug_string(const char* str);
     void debugbreak();
+    [[noreturn]] void unreachable();
 } // namespace orion
 
 #if ORION_ENABLE_ASSERTIONS
