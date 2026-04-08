@@ -11,6 +11,11 @@
     #define ORION_MVK 0
 #endif
 
+#define VMA_IMPLEMENTATION
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
+#include <vk_mem_alloc.h>
+
 #include <vulkan/vk_enum_string_helper.h>
 
 #include "../platform/platform_glfw.hpp"
@@ -286,16 +291,48 @@ namespace orion
         vkGetDeviceQueue(device, graphics_queue_family_index, 0, &graphics_queue);
         ORION_RENDERER_LOG_INFO("Acquired VkQueue (graphics) {}", fmt::ptr(graphics_queue));
 
-        return VulkanDevice{device, physical_device, vk_instance, graphics_queue_family_index, graphics_queue};
+        // Initialize VulkanMemoryAllocator
+        VmaVulkanFunctions vma_functions = {};
+        const auto vma_info = VmaAllocatorCreateInfo{
+            .flags = {},
+            .physicalDevice = physical_device,
+            .device = device,
+            .preferredLargeHeapBlockSize = {},
+            .pAllocationCallbacks = nullptr,
+            .pDeviceMemoryCallbacks = nullptr,
+            .pHeapSizeLimit = nullptr,
+            .pVulkanFunctions = &vma_functions,
+            .instance = vk_instance,
+            .vulkanApiVersion = vulkan_api_version,
+            .pTypeExternalMemoryHandleTypes = nullptr,
+        };
+        // Import Vma functions with volk
+        if (VkResult err = vmaImportVulkanFunctionsFromVolk(&vma_info, &vma_functions)) {
+            ORION_RENDERER_LOG_ERROR("vmaImportVulkanFunctionsFromVolk() failed: {}", string_VkResult(err));
+            vkDestroyDevice(device, nullptr);
+            return tl::unexpected(err);
+        }
+        VmaAllocator vma_allocator = VK_NULL_HANDLE;
+        if (VkResult err = vmaCreateAllocator(&vma_info, &vma_allocator)) {
+            ORION_RENDERER_LOG_ERROR("vmaCreateAllocator() failed: {}", string_VkResult(err));
+            vkDestroyDevice(device, nullptr);
+            return tl::unexpected(err);
+        } else {
+            ORION_RENDERER_LOG_INFO("Created VmaAllocator {}", fmt::ptr(vma_allocator));
+        }
+
+        return VulkanDevice{device, vma_allocator, physical_device, vk_instance, graphics_queue_family_index, graphics_queue};
     }
 
     VulkanDevice::VulkanDevice(
         VkDevice device,
+        VmaAllocator vma_allocator,
         VkPhysicalDevice physical_device,
         VkInstance instance,
         std::uint32_t graphics_queue_family,
         VkQueue graphics_queue)
         : vk_device(device)
+        , vma_allocator(vma_allocator)
         , vk_physical_device(physical_device)
         , vk_instance(instance)
         , graphics_queue_family(graphics_queue_family)
@@ -305,6 +342,7 @@ namespace orion
 
     VulkanDevice::VulkanDevice(VulkanDevice&& other) noexcept
         : vk_device(std::exchange(other.vk_device, VK_NULL_HANDLE))
+        , vma_allocator(std::exchange(other.vma_allocator, VK_NULL_HANDLE))
         , vk_physical_device(other.vk_physical_device)
         , vk_instance(other.vk_instance)
         , graphics_queue_family(other.graphics_queue_family)
@@ -317,10 +355,13 @@ namespace orion
         if (this != &other) {
             if (vk_device != VK_NULL_HANDLE) {
                 vkDeviceWaitIdle(vk_device);
+                vmaDestroyAllocator(vma_allocator);
+                ORION_RENDERER_LOG_INFO("Destroyed VmaAllocator {}", fmt::ptr(vma_allocator));
                 vkDestroyDevice(vk_device, nullptr);
                 ORION_RENDERER_LOG_INFO("Destroyed VkDevice {}", fmt::ptr(vk_device));
             }
             vk_device = std::exchange(other.vk_device, VK_NULL_HANDLE);
+            vma_allocator = std::exchange(other.vma_allocator, VK_NULL_HANDLE);
             vk_physical_device = other.vk_physical_device;
             vk_instance = other.vk_instance;
             graphics_queue_family = other.graphics_queue_family;
@@ -333,6 +374,8 @@ namespace orion
     {
         if (vk_device != VK_NULL_HANDLE) {
             vkDeviceWaitIdle(vk_device);
+            vmaDestroyAllocator(vma_allocator);
+            ORION_RENDERER_LOG_INFO("Destroyed VmaAllocator {}", fmt::ptr(vma_allocator));
             vkDestroyDevice(vk_device, nullptr);
             ORION_RENDERER_LOG_INFO("Destroyed VkDevice {}", fmt::ptr(vk_device));
         }

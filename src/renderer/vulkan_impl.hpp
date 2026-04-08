@@ -2,6 +2,8 @@
 
 #include <volk.h>
 
+#include <vk_mem_alloc.h>
+
 #include <tl/expected.hpp>
 
 #include <array>
@@ -115,6 +117,7 @@ namespace orion
 
     struct VulkanDevice {
         VkDevice vk_device;
+        VmaAllocator vma_allocator;
         VkPhysicalDevice vk_physical_device;
         VkInstance vk_instance;
 
@@ -123,6 +126,7 @@ namespace orion
 
         VulkanDevice(
             VkDevice device,
+            VmaAllocator vma_allocator,
             VkPhysicalDevice physical_device,
             VkInstance instance,
             std::uint32_t graphics_queue_family,

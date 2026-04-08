@@ -17,6 +17,7 @@ find_package(glfw3 3.4 CONFIG REQUIRED)
 find_package(tl-expected 1.3.1 CONFIG REQUIRED)
 find_package(volk 1.4.328.0 CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator 3.3.0 CONFIG REQUIRED)
 
 # Vendored third party libraries
 add_subdirectory(thirdparty)
@@ -62,6 +63,7 @@ target_link_libraries(
     glfw
     volk::volk # Can link directly, don't need platform defines with glfw
     Vulkan::UtilityHeaders
+    GPUOpen::VulkanMemoryAllocator
 )
 target_compile_definitions(
     orion
