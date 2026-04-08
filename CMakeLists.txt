@@ -57,6 +57,7 @@ target_link_libraries(
     spdlog::spdlog
     tl::expected
     imgui
+    volk::volk_headers
     PRIVATE
     glfw
     volk::volk # Can link directly, don't need platform defines with glfw

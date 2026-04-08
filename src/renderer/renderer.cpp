@@ -1,5 +1,7 @@
 #include "orion/renderer/renderer.hpp"
 
+#include "orion/renderer/render_graph.hpp"
+
 #include "vulkan_impl.hpp"
 #include <vulkan/vk_enum_string_helper.h>
 
@@ -24,6 +26,8 @@ namespace orion
 
         VulkanSemaphore image_available_semaphore;
         VulkanSemaphore render_complete_semaphore;
+
+        RenderGraph render_graph;
     };
 
     struct Renderer::Impl {
@@ -93,8 +97,6 @@ namespace orion
                     throw std::runtime_error(fmt::format("vkAcquireNextImageKHR() failed: {}", string_VkResult(image_index.error())));
                 }
             }
-            VkImage swapchain_image = vulkan_swapchain.vk_images[*image_index];
-            VkImageView swapchain_image_view = vulkan_swapchain.vk_image_views[*image_index];
 
             // Render frame
             //  Begin command buffer recording
@@ -103,103 +105,69 @@ namespace orion
                 throw std::runtime_error("vkBeginCommandBuffer failed");
             }
 
-            //  Transition swapchain image to color attachment
-            const auto to_color_attachment_barrier = VkImageMemoryBarrier2{
-                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                .pNext = nullptr,
-                .srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                .srcAccessMask = VK_ACCESS_2_NONE,
-                .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image = swapchain_image,
-                .subresourceRange = {
-                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1,
-                },
-            };
-            const auto to_color_attachment_info = VkDependencyInfo{
-                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                .pNext = nullptr,
-                .imageMemoryBarrierCount = 1,
-                .pImageMemoryBarriers = &to_color_attachment_barrier,
-            };
-            vkCmdPipelineBarrier2(*command_buffer, &to_color_attachment_info);
+            // Reset render graph
+            fd.render_graph.reset();
 
-            //  Begin render pass
-            const auto clear_color = VkClearColorValue{{1.0f, 0.0f, 1.0f, 1.0f}};
-            const auto color_attachment_info = VkRenderingAttachmentInfo{
-                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .pNext = nullptr,
-                .imageView = swapchain_image_view,
-                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .resolveMode = VK_RESOLVE_MODE_NONE,
-                .resolveImageView = VK_NULL_HANDLE,
-                .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = {clear_color},
-            };
-            const auto rendering_info = VkRenderingInfo{
-                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-                .pNext = nullptr,
-                .flags = {},
-                .renderArea = {
-                    .extent = vulkan_swapchain.image_extent,
-                },
-                .layerCount = 1,
-                .viewMask = 0,
-                .colorAttachmentCount = 1,
-                .pColorAttachments = &color_attachment_info,
-            };
-            vkCmdBeginRendering(*command_buffer, &rendering_info);
+            // Import swapchain image to render graph
+            auto swapchain_image = fd.render_graph.import_texture(
+                vulkan_swapchain.vk_images[*image_index],
+                vulkan_swapchain.vk_image_views[*image_index],
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-            // Draw commands
+            // Define empty clear pass
+            fd.render_graph.add_pass("Clear", [&](RenderPassBuilder& builder) {
+                swapchain_image = builder.write_texture(swapchain_image, TextureUsage::ColorAttachment);
+                return [=](RenderPassContext& ctx) {
+                    const auto clear_color = VkClearColorValue{{1.0f, 0.0f, 1.0f, 1.0f}};
+                    const auto color_attachment = VkRenderingAttachmentInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                        .imageView = ctx.get_image_view(swapchain_image),
+                        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .clearValue = {clear_color},
+                    };
+                    const auto rendering_info = VkRenderingInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                        .renderArea = {.extent = vulkan_swapchain.image_extent},
+                        .layerCount = 1,
+                        .colorAttachmentCount = 1,
+                        .pColorAttachments = &color_attachment,
+                    };
+                    vkCmdBeginRendering(ctx.cmd(), &rendering_info);
+                    vkCmdEndRendering(ctx.cmd());
+                };
+            });
 
-            // Render ImGui data
-            ImGui::Render();
-            ImDrawData* draw_data = ImGui::GetDrawData();
+            // Define imgui pass
+            fd.render_graph.add_pass("ImGui", [&](RenderPassBuilder& builder) {
+                swapchain_image = builder.write_texture(swapchain_image, TextureUsage::ColorAttachment);
+                return [=](RenderPassContext& ctx) {
+                    const auto color_attachment = VkRenderingAttachmentInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                        .imageView = ctx.get_image_view(swapchain_image),
+                        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    };
+                    const auto rendering_info = VkRenderingInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                        .renderArea = {.extent = vulkan_swapchain.image_extent},
+                        .layerCount = 1,
+                        .colorAttachmentCount = 1,
+                        .pColorAttachments = &color_attachment,
+                    };
+                    vkCmdBeginRendering(ctx.cmd(), &rendering_info);
+                    ImGui::Render();
+                    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), ctx.cmd());
+                    vkCmdEndRendering(ctx.cmd());
+                };
+            });
 
-            // Record dear imgui primitives into command buffer
-            ImGui_ImplVulkan_RenderDrawData(draw_data, *command_buffer);
-
-            //  End render pass
-            vkCmdEndRendering(*command_buffer);
-
-            //  Transition swapchain image to present src
-            const auto to_present_src_barrier = VkImageMemoryBarrier2{
-                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                .pNext = nullptr,
-                .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                .srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                .dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                .dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
-                .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image = swapchain_image,
-                .subresourceRange = {
-                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1,
-                },
-            };
-            const auto to_present_src_info = VkDependencyInfo{
-                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                .pNext = nullptr,
-                .imageMemoryBarrierCount = 1,
-                .pImageMemoryBarriers = &to_present_src_barrier,
-            };
-            vkCmdPipelineBarrier2(*command_buffer, &to_present_src_info);
+            // Compile & execute render graph
+            fd.render_graph.compile();
+            fd.render_graph.execute(*command_buffer);
 
             //  End command buffer recording
             if (VkResult err = vkEndCommandBuffer(*command_buffer)) {

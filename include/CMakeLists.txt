@@ -13,5 +13,6 @@ target_sources(
     orion/event.hpp
 
     orion/renderer/renderer.hpp
+    orion/renderer/render_graph.hpp
 )
 
