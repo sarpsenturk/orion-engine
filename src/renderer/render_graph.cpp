@@ -12,7 +12,7 @@ namespace orion
                     .handle = handle,
                     .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                     .stage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .access = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+                    .access = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                 };
         }
         unreachable();
@@ -20,14 +20,14 @@ namespace orion
 
     static bool is_write_access(VkAccessFlags2 access_flags)
     {
-        static constexpr auto write_mask = VK_ACCESS_2_SHADER_WRITE_BIT &
-                                           VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT &
-                                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT &
-                                           VK_ACCESS_2_TRANSFER_WRITE_BIT &
-                                           VK_ACCESS_2_HOST_WRITE_BIT &
-                                           VK_ACCESS_2_MEMORY_WRITE_BIT &
+        static constexpr auto write_mask = VK_ACCESS_2_SHADER_WRITE_BIT |
+                                           VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
+                                           VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                                           VK_ACCESS_2_TRANSFER_WRITE_BIT |
+                                           VK_ACCESS_2_HOST_WRITE_BIT |
+                                           VK_ACCESS_2_MEMORY_WRITE_BIT |
                                            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT;
-        return !!(access_flags & write_mask);
+        return (access_flags & write_mask) != 0;
     }
 
     static bool requires_image_barrier(const TextureAccess& src, const TextureAccess& dst)
