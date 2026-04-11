@@ -109,11 +109,12 @@ namespace orion
             fd.render_graph.reset();
 
             // Import swapchain image to render graph
-            auto swapchain_image = fd.render_graph.import_texture(
-                vulkan_swapchain.vk_images[*image_index],
-                vulkan_swapchain.vk_image_views[*image_index],
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+            auto swapchain_image = fd.render_graph.import_texture({
+                .image = vulkan_swapchain.vk_images[*image_index],
+                .view = vulkan_swapchain.vk_image_views[*image_index],
+                .current_layout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .final_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            });
 
             // Define empty clear pass
             fd.render_graph.add_pass("Clear", [&](RenderPassBuilder& builder) {

@@ -69,17 +69,17 @@ namespace orion
         textures_.clear();
     }
 
-    TextureHandle RenderGraph::import_texture(VkImage image, VkImageView view, VkImageLayout current_layout, VkImageLayout final_layout)
+    TextureHandle RenderGraph::import_texture(const TextureImportDesc& desc)
     {
         const auto index = static_cast<std::uint16_t>(textures_.size());
         textures_.push_back(Texture{
             .imported = true,
-            .image = image,
-            .image_view = view,
-            .current_layout = current_layout,
+            .image = desc.image,
+            .image_view = desc.view,
+            .current_layout = desc.current_layout,
             .last_stage = VK_PIPELINE_STAGE_2_NONE,
             .last_access = VK_ACCESS_2_NONE,
-            .final_layout = final_layout,
+            .final_layout = desc.final_layout,
         });
         return {index, 0};
     }

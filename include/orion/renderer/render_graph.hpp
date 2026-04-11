@@ -82,7 +82,14 @@ namespace orion
             VkImageLayout final_layout = VK_IMAGE_LAYOUT_UNDEFINED;
         };
 
-        TextureHandle import_texture(VkImage image, VkImageView view, VkImageLayout current_layout, VkImageLayout final_layout);
+        struct TextureImportDesc {
+            VkImage image;
+            VkImageView view;
+            VkImageLayout current_layout;
+            VkImageLayout final_layout;
+        };
+
+        TextureHandle import_texture(const TextureImportDesc& desc);
         const Texture& get_texture(TextureHandle handle) const;
 
         void add_pass(std::string name, const RenderPassSetupFn auto& setup)
