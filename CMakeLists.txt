@@ -20,7 +20,7 @@ find_package(VulkanUtilityLibraries CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator 3.3.0 CONFIG REQUIRED)
 
 # Vendored third party libraries
-add_subdirectory(thirdparty)
+add_subdirectory(thirdparty/imgui)
 
 option(
     ORION_BUILD_EXAMPLES
