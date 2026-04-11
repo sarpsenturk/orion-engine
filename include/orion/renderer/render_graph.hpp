@@ -23,9 +23,9 @@ namespace orion
 
     private:
         friend class RenderGraph;
-        RenderPassContext(RenderGraph& graph, VkCommandBuffer command_buffer);
+        RenderPassContext(class RenderGraph& graph, VkCommandBuffer command_buffer);
 
-        RenderGraph& graph_;
+        class RenderGraph& graph_;
         VkCommandBuffer command_buffer_;
     };
     using RenderPassExecuteFn = std::function<void(RenderPassContext&)>;
@@ -55,9 +55,9 @@ namespace orion
 
     private:
         friend class RenderGraph;
-        RenderPassBuilder(RenderGraph& graph, RenderPass& pass);
+        RenderPassBuilder(class RenderGraph& graph, RenderPass& pass);
 
-        RenderGraph& graph_;
+        class RenderGraph& graph_;
         RenderPass& pass_;
     };
 
