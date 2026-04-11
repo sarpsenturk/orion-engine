@@ -109,21 +109,33 @@ namespace orion
             fd.render_graph.reset();
 
             // Import swapchain image to render graph
-            auto swapchain_image = fd.render_graph.import_texture({
+            auto swapchain_texture = fd.render_graph.import_texture({
                 .image = vulkan_swapchain.vk_images[*image_index],
                 .view = vulkan_swapchain.vk_image_views[*image_index],
                 .current_layout = VK_IMAGE_LAYOUT_UNDEFINED,
                 .final_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
             });
 
+            // Create transient depth attachment
+            const auto depth_texture = fd.render_graph.create_transient_texture({
+                .image_type = VK_IMAGE_TYPE_2D,
+                .format = VK_FORMAT_D32_SFLOAT,
+                .extent = {
+                    .width = vulkan_swapchain.image_extent.width,
+                    .height = vulkan_swapchain.image_extent.height,
+                    .depth = 1u,
+                },
+                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            });
+
             // Define empty clear pass
             fd.render_graph.add_pass("Clear", [&](RenderPassBuilder& builder) {
-                swapchain_image = builder.write_texture(swapchain_image, TextureUsage::ColorAttachment);
+                swapchain_texture = builder.write_texture(swapchain_texture, TextureUsage::ColorAttachment);
                 return [=](RenderPassContext& ctx) {
                     const auto clear_color = VkClearColorValue{{1.0f, 0.0f, 1.0f, 1.0f}};
                     const auto color_attachment = VkRenderingAttachmentInfo{
                         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                        .imageView = ctx.get_image_view(swapchain_image),
+                        .imageView = ctx.get_image_view(swapchain_texture),
                         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -143,11 +155,11 @@ namespace orion
 
             // Define imgui pass
             fd.render_graph.add_pass("ImGui", [&](RenderPassBuilder& builder) {
-                swapchain_image = builder.write_texture(swapchain_image, TextureUsage::ColorAttachment);
+                swapchain_texture = builder.write_texture(swapchain_texture, TextureUsage::ColorAttachment);
                 return [=](RenderPassContext& ctx) {
                     const auto color_attachment = VkRenderingAttachmentInfo{
                         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                        .imageView = ctx.get_image_view(swapchain_image),
+                        .imageView = ctx.get_image_view(swapchain_texture),
                         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
                         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,

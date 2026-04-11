@@ -73,13 +73,23 @@ namespace orion
     {
         const auto index = static_cast<std::uint16_t>(textures_.size());
         textures_.push_back(Texture{
-            .imported = true,
+            .lifetime = TextureLifetime::Persistent,
             .image = desc.image,
             .image_view = desc.view,
             .current_layout = desc.current_layout,
             .last_stage = VK_PIPELINE_STAGE_2_NONE,
             .last_access = VK_ACCESS_2_NONE,
             .final_layout = desc.final_layout,
+        });
+        return {index, 0};
+    }
+
+    TextureHandle RenderGraph::create_transient_texture(const TextureDesc& desc)
+    {
+        const auto index = static_cast<std::uint16_t>(textures_.size());
+        textures_.push_back(Texture{
+            .lifetime = TextureLifetime::Transient,
+            .desc = desc,
         });
         return {index, 0};
     }
@@ -173,7 +183,8 @@ namespace orion
     void RenderGraph::compile_emit_final_layout_transitions()
     {
         for (const auto& texture : textures_) {
-            if (texture.imported && texture.current_layout != texture.final_layout) {
+            if (texture.lifetime == TextureLifetime::Persistent &&
+                texture.current_layout != texture.final_layout) {
                 final_layout_transitions_.push_back(VkImageMemoryBarrier2{
                     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                     .pNext = nullptr,

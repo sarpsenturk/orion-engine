@@ -69,17 +69,9 @@ namespace orion
     class RenderGraph
     {
     public:
-        struct Texture {
-            bool imported = false;
-
-            VkImage image = VK_NULL_HANDLE;
-            VkImageView image_view = VK_NULL_HANDLE;
-
-            VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-            VkPipelineStageFlags2 last_stage = VK_PIPELINE_STAGE_2_NONE;
-            VkAccessFlags2 last_access = VK_ACCESS_2_NONE;
-
-            VkImageLayout final_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        enum class TextureLifetime {
+            Transient,
+            Persistent,
         };
 
         struct TextureImportDesc {
@@ -89,7 +81,31 @@ namespace orion
             VkImageLayout final_layout;
         };
 
+        struct TextureDesc {
+            VkImageType image_type;
+            VkFormat format;
+            VkExtent3D extent;
+            VkImageUsageFlags usage;
+        };
+
+        struct Texture {
+            TextureLifetime lifetime = TextureLifetime::Transient;
+
+            VkImage image = VK_NULL_HANDLE;
+            VkImageView image_view = VK_NULL_HANDLE;
+
+            VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkPipelineStageFlags2 last_stage = VK_PIPELINE_STAGE_2_NONE;
+            VkAccessFlags2 last_access = VK_ACCESS_2_NONE;
+
+            VkImageLayout final_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+            TextureDesc desc;
+        };
+
         TextureHandle import_texture(const TextureImportDesc& desc);
+        TextureHandle create_transient_texture(const TextureDesc& desc);
+
         const Texture& get_texture(TextureHandle handle) const;
 
         void add_pass(std::string name, const RenderPassSetupFn auto& setup)
