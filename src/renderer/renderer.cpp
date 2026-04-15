@@ -133,7 +133,7 @@ namespace orion
             fd.render_graph.add_pass("Color", [&](RenderPassBuilder& builder) {
                 swapchain_texture = builder.write_texture(swapchain_texture, TextureUsage::ColorAttachment);
                 builder.write_texture(depth_texture, TextureUsage::DepthAttachment);
-                return [=](RenderPassContext& ctx) {
+                return [=, this](RenderPassContext& ctx) {
                     const auto clear_color = VkClearColorValue{{1.0f, 0.0f, 1.0f, 1.0f}};
                     const auto color_attachment = VkRenderingAttachmentInfo{
                         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -168,7 +168,7 @@ namespace orion
             // Define imgui pass
             fd.render_graph.add_pass("ImGui", [&](RenderPassBuilder& builder) {
                 swapchain_texture = builder.write_texture(swapchain_texture, TextureUsage::ColorAttachment);
-                return [=](RenderPassContext& ctx) {
+                return [=, this](RenderPassContext& ctx) {
                     const auto color_attachment = VkRenderingAttachmentInfo{
                         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                         .imageView = ctx.get_image_view(swapchain_texture),
