@@ -2,9 +2,12 @@
 
 #include <volk.h>
 
+#include <vk_mem_alloc.h>
+
 #include <concepts>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -86,6 +89,26 @@ namespace orion
             VkFormat format;
             VkExtent3D extent;
             VkImageUsageFlags usage;
+
+            [[nodiscard]] constexpr friend bool operator<(const TextureDesc& lhs, const TextureDesc& rhs) noexcept
+            {
+                if (lhs.image_type != rhs.image_type) {
+                    return lhs.image_type < rhs.image_type;
+                }
+                if (lhs.format != rhs.format) {
+                    return lhs.format < rhs.format;
+                }
+                if (lhs.extent.width != rhs.extent.width) {
+                    return lhs.extent.width < rhs.extent.width;
+                }
+                if (lhs.extent.height != rhs.extent.height) {
+                    return lhs.extent.height < rhs.extent.height;
+                }
+                if (lhs.extent.depth != rhs.extent.depth) {
+                    return lhs.extent.depth < rhs.extent.depth;
+                }
+                return lhs.usage < rhs.usage;
+            }
         };
 
         struct Texture {
@@ -102,6 +125,20 @@ namespace orion
 
             TextureDesc desc;
         };
+
+        struct TextureAllocation {
+            VkImage image;
+            VkImageView view;
+            VmaAllocation allocation;
+        };
+
+        RenderGraph() = default;
+        RenderGraph(VkDevice device, VmaAllocator allocator);
+        RenderGraph(const RenderGraph&) = delete;
+        RenderGraph& operator=(const RenderGraph&) = delete;
+        RenderGraph(RenderGraph&&) noexcept = default;
+        RenderGraph& operator=(RenderGraph&& ) noexcept = default;
+        ~RenderGraph();
 
         TextureHandle import_texture(const TextureImportDesc& desc);
         TextureHandle create_transient_texture(const TextureDesc& desc);
@@ -122,12 +159,16 @@ namespace orion
 
     private:
         void compile_sort_passes();
+        void compile_allocate_transient_resources();
         void compile_emit_pass_barriers();
         void compile_emit_final_layout_transitions();
 
+        VkDevice vk_device_ = VK_NULL_HANDLE;
+        VmaAllocator vma_allocator_ = VK_NULL_HANDLE;
         std::vector<Texture> textures_;
         std::vector<RenderPass> passes_;
         std::vector<std::size_t> sorted_passes_;
         std::vector<VkImageMemoryBarrier2> final_layout_transitions_;
+        std::map<TextureDesc, TextureAllocation> transient_textures_;
     };
 } // namespace orion

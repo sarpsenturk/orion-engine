@@ -59,11 +59,11 @@ target_link_libraries(
     tl::expected
     imgui
     volk::volk_headers
+    GPUOpen::VulkanMemoryAllocator
     PRIVATE
     glfw
     volk::volk # Can link directly, don't need platform defines with glfw
     Vulkan::UtilityHeaders
-    GPUOpen::VulkanMemoryAllocator
 )
 target_compile_definitions(
     orion

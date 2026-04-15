@@ -362,6 +362,8 @@ namespace orion
                 return tl::unexpected("Failed to create Vulkan semaphpre");
             }
             frame_data[i].render_complete_semaphore = std::move(*render_complete_semaphore);
+
+            frame_data[i].render_graph = RenderGraph{vulkan_device->vk_device, vulkan_device->vma_allocator};
         }
 
         // Create frame counter semaphore
