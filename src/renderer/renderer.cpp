@@ -114,6 +114,7 @@ namespace orion
                 .view = vulkan_swapchain.vk_image_views[*image_index],
                 .current_layout = VK_IMAGE_LAYOUT_UNDEFINED,
                 .final_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                .format = vulkan_swapchain.image_format,
             });
 
             // Create transient depth attachment
@@ -128,9 +129,10 @@ namespace orion
                 .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             });
 
-            // Define empty clear pass
-            fd.render_graph.add_pass("Clear", [&](RenderPassBuilder& builder) {
+            // Define color pass
+            fd.render_graph.add_pass("Color", [&](RenderPassBuilder& builder) {
                 swapchain_texture = builder.write_texture(swapchain_texture, TextureUsage::ColorAttachment);
+                builder.write_texture(depth_texture, TextureUsage::DepthAttachment);
                 return [=](RenderPassContext& ctx) {
                     const auto clear_color = VkClearColorValue{{1.0f, 0.0f, 1.0f, 1.0f}};
                     const auto color_attachment = VkRenderingAttachmentInfo{
@@ -139,7 +141,16 @@ namespace orion
                         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                        .clearValue = {clear_color},
+                        .clearValue = {.color = clear_color},
+                    };
+                    const auto clear_depth = VkClearDepthStencilValue{.depth = 1.0f};
+                    const auto depth_attachment = VkRenderingAttachmentInfo{
+                        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                        .imageView = ctx.get_image_view(depth_texture),
+                        .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .clearValue = {.depthStencil = clear_depth},
                     };
                     const auto rendering_info = VkRenderingInfo{
                         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -147,6 +158,7 @@ namespace orion
                         .layerCount = 1,
                         .colorAttachmentCount = 1,
                         .pColorAttachments = &color_attachment,
+                        .pDepthAttachment = &depth_attachment,
                     };
                     vkCmdBeginRendering(ctx.cmd(), &rendering_info);
                     vkCmdEndRendering(ctx.cmd());

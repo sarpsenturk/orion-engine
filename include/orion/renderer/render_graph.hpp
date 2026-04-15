@@ -49,6 +49,7 @@ namespace orion
 
     enum class TextureUsage {
         ColorAttachment,
+        DepthAttachment,
     };
 
     class RenderPassBuilder
@@ -82,6 +83,7 @@ namespace orion
             VkImageView view;
             VkImageLayout current_layout;
             VkImageLayout final_layout;
+            VkFormat format;
         };
 
         struct TextureDesc {
@@ -137,7 +139,7 @@ namespace orion
         RenderGraph(const RenderGraph&) = delete;
         RenderGraph& operator=(const RenderGraph&) = delete;
         RenderGraph(RenderGraph&&) noexcept = default;
-        RenderGraph& operator=(RenderGraph&& ) noexcept = default;
+        RenderGraph& operator=(RenderGraph&&) noexcept = default;
         ~RenderGraph();
 
         TextureHandle import_texture(const TextureImportDesc& desc);

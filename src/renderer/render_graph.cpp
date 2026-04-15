@@ -16,11 +16,18 @@ namespace orion
     {
         switch (usage) {
             case TextureUsage::ColorAttachment:
-                return TextureAccess{
+                return {
                     .handle = handle,
                     .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                     .stage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                     .access = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                };
+            case TextureUsage::DepthAttachment:
+                return {
+                    .handle = handle,
+                    .layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                    .stage = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    .access = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                 };
         }
         unreachable();
@@ -47,6 +54,7 @@ namespace orion
 
     static VkImageAspectFlags to_image_aspect_flags(VkFormat format)
     {
+        ORION_ASSERT(format != VK_FORMAT_UNDEFINED);
         switch (format) {
             case VK_FORMAT_D32_SFLOAT:
                 return VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -114,6 +122,9 @@ namespace orion
             .last_stage = VK_PIPELINE_STAGE_2_NONE,
             .last_access = VK_ACCESS_2_NONE,
             .final_layout = desc.final_layout,
+            .desc = {
+                .format = desc.format,
+            },
         });
         return {index, 0};
     }
@@ -277,7 +288,7 @@ namespace orion
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                         .image = entry.image,
                         .subresourceRange = {
-                            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                            .aspectMask = to_image_aspect_flags(entry.desc.format),
                             .baseMipLevel = 0,
                             .levelCount = 1,
                             .baseArrayLayer = 0,
