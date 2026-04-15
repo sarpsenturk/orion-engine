@@ -132,6 +132,7 @@ namespace orion
             VkImage image;
             VkImageView view;
             VmaAllocation allocation;
+            std::uint32_t frames_since_use = 0;
         };
 
         RenderGraph() = default;
@@ -161,6 +162,7 @@ namespace orion
 
     private:
         void compile_sort_passes();
+        void compile_increment_transient_resource_last_use();
         void compile_allocate_transient_resources();
         void compile_emit_pass_barriers();
         void compile_emit_final_layout_transitions();

@@ -89,6 +89,19 @@ namespace orion
 
     void RenderGraph::reset()
     {
+        // Free all transient resources that were not used in the last frame
+        for (auto it = transient_textures_.begin(); it != transient_textures_.end();) {
+            if (it->second.frames_since_use >= 1) {
+                vkDestroyImageView(vk_device_, it->second.view, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkImageView {}", fmt::ptr(it->second.view));
+                vmaDestroyImage(vma_allocator_, it->second.image, it->second.allocation);
+                ORION_RENDERER_LOG_INFO("Destroyed VkImage {} with VmaAllocation {} (unused in previous frame)", fmt::ptr(it->second.image), fmt::ptr(it->second.allocation));
+                it = transient_textures_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
         final_layout_transitions_.clear();
         sorted_passes_.clear();
         passes_.clear();
@@ -148,6 +161,7 @@ namespace orion
     void RenderGraph::compile()
     {
         compile_sort_passes();
+        compile_increment_transient_resource_last_use();
         compile_allocate_transient_resources();
         compile_emit_pass_barriers();
         compile_emit_final_layout_transitions();
@@ -190,6 +204,13 @@ namespace orion
         }
     }
 
+    void RenderGraph::compile_increment_transient_resource_last_use()
+    {
+        for (auto& [_, texture] : transient_textures_) {
+            ++texture.frames_since_use;
+        }
+    }
+
     void RenderGraph::compile_allocate_transient_resources()
     {
         for (auto& texture : textures_) {
@@ -202,6 +223,8 @@ namespace orion
             if (auto it = transient_textures_.find(texture.desc); it != transient_textures_.end()) {
                 texture.image = it->second.image;
                 texture.image_view = it->second.view;
+                // Mark resource as used in this frame
+                it->second.frames_since_use = 0;
             } else {
                 // Allocate image
                 const auto image_info = VkImageCreateInfo{
