@@ -19,3 +19,5 @@ target_sources(
     renderer/imgui_context.cpp
 )
 
+# Compile glsl shaders to SPIR-V
+add_subdirectory(shaders)
