@@ -74,9 +74,8 @@ namespace orion
         return graph_.get_texture(handle).image_view;
     }
 
-    RenderPassBuilder::RenderPassBuilder(RenderGraph& graph, RenderPass& pass)
-        : graph_(graph)
-        , pass_(pass)
+    RenderPassBuilder::RenderPassBuilder(RenderPass& pass)
+        : pass_(pass)
     {
     }
 

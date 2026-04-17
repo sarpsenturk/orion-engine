@@ -59,9 +59,8 @@ namespace orion
 
     private:
         friend class RenderGraph;
-        RenderPassBuilder(class RenderGraph& graph, RenderPass& pass);
+        explicit RenderPassBuilder(RenderPass& pass);
 
-        class RenderGraph& graph_;
         RenderPass& pass_;
     };
 
@@ -153,7 +152,7 @@ namespace orion
             passes_.emplace_back(std::move(name));
             auto& pass = passes_.back();
 
-            auto builder = RenderPassBuilder{*this, pass};
+            auto builder = RenderPassBuilder{pass};
             pass.execute = setup(builder);
         }
         void compile();
