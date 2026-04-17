@@ -1,6 +1,6 @@
 # Build files
 [Bb]uild/
-:
+
 # IDE files
 .vs/
 .idea/
@@ -8,7 +8,11 @@
 
 # User specific files
 CMakeUserPresets.json
+**/imgui.ini
 
 # clangd
 compile_commands.json
 .cache/
+
+# OS files
+**/.DS_Store
