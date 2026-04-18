@@ -13,6 +13,7 @@ target_sources(
 
     renderer/renderer.cpp
     renderer/render_graph.cpp
+    renderer/pipeline.cpp
     renderer/vulkan_impl.hpp
     renderer/vulkan_impl.cpp
     renderer/imgui_context.hpp

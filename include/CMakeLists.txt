@@ -14,5 +14,6 @@ target_sources(
 
     orion/renderer/renderer.hpp
     orion/renderer/render_graph.hpp
+    orion/renderer/pipeline.hpp
 )
 
