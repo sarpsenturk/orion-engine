@@ -1,8 +1,13 @@
 #include "orion/renderer/pipeline.hpp"
 
+#include "orion/config.h"
 #include "orion/debug.hpp"
+#include "orion/log.hpp"
+
+#include <vulkan/vk_enum_string_helper.h>
 
 #include <fstream>
+#include <utility>
 
 namespace orion
 {
@@ -19,23 +24,32 @@ namespace orion
         unreachable();
     }
 
+    void load_shader(const ShaderPath& shader, std::vector<std::uint32_t>& code, VkShaderModuleCreateInfo& shader_info)
+    {
+        auto file = std::ifstream{shader, std::ios::binary};
+        ORION_ASSERT(file.good());
+        const auto length = std::filesystem::file_size(shader);
+        code.resize(length / sizeof(std::uint32_t));
+        file.read(reinterpret_cast<char*>(code.data()), static_cast<std::streamsize>(length));
+        shader_info.codeSize = length;
+        shader_info.pCode = reinterpret_cast<std::uint32_t*>(code.data());
+    }
+
     PipelineBuilder::PipelineBuilder(VkPipelineLayout layout)
-        : vs_info_({.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO})
-        , fs_info_({.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO})
-        , shader_stages_({
+        : shader_stages_({
               VkPipelineShaderStageCreateInfo{
                   .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                  .pNext = &vs_info_,
                   .stage = VK_SHADER_STAGE_VERTEX_BIT,
                   .pName = "main",
               },
               VkPipelineShaderStageCreateInfo{
                   .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                  .pNext = &fs_info_,
                   .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
                   .pName = "main",
               },
           })
+        , vs_info_({.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO})
+        , fs_info_({.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO})
         , rendering_state_{
               .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
               .viewMask = 0,
@@ -100,24 +114,12 @@ namespace orion
 
     void PipelineBuilder::set_vertex_shader(const ShaderPath& shader)
     {
-        auto file = std::ifstream{shader, std::ios::binary};
-        ORION_ASSERT(file.good());
-        const auto length = std::filesystem::file_size(shader);
-        vs_code_.resize(length / sizeof(std::uint32_t));
-        file.read(vs_code_.data(), static_cast<std::streamsize>(length));
-        vs_info_.codeSize = length;
-        vs_info_.pCode = reinterpret_cast<std::uint32_t*>(vs_code_.data());
+        load_shader(std::filesystem::path(ORION_BINARY_DIR) / shader, vs_code_, vs_info_);
     }
 
     void PipelineBuilder::set_fragment_shader(const ShaderPath& shader)
     {
-        auto file = std::ifstream{shader, std::ios::binary};
-        ORION_ASSERT(file.good());
-        const auto length = std::filesystem::file_size(shader);
-        vs_code_.resize(length / sizeof(std::uint32_t));
-        file.read(fs_code_.data(), static_cast<std::streamsize>(length));
-        fs_info_.codeSize = length;
-        fs_info_.pCode = reinterpret_cast<std::uint32_t*>(fs_code_.data());
+        load_shader(std::filesystem::path(ORION_BINARY_DIR) / shader, fs_code_, fs_info_);
     }
 
     void PipelineBuilder::add_vertex_binding(std::uint32_t binding, std::uint32_t stride, VkVertexInputRate input_rate)
@@ -170,9 +172,26 @@ namespace orion
         color_blend_state_.pAttachments = blend_attachments_.data();
     }
 
-    VkGraphicsPipelineCreateInfo PipelineBuilder::build() const
+    void PipelineBuilder::set_depth_attachment(VkFormat format)
     {
-        return {
+        rendering_state_.depthAttachmentFormat = format;
+    }
+
+    tl::expected<VkPipeline, VkResult> PipelineBuilder::build(VkDevice device)
+    {
+        // Create shader modules
+        if (VkResult err = vkCreateShaderModule(device, &vs_info_, nullptr, &shader_stages_[0].module)) {
+            ORION_RENDERER_LOG_ERROR("vkCreateShaderModule() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        }
+        if (VkResult err = vkCreateShaderModule(device, &fs_info_, nullptr, &shader_stages_[1].module)) {
+            ORION_RENDERER_LOG_ERROR("vkCreateShaderModule() failed: {}", string_VkResult(err));
+            vkDestroyShaderModule(device, shader_stages_[0].module, nullptr);
+            return tl::unexpected(err);
+        }
+
+        // Create pipeline
+        const auto pipeline_info = VkGraphicsPipelineCreateInfo{
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .pNext = &rendering_state_,
             .stageCount = static_cast<std::uint32_t>(shader_stages_.size()),
@@ -192,5 +211,100 @@ namespace orion
             .basePipelineHandle = VK_NULL_HANDLE,
             .basePipelineIndex = 0,
         };
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkResult err = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline);
+        vkDestroyShaderModule(device, shader_stages_[1].module, nullptr);
+        vkDestroyShaderModule(device, shader_stages_[0].module, nullptr);
+        if (err) {
+            ORION_RENDERER_LOG_ERROR("vkCreateGraphicsPipelines() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            return pipeline;
+        }
+    }
+
+    PipelineCache::PipelineCache(VkDevice device, VkPipelineLayout pipeline_layout)
+        : vk_device_(device)
+        , pipeline_layout_(pipeline_layout)
+    {
+    }
+
+    PipelineCache::PipelineCache(PipelineCache&& other) noexcept
+        : vk_device_(other.vk_device_)
+        , pipeline_layout_(std::exchange(other.pipeline_layout_, VK_NULL_HANDLE))
+        , pipelines_(std::move(other.pipelines_))
+    {
+    }
+
+    PipelineCache& PipelineCache::operator=(PipelineCache&& other) noexcept
+    {
+        if (this != &other) {
+            for (const auto& [_, pipeline] : pipelines_) {
+                vkDestroyPipeline(vk_device_, pipeline, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkPipeline {}", fmt::ptr(pipeline));
+            }
+            if (pipeline_layout_ != VK_NULL_HANDLE) {
+                vkDestroyPipelineLayout(vk_device_, pipeline_layout_, nullptr);
+                ORION_RENDERER_LOG_INFO("Destroyed VkPipelineLayout {}", fmt::ptr(pipeline_layout_));
+            }
+            vk_device_ = other.vk_device_;
+            pipeline_layout_ = std::exchange(other.pipeline_layout_, VK_NULL_HANDLE);
+            pipelines_ = std::move(other.pipelines_);
+        }
+        return *this;
+    }
+
+    PipelineCache::~PipelineCache()
+    {
+        for (const auto& [_, pipeline] : pipelines_) {
+            vkDestroyPipeline(vk_device_, pipeline, nullptr);
+            ORION_RENDERER_LOG_INFO("Destroyed VkPipeline {}", fmt::ptr(pipeline));
+        }
+        if (pipeline_layout_ != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(vk_device_, pipeline_layout_, nullptr);
+            ORION_RENDERER_LOG_INFO("Destroyed VkPipelineLayout {}", fmt::ptr(pipeline_layout_));
+        }
+    }
+
+    tl::expected<PipelineCache, VkResult> PipelineCache::initialize(VkDevice device)
+    {
+        // Create fixed pipeline layout
+        const auto pipeline_layout_info = VkPipelineLayoutCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = {},
+            .setLayoutCount = 0,
+            .pSetLayouts = nullptr,
+            .pushConstantRangeCount = 0,
+            .pPushConstantRanges = nullptr,
+        };
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        if (VkResult err = vkCreatePipelineLayout(device, &pipeline_layout_info, nullptr, &pipeline_layout)) {
+            ORION_RENDERER_LOG_ERROR("vkCreatePipelineLayout() failed: {}", string_VkResult(err));
+            return tl::unexpected(err);
+        } else {
+            ORION_RENDERER_LOG_INFO("Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
+        }
+        return PipelineCache{device, pipeline_layout};
+    }
+
+    tl::expected<VkPipeline, VkResult> PipelineCache::build(std::string name, PipelineBuilder& builder)
+    {
+        auto pipeline = builder.build(vk_device_);
+        if (pipeline) {
+            ORION_RENDERER_LOG_INFO("Created VkPipeline (graphics) {} ({})", fmt::ptr(*pipeline), name);
+            auto [it, inserted] = pipelines_.insert(std::make_pair(std::move(name), *pipeline));
+            ORION_ASSERT(inserted);
+        }
+        return pipeline;
+    }
+
+    VkPipeline PipelineCache::get(std::string_view name) const
+    {
+        if (auto it = pipelines_.find(name); it != pipelines_.end()) {
+            return it->second;
+        } else {
+            return VK_NULL_HANDLE;
+        }
     }
 } // namespace orion

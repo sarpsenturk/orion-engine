@@ -9,4 +9,6 @@
 
 #define ORION_BUILD_TYPE "@CMAKE_BUILD_TYPE@"
 
+#define ORION_BINARY_DIR "@CMAKE_BINARY_DIR@"
+
 // clang-format on

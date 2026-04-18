@@ -6,6 +6,8 @@
 
 #include <array>
 #include <filesystem>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace orion
@@ -31,6 +33,7 @@ namespace orion
         // Attachments
 
         void add_color_attachment(VkFormat format, BlendMode blend_mode = BlendMode::Opaque);
+        void set_depth_attachment(VkFormat format);
 
         // Vertex input state
 
@@ -53,7 +56,7 @@ namespace orion
         void set_front_face(VkFrontFace front_face);
 
         // Build the create info
-        [[nodiscard]] VkGraphicsPipelineCreateInfo build() const;
+        tl::expected<VkPipeline, VkResult> build(VkDevice device);
 
     private:
         static constexpr auto dynamic_states = std::array{
@@ -61,11 +64,12 @@ namespace orion
             VK_DYNAMIC_STATE_SCISSOR,
         };
 
-        VkShaderModuleCreateInfo vs_info_;
-        std::vector<char> vs_code_;
-        VkShaderModuleCreateInfo fs_info_;
-        std::vector<char> fs_code_;
         std::vector<VkPipelineShaderStageCreateInfo> shader_stages_;
+
+        VkShaderModuleCreateInfo vs_info_;
+        VkShaderModuleCreateInfo fs_info_;
+        std::vector<std::uint32_t> vs_code_;
+        std::vector<std::uint32_t> fs_code_;
 
         VkPipelineRenderingCreateInfo rendering_state_;
         std::vector<VkFormat> color_attachments_;
@@ -85,5 +89,54 @@ namespace orion
 
         VkPipelineDynamicStateCreateInfo dynamic_state_;
         VkPipelineLayout layout_;
+    };
+
+    template<typename F>
+    concept PipelineSetupFn = requires(F setup, PipelineBuilder& builder) {
+        setup(builder);
+    };
+
+    class PipelineCache
+    {
+    public:
+        static tl::expected<PipelineCache, VkResult> initialize(VkDevice device);
+        PipelineCache(const PipelineCache&) = delete;
+        PipelineCache& operator=(const PipelineCache&) = delete;
+        PipelineCache(PipelineCache&& other) noexcept;
+        PipelineCache& operator=(PipelineCache&& other) noexcept;
+        ~PipelineCache();
+
+        // Create a new pipeline
+        tl::expected<VkPipeline, VkResult> build(std::string name, PipelineSetupFn auto&& setup)
+        {
+            auto builder = PipelineBuilder{pipeline_layout_};
+            setup(builder);
+            return build(std::move(name), builder);
+        }
+
+        // Retrieve an existing pipeline by identifier
+        VkPipeline get(std::string_view name) const;
+
+    private:
+        PipelineCache(VkDevice device, VkPipelineLayout pipeline_layout);
+
+        struct PipelineHash {
+            using is_transparent = void;
+
+            [[nodiscard]] std::size_t operator()(const std::string& str) const
+            {
+                return std::hash<std::string>{}(str);
+            }
+            [[nodiscard]] std::size_t operator()(std::string_view str) const
+            {
+                return std::hash<std::string_view>{}(str);
+            }
+        };
+
+        tl::expected<VkPipeline, VkResult> build(std::string name, PipelineBuilder& builder);
+
+        VkDevice vk_device_;
+        VkPipelineLayout pipeline_layout_;
+        std::unordered_map<std::string, VkPipeline, PipelineHash, std::equal_to<>> pipelines_;
     };
 } // namespace orion

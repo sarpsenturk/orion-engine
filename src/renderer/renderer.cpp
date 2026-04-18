@@ -1,5 +1,6 @@
 #include "orion/renderer/renderer.hpp"
 
+#include "orion/renderer/pipeline.hpp"
 #include "orion/renderer/render_graph.hpp"
 
 #include "vulkan_impl.hpp"
@@ -43,6 +44,8 @@ namespace orion
         ImGuiContextWrapper imgui_context;
         VkResult swapchain_status = VK_SUCCESS;
 
+        PipelineCache pipeline_cache;
+
         Impl(
             VulkanInstance instance,
             VulkanDevice device,
@@ -50,7 +53,8 @@ namespace orion
             VulkanSwapchain swapchain,
             std::array<PerFrameData, frames_in_flight> frame_data,
             VulkanSemaphore frame_semaphore,
-            ImGuiContextWrapper imgui_context)
+            ImGuiContextWrapper imgui_context,
+            PipelineCache _pipeline_cache)
             : vulkan_instance(std::move(instance))
             , vulkan_device(std::move(device))
             , vulkan_surface(std::move(surface))
@@ -58,6 +62,7 @@ namespace orion
             , frame_data(std::move(frame_data))
             , frame_semaphore(std::move(frame_semaphore))
             , imgui_context(std::move(imgui_context))
+            , pipeline_cache(std::move(_pipeline_cache))
         {
         }
 
@@ -161,6 +166,30 @@ namespace orion
                         .pDepthAttachment = &depth_attachment,
                     };
                     vkCmdBeginRendering(ctx.cmd(), &rendering_info);
+
+                    // Get the pipeline from the cache and bind it
+                    vkCmdBindPipeline(ctx.cmd(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_cache.get("triangle"));
+
+                    // Set the viewpprt
+                    const auto viewport = VkViewport{
+                        .x = 0,
+                        .y = static_cast<float>(vulkan_swapchain.image_extent.height),
+                        .width = static_cast<float>(vulkan_swapchain.image_extent.width),
+                        .height = -static_cast<float>(vulkan_swapchain.image_extent.height),
+                        .minDepth = 1.0f,
+                        .maxDepth = 0.0f,
+                    };
+                    vkCmdSetViewport(ctx.cmd(), 0, 1, &viewport);
+
+                    // Set the scissor
+                    const auto scissor = VkRect2D{
+                        .extent = vulkan_swapchain.image_extent,
+                    };
+                    vkCmdSetScissor(ctx.cmd(), 0, 1, &scissor);
+
+                    // Draw our triangle
+                    vkCmdDraw(ctx.cmd(), 3, 1, 0, 0);
+
                     vkCmdEndRendering(ctx.cmd());
                 };
             });
@@ -394,6 +423,23 @@ namespace orion
             return tl::unexpected(std::move(imgui_context.error()));
         }
 
+        // Create pipeline cache
+        auto pipeline_cache = PipelineCache::initialize(vulkan_device->vk_device);
+        if (!pipeline_cache) {
+            return tl::unexpected("Failed to create pipeline cache");
+        }
+
+        // Create basic triangle pipeline
+        (void)pipeline_cache->build("triangle", [&](PipelineBuilder& builder) {
+            builder.set_vertex_shader("shaders/triangle.vert.spv");
+            builder.set_fragment_shader("shaders/triangle.frag.spv");
+            builder.set_viewport_count(1);
+            builder.set_scissor_count(1);
+            builder.set_cull_mode(VK_CULL_MODE_NONE);
+            builder.add_color_attachment(vulkan_swapchain->image_format);
+            builder.set_depth_attachment(VK_FORMAT_D32_SFLOAT);
+        });
+
         return Renderer{std::make_unique<Impl>(
             std::move(*vulkan_instance),
             std::move(*vulkan_device),
@@ -401,7 +447,8 @@ namespace orion
             std::move(*vulkan_swapchain),
             std::move(frame_data),
             std::move(*frame_semaphore),
-            std::move(*imgui_context))};
+            std::move(*imgui_context),
+            std::move(*pipeline_cache))};
     }
 
     Renderer::Renderer(std::unique_ptr<Impl> impl)

@@ -7,7 +7,7 @@ function(orion_compile_shader shader_src)
 	set(shader_output ${CMAKE_BINARY_DIR}/shaders/${shader_name}.spv)
 	add_custom_command(
 		OUTPUT ${shader_output}
-		COMMAND Vulkan::glslc ${shader_src} -o ${shader_output}
+		COMMAND Vulkan::glslc ${shader_src} -o ${shader_output} --target-env=vulkan1.3
 		DEPENDS ${shader_src}
 		COMMENT "glslc ${shader_src} -o ${shader_output}"
 		VERBATIM
