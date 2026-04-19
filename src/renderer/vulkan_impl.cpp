@@ -326,17 +326,17 @@ namespace orion
 
     VulkanDevice::VulkanDevice(
         VkDevice device,
-        VmaAllocator vma_allocator,
+        VmaAllocator _vma_allocator,
         VkPhysicalDevice physical_device,
         VkInstance instance,
-        std::uint32_t graphics_queue_family,
-        VkQueue graphics_queue)
+        std::uint32_t _graphics_queue_family,
+        VkQueue _graphics_queue)
         : vk_device(device)
-        , vma_allocator(vma_allocator)
+        , vma_allocator(_vma_allocator)
         , vk_physical_device(physical_device)
         , vk_instance(instance)
-        , graphics_queue_family(graphics_queue_family)
-        , graphics_queue(graphics_queue)
+        , graphics_queue_family(_graphics_queue_family)
+        , graphics_queue(_graphics_queue)
     {
     }
 
@@ -717,18 +717,18 @@ namespace orion
     VulkanSwapchain::VulkanSwapchain(
         VkDevice device,
         VkSwapchainKHR swapchain,
-        std::uint32_t image_count,
-        VkExtent2D image_extent,
-        VkFormat image_format,
-        VkPresentModeKHR present_mode,
+        std::uint32_t _image_count,
+        VkExtent2D _image_extent,
+        VkFormat _image_format,
+        VkPresentModeKHR _present_mode,
         std::vector<VkImage> images,
         std::vector<VkImageView> image_views)
         : vk_device(device)
         , vk_swapchain(swapchain)
-        , image_count(image_count)
-        , image_extent(image_extent)
-        , image_format(image_format)
-        , present_mode(present_mode)
+        , image_count(_image_count)
+        , image_extent(_image_extent)
+        , image_format(_image_format)
+        , present_mode(_present_mode)
         , vk_images(std::move(images))
         , vk_image_views(std::move(image_views))
     {

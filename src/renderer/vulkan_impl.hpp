@@ -74,10 +74,10 @@ namespace orion
         VulkanSwapchain(
             VkDevice device,
             VkSwapchainKHR swapchain,
-            std::uint32_t image_count,
-            VkExtent2D image_extent,
-            VkFormat image_format,
-            VkPresentModeKHR present_mode,
+            std::uint32_t _image_count,
+            VkExtent2D _image_extent,
+            VkFormat _image_format,
+            VkPresentModeKHR _present_mode,
             std::vector<VkImage> images,
             std::vector<VkImageView> image_views);
         VulkanSwapchain(const VulkanSwapchain&) = delete;
@@ -126,11 +126,11 @@ namespace orion
 
         VulkanDevice(
             VkDevice device,
-            VmaAllocator vma_allocator,
+            VmaAllocator _vma_allocator,
             VkPhysicalDevice physical_device,
             VkInstance instance,
-            std::uint32_t graphics_queue_family,
-            VkQueue graphics_queue);
+            std::uint32_t _graphics_queue_family,
+            VkQueue _graphics_queue);
         VulkanDevice(const VulkanDevice&) = delete;
         VulkanDevice& operator=(const VulkanDevice&) = delete;
         VulkanDevice(VulkanDevice&& other) noexcept;

@@ -47,21 +47,21 @@ namespace orion
         PipelineCache pipeline_cache;
 
         Impl(
-            VulkanInstance instance,
-            VulkanDevice device,
-            VulkanSurface surface,
-            VulkanSwapchain swapchain,
-            std::array<PerFrameData, frames_in_flight> frame_data,
-            VulkanSemaphore frame_semaphore,
-            ImGuiContextWrapper imgui_context,
+            VulkanInstance _instance,
+            VulkanDevice _device,
+            VulkanSurface _surface,
+            VulkanSwapchain _swapchain,
+            std::array<PerFrameData, frames_in_flight> _frame_data,
+            VulkanSemaphore _frame_semaphore,
+            ImGuiContextWrapper _imgui_context,
             PipelineCache _pipeline_cache)
-            : vulkan_instance(std::move(instance))
-            , vulkan_device(std::move(device))
-            , vulkan_surface(std::move(surface))
-            , vulkan_swapchain(std::move(swapchain))
-            , frame_data(std::move(frame_data))
-            , frame_semaphore(std::move(frame_semaphore))
-            , imgui_context(std::move(imgui_context))
+            : vulkan_instance(std::move(_instance))
+            , vulkan_device(std::move(_device))
+            , vulkan_surface(std::move(_surface))
+            , vulkan_swapchain(std::move(_swapchain))
+            , frame_data(std::move(_frame_data))
+            , frame_semaphore(std::move(_frame_semaphore))
+            , imgui_context(std::move(_imgui_context))
             , pipeline_cache(std::move(_pipeline_cache))
         {
         }
