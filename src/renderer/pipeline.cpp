@@ -136,6 +136,11 @@ namespace orion
         vertex_input_state_.pVertexAttributeDescriptions = vertex_attributes_.data();
     }
 
+    void PipelineBuilder::set_primitive_topology(VkPrimitiveTopology topology)
+    {
+        input_assembly_state_.topology = topology;
+    }
+
     void PipelineBuilder::set_viewport_count(std::uint32_t viewport_count)
     {
         viewport_state_.viewportCount = viewport_count;
