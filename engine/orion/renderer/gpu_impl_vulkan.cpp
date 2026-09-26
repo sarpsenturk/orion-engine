@@ -2,6 +2,7 @@
 
 #include "orion/core/assert.hpp"
 #include "orion/core/logger.hpp"
+#include "orion/lib/scope_guard.hpp"
 
 #include <Volk/volk.h>
 #include <vulkan/vk_enum_string_helper.h>
@@ -10,6 +11,8 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #define GPU_CHECK(vkcall)                                                                          \
     do {                                                                                           \
@@ -24,10 +27,13 @@ namespace orion::gpu
 
     struct Device {
         VkInstance instance = VK_NULL_HANDLE;
+
+        VkPhysicalDevice physical_device                      = VK_NULL_HANDLE;
+        VkPhysicalDeviceProperties physical_device_properties = {};
     };
 
 
-    Device* create_device(const DeviceDesc& /*desc*/)
+    Device* create_device(const DeviceDesc& desc)
     {
         // Initialize Volk and create VkInstance
         GPU_CHECK(volkInitialize());
@@ -50,8 +56,22 @@ namespace orion::gpu
         VkInstance instance;
         GPU_CHECK(vkCreateInstance(&instance_info, nullptr, &instance));
         volkLoadInstance(instance);
+        const auto instance_guard = ScopeFail{[&]() { vkDestroyInstance(instance, nullptr); }};
 
-        return new Device{.instance = instance};
+        // Select physical device
+        std::uint32_t physical_device_count;
+        GPU_CHECK(vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr));
+        std::vector<VkPhysicalDevice> physical_devices(physical_device_count);
+        GPU_CHECK(vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices.data()));
+        VkPhysicalDevice physical_device = physical_devices[desc.device_idx];
+        VkPhysicalDeviceProperties device_properties;
+        vkGetPhysicalDeviceProperties(physical_device, &device_properties);
+
+        return new Device{
+            .instance                   = instance,
+            .physical_device            = physical_device,
+            .physical_device_properties = device_properties,
+        };
     }
 
     void destroy_device(Device* device)
@@ -78,5 +98,11 @@ namespace orion::gpu
             return fmt::format("{}.{}.{}", major, minor, patch);
         }();
         return version.c_str();
+    }
+
+    const char* device_name(const Device* device)
+    {
+        ORION_ASSERT(device != nullptr);
+        return device->physical_device_properties.deviceName;
     }
 } // namespace orion::gpu

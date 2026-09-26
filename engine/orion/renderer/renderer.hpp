@@ -14,6 +14,8 @@ namespace orion
         Renderer& operator=(Renderer&&)      = delete;
         ~Renderer();
 
+        [[nodiscard]] gpu::Device* device() const { return m_device; }
+
     private:
         gpu::Device* m_device;
     };
