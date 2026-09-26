@@ -22,6 +22,7 @@ namespace orion
         struct Device;
         struct Image;
         struct ImageView;
+        struct Buffer;
         struct Swapchain;
         struct PipelineState;
         struct CommandBuffer;
@@ -31,6 +32,12 @@ namespace orion
             Graphics = 0,
             Compute,
             Transfer,
+        };
+
+        enum class Memory {
+            Default,
+            Upload,
+            Readback,
         };
 
         enum class Format {
@@ -104,6 +111,16 @@ namespace orion
             Clear,
             DontCare,
         };
+
+        enum class BufferUsage : std::uint32_t {
+            None           = 0u,
+            TransferSrc    = 1u << 0u,
+            TransferDst    = 1u << 1u,
+            IndexBuffer    = 1u << 2u,
+            IndirectBuffer = 1u << 3u,
+            DeviceAddress  = 1u << 4u,
+        };
+        GPU_DEFINE_BITFLAG(BufferUsage)
 
         struct ImageBarrier {
             Image* image             = nullptr;
@@ -203,6 +220,12 @@ namespace orion
             std::span<const Format> color_attachments;
         };
 
+        struct BufferDesc {
+            std::size_t size  = 0ull;
+            Memory memory     = Memory::Default;
+            BufferUsage usage = BufferUsage::None;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
 
@@ -221,6 +244,11 @@ namespace orion
 
         [[nodiscard]] Extent3D get_image_extent(const Image* image);
         [[nodiscard]] Extent2D get_image_extent_2d(const Image* image);
+
+        Buffer* create_buffer(Device* device, const BufferDesc& desc);
+        void copy_to_buffer(Device* device, Buffer* dst, std::size_t dst_offset, std::span<const std::byte> src);
+        void copy_from_buffer(Device* device, Buffer* src, std::size_t src_offset, std::span<std::byte> dst);
+        void destroy_buffer(Device* device, Buffer* buffer);
 
         void wait_timeline(Device* device, const TimelinePoint& timeline_point);
         void wait_idle(Device* device);

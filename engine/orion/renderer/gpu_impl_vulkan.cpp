@@ -7,6 +7,12 @@
 #include <Volk/volk.h>
 #include <vulkan/vk_enum_string_helper.h>
 
+#define VMA_IMPLEMENTATION
+#define VMA_STATIC_VULKAN_FUNCTIONS  0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
+#include <vma/vk_mem_alloc.h>
+
+
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
@@ -45,6 +51,7 @@ namespace orion::gpu
 
         VkPhysicalDevice physical_device = VK_NULL_HANDLE;
         VkDevice device                  = VK_NULL_HANDLE;
+        VmaAllocator allocator           = VK_NULL_HANDLE;
 
         VulkanQueue graphics_queue = {};
         VulkanQueue compute_queue  = {};
@@ -79,6 +86,14 @@ namespace orion::gpu
         VkImageView handle   = VK_NULL_HANDLE;
         std::uint32_t width  = 0u;
         std::uint32_t height = 0u;
+    };
+
+    struct Buffer {
+        VkBuffer handle          = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+
+        void* cpu_address           = nullptr;
+        VkDeviceAddress gpu_address = 0ull;
     };
 
     struct Swapchain {
@@ -257,6 +272,44 @@ namespace orion::gpu
         std::unreachable();
     }
 
+    static VmaAllocationCreateFlags to_vma_allocation_flags(Memory memory)
+    {
+        switch (memory) {
+            case Memory::Default:
+                return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                       VMA_ALLOCATION_CREATE_MAPPED_BIT |
+                       VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT;
+            case Memory::Upload:
+                return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                       VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            case Memory::Readback:
+                return VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+                       VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        }
+        std::unreachable();
+    }
+
+    static VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage)
+    {
+        VkBufferUsageFlags output = 0u;
+        if ((usage & BufferUsage::TransferSrc) != BufferUsage::None) {
+            output |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        }
+        if ((usage & BufferUsage::TransferDst) != BufferUsage::None) {
+            output |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        }
+        if ((usage & BufferUsage::IndexBuffer) != BufferUsage::None) {
+            output |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        }
+        if ((usage & BufferUsage::IndirectBuffer) != BufferUsage::None) {
+            output |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        }
+        if ((usage & BufferUsage::DeviceAddress) != BufferUsage::None) {
+            output |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+        }
+        return output;
+    }
+
     static std::uint32_t select_queue_family(
         const std::vector<VkQueueFamilyProperties>& queue_families,
         VkQueueFlags required_flags)
@@ -378,6 +431,21 @@ namespace orion::gpu
         volkLoadDevice(device);
         const auto device_guard = ScopeFail{[&]() { vkDestroyDevice(device, nullptr); }};
 
+        // Initialize Vulkan Memory Allocator (VMA)
+        auto vma_functions        = VmaVulkanFunctions{};
+        const auto allocator_info = VmaAllocatorCreateInfo{
+            .flags            = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+            .physicalDevice   = physical_device,
+            .device           = device,
+            .pVulkanFunctions = &vma_functions,
+            .instance         = instance,
+            .vulkanApiVersion = vulkan_api_version,
+        };
+        VmaAllocator allocator;
+        GPU_CHECK(vmaImportVulkanFunctionsFromVolk(&allocator_info, &vma_functions));
+        GPU_CHECK(vmaCreateAllocator(&allocator_info, &allocator));
+        const auto vma_guard = ScopeFail{[&]() { vmaDestroyAllocator(allocator); }};
+
         // Retrieve queue handles
         VkQueue graphics_queue;
         vkGetDeviceQueue(device, graphics_family, 0u, &graphics_queue);
@@ -417,6 +485,7 @@ namespace orion::gpu
             .instance                   = instance,
             .physical_device            = physical_device,
             .device                     = device,
+            .allocator                  = allocator,
             .graphics_queue             = VulkanQueue{graphics_family, graphics_queue, graphics_semaphore},
             .compute_queue              = VulkanQueue{compute_family, compute_queue, compute_semaphore},
             .transfer_queue             = VulkanQueue{transfer_family, transfer_queue, transfer_semaphore},
@@ -435,6 +504,7 @@ namespace orion::gpu
         vkDestroySemaphore(device->device, device->compute_queue.semaphore, nullptr);
         vkDestroySemaphore(device->device, device->graphics_queue.semaphore, nullptr);
 
+        vmaDestroyAllocator(device->allocator);
         vkDestroyDevice(device->device, nullptr);
         vkDestroyInstance(device->instance, nullptr);
 
@@ -879,6 +949,69 @@ namespace orion::gpu
     Extent2D get_image_extent_2d(const Image* image)
     {
         return Extent2D{image->width, image->height};
+    }
+
+    Buffer* create_buffer(Device* device, const BufferDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+
+        const auto buffer_info = VkBufferCreateInfo{
+            .sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size        = desc.size,
+            .usage       = to_vk_buffer_usage(desc.usage),
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        };
+        const auto allocation_create_info = VmaAllocationCreateInfo{
+            .flags = to_vma_allocation_flags(desc.memory),
+            .usage = VMA_MEMORY_USAGE_AUTO,
+        };
+        VkBuffer buffer;
+        VmaAllocation allocation;
+        VmaAllocationInfo allocation_info;
+        GPU_CHECK(vmaCreateBuffer(device->allocator, &buffer_info, &allocation_create_info, &buffer, &allocation, &allocation_info));
+
+        // If usage includes DeviceAddress, retrieve the device address of the buffer
+        VkDeviceAddress device_address = 0ull;
+        if (buffer_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+            const auto device_address_info = VkBufferDeviceAddressInfo{
+                .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                .buffer = buffer,
+            };
+            device_address = vkGetBufferDeviceAddress(device->device, &device_address_info);
+        }
+
+        return new Buffer{
+            .handle      = buffer,
+            .allocation  = allocation,
+            .cpu_address = allocation_info.pMappedData,
+            .gpu_address = device_address,
+        };
+    }
+
+    void copy_to_buffer(Device* device, Buffer* dst, std::size_t dst_offset, std::span<const std::byte> src)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(dst != nullptr);
+
+        GPU_CHECK(vmaCopyMemoryToAllocation(device->allocator, src.data(), dst->allocation, dst_offset, src.size_bytes()));
+    }
+
+    void copy_from_buffer(Device* device, Buffer* src, std::size_t src_offset, std::span<std::byte> dst)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(src != nullptr);
+
+        GPU_CHECK(vmaCopyAllocationToMemory(device->allocator, src->allocation, src_offset, dst.data(), dst.size_bytes()));
+    }
+
+    void destroy_buffer(Device* device, Buffer* buffer)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(buffer != nullptr);
+
+        vmaDestroyBuffer(device->allocator, buffer->handle, buffer->allocation);
+
+        delete buffer;
     }
 
     void wait_timeline(Device* device, const TimelinePoint& timeline_point)
