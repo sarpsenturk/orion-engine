@@ -107,6 +107,7 @@ namespace orion::gpu
         std::vector<VkSemaphore> present_semaphores;
 
         std::uint32_t current_acquire_index = 0u;
+        VkFormat format                     = VK_FORMAT_UNDEFINED;
     };
 
     struct PipelineState {
@@ -513,6 +514,9 @@ namespace orion::gpu
 
     static void release_swapchain_resources(Device* device, Swapchain* swapchain)
     {
+        // Reset acquire index
+        swapchain->current_acquire_index = 0u;
+
         // Release semaphores
         std::ranges::for_each(swapchain->present_semaphores, [&](VkSemaphore semaphore) {
             vkDestroySemaphore(device->device, semaphore, nullptr);
@@ -584,6 +588,7 @@ namespace orion::gpu
             release_swapchain_resources(device, swapchain);
         }
         swapchain->swapchain       = new_swapchain;
+        swapchain->format          = format;
         const auto swapchain_guard = ScopeFail{[&]() { release_swapchain_resources(device, swapchain); }};
 
         // Retrieve swapchain images
@@ -671,6 +676,20 @@ namespace orion::gpu
             to_vk_format(desc.image_format));
 
         return swapchain;
+    }
+
+    void resize_swapchain(Device* device, Swapchain* swapchain, std::uint32_t width, std::uint32_t height)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(swapchain != nullptr);
+        ORION_ASSERT(width > 0u);
+        ORION_ASSERT(height > 0u);
+
+        create_or_resize_swapchain(
+            device, swapchain,
+            width, height,
+            static_cast<std::uint32_t>(swapchain->images.size()),
+            swapchain->format);
     }
 
     std::optional<SwapchainFrame> acquire_swapchain_frame(Device* device, Swapchain* swapchain)

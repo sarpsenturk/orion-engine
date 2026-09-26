@@ -230,6 +230,7 @@ namespace orion
         void destroy_device(Device* device);
 
         Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc);
+        void resize_swapchain(Device* device, Swapchain* swapchain, std::uint32_t width, std::uint32_t height);
         std::optional<SwapchainFrame> acquire_swapchain_frame(Device* device, Swapchain* swapchain);
         void present(Device* device, Swapchain* swapchain, const SwapchainFrame& swapchain_frame);
         void destroy_swapchain(Device* device, Swapchain* swapchain);

@@ -37,6 +37,7 @@ namespace orion
 
         MeshHandle create_mesh(std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
         void destroy_mesh(MeshHandle mesh);
+        void resize_swapchain(std::uint32_t width, std::uint32_t height);
 
         [[nodiscard]] gpu::Device* device() const { return m_device; }
 
@@ -62,5 +63,7 @@ namespace orion
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;
+
+        bool m_swapchain_out_of_date = false;
     };
 } // namespace orion

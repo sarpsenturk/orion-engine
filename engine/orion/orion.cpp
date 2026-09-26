@@ -41,6 +41,12 @@ namespace orion
                 app->render();
                 m_renderer->render();
                 m_renderer->end_frame();
+            } else {
+                const auto width  = m_window->width();
+                const auto height = m_window->height();
+                if (width > 0 && height > 0) {
+                    m_renderer->resize_swapchain(static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height));
+                }
             }
         }
     }

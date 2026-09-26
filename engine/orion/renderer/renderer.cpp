@@ -83,6 +83,11 @@ namespace orion
 
     bool Renderer::begin_frame()
     {
+        // Skip rendering if the swapchain is out of date
+        if (m_swapchain_out_of_date) {
+            return false;
+        }
+
         auto& frame_data = current_frame_data();
 
         // Wait until the previous submission for this frame has completed
@@ -96,6 +101,7 @@ namespace orion
             frame_data.swapchain_frame = *swapchain_frame;
             return true;
         } else {
+            m_swapchain_out_of_date = true;
             return false;
         }
     }
@@ -237,5 +243,13 @@ namespace orion
     void Renderer::destroy_mesh(MeshHandle /*mesh*/)
     {
         // No-op for now.
+    }
+
+    void Renderer::resize_swapchain(std::uint32_t width, std::uint32_t height)
+    {
+        // Wait until the GPU is so we can safely resize the swapchain
+        gpu::wait_idle(m_device);
+        gpu::resize_swapchain(m_device, m_swapchain, width, height);
+        m_swapchain_out_of_date = false;
     }
 } // namespace orion
