@@ -1,6 +1,18 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
+#include <utility>
+
+#define GPU_DEFINE_BITFLAG(EnumType)                                                     \
+    [[nodiscard]] constexpr EnumType operator|(EnumType lhs, EnumType rhs) noexcept      \
+    {                                                                                    \
+        return static_cast<EnumType>(std::to_underlying(lhs) | std::to_underlying(rhs)); \
+    }                                                                                    \
+    [[nodiscard]] constexpr EnumType operator&(EnumType lhs, EnumType rhs) noexcept      \
+    {                                                                                    \
+        return static_cast<EnumType>(std::to_underlying(lhs) & std::to_underlying(rhs)); \
+    }
 
 namespace orion
 {
@@ -22,9 +34,34 @@ namespace orion
             BGRA8_Unorm,
         };
 
+        enum class PipelineStage : std::uint64_t {
+            None                  = 0ULL,
+            DrawIndirect          = 1ull < 0u,
+            IndexInput            = 1ull < 1u,
+            VertexShader          = 1ull < 2u,
+            FragmentShader        = 1ull < 3u,
+            DepthStencilTests     = 1ull < 4u,
+            ColorAttachmentOutput = 1ull < 5u,
+            ComputeShader         = 1ull < 6u,
+            Transfer              = 1ull < 7u,
+            Host                  = 1ull < 8u,
+            AllCommands           = 1ull < 9u,
+        };
+        GPU_DEFINE_BITFLAG(PipelineStage)
+
         struct TimelinePoint {
             Queue queue         = Queue::Graphics;
             std::uint64_t value = 0ull;
+        };
+
+        struct QueueWait {
+            TimelinePoint timeline_point = {};
+            PipelineStage wait_stages    = PipelineStage::None;
+        };
+
+        struct Submit {
+            std::span<const QueueWait> waits;
+            std::span<const CommandBuffer* const> command_buffers;
         };
 
         struct DeviceDesc {
@@ -53,9 +90,12 @@ namespace orion
         void wait_timeline(Device* device, const TimelinePoint& timeline_point);
         void wait_idle(Device* device);
 
+        TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
+
         [[nodiscard]] const char* backend_name();
         [[nodiscard]] const char* backend_version();
         [[nodiscard]] const char* device_name(const Device* device);
     } // namespace gpu
 } // namespace orion
 
+#undef GPU_DEFINE_BITFLAG
