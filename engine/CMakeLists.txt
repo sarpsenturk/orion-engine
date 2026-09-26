@@ -39,6 +39,8 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/gpu.hpp"
+
+		"orion/lib/scope_guard.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
