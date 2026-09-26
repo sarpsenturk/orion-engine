@@ -14,6 +14,9 @@ option(
 	${PROJECT_IS_TOP_LEVEL}
 )
 
+# Third-party dependencies
+find_package(spdlog 1.17.0 CONFIG REQUIRED)
+
 # Disable modules
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
