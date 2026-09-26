@@ -21,6 +21,8 @@ target_compile_definitions(orion.engine
 target_link_libraries(orion.engine
 	PUBLIC
 		spdlog::spdlog
+	PRIVATE
+		glfw
 )
 
 # Engine sources
@@ -31,9 +33,12 @@ target_sources(orion.engine
 
 		"orion/core/logger.hpp"
 		"orion/core/assert.hpp"
+		"orion/core/platform.hpp"
+		"orion/core/window.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
 		"orion/core/logger.cpp"
 		"orion/core/assert.cpp"
+		"orion/core/platform_impl_glfw.cpp"
 )

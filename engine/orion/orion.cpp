@@ -1,6 +1,8 @@
 #include "orion.hpp"
 
 #include "orion/core/logger.hpp"
+#include "orion/core/platform.hpp"
+#include "orion/core/window.hpp"
 
 namespace orion
 {
@@ -16,8 +18,11 @@ namespace orion
 
     Engine::Engine()
         : m_logger(std::make_unique<Logger>())
+        , m_platform(std::make_unique<Platform>())
+        , m_window(std::make_unique<Window>(WindowDesc{"Orion Engine", 800, 600}))
     {
         ORION_LOG_INFO(LogChannel::Core, "Orion Engine");
+        ORION_LOG_INFO(LogChannel::Core, "Platform: {} {}", m_platform->name(), m_platform->version());
     }
 
     // Needs to be explicitly defaulted here where members are complete types.
@@ -25,7 +30,8 @@ namespace orion
 
     void Engine::run(std::unique_ptr<Application> app)
     {
-        while (true) {
+        while (!m_window->should_close()) {
+            m_platform->poll_events();
             app->update(0.0f);
             app->render();
         }

@@ -1,6 +1,10 @@
 {
   "dependencies": [
     {
+      "name": "glfw3",
+      "version>=": "3.5.1"
+    },
+    {
       "name": "spdlog",
       "version>=": "1.17.0"
     }
