@@ -18,8 +18,13 @@ namespace orion
         };
 
         enum class Format {
-            Undefined   = 0,
-            BGRA8_Unorm = 44,
+            Undefined = 0,
+            BGRA8_Unorm,
+        };
+
+        struct TimelinePoint {
+            Queue queue         = Queue::Graphics;
+            std::uint64_t value = 0ull;
         };
 
         struct DeviceDesc {
@@ -45,8 +50,12 @@ namespace orion
         void reset_command_allocator(Device* device, CommandAllocator* allocator);
         void destroy_command_allocator(Device* device, CommandAllocator* allocator);
 
+        void wait_timeline(Device* device, const TimelinePoint& timeline_point);
+        void wait_idle(Device* device);
+
         [[nodiscard]] const char* backend_name();
         [[nodiscard]] const char* backend_version();
         [[nodiscard]] const char* device_name(const Device* device);
     } // namespace gpu
 } // namespace orion
+

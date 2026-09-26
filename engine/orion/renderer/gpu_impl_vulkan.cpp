@@ -83,6 +83,17 @@ namespace orion::gpu
         std::size_t current_buffer_index = 0z;
     };
 
+    static constexpr VkFormat to_vk_format(Format format)
+    {
+        switch (format) {
+            case Format::Undefined:
+                return VK_FORMAT_UNDEFINED;
+            case Format::BGRA8_Unorm:
+                return VK_FORMAT_B8G8R8A8_UNORM;
+        }
+        std::unreachable();
+    }
+
     static std::uint32_t select_queue_family(
         const std::vector<VkQueueFamilyProperties>& queue_families,
         VkQueueFlags required_flags)
@@ -377,7 +388,7 @@ namespace orion::gpu
             device, swapchain,
             desc.width, desc.height,
             desc.image_count,
-            static_cast<VkFormat>(desc.image_format));
+            to_vk_format(desc.image_format));
 
         return swapchain;
     }
@@ -456,6 +467,21 @@ namespace orion::gpu
         delete allocator;
     }
 
+    void wait_timeline(Device* device, const TimelinePoint& timeline_point)
+    {
+        const auto wait_info = VkSemaphoreWaitInfo{
+            .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            .semaphoreCount = 1u,
+            .pSemaphores    = &device->get_queue(timeline_point.queue).semaphore,
+            .pValues        = &timeline_point.value,
+        };
+        GPU_CHECK(vkWaitSemaphores(device->device, &wait_info, UINT64_MAX));
+    }
+
+    void wait_idle(Device* device)
+    {
+        GPU_CHECK(vkDeviceWaitIdle(device->device));
+    }
     const char* backend_name()
     {
         return "Vulkan";
