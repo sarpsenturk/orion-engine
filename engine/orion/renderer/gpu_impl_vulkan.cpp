@@ -993,6 +993,16 @@ namespace orion::gpu
         vkCmdEndRendering(command_buffer->handle);
     }
 
+    void draw(CommandBuffer* command_buffer, const Draw& draw)
+    {
+        vkCmdDraw(
+            command_buffer->handle,
+            draw.vertex_count,
+            draw.instance_count,
+            draw.first_vertex,
+            draw.first_instance);
+    }
+
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)
     {
         ORION_ASSERT(device != nullptr);

@@ -139,7 +139,8 @@ namespace orion
                 }},
             });
 
-        // TODO: Record draw calls
+        // Draw a triangle
+        gpu::draw(command_buffer, gpu::Draw{.vertex_count = 3u, .instance_count = 1u});
 
         // End render pass
         gpu::end_render_pass(command_buffer);

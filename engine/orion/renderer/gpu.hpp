@@ -158,6 +158,13 @@ namespace orion
             std::span<const RenderPassAttachment> color_attachments;
         };
 
+        struct Draw {
+            std::uint32_t vertex_count   = 0u;
+            std::uint32_t instance_count = 1u;
+            std::uint32_t first_vertex   = 0u;
+            std::uint32_t first_instance = 0u;
+        };
+
         struct TimelinePoint {
             Queue queue         = Queue::Graphics;
             std::uint64_t value = 0ull;
@@ -224,6 +231,7 @@ namespace orion
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
+        void draw(CommandBuffer* command_buffer, const Draw& draw);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
