@@ -69,7 +69,8 @@ namespace orion::gpu
     };
 
     struct Image {
-        VkImage handle = VK_NULL_HANDLE;
+        VkImage handle  = VK_NULL_HANDLE;
+        Extent3D extent = {};
     };
 
     struct ImageView {
@@ -504,8 +505,15 @@ namespace orion::gpu
         std::vector<VkImage> images(image_count);
         GPU_CHECK(vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &image_count, images.data()));
         swapchain->images.resize(image_count);
-        std::ranges::transform(images, swapchain->images.begin(), [](VkImage image) {
-            return Image{.handle = image};
+        std::ranges::transform(images, swapchain->images.begin(), [&](VkImage image) {
+            return Image{
+                .handle = image,
+                .extent = Extent3D{
+                    .width  = swapchain_extent.width,
+                    .height = swapchain_extent.height,
+                    .depth  = 1u,
+                },
+            };
         });
 
         // Create image views
@@ -844,6 +852,19 @@ namespace orion::gpu
         delete pipeline_state;
     }
 
+    Extent3D get_image_extent(const Image* image)
+    {
+        return image->extent;
+    }
+
+    Extent2D get_image_extent_2d(const Image* image)
+    {
+        return Extent2D{
+            .width  = image->extent.width,
+            .height = image->extent.height,
+        };
+    }
+
     void wait_timeline(Device* device, const TimelinePoint& timeline_point)
     {
         const auto wait_info = VkSemaphoreWaitInfo{
@@ -894,6 +915,35 @@ namespace orion::gpu
     void bind_pso(CommandBuffer* command_buffer, PipelineState* pipeline_state)
     {
         vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->pipeline);
+    }
+
+    void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport)
+    {
+        // Flip the Y coordinate to account for Vulkan's coordinate system
+        const auto vk_viewport = VkViewport{
+            .x        = viewport.x,
+            .y        = viewport.y + viewport.height,
+            .width    = viewport.width,
+            .height   = -viewport.height,
+            .minDepth = viewport.min_depth,
+            .maxDepth = viewport.max_depth,
+        };
+        vkCmdSetViewport(command_buffer->handle, 0u, 1u, &vk_viewport);
+    }
+
+    void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor)
+    {
+        const auto vk_scissor = VkRect2D{
+            .offset = {
+                .x = scissor.offset.x,
+                .y = scissor.offset.y,
+            },
+            .extent = {
+                .width  = scissor.extent.width,
+                .height = scissor.extent.height,
+            },
+        };
+        vkCmdSetScissor(command_buffer->handle, 0u, 1u, &vk_scissor);
     }
 
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)

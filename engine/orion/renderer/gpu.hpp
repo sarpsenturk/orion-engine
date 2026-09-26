@@ -113,6 +113,36 @@ namespace orion
             std::span<const ImageBarrier> image_barriers;
         };
 
+        struct Viewport {
+            float x         = 0.0f;
+            float y         = 0.0f;
+            float width     = 0.0f;
+            float height    = 0.0f;
+            float min_depth = 0.0f;
+            float max_depth = 1.0f;
+        };
+
+        struct Offset2D {
+            std::int32_t x = 0;
+            std::int32_t y = 0;
+        };
+
+        struct Extent2D {
+            std::uint32_t width  = 0u;
+            std::uint32_t height = 0u;
+        };
+
+        struct Extent3D {
+            std::uint32_t width  = 0u;
+            std::uint32_t height = 0u;
+            std::uint32_t depth  = 0u;
+        };
+
+        struct Rect2D {
+            Offset2D offset = {};
+            Extent2D extent = {};
+        };
+
         struct TimelinePoint {
             Queue queue         = Queue::Graphics;
             std::uint64_t value = 0ull;
@@ -167,11 +197,16 @@ namespace orion
         PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc);
         void destroy_pipeline_state(Device* device, PipelineState* pipeline_state);
 
+        [[nodiscard]] Extent3D get_image_extent(const Image* image);
+        [[nodiscard]] Extent2D get_image_extent_2d(const Image* image);
+
         void wait_timeline(Device* device, const TimelinePoint& timeline_point);
         void wait_idle(Device* device);
 
         void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
         void bind_pso(CommandBuffer* command_buffer, PipelineState* pipeline_state);
+        void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
+        void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 

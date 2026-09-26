@@ -111,7 +111,23 @@ namespace orion
         // Bind graphics pipeline state (PSO)
         gpu::bind_pso(command_buffer, m_pso);
 
-        // TODO: Record rendering commands here
+        // Get swapchain image extent
+        const auto swapchain_extent = gpu::get_image_extent_2d(frame_data.swapchain_frame.image);
+
+        // Set viewport and scissor
+        gpu::set_viewport(
+            command_buffer,
+            gpu::Viewport{
+                .x         = 0.0f,
+                .y         = 0.0f,
+                .width     = static_cast<float>(swapchain_extent.width),
+                .height    = static_cast<float>(swapchain_extent.height),
+                .min_depth = 0.0f,
+                .max_depth = 1.0f,
+            });
+        gpu::set_scissor(command_buffer, gpu::Rect2D{.extent = swapchain_extent});
+
+        // TODO: Record render passes & draw calls
 
         // Transition the swapchain image to a presentable layout
         gpu::barrier(
