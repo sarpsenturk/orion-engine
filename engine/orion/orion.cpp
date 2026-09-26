@@ -21,7 +21,7 @@ namespace orion
         : m_logger(std::make_unique<Logger>())
         , m_platform(std::make_unique<Platform>())
         , m_window(std::make_unique<Window>(WindowDesc{"Orion Engine", 800, 600}))
-        , m_renderer(std::make_unique<Renderer>())
+        , m_renderer(std::make_unique<Renderer>(RendererDesc{m_window.get()}))
     {
         ORION_LOG_INFO(LogChannel::Core, "Orion Engine");
         ORION_LOG_INFO(LogChannel::Core, "Platform: {} {}", m_platform->name(), m_platform->version());

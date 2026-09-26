@@ -47,6 +47,14 @@ namespace orion::gpu
         VkPhysicalDeviceProperties physical_device_properties = {};
     };
 
+    struct Swapchain {
+        VkSurfaceKHR surface     = VK_NULL_HANDLE;
+        VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+
+        std::vector<VkImage> images;
+        std::vector<VkImageView> image_views;
+    };
+
     static std::uint32_t select_queue_family(
         const std::vector<VkQueueFamilyProperties>& queue_families,
         VkQueueFlags required_flags)
@@ -163,6 +171,143 @@ namespace orion::gpu
         vkDestroyInstance(device->instance, nullptr);
 
         delete device;
+    }
+
+    static void release_swapchain_resources(Device* device, Swapchain* swapchain)
+    {
+        // Release image views
+        std::ranges::for_each(swapchain->image_views, [&](VkImageView image_view) {
+            vkDestroyImageView(device->device, image_view, nullptr);
+        });
+        swapchain->image_views.clear();
+
+        // Release images
+        swapchain->images.clear();
+
+        // Release swapchain
+        vkDestroySwapchainKHR(device->device, swapchain->swapchain, nullptr);
+    }
+
+    static void create_or_resize_swapchain(
+        Device* device,
+        Swapchain* swapchain,
+        std::uint32_t width,
+        std::uint32_t height,
+        std::uint32_t min_image_count,
+        VkFormat format)
+    {
+        VkSurfaceCapabilitiesKHR surface_capabilities;
+        GPU_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            device->physical_device, swapchain->surface, &surface_capabilities));
+
+        // Determine swapchain extent
+        VkExtent2D swapchain_extent = surface_capabilities.currentExtent;
+        if (swapchain_extent.width == 0xFFFFFFFF && swapchain_extent.height == 0xFFFFFFFF) {
+            swapchain_extent.width  = width;
+            swapchain_extent.height = height;
+        }
+
+        // Determine swapchain image count
+        min_image_count = std::clamp(
+            min_image_count, surface_capabilities.minImageCount, surface_capabilities.maxImageCount);
+
+        // Create swapchain
+        const auto swapchain_info = VkSwapchainCreateInfoKHR{
+            .sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .surface          = swapchain->surface,
+            .minImageCount    = min_image_count,
+            .imageFormat      = format,
+            .imageColorSpace  = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+            .imageExtent      = swapchain_extent,
+            .imageArrayLayers = 1u,
+            .imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .preTransform     = surface_capabilities.currentTransform,
+            .compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode      = VK_PRESENT_MODE_FIFO_KHR,
+            .clipped          = VK_TRUE,
+            .oldSwapchain     = swapchain->swapchain,
+        };
+        VkSwapchainKHR new_swapchain;
+        GPU_CHECK(vkCreateSwapchainKHR(device->device, &swapchain_info, nullptr, &new_swapchain));
+
+        // Destroy old swapchain if it exists
+        if (swapchain->swapchain != VK_NULL_HANDLE) {
+            release_swapchain_resources(device, swapchain);
+        }
+        swapchain->swapchain       = new_swapchain;
+        const auto swapchain_guard = ScopeFail{[&]() { release_swapchain_resources(device, swapchain); }};
+
+        // Retrieve swapchain images
+        std::uint32_t image_count;
+        GPU_CHECK(vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &image_count, nullptr));
+        swapchain->images.resize(image_count);
+        GPU_CHECK(vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &image_count, swapchain->images.data()));
+
+        // Create image views
+        swapchain->image_views.reserve(image_count);
+        for (const auto& image : swapchain->images) {
+            const auto image_view_info = VkImageViewCreateInfo{
+                .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                .image      = image,
+                .viewType   = VK_IMAGE_VIEW_TYPE_2D,
+                .format     = format,
+                .components = {
+                    .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                },
+                .subresourceRange = {
+                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel   = 0u,
+                    .levelCount     = 1u,
+                    .baseArrayLayer = 0u,
+                    .layerCount     = 1u,
+                },
+            };
+            VkImageView image_view;
+            GPU_CHECK(vkCreateImageView(device->device, &image_view_info, nullptr, &image_view));
+            swapchain->image_views.push_back(image_view);
+        }
+    }
+
+    Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(desc.native_window_handle != nullptr);
+        ORION_ASSERT(desc.width > 0u);
+        ORION_ASSERT(desc.height > 0u);
+
+        // Create VkSurfaceKHR using via GLFW
+        VkSurfaceKHR surface;
+        GPU_CHECK(glfwCreateWindowSurface(
+            device->instance, static_cast<GLFWwindow*>(desc.native_window_handle), nullptr, &surface));
+        const auto surface_guard = ScopeFail{[&]() {
+            vkDestroySurfaceKHR(device->instance, surface, nullptr);
+        }};
+
+        // Create new swapchain
+        auto* swapchain            = new Swapchain{.surface = surface};
+        const auto swapchain_guard = ScopeFail{[&]() { destroy_swapchain(device, swapchain); }};
+        create_or_resize_swapchain(
+            device, swapchain,
+            desc.width, desc.height,
+            desc.image_count,
+            static_cast<VkFormat>(desc.image_format));
+
+        return swapchain;
+    }
+
+    void destroy_swapchain(Device* device, Swapchain* swapchain)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(swapchain != nullptr);
+
+        release_swapchain_resources(device, swapchain);
+        vkDestroySurfaceKHR(device->instance, swapchain->surface, nullptr);
+
+        delete swapchain;
     }
 
     const char* backend_name()

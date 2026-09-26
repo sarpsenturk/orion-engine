@@ -4,10 +4,14 @@
 
 namespace orion
 {
+    struct RendererDesc {
+        const class Window* window = nullptr;
+    };
+
     class Renderer
     {
     public:
-        Renderer();
+        explicit Renderer(const RendererDesc& desc);
         Renderer(const Renderer&)            = delete;
         Renderer& operator=(const Renderer&) = delete;
         Renderer(Renderer&&)                 = delete;
@@ -18,5 +22,6 @@ namespace orion
 
     private:
         gpu::Device* m_device;
+        gpu::Swapchain* m_swapchain;
     };
 } // namespace orion
