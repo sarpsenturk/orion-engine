@@ -37,7 +37,11 @@ namespace orion
         while (!m_window->should_close()) {
             m_platform->poll_events();
             app->update(0.0f);
-            app->render();
+            if (m_renderer->begin_frame()) {
+                app->render();
+                m_renderer->render();
+                m_renderer->end_frame();
+            }
         }
     }
 } // namespace orion

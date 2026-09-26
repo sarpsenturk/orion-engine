@@ -23,11 +23,16 @@ namespace orion
         Renderer& operator=(Renderer&&)      = delete;
         ~Renderer();
 
+        bool begin_frame();
+        void render();
+        void end_frame();
+
         [[nodiscard]] gpu::Device* device() const { return m_device; }
 
     private:
         struct FrameData {
             gpu::CommandAllocator* command_allocator = nullptr;
+            gpu::TimelinePoint timeline_point        = {};
         };
 
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
