@@ -143,6 +143,71 @@ namespace orion::gpu
         return output;
     }
 
+    static VkAccessFlags2 to_vk_access(Access access)
+    {
+        VkAccessFlags2 output = 0ull;
+        if ((access & Access::IndirectRead) != Access::None) {
+            output |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+        }
+        if ((access & Access::IndexRead) != Access::None) {
+            output |= VK_ACCESS_2_INDEX_READ_BIT;
+        }
+        if ((access & Access::ShaderRead) != Access::None) {
+            output |= VK_ACCESS_2_SHADER_READ_BIT;
+        }
+        if ((access & Access::ShaderWrite) != Access::None) {
+            output |= VK_ACCESS_2_SHADER_WRITE_BIT;
+        }
+        if ((access & Access::ColorAttachmentRead) != Access::None) {
+            output |= VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+        }
+        if ((access & Access::ColorAttachmentWrite) != Access::None) {
+            output |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        }
+        if ((access & Access::DepthStencilAttachmentRead) != Access::None) {
+            output |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        }
+        if ((access & Access::DepthStencilAttachmentWrite) != Access::None) {
+            output |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        }
+        if ((access & Access::TransferRead) != Access::None) {
+            output |= VK_ACCESS_2_TRANSFER_READ_BIT;
+        }
+        if ((access & Access::TransferWrite) != Access::None) {
+            output |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        }
+        if ((access & Access::HostRead) != Access::None) {
+            output |= VK_ACCESS_2_HOST_READ_BIT;
+        }
+        if ((access & Access::HostWrite) != Access::None) {
+            output |= VK_ACCESS_2_HOST_WRITE_BIT;
+        }
+        return output;
+    }
+
+    static VkImageLayout to_vk_image_layout(ImageLayout layout)
+    {
+        switch (layout) {
+            case ImageLayout::Undefined:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageLayout::ColorAttachment:
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            case ImageLayout::DepthStencilAttachment:
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            case ImageLayout::DepthStencilReadOnly:
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            case ImageLayout::ShaderReadOnly:
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            case ImageLayout::TransferSrc:
+                return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            case ImageLayout::TransferDst:
+                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            case ImageLayout::Present:
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        }
+        std::unreachable();
+    }
+
     static std::uint32_t select_queue_family(
         const std::vector<VkQueueFamilyProperties>& queue_families,
         VkQueueFlags required_flags)
@@ -606,6 +671,37 @@ namespace orion::gpu
     void wait_idle(Device* device)
     {
         GPU_CHECK(vkDeviceWaitIdle(device->device));
+    }
+
+    void barrier(CommandBuffer* command_buffer, const Barrier& barrier)
+    {
+        std::vector<VkImageMemoryBarrier2> image_barriers(barrier.image_barriers.size());
+        std::ranges::transform(barrier.image_barriers, image_barriers.begin(), [](const ImageBarrier& image_barrier) {
+            return VkImageMemoryBarrier2{
+                .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                .srcStageMask     = to_vk_pipeline_stages(image_barrier.src_stages),
+                .srcAccessMask    = to_vk_access(image_barrier.src_access),
+                .dstStageMask     = to_vk_pipeline_stages(image_barrier.dst_stages),
+                .dstAccessMask    = to_vk_access(image_barrier.dst_access),
+                .oldLayout        = to_vk_image_layout(image_barrier.old_layout),
+                .newLayout        = to_vk_image_layout(image_barrier.new_layout),
+                .image            = image_barrier.image->handle,
+                .subresourceRange = {
+                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel   = 0u,
+                    .levelCount     = 1u,
+                    .baseArrayLayer = 0u,
+                    .layerCount     = 1u,
+                },
+            };
+        });
+
+        const auto dependency_info = VkDependencyInfo{
+            .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = static_cast<std::uint32_t>(image_barriers.size()),
+            .pImageMemoryBarriers    = image_barriers.data(),
+        };
+        vkCmdPipelineBarrier2(command_buffer->handle, &dependency_info);
     }
 
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)

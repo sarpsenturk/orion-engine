@@ -62,7 +62,41 @@ namespace orion
         // Begin recording commands for this frame
         auto* command_buffer = gpu::begin_command_buffer(m_device, frame_data.command_allocator);
 
-        // TODO: Record commands here
+        // Transition the swapchain image to a color attachment
+        gpu::barrier(
+            command_buffer,
+            gpu::Barrier{
+                .image_barriers = {{
+                    gpu::ImageBarrier{
+                        .image      = frame_data.swapchain_frame.image,
+                        .src_stages = gpu::PipelineStage::ColorAttachmentOutput,
+                        .src_access = gpu::Access::None,
+                        .dst_stages = gpu::PipelineStage::ColorAttachmentOutput,
+                        .dst_access = gpu::Access::ColorAttachmentWrite,
+                        .old_layout = gpu::ImageLayout::Undefined,
+                        .new_layout = gpu::ImageLayout::ColorAttachment,
+                    },
+                }},
+            });
+
+        // TODO: Record rendering commands here
+
+        // Transition the swapchain image to a presentable layout
+        gpu::barrier(
+            command_buffer,
+            gpu::Barrier{
+                .image_barriers = {{
+                    gpu::ImageBarrier{
+                        .image      = frame_data.swapchain_frame.image,
+                        .src_stages = gpu::PipelineStage::ColorAttachmentOutput,
+                        .src_access = gpu::Access::ColorAttachmentWrite,
+                        .dst_stages = gpu::PipelineStage::None,
+                        .dst_access = gpu::Access::None,
+                        .old_layout = gpu::ImageLayout::ColorAttachment,
+                        .new_layout = gpu::ImageLayout::Present,
+                    },
+                }},
+            });
 
         // Submit commands for execution
         frame_data.timeline_point = gpu::submit(

@@ -52,12 +52,54 @@ namespace orion
         };
         GPU_DEFINE_BITFLAG(PipelineStage)
 
+        enum class Access : std::uint64_t {
+            None                        = 0ULL,
+            IndirectRead                = 1ull < 0u,
+            IndexRead                   = 1ull < 1u,
+            ShaderRead                  = 1ull < 2u,
+            ShaderWrite                 = 1ull < 3u,
+            ColorAttachmentRead         = 1ull < 4u,
+            ColorAttachmentWrite        = 1ull < 5u,
+            DepthStencilAttachmentRead  = 1ull < 6u,
+            DepthStencilAttachmentWrite = 1ull < 7u,
+            TransferRead                = 1ull < 8u,
+            TransferWrite               = 1ull < 9u,
+            HostRead                    = 1ull < 10u,
+            HostWrite                   = 1ull < 11u,
+        };
+        GPU_DEFINE_BITFLAG(Access)
+
+        enum class ImageLayout {
+            Undefined = 0,
+            ColorAttachment,
+            DepthStencilAttachment,
+            DepthStencilReadOnly,
+            ShaderReadOnly,
+            TransferSrc,
+            TransferDst,
+            Present,
+        };
+
         struct SwapchainFrame {
             Image* image          = nullptr;
             ImageView* image_view = nullptr;
 
             std::uint32_t image_index   = 0u;
             std::uint32_t acquire_index = 0u;
+        };
+
+        struct ImageBarrier {
+            Image* image             = nullptr;
+            PipelineStage src_stages = PipelineStage::None;
+            Access src_access        = Access::None;
+            PipelineStage dst_stages = PipelineStage::None;
+            Access dst_access        = Access::None;
+            ImageLayout old_layout   = ImageLayout::Undefined;
+            ImageLayout new_layout   = ImageLayout::Undefined;
+        };
+
+        struct Barrier {
+            std::span<const ImageBarrier> image_barriers;
         };
 
         struct TimelinePoint {
@@ -74,8 +116,8 @@ namespace orion
             std::span<const QueueWait> waits;
             std::span<const CommandBuffer* const> command_buffers;
 
-            Swapchain* swapchain                = nullptr;
-            SwapchainFrame* swapchain_frame     = nullptr;
+            Swapchain* swapchain            = nullptr;
+            SwapchainFrame* swapchain_frame = nullptr;
         };
 
         struct DeviceDesc {
@@ -105,6 +147,8 @@ namespace orion
 
         void wait_timeline(Device* device, const TimelinePoint& timeline_point);
         void wait_idle(Device* device);
+
+        void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
