@@ -34,5 +34,6 @@ namespace orion
         std::unique_ptr<class Logger> m_logger;
         std::unique_ptr<class Platform> m_platform;
         std::unique_ptr<class Window> m_window;
+        std::unique_ptr<class Renderer> m_renderer;
     };
 } // namespace orion
