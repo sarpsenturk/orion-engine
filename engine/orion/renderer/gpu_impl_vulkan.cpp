@@ -155,10 +155,42 @@ namespace orion::gpu
             };
         });
 
+        // Enable device features
+        auto vulkan_13_features = VkPhysicalDeviceVulkan13Features{
+            .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .synchronization2 = VK_TRUE,
+            .dynamicRendering = VK_TRUE,
+        };
+        auto vulkan_12_features = VkPhysicalDeviceVulkan12Features{
+            .sType                                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext                                        = &vulkan_13_features,
+            .descriptorIndexing                           = VK_TRUE,
+            .shaderSampledImageArrayNonUniformIndexing    = VK_TRUE,
+            .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+            .descriptorBindingUpdateUnusedWhilePending    = VK_TRUE,
+            .descriptorBindingPartiallyBound              = VK_TRUE,
+            .scalarBlockLayout                            = VK_TRUE,
+            .timelineSemaphore                            = VK_TRUE,
+            .bufferDeviceAddress                          = VK_TRUE,
+        };
+        auto vulkan_11_features = VkPhysicalDeviceVulkan11Features{
+            .sType                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+            .pNext                = &vulkan_12_features,
+            .shaderDrawParameters = VK_TRUE,
+        };
+        const auto vulkan_10_features = VkPhysicalDeviceFeatures2{
+            .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext    = &vulkan_11_features,
+            .features = {
+                .samplerAnisotropy = VK_TRUE,
+            },
+        };
+
         // Create VkDevice
         const auto device_extensions = std::array{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
         const auto device_info       = VkDeviceCreateInfo{
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext                   = &vulkan_10_features,
             .queueCreateInfoCount    = static_cast<std::uint32_t>(queue_create_infos.size()),
             .pQueueCreateInfos       = queue_create_infos.data(),
             .enabledExtensionCount   = static_cast<std::uint32_t>(device_extensions.size()),
