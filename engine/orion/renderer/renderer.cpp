@@ -43,6 +43,9 @@ namespace orion
         // Wait until the previous submission for this frame has completed
         gpu::wait_timeline(m_device, frame_data.timeline_point);
 
+        // Reset command allocator
+        gpu::reset_command_allocator(m_device, frame_data.command_allocator);
+
         return true;
     }
 
