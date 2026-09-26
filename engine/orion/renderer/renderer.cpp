@@ -44,6 +44,20 @@ namespace orion
                   .front_face_ccw    = true,
                   .color_attachments = {{gpu::Format::BGRA8_Unorm}},
               }))
+        , m_vertex_buffer(gpu::create_buffer(
+              m_device,
+              gpu::BufferDesc{
+                  .size   = sizeof(Vertex) * max_vertex_count,
+                  .memory = gpu::Memory::Default,
+                  .usage  = gpu::BufferUsage::DeviceAddress,
+              }))
+        , m_index_buffer(gpu::create_buffer(
+              m_device,
+              gpu::BufferDesc{
+                  .size   = sizeof(std::uint32_t) * max_index_count,
+                  .memory = gpu::Memory::Default,
+                  .usage  = gpu::BufferUsage::IndexBuffer,
+              }))
         , m_frame_data(make_array<frames_in_flight>([this]() {
             return FrameData{
                 .command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics),
@@ -60,6 +74,8 @@ namespace orion
         for (const auto& frame_data : m_frame_data) {
             gpu::destroy_command_allocator(m_device, frame_data.command_allocator);
         }
+        gpu::destroy_buffer(m_device, m_index_buffer);
+        gpu::destroy_buffer(m_device, m_vertex_buffer);
         gpu::destroy_pipeline_state(m_device, m_pso);
         gpu::destroy_swapchain(m_device, m_swapchain);
         gpu::destroy_device(m_device);
@@ -182,5 +198,44 @@ namespace orion
 
         // Increment the frame counter for the next frame
         ++m_frame_counter;
+    }
+
+    MeshHandle Renderer::create_mesh(
+        std::span<const Vertex> vertices,
+        std::span<const std::uint32_t> indices)
+    {
+        if (m_vertex_offset + vertices.size() > max_vertex_count ||
+            m_index_offset + indices.size() > max_index_count) {
+            return m_meshes.invalid_handle;
+        } else {
+            const auto vertex_offset = m_vertex_offset;
+            const auto index_offset  = m_index_offset;
+
+            gpu::copy_to_buffer(
+                m_device,
+                m_vertex_buffer,
+                vertex_offset * sizeof(Vertex),
+                std::as_bytes(vertices));
+            gpu::copy_to_buffer(
+                m_device,
+                m_index_buffer,
+                index_offset * sizeof(std::uint32_t),
+                std::as_bytes(indices));
+
+            m_vertex_offset += static_cast<std::uint32_t>(vertices.size());
+            m_index_offset += static_cast<std::uint32_t>(indices.size());
+
+            return m_meshes.emplace(Mesh{
+                .vertex_count  = static_cast<std::uint32_t>(vertices.size()),
+                .vertex_offset = vertex_offset,
+                .index_offset  = index_offset,
+                .index_count   = static_cast<std::uint32_t>(indices.size()),
+            });
+        }
+    }
+
+    void Renderer::destroy_mesh(MeshHandle /*mesh*/)
+    {
+        // No-op for now.
     }
 } // namespace orion

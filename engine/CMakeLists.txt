@@ -31,6 +31,7 @@ target_compile_definitions(orion.engine
 target_link_libraries(orion.engine
 	PUBLIC
 		spdlog::spdlog
+		glm::glm
 	PRIVATE
 		glfw
 		Vulkan::Headers Vulkan::volk
@@ -49,6 +50,7 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/gpu.hpp"
+		"orion/renderer/mesh.hpp"
 
 		"orion/lib/scope_guard.hpp"
 		"orion/lib/array.hpp"

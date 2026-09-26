@@ -30,6 +30,8 @@ namespace orion
 
         void run(std::unique_ptr<Application> app);
 
+        [[nodiscard]] class Renderer& renderer() const { return *m_renderer; }
+
     private:
         std::unique_ptr<class Logger> m_logger;
         std::unique_ptr<class Platform> m_platform;
