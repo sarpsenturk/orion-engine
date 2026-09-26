@@ -23,6 +23,7 @@ namespace orion
         struct Image;
         struct ImageView;
         struct Swapchain;
+        struct PipelineState;
         struct CommandBuffer;
         struct CommandAllocator;
 
@@ -88,6 +89,16 @@ namespace orion
             std::uint32_t acquire_index = 0u;
         };
 
+        enum class Topology {
+            TriangleList = 0,
+        };
+
+        enum class CullMode {
+            None = 0,
+            Front,
+            Back,
+        };
+
         struct ImageBarrier {
             Image* image             = nullptr;
             PipelineStage src_stages = PipelineStage::None;
@@ -132,6 +143,14 @@ namespace orion
             Format image_format        = Format::Undefined;
         };
 
+        struct GraphicsPipelineDesc {
+            std::span<const std::uint32_t> spirv;
+            Topology topology   = Topology::TriangleList;
+            CullMode cull_mode  = CullMode::Back;
+            bool front_face_ccw = true;
+            std::span<const Format> color_attachments;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
 
@@ -145,10 +164,14 @@ namespace orion
         void reset_command_allocator(Device* device, CommandAllocator* allocator);
         void destroy_command_allocator(Device* device, CommandAllocator* allocator);
 
+        PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc);
+        void destroy_pipeline_state(Device* device, PipelineState* pipeline_state);
+
         void wait_timeline(Device* device, const TimelinePoint& timeline_point);
         void wait_idle(Device* device);
 
         void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
+        void bind_pso(CommandBuffer* command_buffer, PipelineState* pipeline_state);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 

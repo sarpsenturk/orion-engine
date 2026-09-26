@@ -41,6 +41,7 @@ namespace orion
 
         gpu::Device* m_device;
         gpu::Swapchain* m_swapchain;
+        gpu::PipelineState* m_pso;
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;

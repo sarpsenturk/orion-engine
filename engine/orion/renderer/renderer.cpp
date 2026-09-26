@@ -3,8 +3,27 @@
 #include "orion/core/window.hpp"
 #include "orion/lib/array.hpp"
 
+#include <fstream>
+#include <vector>
+
 namespace orion
 {
+    static std::vector<uint32_t> load_shader(const std::string& path)
+    {
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open shader file: " + path);
+        }
+
+        const auto size = file.tellg();
+        file.seekg(0, std::ios::beg);
+
+        std::vector<uint32_t> spirv(size / sizeof(uint32_t));
+        file.read(reinterpret_cast<char*>(spirv.data()), size);
+
+        return spirv;
+    }
+
     Renderer::Renderer(const RendererDesc& desc)
         : m_device(gpu::create_device({}))
         , m_swapchain(gpu::create_swapchain(
@@ -15,6 +34,15 @@ namespace orion
                   .height               = static_cast<std::uint32_t>(desc.window->height()),
                   .image_count          = 3u,
                   .image_format         = gpu::Format::BGRA8_Unorm,
+              }))
+        , m_pso(gpu::create_graphics_pipeline(
+              m_device,
+              gpu::GraphicsPipelineDesc{
+                  .spirv             = load_shader(ORION_SHADER_OUTPUT_DIR "/triangle.spv"),
+                  .topology          = gpu::Topology::TriangleList,
+                  .cull_mode         = gpu::CullMode::Back,
+                  .front_face_ccw    = true,
+                  .color_attachments = {{gpu::Format::BGRA8_Unorm}},
               }))
         , m_frame_data(make_array<frames_in_flight>([this]() {
             return FrameData{
@@ -32,6 +60,7 @@ namespace orion
         for (const auto& frame_data : m_frame_data) {
             gpu::destroy_command_allocator(m_device, frame_data.command_allocator);
         }
+        gpu::destroy_pipeline_state(m_device, m_pso);
         gpu::destroy_swapchain(m_device, m_swapchain);
         gpu::destroy_device(m_device);
     }
@@ -78,6 +107,9 @@ namespace orion
                     },
                 }},
             });
+
+        // Bind graphics pipeline state (PSO)
+        gpu::bind_pso(command_buffer, m_pso);
 
         // TODO: Record rendering commands here
 
