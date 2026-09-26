@@ -69,12 +69,16 @@ namespace orion::gpu
     };
 
     struct Image {
-        VkImage handle  = VK_NULL_HANDLE;
-        Extent3D extent = {};
+        VkImage handle       = VK_NULL_HANDLE;
+        std::uint32_t width  = 0u;
+        std::uint32_t height = 0u;
+        std::uint32_t depth  = 0u;
     };
 
     struct ImageView {
-        VkImageView handle = VK_NULL_HANDLE;
+        VkImageView handle   = VK_NULL_HANDLE;
+        std::uint32_t width  = 0u;
+        std::uint32_t height = 0u;
     };
 
     struct Swapchain {
@@ -236,6 +240,19 @@ namespace orion::gpu
                 return VK_CULL_MODE_FRONT_BIT;
             case CullMode::Back:
                 return VK_CULL_MODE_BACK_BIT;
+        }
+        std::unreachable();
+    }
+
+    static VkAttachmentLoadOp to_vk_load_op(LoadOp load_op)
+    {
+        switch (load_op) {
+            case LoadOp::Load:
+                return VK_ATTACHMENT_LOAD_OP_LOAD;
+            case LoadOp::Clear:
+                return VK_ATTACHMENT_LOAD_OP_CLEAR;
+            case LoadOp::DontCare:
+                return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         }
         std::unreachable();
     }
@@ -508,11 +525,9 @@ namespace orion::gpu
         std::ranges::transform(images, swapchain->images.begin(), [&](VkImage image) {
             return Image{
                 .handle = image,
-                .extent = Extent3D{
-                    .width  = swapchain_extent.width,
-                    .height = swapchain_extent.height,
-                    .depth  = 1u,
-                },
+                .width  = swapchain_extent.width,
+                .height = swapchain_extent.height,
+                .depth  = 1u,
             };
         });
 
@@ -540,7 +555,11 @@ namespace orion::gpu
             };
             VkImageView image_view;
             GPU_CHECK(vkCreateImageView(device->device, &image_view_info, nullptr, &image_view));
-            swapchain->image_views.push_back(ImageView{.handle = image_view});
+            swapchain->image_views.push_back(ImageView{
+                .handle = image_view,
+                .width  = swapchain_extent.width,
+                .height = swapchain_extent.height,
+            });
         }
 
         // Create semaphores
@@ -854,15 +873,12 @@ namespace orion::gpu
 
     Extent3D get_image_extent(const Image* image)
     {
-        return image->extent;
+        return Extent3D{image->width, image->height, image->depth};
     }
 
     Extent2D get_image_extent_2d(const Image* image)
     {
-        return Extent2D{
-            .width  = image->extent.width,
-            .height = image->extent.height,
-        };
+        return Extent2D{image->width, image->height};
     }
 
     void wait_timeline(Device* device, const TimelinePoint& timeline_point)
@@ -944,6 +960,37 @@ namespace orion::gpu
             },
         };
         vkCmdSetScissor(command_buffer->handle, 0u, 1u, &vk_scissor);
+    }
+
+    void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass)
+    {
+        std::array<VkRenderingAttachmentInfo, max_color_attachments> color_attachments;
+        std::ranges::transform(render_pass.color_attachments, color_attachments.begin(), [](const RenderPassAttachment& attachment) {
+            return VkRenderingAttachmentInfo{
+                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = attachment.image_view->handle,
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp      = to_vk_load_op(attachment.load_op),
+                .clearValue  = VkClearValue{.color = VkClearColorValue{0.0f, 0.0f, 0.0f, 1.0f}},
+            };
+        });
+
+        const auto* area_view     = render_pass.color_attachments[0].image_view;
+        const auto rendering_info = VkRenderingInfo{
+            .sType      = VK_STRUCTURE_TYPE_RENDERING_INFO,
+            .renderArea = {
+                .extent = VkExtent2D{area_view->width, area_view->height},
+            },
+            .layerCount           = 1u,
+            .colorAttachmentCount = static_cast<std::uint32_t>(render_pass.color_attachments.size()),
+            .pColorAttachments    = color_attachments.data(),
+        };
+        vkCmdBeginRendering(command_buffer->handle, &rendering_info);
+    }
+
+    void end_render_pass(CommandBuffer* command_buffer)
+    {
+        vkCmdEndRendering(command_buffer->handle);
     }
 
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)

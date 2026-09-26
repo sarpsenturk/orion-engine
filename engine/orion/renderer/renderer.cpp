@@ -127,7 +127,22 @@ namespace orion
             });
         gpu::set_scissor(command_buffer, gpu::Rect2D{.extent = swapchain_extent});
 
-        // TODO: Record render passes & draw calls
+        // Begin render pass
+        gpu::begin_render_pass(
+            command_buffer,
+            gpu::RenderPass{
+                .color_attachments = {{
+                    gpu::RenderPassAttachment{
+                        .image_view = frame_data.swapchain_frame.image_view,
+                        .load_op    = gpu::LoadOp::Clear,
+                    },
+                }},
+            });
+
+        // TODO: Record draw calls
+
+        // End render pass
+        gpu::end_render_pass(command_buffer);
 
         // Transition the swapchain image to a presentable layout
         gpu::barrier(

@@ -99,6 +99,12 @@ namespace orion
             Back,
         };
 
+        enum class LoadOp {
+            Load = 0,
+            Clear,
+            DontCare,
+        };
+
         struct ImageBarrier {
             Image* image             = nullptr;
             PipelineStage src_stages = PipelineStage::None;
@@ -141,6 +147,15 @@ namespace orion
         struct Rect2D {
             Offset2D offset = {};
             Extent2D extent = {};
+        };
+
+        struct RenderPassAttachment {
+            ImageView* image_view = nullptr;
+            LoadOp load_op        = LoadOp::Load;
+        };
+
+        struct RenderPass {
+            std::span<const RenderPassAttachment> color_attachments;
         };
 
         struct TimelinePoint {
@@ -207,6 +222,8 @@ namespace orion
         void bind_pso(CommandBuffer* command_buffer, PipelineState* pipeline_state);
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
+        void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
+        void end_render_pass(CommandBuffer* command_buffer);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
