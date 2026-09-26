@@ -8,6 +8,7 @@ namespace orion
     enum class LogChannel {
         Core,
         Application,
+        Assertions,
 
         COUNT,
     };

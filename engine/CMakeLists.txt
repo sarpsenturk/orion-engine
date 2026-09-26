@@ -11,6 +11,12 @@ target_compile_options(orion.engine
 		$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /external:anglebrackets /external:W0 /permissive->
 )
 
+# Preprocessor definitions
+target_compile_definitions(orion.engine
+	PUBLIC
+		$<$<CONFIG:Debug>:ORION_DEBUG>
+)
+
 # Third-party libraries
 target_link_libraries(orion.engine
 	PUBLIC
@@ -24,8 +30,10 @@ target_sources(orion.engine
 		"orion/orion.hpp"
 
 		"orion/core/logger.hpp"
+		"orion/core/assert.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
 		"orion/core/logger.cpp"
+		"orion/core/assert.cpp"
 )
