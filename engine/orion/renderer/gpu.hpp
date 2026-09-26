@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <utility>
 
@@ -19,6 +20,8 @@ namespace orion
     namespace gpu
     {
         struct Device;
+        struct Image;
+        struct ImageView;
         struct Swapchain;
         struct CommandBuffer;
         struct CommandAllocator;
@@ -49,6 +52,14 @@ namespace orion
         };
         GPU_DEFINE_BITFLAG(PipelineStage)
 
+        struct SwapchainFrame {
+            Image* image          = nullptr;
+            ImageView* image_view = nullptr;
+
+            std::uint32_t image_index   = 0u;
+            std::uint32_t acquire_index = 0u;
+        };
+
         struct TimelinePoint {
             Queue queue         = Queue::Graphics;
             std::uint64_t value = 0ull;
@@ -62,6 +73,9 @@ namespace orion
         struct Submit {
             std::span<const QueueWait> waits;
             std::span<const CommandBuffer* const> command_buffers;
+
+            Swapchain* swapchain                = nullptr;
+            SwapchainFrame* swapchain_frame     = nullptr;
         };
 
         struct DeviceDesc {
@@ -80,6 +94,8 @@ namespace orion
         void destroy_device(Device* device);
 
         Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc);
+        std::optional<SwapchainFrame> acquire_swapchain_frame(Device* device, Swapchain* swapchain);
+        void present(Device* device, Swapchain* swapchain, const SwapchainFrame& swapchain_frame);
         void destroy_swapchain(Device* device, Swapchain* swapchain);
 
         CommandAllocator* create_command_allocator(Device* device, Queue queue);

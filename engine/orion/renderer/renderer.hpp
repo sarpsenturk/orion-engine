@@ -33,6 +33,7 @@ namespace orion
         struct FrameData {
             gpu::CommandAllocator* command_allocator = nullptr;
             gpu::TimelinePoint timeline_point        = {};
+            gpu::SwapchainFrame swapchain_frame      = {};
         };
 
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }

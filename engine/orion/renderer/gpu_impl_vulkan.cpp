@@ -65,12 +65,25 @@ namespace orion::gpu
         }
     };
 
+    struct Image {
+        VkImage handle = VK_NULL_HANDLE;
+    };
+
+    struct ImageView {
+        VkImageView handle = VK_NULL_HANDLE;
+    };
+
     struct Swapchain {
         VkSurfaceKHR surface     = VK_NULL_HANDLE;
         VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
-        std::vector<VkImage> images;
-        std::vector<VkImageView> image_views;
+        std::vector<Image> images;
+        std::vector<ImageView> image_views;
+
+        std::vector<VkSemaphore> acquire_semaphores;
+        std::vector<VkSemaphore> present_semaphores;
+
+        std::uint32_t current_acquire_index = 0u;
     };
 
     struct CommandBuffer {
@@ -305,9 +318,19 @@ namespace orion::gpu
 
     static void release_swapchain_resources(Device* device, Swapchain* swapchain)
     {
+        // Release semaphores
+        std::ranges::for_each(swapchain->present_semaphores, [&](VkSemaphore semaphore) {
+            vkDestroySemaphore(device->device, semaphore, nullptr);
+        });
+        swapchain->present_semaphores.clear();
+        std::ranges::for_each(swapchain->acquire_semaphores, [&](VkSemaphore semaphore) {
+            vkDestroySemaphore(device->device, semaphore, nullptr);
+        });
+        swapchain->acquire_semaphores.clear();
+
         // Release image views
-        std::ranges::for_each(swapchain->image_views, [&](VkImageView image_view) {
-            vkDestroyImageView(device->device, image_view, nullptr);
+        std::ranges::for_each(swapchain->image_views, [&](ImageView image_view) {
+            vkDestroyImageView(device->device, image_view.handle, nullptr);
         });
         swapchain->image_views.clear();
 
@@ -371,12 +394,16 @@ namespace orion::gpu
         // Retrieve swapchain images
         std::uint32_t image_count;
         GPU_CHECK(vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &image_count, nullptr));
+        std::vector<VkImage> images(image_count);
+        GPU_CHECK(vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &image_count, images.data()));
         swapchain->images.resize(image_count);
-        GPU_CHECK(vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &image_count, swapchain->images.data()));
+        std::ranges::transform(images, swapchain->images.begin(), [](VkImage image) {
+            return Image{.handle = image};
+        });
 
         // Create image views
         swapchain->image_views.reserve(image_count);
-        for (const auto& image : swapchain->images) {
+        for (const auto& image : images) {
             const auto image_view_info = VkImageViewCreateInfo{
                 .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .image      = image,
@@ -398,8 +425,21 @@ namespace orion::gpu
             };
             VkImageView image_view;
             GPU_CHECK(vkCreateImageView(device->device, &image_view_info, nullptr, &image_view));
-            swapchain->image_views.push_back(image_view);
+            swapchain->image_views.push_back(ImageView{.handle = image_view});
         }
+
+        // Create semaphores
+        const auto semaphore_info = VkSemaphoreCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        };
+        swapchain->acquire_semaphores.resize(image_count);
+        std::ranges::for_each(swapchain->acquire_semaphores, [&](VkSemaphore& semaphore) {
+            GPU_CHECK(vkCreateSemaphore(device->device, &semaphore_info, nullptr, &semaphore));
+        });
+        swapchain->present_semaphores.resize(image_count);
+        std::ranges::for_each(swapchain->present_semaphores, [&](VkSemaphore& semaphore) {
+            GPU_CHECK(vkCreateSemaphore(device->device, &semaphore_info, nullptr, &semaphore));
+        });
     }
 
     Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc)
@@ -427,6 +467,55 @@ namespace orion::gpu
             to_vk_format(desc.image_format));
 
         return swapchain;
+    }
+
+    std::optional<SwapchainFrame> acquire_swapchain_frame(Device* device, Swapchain* swapchain)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(swapchain != nullptr);
+
+        const auto acquire_index         = swapchain->current_acquire_index;
+        swapchain->current_acquire_index = (swapchain->current_acquire_index + 1u) % swapchain->images.size();
+
+        std::uint32_t image_index;
+        switch (const auto result = vkAcquireNextImageKHR(
+                    device->device,
+                    swapchain->swapchain,
+                    UINT64_MAX,
+                    swapchain->acquire_semaphores[acquire_index],
+                    VK_NULL_HANDLE,
+                    &image_index)) {
+            case VK_SUCCESS:
+                return SwapchainFrame{
+                    .image         = &swapchain->images[image_index],
+                    .image_view    = &swapchain->image_views[image_index],
+                    .image_index   = image_index,
+                    .acquire_index = acquire_index,
+                };
+            case VK_SUBOPTIMAL_KHR:
+                [[fallthrough]];
+            case VK_ERROR_OUT_OF_DATE_KHR:
+                return std::nullopt;
+            default:
+                throw std::runtime_error(fmt::format(
+                    "vkAcquireNextImageKHR failed: {}", string_VkResult(result)));
+        }
+    }
+
+    void present(Device* device, Swapchain* swapchain, const SwapchainFrame& swapchain_frame)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(swapchain != nullptr);
+
+        const auto present_info = VkPresentInfoKHR{
+            .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1u,
+            .pWaitSemaphores    = &swapchain->present_semaphores[swapchain_frame.acquire_index],
+            .swapchainCount     = 1u,
+            .pSwapchains        = &swapchain->swapchain,
+            .pImageIndices      = &swapchain_frame.image_index,
+        };
+        GPU_CHECK(vkQueuePresentKHR(device->get_queue(Queue::Graphics).handle, &present_info));
     }
 
     void destroy_swapchain(Device* device, Swapchain* swapchain)
@@ -551,6 +640,20 @@ namespace orion::gpu
                 .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             },
         };
+
+        // Append swapchain semaphores if a swapchain frame is provided
+        if (submit.swapchain != nullptr && submit.swapchain_frame != nullptr) {
+            wait_infos.push_back(VkSemaphoreSubmitInfo{
+                .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = submit.swapchain->acquire_semaphores[submit.swapchain_frame->acquire_index],
+                .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            });
+            signal_infos.push_back(VkSemaphoreSubmitInfo{
+                .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = submit.swapchain->present_semaphores[submit.swapchain_frame->image_index],
+                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            });
+        }
 
         const auto submit_info = VkSubmitInfo2{
             .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,

@@ -46,7 +46,13 @@ namespace orion
         // Reset command allocator
         gpu::reset_command_allocator(m_device, frame_data.command_allocator);
 
-        return true;
+        // Acquire the next swapchain frame
+        if (auto swapchain_frame = gpu::acquire_swapchain_frame(m_device, m_swapchain)) {
+            frame_data.swapchain_frame = *swapchain_frame;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void Renderer::render()
@@ -64,12 +70,17 @@ namespace orion
             gpu::Queue::Graphics,
             gpu::Submit{
                 .command_buffers = {{command_buffer}},
+                .swapchain       = m_swapchain,
+                .swapchain_frame = &frame_data.swapchain_frame,
             });
     }
 
     void Renderer::end_frame()
     {
-        // TODO: Present the swapchain image here
+        auto& frame_data = current_frame_data();
+
+        // Present the swapchain frame
+        gpu::present(m_device, m_swapchain, frame_data.swapchain_frame);
 
         // Increment the frame counter for the next frame
         ++m_frame_counter;
