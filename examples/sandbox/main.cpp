@@ -33,7 +33,7 @@ public:
 
 private:
     orion::Renderer& m_renderer;
-    orion::MeshHandle m_mesh;
+    orion::Mesh m_mesh;
 };
 
 int main()

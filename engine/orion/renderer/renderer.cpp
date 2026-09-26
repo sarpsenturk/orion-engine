@@ -4,6 +4,7 @@
 #include "orion/lib/array.hpp"
 
 #include <fstream>
+#include <stdexcept>
 #include <vector>
 
 namespace orion
@@ -206,13 +207,13 @@ namespace orion
         ++m_frame_counter;
     }
 
-    MeshHandle Renderer::create_mesh(
+    Mesh Renderer::create_mesh(
         std::span<const Vertex> vertices,
         std::span<const std::uint32_t> indices)
     {
         if (m_vertex_offset + vertices.size() > max_vertex_count ||
             m_index_offset + indices.size() > max_index_count) {
-            return m_meshes.invalid_handle;
+            throw std::runtime_error("Exceeded Renderer mesh limits.");
         } else {
             const auto vertex_offset = m_vertex_offset;
             const auto index_offset  = m_index_offset;
@@ -231,16 +232,16 @@ namespace orion
             m_vertex_offset += static_cast<std::uint32_t>(vertices.size());
             m_index_offset += static_cast<std::uint32_t>(indices.size());
 
-            return m_meshes.emplace(Mesh{
+            return Mesh{
                 .vertex_count  = static_cast<std::uint32_t>(vertices.size()),
                 .vertex_offset = vertex_offset,
                 .index_offset  = index_offset,
                 .index_count   = static_cast<std::uint32_t>(indices.size()),
-            });
+            };
         }
     }
 
-    void Renderer::destroy_mesh(MeshHandle /*mesh*/)
+    void Renderer::destroy_mesh(Mesh /*mesh*/)
     {
         // No-op for now.
     }
