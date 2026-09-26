@@ -20,7 +20,7 @@ namespace orion
         using generation_type = std::uint32_t;
 
         struct Handle {
-            index_type index = ;
+            index_type index;
             generation_type generation;
 
             constexpr friend bool operator==(Handle, Handle) noexcept = default;
@@ -37,7 +37,8 @@ namespace orion
                 m_slots.emplace_back(std::optional<value_type>{std::in_place, std::forward<Args>(args)...});
                 return Handle{index, m_slots[index].generation};
             } else {
-                auto& slot = m_slots[index];
+                const auto index = m_free_head;
+                auto& slot       = m_slots[index];
                 slot.value.emplace(std::forward<Args>(args)...);
                 m_free_head = slot.next_free;
                 return Handle{index, slot.generation};
