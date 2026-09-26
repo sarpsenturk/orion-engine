@@ -1,6 +1,7 @@
 #include "renderer.hpp"
 
 #include "orion/core/window.hpp"
+#include "orion/lib/array.hpp"
 
 namespace orion
 {
@@ -15,11 +16,19 @@ namespace orion
                   .image_count          = 3u,
                   .image_format         = gpu::Format::BGRA8_Unorm,
               }))
+        , m_frame_data(make_array<frames_in_flight>([this]() {
+            return FrameData{
+                .command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics),
+            };
+        }))
     {
     }
 
     Renderer::~Renderer()
     {
+        for (const auto& frame_data : m_frame_data) {
+            gpu::destroy_command_allocator(m_device, frame_data.command_allocator);
+        }
         gpu::destroy_swapchain(m_device, m_swapchain);
         gpu::destroy_device(m_device);
     }

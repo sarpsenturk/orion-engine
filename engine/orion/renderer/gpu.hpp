@@ -8,6 +8,14 @@ namespace orion
     {
         struct Device;
         struct Swapchain;
+        struct CommandBuffer;
+        struct CommandAllocator;
+
+        enum class Queue {
+            Graphics = 0,
+            Compute,
+            Transfer,
+        };
 
         enum class Format {
             Undefined   = 0,
@@ -31,6 +39,11 @@ namespace orion
 
         Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc);
         void destroy_swapchain(Device* device, Swapchain* swapchain);
+
+        CommandAllocator* create_command_allocator(Device* device, Queue queue);
+        CommandBuffer* begin_command_buffer(Device* device, CommandAllocator* allocator);
+        void reset_command_allocator(Device* device, CommandAllocator* allocator);
+        void destroy_command_allocator(Device* device, CommandAllocator* allocator);
 
         [[nodiscard]] const char* backend_name();
         [[nodiscard]] const char* backend_version();

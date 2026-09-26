@@ -13,9 +13,11 @@
 #include <array>
 #include <bit>
 #include <cstdint>
+#include <deque>
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #define GPU_CHECK(vkcall)                                                                          \
@@ -45,6 +47,19 @@ namespace orion::gpu
         VulkanQueue transfer_queue = {};
 
         VkPhysicalDeviceProperties physical_device_properties = {};
+
+        VulkanQueue get_queue(Queue queue)
+        {
+            switch (queue) {
+                case Queue::Graphics:
+                    return graphics_queue;
+                case Queue::Compute:
+                    return compute_queue;
+                case Queue::Transfer:
+                    return transfer_queue;
+            }
+            std::unreachable();
+        }
     };
 
     struct Swapchain {
@@ -53,6 +68,16 @@ namespace orion::gpu
 
         std::vector<VkImage> images;
         std::vector<VkImageView> image_views;
+    };
+
+    struct CommandBuffer {
+        VkCommandBuffer handle = VK_NULL_HANDLE;
+    };
+
+    struct CommandAllocator {
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        std::deque<CommandBuffer> command_buffers;
+        std::size_t current_buffer_index = 0z;
     };
 
     static std::uint32_t select_queue_family(
@@ -308,6 +333,69 @@ namespace orion::gpu
         vkDestroySurfaceKHR(device->instance, swapchain->surface, nullptr);
 
         delete swapchain;
+    }
+
+    CommandAllocator* create_command_allocator(Device* device, Queue queue)
+    {
+        ORION_ASSERT(device != nullptr);
+
+        const auto command_pool_info = VkCommandPoolCreateInfo{
+            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+            .queueFamilyIndex = device->get_queue(queue).family,
+        };
+        VkCommandPool command_pool;
+        GPU_CHECK(vkCreateCommandPool(device->device, &command_pool_info, nullptr, &command_pool));
+
+        return new CommandAllocator{.command_pool = command_pool};
+    }
+
+    CommandBuffer* begin_command_buffer(Device* device, CommandAllocator* allocator)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(allocator != nullptr);
+
+        // If there are no available command buffers in the allocator, allocate a new one
+        if (allocator->current_buffer_index >= allocator->command_buffers.size()) {
+            const auto command_buffer_allocate_info = VkCommandBufferAllocateInfo{
+                .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                .commandPool        = allocator->command_pool,
+                .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                .commandBufferCount = 1u,
+            };
+            VkCommandBuffer command_buffer;
+            GPU_CHECK(vkAllocateCommandBuffers(device->device, &command_buffer_allocate_info, &command_buffer));
+            allocator->command_buffers.emplace_back(command_buffer);
+        }
+
+        // Begin recording the command buffer
+        auto* command_buffer                 = &allocator->command_buffers[allocator->current_buffer_index++];
+        const auto command_buffer_begin_info = VkCommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
+        GPU_CHECK(vkBeginCommandBuffer(command_buffer->handle, &command_buffer_begin_info));
+        return command_buffer;
+    }
+
+    void reset_command_allocator(Device* device, CommandAllocator* allocator)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(allocator != nullptr);
+
+        // Reset the command pool, which implicitly frees all command buffers allocated from it
+        GPU_CHECK(vkResetCommandPool(device->device, allocator->command_pool, 0u));
+        allocator->current_buffer_index = 0z;
+    }
+
+    void destroy_command_allocator(Device* device, CommandAllocator* allocator)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(allocator != nullptr);
+
+        vkDestroyCommandPool(device->device, allocator->command_pool, nullptr);
+
+        delete allocator;
     }
 
     const char* backend_name()
