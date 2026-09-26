@@ -18,6 +18,7 @@ option(
 find_package(spdlog 1.17.0 CONFIG REQUIRED)
 find_package(glfw3 3.5.1 CONFIG REQUIRED)
 find_package(Vulkan COMPONENTS volk REQUIRED) # Required VulkanSDK to be installed on the system
+find_program(slangc_EXE slangc REQUIRED)
 
 # Disable modules
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)

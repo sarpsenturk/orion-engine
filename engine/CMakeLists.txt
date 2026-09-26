@@ -1,3 +1,11 @@
+# Engine configuration options
+set(
+	ORION_SHADER_OUTPUT_DIR
+	"${CMAKE_CURRENT_BINARY_DIR}/shaders" 
+	CACHE PATH
+	"Directory for compiled shader (SPIR-V) output"
+)
+
 # Engine core library
 add_library(orion.engine "")
 
@@ -15,6 +23,8 @@ target_compile_options(orion.engine
 target_compile_definitions(orion.engine
 	PUBLIC
 		$<$<CONFIG:Debug>:ORION_DEBUG>
+	PRIVATE
+		ORION_SHADER_OUTPUT_DIR="${ORION_SHADER_OUTPUT_DIR}"
 )
 
 # Third-party libraries
@@ -53,3 +63,8 @@ target_sources(orion.engine
 		"orion/renderer/renderer.cpp"
 		"orion/renderer/gpu_impl_vulkan.cpp"
 )
+
+# Engine shaders
+# Offline compilation using slangc
+add_subdirectory(shaders)
+add_dependencies(orion.engine orion.shaders)
