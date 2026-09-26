@@ -34,6 +34,9 @@ namespace orion::gpu
     struct VulkanQueue {
         std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
         VkQueue handle       = VK_NULL_HANDLE;
+
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        std::uint64_t value   = 0ull;
     };
 
     struct Device {
@@ -209,13 +212,32 @@ namespace orion::gpu
         VkQueue transfer_queue;
         vkGetDeviceQueue(device, transfer_family, 0u, &transfer_queue);
 
+        // Create queue timeline semaphores
+        const auto semaphore_type_info = VkSemaphoreTypeCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+            .initialValue  = 0ull,
+        };
+        const auto semaphore_info = VkSemaphoreCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = &semaphore_type_info,
+        };
+        VkSemaphore graphics_semaphore;
+        GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &graphics_semaphore));
+        const auto graphics_semaphore_guard = ScopeFail{[&]() { vkDestroySemaphore(device, graphics_semaphore, nullptr); }};
+        VkSemaphore compute_semaphore;
+        GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &compute_semaphore));
+        const auto compute_semaphore_guard = ScopeFail{[&]() { vkDestroySemaphore(device, compute_semaphore, nullptr); }};
+        VkSemaphore transfer_semaphore;
+        GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &transfer_semaphore));
+
         return new Device{
             .instance                   = instance,
             .physical_device            = physical_device,
             .device                     = device,
-            .graphics_queue             = VulkanQueue{graphics_family, graphics_queue},
-            .compute_queue              = VulkanQueue{compute_family, compute_queue},
-            .transfer_queue             = VulkanQueue{transfer_family, transfer_queue},
+            .graphics_queue             = VulkanQueue{graphics_family, graphics_queue, graphics_semaphore},
+            .compute_queue              = VulkanQueue{compute_family, compute_queue, compute_semaphore},
+            .transfer_queue             = VulkanQueue{transfer_family, transfer_queue, transfer_semaphore},
             .physical_device_properties = device_properties,
         };
     }
@@ -223,6 +245,10 @@ namespace orion::gpu
     void destroy_device(Device* device)
     {
         ORION_ASSERT(device != nullptr);
+
+        vkDestroySemaphore(device->device, device->transfer_queue.semaphore, nullptr);
+        vkDestroySemaphore(device->device, device->compute_queue.semaphore, nullptr);
+        vkDestroySemaphore(device->device, device->graphics_queue.semaphore, nullptr);
 
         vkDestroyDevice(device->device, nullptr);
         vkDestroyInstance(device->instance, nullptr);
