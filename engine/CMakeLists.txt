@@ -42,6 +42,7 @@ target_sources(orion.engine
 
 		"orion/lib/scope_guard.hpp"
 		"orion/lib/array.hpp"
+		"orion/lib/slot_map.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
