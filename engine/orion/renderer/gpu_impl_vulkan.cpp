@@ -118,6 +118,7 @@ namespace orion::gpu
 
     struct CommandBuffer {
         VkCommandBuffer handle = VK_NULL_HANDLE;
+        PipelineState* pso     = nullptr;
     };
 
     struct CommandAllocator {
@@ -475,8 +476,15 @@ namespace orion::gpu
         GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &transfer_semaphore));
 
         // Create pipeline layout
+        const auto push_constant_range = VkPushConstantRange{
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .offset     = 0u,
+            .size       = max_push_constants_size,
+        };
         const auto pipeline_layout_info = VkPipelineLayoutCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pushConstantRangeCount = 1u,
+            .pPushConstantRanges    = &push_constant_range,
         };
         VkPipelineLayout pipeline_layout;
         GPU_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_info, nullptr, &pipeline_layout));
@@ -1082,6 +1090,7 @@ namespace orion::gpu
 
     void bind_pso(CommandBuffer* command_buffer, PipelineState* pipeline_state)
     {
+        command_buffer->pso = pipeline_state;
         vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->pipeline);
     }
 
@@ -1153,6 +1162,17 @@ namespace orion::gpu
             draw.instance_count,
             draw.first_vertex,
             draw.first_instance);
+    }
+
+    void push_constants(CommandBuffer* command_buffer, std::uint32_t offset, std::span<const std::byte> data)
+    {
+        vkCmdPushConstants(
+            command_buffer->handle,
+            command_buffer->pso->pipeline_layout,
+            VK_SHADER_STAGE_ALL,
+            offset,
+            static_cast<std::uint32_t>(data.size_bytes()),
+            data.data());
     }
 
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)

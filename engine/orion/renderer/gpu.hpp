@@ -19,6 +19,8 @@ namespace orion
 {
     namespace gpu
     {
+        inline constexpr auto max_push_constants_size = 128u;
+
         struct Device;
         struct Image;
         struct ImageView;
@@ -261,6 +263,7 @@ namespace orion
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
         void draw(CommandBuffer* command_buffer, const Draw& draw);
+        void push_constants(CommandBuffer* command_buffer, std::uint32_t offset, std::span<const std::byte> data);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
