@@ -30,6 +30,8 @@ namespace orion
         struct CommandBuffer;
         struct CommandAllocator;
 
+        using Address = std::uint64_t;
+
         enum class Queue {
             Graphics = 0,
             Compute,
@@ -251,6 +253,7 @@ namespace orion
         Buffer* create_buffer(Device* device, const BufferDesc& desc);
         void copy_to_buffer(Device* device, Buffer* dst, std::size_t dst_offset, std::span<const std::byte> src);
         void copy_from_buffer(Device* device, Buffer* src, std::size_t src_offset, std::span<std::byte> dst);
+        [[nodiscard]] Address get_buffer_device_address(const Buffer* buffer);
         void destroy_buffer(Device* device, Buffer* buffer);
 
         void wait_timeline(Device* device, const TimelinePoint& timeline_point);

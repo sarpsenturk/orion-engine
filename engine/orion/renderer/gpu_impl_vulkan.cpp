@@ -1031,6 +1031,12 @@ namespace orion::gpu
         GPU_CHECK(vmaCopyAllocationToMemory(device->allocator, src->allocation, src_offset, dst.data(), dst.size_bytes()));
     }
 
+    Address get_buffer_device_address(const Buffer* buffer)
+    {
+        ORION_ASSERT(buffer != nullptr);
+        return buffer->gpu_address;
+    }
+
     void destroy_buffer(Device* device, Buffer* buffer)
     {
         ORION_ASSERT(device != nullptr);
