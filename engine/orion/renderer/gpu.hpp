@@ -186,6 +186,14 @@ namespace orion
             std::uint32_t first_instance = 0u;
         };
 
+        struct DrawIndexed {
+            std::uint32_t index_count    = 0u;
+            std::uint32_t instance_count = 1u;
+            std::uint32_t first_index    = 0u;
+            std::int32_t vertex_offset   = 0;
+            std::uint32_t first_instance = 0u;
+        };
+
         struct TimelinePoint {
             Queue queue         = Queue::Graphics;
             std::uint64_t value = 0ull;
@@ -261,11 +269,13 @@ namespace orion
 
         void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
         void bind_pso(CommandBuffer* command_buffer, PipelineState* pipeline_state);
+        void bind_index_buffer(CommandBuffer* command_buffer, Buffer* index_buffer);
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
         void draw(CommandBuffer* command_buffer, const Draw& draw);
+        void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw);
         void push_constants(CommandBuffer* command_buffer, std::uint32_t offset, std::span<const std::byte> data);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);

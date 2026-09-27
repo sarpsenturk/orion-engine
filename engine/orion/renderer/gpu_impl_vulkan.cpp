@@ -1100,6 +1100,11 @@ namespace orion::gpu
         vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->pipeline);
     }
 
+    void bind_index_buffer(CommandBuffer* command_buffer, Buffer* index_buffer)
+    {
+        vkCmdBindIndexBuffer(command_buffer->handle, index_buffer->handle, 0u, VK_INDEX_TYPE_UINT32);
+    }
+
     void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport)
     {
         // Flip the Y coordinate to account for Vulkan's coordinate system
@@ -1167,6 +1172,17 @@ namespace orion::gpu
             draw.vertex_count,
             draw.instance_count,
             draw.first_vertex,
+            draw.first_instance);
+    }
+
+    void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw)
+    {
+        vkCmdDrawIndexed(
+            command_buffer->handle,
+            draw.index_count,
+            draw.instance_count,
+            draw.first_index,
+            draw.vertex_offset,
             draw.first_instance);
     }
 
