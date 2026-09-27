@@ -28,10 +28,12 @@ target_compile_definitions(orion.engine
 )
 
 # Third-party libraries
+add_subdirectory(imgui)
 target_link_libraries(orion.engine
 	PUBLIC
 		spdlog::spdlog
 		glm::glm
+		imgui
 	PRIVATE
 		glfw
 		Vulkan::Headers Vulkan::volk
