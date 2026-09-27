@@ -27,3 +27,4 @@ endfunction()
 
 # Declare shader programs
 orion_add_shader("triangle.slang")
+orion_add_shader("mesh.slang")

@@ -39,7 +39,6 @@ namespace orion
             app->update(0.0f);
             if (m_renderer->begin_frame()) {
                 app->render();
-                m_renderer->render();
                 m_renderer->end_frame();
             } else {
                 const auto width  = m_window->width();

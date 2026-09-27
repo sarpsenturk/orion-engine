@@ -30,6 +30,7 @@ namespace orion
 
         void run(std::unique_ptr<Application> app);
 
+        [[nodiscard]] class Window& window() const { return *m_window; }
         [[nodiscard]] class Renderer& renderer() const { return *m_renderer; }
 
     private:

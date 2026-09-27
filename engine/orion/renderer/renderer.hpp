@@ -1,7 +1,10 @@
 #pragma once
 
+#include "orion/renderer/camera.hpp"
 #include "orion/renderer/gpu.hpp"
 #include "orion/renderer/mesh.hpp"
+
+#include <glm/mat4x4.hpp>
 
 #include <array>
 #include <cstdint>
@@ -9,6 +12,16 @@
 
 namespace orion
 {
+    struct RenderObject {
+        Mesh mesh;
+        glm::mat4 model;
+    };
+
+    struct View {
+        Camera camera;
+        std::span<const RenderObject> objects;
+    };
+
     struct RendererDesc {
         const class Window* window = nullptr;
     };
@@ -28,7 +41,7 @@ namespace orion
         ~Renderer();
 
         bool begin_frame();
-        void render();
+        void render(const View& view);
         void end_frame();
 
         Mesh create_mesh(std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
@@ -45,6 +58,17 @@ namespace orion
             gpu::SwapchainFrame swapchain_frame      = {};
         };
 
+        struct SceneData {
+            glm::mat4 view_projection;
+        };
+
+        struct PushConstants {
+            gpu::Address vertex_buffer_address = 0ull;
+            gpu::Address scene_buffer_address  = 0ull;
+            alignas(16) glm::mat4 model                    = glm::mat4(1.0f);
+        };
+        static_assert(sizeof(PushConstants) <= gpu::max_push_constants_size);
+
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] FrameData& current_frame_data() { return m_frame_data[current_frame_index()]; }
 
@@ -56,6 +80,8 @@ namespace orion
         gpu::Buffer* m_index_buffer;
         std::int32_t m_vertex_offset = 0u;
         std::uint32_t m_index_offset = 0u;
+
+        gpu::Buffer* m_scene_buffer;
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;

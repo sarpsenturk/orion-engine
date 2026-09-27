@@ -39,7 +39,7 @@ namespace orion
         , m_pso(gpu::create_graphics_pipeline(
               m_device,
               gpu::GraphicsPipelineDesc{
-                  .spirv             = load_shader(ORION_SHADER_OUTPUT_DIR "/triangle.spv"),
+                  .spirv             = load_shader(ORION_SHADER_OUTPUT_DIR "/mesh.spv"),
                   .topology          = gpu::Topology::TriangleList,
                   .cull_mode         = gpu::CullMode::Back,
                   .front_face_ccw    = true,
@@ -59,6 +59,13 @@ namespace orion
                   .memory = gpu::Memory::Default,
                   .usage  = gpu::BufferUsage::IndexBuffer,
               }))
+        , m_scene_buffer(gpu::create_buffer(
+              m_device,
+              gpu::BufferDesc{
+                  .size   = sizeof(SceneData) * frames_in_flight,
+                  .memory = gpu::Memory::Default,
+                  .usage  = gpu::BufferUsage::DeviceAddress,
+              }))
         , m_frame_data(make_array<frames_in_flight>([this]() {
             return FrameData{
                 .command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics),
@@ -75,6 +82,7 @@ namespace orion
         for (const auto& frame_data : m_frame_data) {
             gpu::destroy_command_allocator(m_device, frame_data.command_allocator);
         }
+        gpu::destroy_buffer(m_device, m_scene_buffer);
         gpu::destroy_buffer(m_device, m_index_buffer);
         gpu::destroy_buffer(m_device, m_vertex_buffer);
         gpu::destroy_pipeline_state(m_device, m_pso);
@@ -107,9 +115,18 @@ namespace orion
         }
     }
 
-    void Renderer::render()
+    void Renderer::render(const View& view)
     {
         auto& frame_data = current_frame_data();
+
+        // Update scene data
+        SceneData scene_data;
+        scene_data.view_projection = view.camera.projection * view.camera.view;
+        gpu::copy_to_buffer(
+            m_device,
+            m_scene_buffer,
+            current_frame_index() * sizeof(SceneData),
+            std::as_bytes(std::span{&scene_data, 1}));
 
         // Begin recording commands for this frame
         auto* command_buffer = gpu::begin_command_buffer(m_device, frame_data.command_allocator);
@@ -133,6 +150,16 @@ namespace orion
 
         // Bind graphics pipeline state (PSO)
         gpu::bind_pso(command_buffer, m_pso);
+
+        // Bind index buffer
+        gpu::bind_index_buffer(command_buffer, m_index_buffer);
+
+        // Push buffer addresses to the shader via push constants
+        const auto push_constants = PushConstants{
+            .vertex_buffer_address = gpu::get_buffer_device_address(m_vertex_buffer),
+            .scene_buffer_address  = gpu::get_buffer_device_address(m_scene_buffer),
+        };
+        gpu::push_constants(command_buffer, 0u, std::as_bytes(std::span{&push_constants, 1}));
 
         // Get swapchain image extent
         const auto swapchain_extent = gpu::get_image_extent_2d(frame_data.swapchain_frame.image);
@@ -162,8 +189,22 @@ namespace orion
                 }},
             });
 
-        // Draw a triangle
-        gpu::draw(command_buffer, gpu::Draw{.vertex_count = 3u, .instance_count = 1u});
+        // Draw objects
+        for (const auto& object : view.objects) {
+            // Update model matrix
+            gpu::push_constants(command_buffer, offsetof(PushConstants, model), std::as_bytes(std::span{&object.model, 1}));
+
+            // Draw mesh
+            gpu::draw_indexed(
+                command_buffer,
+                gpu::DrawIndexed{
+                    .index_count    = object.mesh.index_count,
+                    .instance_count = 1u,
+                    .first_index    = object.mesh.index_offset,
+                    .vertex_offset  = object.mesh.vertex_offset,
+                    .first_instance = 0u,
+                });
+        }
 
         // End render pass
         gpu::end_render_pass(command_buffer);

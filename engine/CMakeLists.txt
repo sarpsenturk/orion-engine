@@ -51,6 +51,7 @@ target_sources(orion.engine
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/gpu.hpp"
 		"orion/renderer/mesh.hpp"
+		"orion/renderer/camera.hpp"
 
 		"orion/lib/scope_guard.hpp"
 		"orion/lib/array.hpp"
