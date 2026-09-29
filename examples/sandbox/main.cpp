@@ -31,11 +31,27 @@ public:
         , m_renderer(engine.renderer())
         , m_quad(m_renderer.create_mesh(quad_vertices, quad_indices))
         , m_triangle(m_renderer.create_mesh(triangle_vertices, triangle_indices))
+        , m_green_texture(m_renderer.create_texture(
+              orion::TextureDesc{
+                  .width  = 1u,
+                  .height = 1u,
+                  .depth  = 1u,
+              },
+              std::array{std::byte{0x00}, std::byte{0xff}, std::byte{0x00}, std::byte{0xff}}))
+        , m_red_texture(m_renderer.create_texture(
+              orion::TextureDesc{
+                  .width  = 1u,
+                  .height = 1u,
+                  .depth  = 1u,
+              },
+              std::array{std::byte{0xff}, std::byte{0x00}, std::byte{0x00}, std::byte{0xff}}))
     {
     }
 
     ~SandboxApp()
     {
+        m_renderer.destroy_texture(m_red_texture);
+        m_renderer.destroy_texture(m_green_texture);
         m_renderer.destroy_mesh(m_triangle);
         m_renderer.destroy_mesh(m_quad);
     }
@@ -70,6 +86,8 @@ private:
     orion::Renderer& m_renderer;
     orion::Mesh m_quad;
     orion::Mesh m_triangle;
+    orion::Texture m_green_texture;
+    orion::Texture m_red_texture;
 };
 
 int main()

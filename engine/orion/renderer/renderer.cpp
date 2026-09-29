@@ -355,6 +355,112 @@ namespace orion
         // No-op for now.
     }
 
+    Texture Renderer::create_texture(const TextureDesc& desc, std::span<const std::byte> data)
+    {
+        // Create the texture image
+        auto* image = gpu::create_image(
+            m_device,
+            gpu::ImageDesc{
+                .width        = desc.width,
+                .height       = desc.height,
+                .depth        = desc.depth,
+                .format       = gpu::Format::RGBA8_Unorm,
+                .mip_levels   = 1u,
+                .array_layers = 1u,
+                .usage        = gpu::ImageUsage::TransferDst | gpu::ImageUsage::Sampled,
+            });
+
+        // Copy texture data into buffer
+        auto* staging_buffer = gpu::create_buffer(
+            m_device,
+            gpu::BufferDesc{
+                .size   = data.size(),
+                .memory = gpu::Memory::Upload,
+                .usage  = gpu::BufferUsage::TransferSrc,
+            });
+        gpu::copy_to_buffer(m_device, staging_buffer, 0ull, data);
+
+        // Copy texture data from the buffer to the image
+        auto* command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics);
+        auto* command_buffer    = gpu::begin_command_buffer(m_device, command_allocator);
+        gpu::barrier(
+            command_buffer,
+            gpu::Barrier{
+                .image_barriers = {{
+                    gpu::ImageBarrier{
+                        .image      = image,
+                        .src_stages = gpu::PipelineStage::None,
+                        .src_access = gpu::Access::None,
+                        .dst_stages = gpu::PipelineStage::Transfer,
+                        .dst_access = gpu::Access::TransferWrite,
+                        .old_layout = gpu::ImageLayout::Undefined,
+                        .new_layout = gpu::ImageLayout::TransferDst,
+                    },
+                }},
+            });
+        gpu::copy_buffer_to_image(
+            command_buffer,
+            staging_buffer,
+            image,
+            gpu::BufferImageCopy{
+                .buffer_row_length   = desc.width,
+                .buffer_image_height = desc.height,
+                .image_extent        = gpu::Extent3D{
+                    .width  = desc.width,
+                    .height = desc.height,
+                    .depth  = desc.depth,
+                },
+            });
+        gpu::barrier(
+            command_buffer,
+            gpu::Barrier{
+                .image_barriers = {{
+                    gpu::ImageBarrier{
+                        .image      = image,
+                        .src_stages = gpu::PipelineStage::Transfer,
+                        .src_access = gpu::Access::TransferWrite,
+                        .dst_stages = gpu::PipelineStage::FragmentShader,
+                        .dst_access = gpu::Access::ShaderRead,
+                        .old_layout = gpu::ImageLayout::TransferDst,
+                        .new_layout = gpu::ImageLayout::ShaderReadOnly,
+                    },
+                }},
+            });
+        gpu::wait_timeline(
+            m_device,
+            gpu::submit(
+                m_device,
+                gpu::Queue::Graphics,
+                gpu::Submit{
+                    .command_buffers = {{command_buffer}},
+                }));
+
+        // Create image view
+        auto* image_view = gpu::create_image_view(
+            m_device,
+            gpu::ImageViewDesc{
+                .image = image,
+            });
+
+        // Cleanup staging buffer and command allocator
+        gpu::destroy_command_allocator(m_device, command_allocator);
+        gpu::destroy_buffer(m_device, staging_buffer);
+
+        const auto handle = m_textures.emplace(image, image_view);
+        return Texture{.handle = handle.to_uint64()};
+    }
+
+    void Renderer::destroy_texture(Texture texture)
+    {
+        const auto handle = SlotMap<TextureData>::Handle::from_uint64(texture.handle);
+        if (m_textures.is_valid(handle)) {
+            const auto& texture_data = *m_textures.get(handle);
+            queue_delete(texture_data.image_view);
+            queue_delete(texture_data.image);
+            m_textures.erase(handle);
+        }
+    }
+
     void Renderer::resize_swapchain(std::uint32_t width, std::uint32_t height)
     {
         // Wait until the GPU is so we can safely resize the swapchain

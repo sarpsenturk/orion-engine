@@ -1,9 +1,11 @@
 #pragma once
 
+#include "orion/lib/slot_map.hpp"
 #include "orion/renderer/camera.hpp"
 #include "orion/renderer/deletion_queue.hpp"
 #include "orion/renderer/gpu.hpp"
 #include "orion/renderer/mesh.hpp"
+#include "orion/renderer/texture.hpp"
 
 #include <glm/mat4x4.hpp>
 
@@ -50,6 +52,9 @@ namespace orion
         Mesh create_mesh(std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
         void destroy_mesh(Mesh mesh);
 
+        Texture create_texture(const TextureDesc& desc, std::span<const std::byte> data);
+        void destroy_texture(Texture texture);
+
         void resize_swapchain(std::uint32_t width, std::uint32_t height);
 
         [[nodiscard]] gpu::Device* device() const { return m_device; }
@@ -73,6 +78,11 @@ namespace orion
         };
         static_assert(sizeof(PushConstants) <= gpu::max_push_constants_size);
 
+        struct TextureData {
+            gpu::Image* image          = nullptr;
+            gpu::ImageView* image_view = nullptr;
+        };
+
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] FrameData& current_frame_data() { return m_frame_data[current_frame_index()]; }
 
@@ -88,6 +98,8 @@ namespace orion
         gpu::Buffer* m_index_buffer;
         std::int32_t m_vertex_offset = 0u;
         std::uint32_t m_index_offset = 0u;
+
+        SlotMap<TextureData> m_textures;
 
         gpu::Buffer* m_scene_buffer;
 
