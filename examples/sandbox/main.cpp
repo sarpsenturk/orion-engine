@@ -44,7 +44,10 @@ public:
 
     void on_render() override
     {
-        const auto view = orion::View{
+        // Draw imgui demo window
+        ImGui::ShowDemoWindow();
+
+        m_renderer.render({
             .camera = {
                 .view       = glm::lookAtRH(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
                 .projection = glm::perspectiveRH_ZO(glm::radians(60.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
@@ -59,8 +62,7 @@ public:
                     .model = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f)),
                 },
             }},
-        };
-        m_renderer.render(view);
+        });
     }
 
 private:

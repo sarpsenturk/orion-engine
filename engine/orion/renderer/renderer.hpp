@@ -6,6 +6,8 @@
 
 #include <glm/mat4x4.hpp>
 
+#include <imgui.h>
+
 #include <array>
 #include <cstdint>
 #include <span>
@@ -65,7 +67,7 @@ namespace orion
         struct PushConstants {
             gpu::Address vertex_buffer_address = 0ull;
             gpu::Address scene_buffer_address  = 0ull;
-            alignas(16) glm::mat4 model                    = glm::mat4(1.0f);
+            alignas(16) glm::mat4 model        = glm::mat4(1.0f);
         };
         static_assert(sizeof(PushConstants) <= gpu::max_push_constants_size);
 

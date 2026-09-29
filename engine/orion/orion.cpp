@@ -37,6 +37,7 @@ namespace orion
         while (!m_window->should_close()) {
             m_platform->poll_events();
             app->update(0.0f);
+
             if (m_renderer->begin_frame()) {
                 app->render();
                 m_renderer->end_frame();
@@ -46,6 +47,11 @@ namespace orion
                 if (width > 0 && height > 0) {
                     m_renderer->resize_swapchain(static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height));
                 }
+            }
+            // Update and Render additional ImGui Platform Windows
+            if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault();
             }
         }
     }
