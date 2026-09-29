@@ -166,6 +166,12 @@ namespace orion
             std::int32_t y = 0;
         };
 
+        struct Offset3D {
+            std::int32_t x = 0;
+            std::int32_t y = 0;
+            std::int32_t z = 0;
+        };
+
         struct Extent2D {
             std::uint32_t width  = 0u;
             std::uint32_t height = 0u;
@@ -204,6 +210,17 @@ namespace orion
             std::uint32_t first_index    = 0u;
             std::int32_t vertex_offset   = 0;
             std::uint32_t first_instance = 0u;
+        };
+
+        struct BufferImageCopy {
+            std::size_t buffer_offset            = 0ull;
+            std::uint32_t buffer_row_length      = 0u;
+            std::uint32_t buffer_image_height    = 0u;
+            std::uint32_t image_mip_level        = 0u;
+            std::uint32_t image_base_array_layer = 0u;
+            std::uint32_t image_layer_count      = 1u;
+            Offset3D image_offset                = {};
+            Extent3D image_extent                = {};
         };
 
         struct TimelinePoint {
@@ -312,6 +329,7 @@ namespace orion
         void draw(CommandBuffer* command_buffer, const Draw& draw);
         void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw);
         void push_constants(CommandBuffer* command_buffer, std::uint32_t offset, std::span<const std::byte> data);
+        void copy_buffer_to_image(CommandBuffer* command_buffer, Buffer* src, Image* dst, const BufferImageCopy& copy);
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 

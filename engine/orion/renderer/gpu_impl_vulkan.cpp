@@ -1384,6 +1384,38 @@ namespace orion::gpu
             data.data());
     }
 
+    void copy_buffer_to_image(CommandBuffer* command_buffer, Buffer* src, Image* dst, const BufferImageCopy& copy)
+    {
+        const auto vk_region = VkBufferImageCopy{
+            .bufferOffset      = copy.buffer_offset,
+            .bufferRowLength   = copy.buffer_row_length,
+            .bufferImageHeight = copy.buffer_image_height,
+            .imageSubresource  = {
+                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel       = copy.image_mip_level,
+                .baseArrayLayer = copy.image_base_array_layer,
+                .layerCount     = copy.image_layer_count,
+            },
+            .imageOffset = {
+                .x = copy.image_offset.x,
+                .y = copy.image_offset.y,
+                .z = copy.image_offset.z,
+            },
+            .imageExtent = {
+                .width  = copy.image_extent.width,
+                .height = copy.image_extent.height,
+                .depth  = copy.image_extent.depth,
+            },
+        };
+        vkCmdCopyBufferToImage(
+            command_buffer->handle,
+            src->handle,
+            dst->handle,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &vk_region);
+    }
+
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)
     {
         ORION_ASSERT(device != nullptr);
