@@ -1088,12 +1088,14 @@ namespace orion::gpu
         GPU_CHECK(vmaCreateImage(device->allocator, &image_info, &allocation_create_info, &image, &allocation, nullptr));
 
         return new Image{
-            .handle     = image,
-            .allocation = allocation,
-            .width      = image_info.extent.width,
-            .height     = image_info.extent.height,
-            .depth      = image_info.extent.depth,
-            .format     = image_info.format,
+            .handle       = image,
+            .allocation   = allocation,
+            .width        = image_info.extent.width,
+            .height       = image_info.extent.height,
+            .depth        = image_info.extent.depth,
+            .format       = image_info.format,
+            .mip_levels   = image_info.mipLevels,
+            .array_layers = image_info.arrayLayers,
         };
     }
 
