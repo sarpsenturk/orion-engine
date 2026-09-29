@@ -23,6 +23,19 @@ namespace orion
             index_type index;
             generation_type generation;
 
+            static constexpr Handle from_uint64(std::uint64_t value) noexcept
+            {
+                return Handle{
+                    static_cast<index_type>(value & 0xFFFFFFFF),
+                    static_cast<generation_type>(value >> 32u),
+                };
+            }
+
+            constexpr std::uint64_t to_uint64() const noexcept
+            {
+                return (static_cast<std::uint64_t>(generation) << 32u) | index;
+            }
+
             constexpr friend bool operator==(Handle, Handle) noexcept = default;
         };
 
