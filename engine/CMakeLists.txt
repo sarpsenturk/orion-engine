@@ -54,6 +54,7 @@ target_sources(orion.engine
 		"orion/renderer/gpu.hpp"
 		"orion/renderer/mesh.hpp"
 		"orion/renderer/camera.hpp"
+		"orion/renderer/deletion_queue.hpp"
 
 		"orion/lib/scope_guard.hpp"
 		"orion/lib/array.hpp"
@@ -67,6 +68,7 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.cpp"
 		"orion/renderer/gpu_impl_vulkan.cpp"
+		"orion/renderer/deletion_queue.cpp"
 )
 
 # Engine shaders

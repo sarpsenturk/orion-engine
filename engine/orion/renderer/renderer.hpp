@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orion/renderer/camera.hpp"
+#include "orion/renderer/deletion_queue.hpp"
 #include "orion/renderer/gpu.hpp"
 #include "orion/renderer/mesh.hpp"
 
@@ -58,6 +59,7 @@ namespace orion
             gpu::CommandAllocator* command_allocator = nullptr;
             gpu::TimelinePoint timeline_point        = {};
             gpu::SwapchainFrame swapchain_frame      = {};
+            DeletionQueue delete_queue;
         };
 
         struct SceneData {
@@ -73,6 +75,10 @@ namespace orion
 
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] FrameData& current_frame_data() { return m_frame_data[current_frame_index()]; }
+
+        void queue_delete(gpu::Image* image) { current_frame_data().delete_queue.push(image); }
+        void queue_delete(gpu::ImageView* image_view) { current_frame_data().delete_queue.push(image_view); }
+        void queue_delete(gpu::Buffer* buffer) { current_frame_data().delete_queue.push(buffer); }
 
         gpu::Device* m_device;
         gpu::Swapchain* m_swapchain;

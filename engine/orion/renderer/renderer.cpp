@@ -71,6 +71,7 @@ namespace orion
         , m_frame_data(make_array<frames_in_flight>([this]() {
             return FrameData{
                 .command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics),
+                .delete_queue      = DeletionQueue{m_device},
             };
         }))
     {
@@ -133,7 +134,8 @@ namespace orion
         ImGui_ImplOrion_Shutdown();
         ImGui::DestroyContext();
 
-        for (const auto& frame_data : m_frame_data) {
+        for (auto& frame_data : m_frame_data) {
+            frame_data.delete_queue.flush();
             gpu::destroy_command_allocator(m_device, frame_data.command_allocator);
         }
         gpu::destroy_buffer(m_device, m_scene_buffer);
@@ -150,6 +152,9 @@ namespace orion
 
         // Wait until the previous submission for this frame has completed
         gpu::wait_timeline(m_device, frame_data.timeline_point);
+
+        // Flush the deletion queue for this frame
+        frame_data.delete_queue.flush();
 
         // Reset command allocator
         gpu::reset_command_allocator(m_device, frame_data.command_allocator);
