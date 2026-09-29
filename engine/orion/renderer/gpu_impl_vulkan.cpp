@@ -78,16 +78,29 @@ namespace orion::gpu
     };
 
     struct Image {
-        VkImage handle       = VK_NULL_HANDLE;
+        VkImage handle           = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+
         std::uint32_t width  = 0u;
         std::uint32_t height = 0u;
         std::uint32_t depth  = 0u;
+        VkFormat format      = VK_FORMAT_UNDEFINED;
+
+        std::uint32_t mip_levels   = 0u;
+        std::uint32_t array_layers = 0u;
     };
 
     struct ImageView {
-        VkImageView handle   = VK_NULL_HANDLE;
+        VkImageView handle = VK_NULL_HANDLE;
+
         std::uint32_t width  = 0u;
         std::uint32_t height = 0u;
+
+        VkImageAspectFlags aspect_flags = 0u;
+        std::uint32_t base_mip_level    = 0u;
+        std::uint32_t level_count       = 1u;
+        std::uint32_t base_array_layer  = 0u;
+        std::uint32_t layer_count       = 1u;
     };
 
     struct Buffer {
@@ -134,6 +147,8 @@ namespace orion::gpu
         switch (format) {
             case Format::Undefined:
                 return VK_FORMAT_UNDEFINED;
+            case Format::RGBA8_Unorm:
+                return VK_FORMAT_R8G8B8A8_UNORM;
             case Format::BGRA8_Unorm:
                 return VK_FORMAT_B8G8R8A8_UNORM;
         }
@@ -291,6 +306,73 @@ namespace orion::gpu
                        VMA_ALLOCATION_CREATE_MAPPED_BIT;
         }
         std::unreachable();
+    }
+
+    static VkImageUsageFlags to_vk_image_usage(ImageUsage usage)
+    {
+        VkImageUsageFlags output = 0u;
+        if ((usage & ImageUsage::TransferSrc) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+        if ((usage & ImageUsage::TransferDst) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        }
+        if ((usage & ImageUsage::Sampled) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_SAMPLED_BIT;
+        }
+        if ((usage & ImageUsage::Storage) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_STORAGE_BIT;
+        }
+        if ((usage & ImageUsage::ColorAttachment) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        }
+        if ((usage & ImageUsage::DepthStencilAttachment) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
+        return output;
+    }
+
+    static bool has_depth_component(VkFormat format)
+    {
+        switch (format) {
+            case VK_FORMAT_D16_UNORM:
+            case VK_FORMAT_X8_D24_UNORM_PACK32:
+            case VK_FORMAT_D32_SFLOAT:
+            case VK_FORMAT_D16_UNORM_S8_UINT:
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    static bool has_stencil_component(VkFormat format)
+    {
+        switch (format) {
+            case VK_FORMAT_S8_UINT:
+            case VK_FORMAT_D16_UNORM_S8_UINT:
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    static VkImageAspectFlags format_aspect_flags(VkFormat format)
+    {
+        VkImageAspectFlags output = 0u;
+        if (has_depth_component(format)) {
+            output |= VK_IMAGE_ASPECT_DEPTH_BIT;
+        }
+        if (has_stencil_component(format)) {
+            output |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        if (output == 0u) {
+            output |= VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+        return output;
     }
 
     static VkBufferUsageFlags to_vk_buffer_usage(BufferUsage usage)
@@ -609,10 +691,13 @@ namespace orion::gpu
         swapchain->images.resize(image_count);
         std::ranges::transform(images, swapchain->images.begin(), [&](VkImage image) {
             return Image{
-                .handle = image,
-                .width  = swapchain_extent.width,
-                .height = swapchain_extent.height,
-                .depth  = 1u,
+                .handle       = image,
+                .width        = swapchain_extent.width,
+                .height       = swapchain_extent.height,
+                .depth        = 1u,
+                .format       = format,
+                .mip_levels   = 1u,
+                .array_layers = 1u,
             };
         });
 
@@ -641,9 +726,12 @@ namespace orion::gpu
             VkImageView image_view;
             GPU_CHECK(vkCreateImageView(device->device, &image_view_info, nullptr, &image_view));
             swapchain->image_views.push_back(ImageView{
-                .handle = image_view,
-                .width  = swapchain_extent.width,
-                .height = swapchain_extent.height,
+                .handle         = image_view,
+                .width          = swapchain_extent.width,
+                .height         = swapchain_extent.height,
+                .aspect_flags   = VK_IMAGE_ASPECT_COLOR_BIT,
+                .base_mip_level = 0u,
+                .level_count    = 1u,
             });
         }
 
@@ -970,6 +1058,45 @@ namespace orion::gpu
         delete pipeline_state;
     }
 
+    Image* create_image(Device* device, const ImageDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(desc.width > 0u);
+        ORION_ASSERT(desc.height > 0u);
+        ORION_ASSERT(desc.depth > 0u);
+        ORION_ASSERT(desc.format != Format::Undefined);
+        ORION_ASSERT(desc.mip_levels > 0u);
+        ORION_ASSERT(desc.array_layers > 0u);
+
+        const auto image_info = VkImageCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .imageType     = VK_IMAGE_TYPE_2D,
+            .format        = to_vk_format(desc.format),
+            .extent        = {desc.width, desc.height, desc.depth},
+            .mipLevels     = desc.mip_levels,
+            .arrayLayers   = desc.array_layers,
+            .samples       = VK_SAMPLE_COUNT_1_BIT,
+            .tiling        = VK_IMAGE_TILING_OPTIMAL,
+            .usage         = to_vk_image_usage(desc.usage),
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+        const auto allocation_create_info = VmaAllocationCreateInfo{
+            .usage = VMA_MEMORY_USAGE_AUTO,
+        };
+        VkImage image;
+        VmaAllocation allocation;
+        GPU_CHECK(vmaCreateImage(device->allocator, &image_info, &allocation_create_info, &image, &allocation, nullptr));
+
+        return new Image{
+            .handle     = image,
+            .allocation = allocation,
+            .width      = image_info.extent.width,
+            .height     = image_info.extent.height,
+            .depth      = image_info.extent.depth,
+            .format     = image_info.format,
+        };
+    }
+
     Extent3D get_image_extent(const Image* image)
     {
         return Extent3D{image->width, image->height, image->depth};
@@ -978,6 +1105,64 @@ namespace orion::gpu
     Extent2D get_image_extent_2d(const Image* image)
     {
         return Extent2D{image->width, image->height};
+    }
+
+    void destroy_image(Device* device, Image* image)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(image != nullptr);
+
+        vmaDestroyImage(device->allocator, image->handle, image->allocation);
+
+        delete image;
+    }
+
+    ImageView* create_image_view(Device* device, const ImageViewDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(desc.image != nullptr);
+        ORION_ASSERT(desc.base_mip_level + desc.level_count <= desc.image->mip_levels);
+        const auto* image = desc.image;
+
+        const auto image_view_info = VkImageViewCreateInfo{
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image            = desc.image->handle,
+            .viewType         = VK_IMAGE_VIEW_TYPE_2D,
+            .format           = image->format,
+            .subresourceRange = {
+                .aspectMask     = format_aspect_flags(image->format),
+                .baseMipLevel   = desc.base_mip_level,
+                .levelCount     = desc.level_count,
+                .baseArrayLayer = desc.base_array_layer,
+                .layerCount     = desc.layer_count,
+            },
+        };
+        VkImageView image_view;
+        GPU_CHECK(vkCreateImageView(device->device, &image_view_info, nullptr, &image_view));
+
+        const auto width  = image->width >> desc.base_mip_level;
+        const auto height = image->height >> desc.base_mip_level;
+
+        return new ImageView{
+            .handle           = image_view,
+            .width            = width,
+            .height           = height,
+            .aspect_flags     = image_view_info.subresourceRange.aspectMask,
+            .base_mip_level   = image_view_info.subresourceRange.baseMipLevel,
+            .level_count      = image_view_info.subresourceRange.levelCount,
+            .base_array_layer = image_view_info.subresourceRange.baseArrayLayer,
+            .layer_count      = image_view_info.subresourceRange.layerCount,
+        };
+    }
+
+    void destroy_image_view(Device* device, ImageView* image_view)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(image_view != nullptr);
+
+        vkDestroyImageView(device->device, image_view->handle, nullptr);
+
+        delete image_view;
     }
 
     Buffer* create_buffer(Device* device, const BufferDesc& desc)

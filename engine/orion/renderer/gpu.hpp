@@ -46,6 +46,7 @@ namespace orion
 
         enum class Format {
             Undefined = 0,
+            RGBA8_Unorm,
             BGRA8_Unorm,
         };
 
@@ -115,6 +116,17 @@ namespace orion
             Clear,
             DontCare,
         };
+
+        enum class ImageUsage : std::uint32_t {
+            None                   = 0u,
+            TransferSrc            = 1u << 0u,
+            TransferDst            = 1u << 1u,
+            Sampled                = 1u << 2u,
+            Storage                = 1u << 3u,
+            ColorAttachment        = 1u << 4u,
+            DepthStencilAttachment = 1u << 5u,
+        };
+        GPU_DEFINE_BITFLAG(ImageUsage)
 
         enum class BufferUsage : std::uint32_t {
             None           = 0u,
@@ -232,6 +244,24 @@ namespace orion
             std::span<const Format> color_attachments;
         };
 
+        struct ImageDesc {
+            std::uint32_t width        = 0u;
+            std::uint32_t height       = 0u;
+            std::uint32_t depth        = 1u;
+            Format format              = Format::Undefined;
+            std::uint32_t mip_levels   = 1u;
+            std::uint32_t array_layers = 1u;
+            ImageUsage usage           = ImageUsage::None;
+        };
+
+        struct ImageViewDesc {
+            Image* image                   = nullptr;
+            std::uint32_t base_mip_level   = 0u;
+            std::uint32_t level_count      = 1u;
+            std::uint32_t base_array_layer = 0u;
+            std::uint32_t layer_count      = 1u;
+        };
+
         struct BufferDesc {
             std::size_t size  = 0ull;
             Memory memory     = Memory::Default;
@@ -255,8 +285,13 @@ namespace orion
         PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc);
         void destroy_pipeline_state(Device* device, PipelineState* pipeline_state);
 
+        Image* create_image(Device* device, const ImageDesc& desc);
         [[nodiscard]] Extent3D get_image_extent(const Image* image);
         [[nodiscard]] Extent2D get_image_extent_2d(const Image* image);
+        void destroy_image(Device* device, Image* image);
+
+        ImageView* create_image_view(Device* device, const ImageViewDesc& desc);
+        void destroy_image_view(Device* device, ImageView* image_view);
 
         Buffer* create_buffer(Device* device, const BufferDesc& desc);
         void copy_to_buffer(Device* device, Buffer* dst, std::size_t dst_offset, std::span<const std::byte> src);
