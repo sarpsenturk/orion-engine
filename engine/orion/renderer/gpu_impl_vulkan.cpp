@@ -12,8 +12,10 @@
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 #include <vma/vk_mem_alloc.h>
 
-
 #include <GLFW/glfw3.h>
+
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 
 #include <algorithm>
 #include <array>
@@ -1284,3 +1286,56 @@ namespace orion::gpu
         return device->physical_device_properties.deviceName;
     }
 } // namespace orion::gpu
+
+bool ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitInfo& init_info)
+{
+    static constexpr auto install_glfw_callbacks = true;
+    if (!ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow*>(init_info.native_window_handle), install_glfw_callbacks)) {
+        return false;
+    }
+
+    std::array<VkFormat, orion::gpu::max_color_attachments> color_attachment_formats;
+    std::ranges::transform(init_info.color_attachment_formats, color_attachment_formats.begin(), orion::gpu::to_vk_format);
+    const auto imgui_pipeline_info = ImGui_ImplVulkan_PipelineInfo{
+        .MSAASamples                 = VK_SAMPLE_COUNT_1_BIT,
+        .PipelineRenderingCreateInfo = {
+            .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            .colorAttachmentCount    = static_cast<std::uint32_t>(init_info.color_attachment_formats.size()),
+            .pColorAttachmentFormats = color_attachment_formats.data(),
+        },
+    };
+    auto imgui_init_info = ImGui_ImplVulkan_InitInfo{
+        .ApiVersion               = orion::gpu::vulkan_api_version,
+        .Instance                 = init_info.device->instance,
+        .PhysicalDevice           = init_info.device->physical_device,
+        .Device                   = init_info.device->device,
+        .QueueFamily              = init_info.device->graphics_queue.family,
+        .Queue                    = init_info.device->graphics_queue.handle,
+        .DescriptorPoolSize       = IMGUI_IMPL_VULKAN_MINIMUM_SAMPLED_IMAGE_POOL_SIZE,
+        .MinImageCount            = init_info.image_count,
+        .ImageCount               = init_info.image_count,
+        .PipelineInfoMain         = imgui_pipeline_info,
+        .PipelineInfoForViewports = imgui_pipeline_info,
+        .UseDynamicRendering      = true,
+        .CheckVkResultFn          = +[](VkResult vkresult) { GPU_CHECK(vkresult); },
+    };
+    return ImGui_ImplVulkan_Init(&imgui_init_info);
+}
+
+void ImGui_ImplOrion_NewFrame()
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+}
+
+void ImGui_ImplOrion_RenderDrawData(ImDrawData* draw_data, orion::gpu::CommandBuffer* command_buffer)
+{
+    // Record dear imgui primitives into command buffer
+    ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer->handle);
+}
+
+void ImGui_ImplOrion_Shutdown()
+{
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+}

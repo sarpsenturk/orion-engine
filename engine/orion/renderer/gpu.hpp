@@ -286,4 +286,16 @@ namespace orion
     } // namespace gpu
 } // namespace orion
 
+// ImGui integration
+struct ImGui_ImplOrion_InitInfo {
+    void* native_window_handle = nullptr;
+    orion::gpu::Device* device = nullptr;
+    std::uint32_t image_count  = 0u;
+    std::span<const orion::gpu::Format> color_attachment_formats;
+};
+bool ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitInfo& init_info);
+void ImGui_ImplOrion_NewFrame();
+void ImGui_ImplOrion_RenderDrawData(struct ImDrawData* draw_data, orion::gpu::CommandBuffer* command_buffer);
+void ImGui_ImplOrion_Shutdown();
+
 #undef GPU_DEFINE_BITFLAG
