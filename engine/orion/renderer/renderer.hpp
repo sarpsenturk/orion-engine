@@ -78,9 +78,12 @@ namespace orion
         };
 
         struct PushConstants {
-            gpu::Address vertex_buffer_address = 0ull;
-            gpu::Address scene_buffer_address  = 0ull;
-            alignas(16) glm::mat4 model        = glm::mat4(1.0f);
+            gpu::Address vertex_buffer_address   = 0ull;
+            gpu::Address scene_buffer_address    = 0ull;
+            gpu::Address material_buffer_address = 0ull;
+            std::uint32_t material_index         = 0u;
+            char pad0[4];
+            alignas(16) glm::mat4 model = glm::mat4(1.0f);
         };
         static_assert(sizeof(PushConstants) <= gpu::max_push_constants_size);
 

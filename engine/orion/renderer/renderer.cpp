@@ -227,8 +227,9 @@ namespace orion
 
         // Push buffer addresses to the shader via push constants
         const auto push_constants = PushConstants{
-            .vertex_buffer_address = gpu::get_buffer_device_address(m_vertex_buffer),
-            .scene_buffer_address  = gpu::get_buffer_device_address(m_scene_buffer),
+            .vertex_buffer_address   = gpu::get_buffer_device_address(m_vertex_buffer),
+            .scene_buffer_address    = gpu::get_buffer_device_address(m_scene_buffer),
+            .material_buffer_address = gpu::get_buffer_device_address(m_material_buffer),
         };
         gpu::push_constants(command_buffer, 0u, std::as_bytes(std::span{&push_constants, 1}));
 
@@ -262,6 +263,10 @@ namespace orion
 
         // Draw objects
         for (const auto& object : view.objects) {
+            // Update material index
+            const auto material = SlotMap<MaterialData>::Handle::from_uint64(object.material.handle).index;
+            gpu::push_constants(command_buffer, offsetof(PushConstants, material_index), std::as_bytes(std::span{&material, 1}));
+
             // Update model matrix
             gpu::push_constants(command_buffer, offsetof(PushConstants, model), std::as_bytes(std::span{&object.model, 1}));
 
@@ -455,6 +460,9 @@ namespace orion
         gpu::destroy_buffer(m_device, staging_buffer);
 
         const auto handle = m_textures.emplace(image, image_view);
+        // Update descriptor heap
+        gpu::set_shader_resource(m_device, image_view, handle.index);
+
         return Texture{.handle = handle.to_uint64()};
     }
 
