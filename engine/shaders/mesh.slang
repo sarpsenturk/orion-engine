@@ -2,6 +2,7 @@
 
 struct Vertex {
     float3 position;
+    float2 uv;
 }
 
 struct Scene {
@@ -18,6 +19,7 @@ struct RootConstants {
 
 struct VSOutput {
     float4 position : SV_Position;
+    float2 uv : TEXCOORD0;
 }
 
 [shader("vertex")]
@@ -27,6 +29,7 @@ VSOutput vsmain(uint vtx: SV_VulkanVertexID)
     let scene = root.scene;
     VSOutput output;
     output.position = mul(scene.view_proj, mul(root.model, float4(vertex.position, 1.0)));
+    output.uv = vertex.uv;
     return output;
 }
 

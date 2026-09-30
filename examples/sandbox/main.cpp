@@ -10,16 +10,16 @@
 #include <glm/glm.hpp>
 
 static constexpr auto quad_vertices = std::array{
-    orion::Vertex{.position = glm::vec3(-0.5f, -0.5f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.5f, -0.5f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.5f, 0.5f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(-0.5f, 0.5f, 0.0f)},
+    orion::Vertex{.position = glm::vec3(-0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(0.0f, 0.0f)},
+    orion::Vertex{.position = glm::vec3(0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(1.0f, 0.0f)},
+    orion::Vertex{.position = glm::vec3(0.5f, 0.5f, 0.0f), .texcoord = glm::vec2(1.0f, 1.0f)},
+    orion::Vertex{.position = glm::vec3(-0.5f, 0.5f, 0.0f), .texcoord = glm::vec2(0.0f, 1.0f)},
 };
 static constexpr auto quad_indices      = std::array{0u, 1u, 2u, 0u, 2u, 3u};
 static constexpr auto triangle_vertices = std::array{
-    orion::Vertex{.position = glm::vec3(-0.5f, -0.5f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.5f, -0.5f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.0f, 0.5f, 0.0f)},
+    orion::Vertex{.position = glm::vec3(-0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(0.0f, 0.0f)},
+    orion::Vertex{.position = glm::vec3(0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(1.0f, 0.0f)},
+    orion::Vertex{.position = glm::vec3(0.0f, 0.5f, 0.0f), .texcoord = glm::vec2(0.5f, 1.0f)},
 };
 static constexpr auto triangle_indices = std::array{0u, 1u, 2u};
 
