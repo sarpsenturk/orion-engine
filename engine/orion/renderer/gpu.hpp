@@ -308,6 +308,7 @@ namespace orion
         void destroy_image(Device* device, Image* image);
 
         ImageView* create_image_view(Device* device, const ImageViewDesc& desc);
+        void set_shader_resource(Device* device, ImageView* image_view, std::uint32_t index);
         void destroy_image_view(Device* device, ImageView* image_view);
 
         Buffer* create_buffer(Device* device, const BufferDesc& desc);

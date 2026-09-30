@@ -39,6 +39,10 @@ namespace orion::gpu
 {
     static constexpr auto vulkan_api_version    = VK_API_VERSION_1_3;
     static constexpr auto max_color_attachments = 8u;
+    static constexpr auto max_textures          = 16u;
+
+    static constexpr auto sampler_descriptor_binding = 0u;
+    static constexpr auto texture_descriptor_binding = 1u;
 
     struct VulkanQueue {
         std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
@@ -59,7 +63,12 @@ namespace orion::gpu
         VulkanQueue compute_queue  = {};
         VulkanQueue transfer_queue = {};
 
-        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        VkSampler sampler = VK_NULL_HANDLE;
+
+        VkDescriptorSetLayout descriptor_set_layout = VK_NULL_HANDLE;
+        VkDescriptorPool descriptor_pool            = VK_NULL_HANDLE;
+        VkDescriptorSet descriptor_set              = VK_NULL_HANDLE;
+        VkPipelineLayout pipeline_layout            = VK_NULL_HANDLE;
 
         VkPhysicalDeviceProperties physical_device_properties = {};
 
@@ -129,6 +138,7 @@ namespace orion::gpu
         VkPipeline pipeline              = VK_NULL_HANDLE;
         VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
         VkPipelineBindPoint bind_point   = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        VkDescriptorSet descriptor_set   = VK_NULL_HANDLE;
     };
 
     struct CommandBuffer {
@@ -559,6 +569,101 @@ namespace orion::gpu
         VkSemaphore transfer_semaphore;
         GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &transfer_semaphore));
 
+        // Create immutable samplers
+        const auto sampler_info = VkSamplerCreateInfo{
+            .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter               = VK_FILTER_LINEAR,
+            .minFilter               = VK_FILTER_LINEAR,
+            .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .mipLodBias              = 0.0f,
+            .anisotropyEnable        = VK_TRUE,
+            .maxAnisotropy           = 16.0f,
+            .compareEnable           = VK_FALSE,
+            .compareOp               = VK_COMPARE_OP_ALWAYS,
+            .minLod                  = 0.0f,
+            .maxLod                  = 1.0f,
+            .borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE,
+        };
+        VkSampler sampler;
+        GPU_CHECK(vkCreateSampler(device, &sampler_info, nullptr, &sampler));
+        const auto sampler_guard = ScopeFail{[&]() { vkDestroySampler(device, sampler, nullptr); }};
+
+        // Create descriptor set layout
+        const auto descriptor_bindings = std::array{
+            VkDescriptorSetLayoutBinding{
+                .binding            = sampler_descriptor_binding,
+                .descriptorType     = VK_DESCRIPTOR_TYPE_SAMPLER,
+                .descriptorCount    = 1u,
+                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = &sampler,
+            },
+            VkDescriptorSetLayoutBinding{
+                .binding         = texture_descriptor_binding,
+                .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                .descriptorCount = max_color_attachments,
+                .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT,
+            },
+        };
+        const auto descriptor_set_binding_flags = std::array{
+            VkDescriptorBindingFlags{},
+            VkDescriptorBindingFlags{VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                                     VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+                                     VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT},
+        };
+        const auto descriptor_set_binding_flags_info = VkDescriptorSetLayoutBindingFlagsCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount  = static_cast<std::uint32_t>(descriptor_set_binding_flags.size()),
+            .pBindingFlags = descriptor_set_binding_flags.data(),
+        };
+        const auto descriptor_set_layout_info = VkDescriptorSetLayoutCreateInfo{
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = &descriptor_set_binding_flags_info,
+            .flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            .bindingCount = static_cast<std::uint32_t>(descriptor_bindings.size()),
+            .pBindings    = descriptor_bindings.data(),
+        };
+        VkDescriptorSetLayout descriptor_set_layout;
+        GPU_CHECK(vkCreateDescriptorSetLayout(device, &descriptor_set_layout_info, nullptr, &descriptor_set_layout));
+        const auto descriptor_set_layout_guard = ScopeFail{[&]() {
+            vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
+        }};
+
+        // Create descriptor pool
+        const auto descriptor_pool_sizes = std::array{
+            VkDescriptorPoolSize{
+                .type            = VK_DESCRIPTOR_TYPE_SAMPLER,
+                .descriptorCount = 1u,
+            },
+            VkDescriptorPoolSize{
+                .type            = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                .descriptorCount = max_textures,
+            },
+        };
+        const auto descriptor_pool_info = VkDescriptorPoolCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+            .maxSets       = 1u,
+            .poolSizeCount = static_cast<std::uint32_t>(descriptor_pool_sizes.size()),
+            .pPoolSizes    = descriptor_pool_sizes.data(),
+        };
+        VkDescriptorPool descriptor_pool;
+        GPU_CHECK(vkCreateDescriptorPool(device, &descriptor_pool_info, nullptr, &descriptor_pool));
+        const auto descriptor_pool_guard = ScopeFail{[&]() { vkDestroyDescriptorPool(device, descriptor_pool, nullptr); }};
+
+        // Allocate descriptor set
+        const auto descriptor_set_allocate_info = VkDescriptorSetAllocateInfo{
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool     = descriptor_pool,
+            .descriptorSetCount = 1u,
+            .pSetLayouts        = &descriptor_set_layout,
+        };
+        VkDescriptorSet descriptor_set;
+        GPU_CHECK(vkAllocateDescriptorSets(device, &descriptor_set_allocate_info, &descriptor_set));
+
         // Create pipeline layout
         const auto push_constant_range = VkPushConstantRange{
             .stageFlags = VK_SHADER_STAGE_ALL,
@@ -567,6 +672,8 @@ namespace orion::gpu
         };
         const auto pipeline_layout_info = VkPipelineLayoutCreateInfo{
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount         = 1u,
+            .pSetLayouts            = &descriptor_set_layout,
             .pushConstantRangeCount = 1u,
             .pPushConstantRanges    = &push_constant_range,
         };
@@ -582,6 +689,10 @@ namespace orion::gpu
             .graphics_queue             = VulkanQueue{graphics_family, graphics_queue, graphics_semaphore},
             .compute_queue              = VulkanQueue{compute_family, compute_queue, compute_semaphore},
             .transfer_queue             = VulkanQueue{transfer_family, transfer_queue, transfer_semaphore},
+            .sampler                    = sampler,
+            .descriptor_set_layout      = descriptor_set_layout,
+            .descriptor_pool            = descriptor_pool,
+            .descriptor_set             = descriptor_set,
             .pipeline_layout            = pipeline_layout,
             .physical_device_properties = device_properties,
         };
@@ -592,6 +703,11 @@ namespace orion::gpu
         ORION_ASSERT(device != nullptr);
 
         vkDestroyPipelineLayout(device->device, device->pipeline_layout, nullptr);
+
+        vkDestroyDescriptorPool(device->device, device->descriptor_pool, nullptr);
+        vkDestroyDescriptorSetLayout(device->device, device->descriptor_set_layout, nullptr);
+
+        vkDestroySampler(device->device, device->sampler, nullptr);
 
         vkDestroySemaphore(device->device, device->transfer_queue.semaphore, nullptr);
         vkDestroySemaphore(device->device, device->compute_queue.semaphore, nullptr);
@@ -1045,6 +1161,7 @@ namespace orion::gpu
             .pipeline        = pipeline,
             .pipeline_layout = device->pipeline_layout,
             .bind_point      = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .descriptor_set  = device->descriptor_set,
         };
     }
 
@@ -1155,6 +1272,29 @@ namespace orion::gpu
             .base_array_layer = image_view_info.subresourceRange.baseArrayLayer,
             .layer_count      = image_view_info.subresourceRange.layerCount,
         };
+    }
+
+    void set_shader_resource(Device* device, ImageView* image_view, std::uint32_t index)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(image_view != nullptr);
+        ORION_ASSERT(index < max_textures);
+
+        // Update descriptor set with the image view
+        const auto descriptor_image_info = VkDescriptorImageInfo{
+            .imageView   = image_view->handle,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        };
+        const auto write_descriptor_set = VkWriteDescriptorSet{
+            .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet          = device->descriptor_set,
+            .dstBinding      = texture_descriptor_binding,
+            .dstArrayElement = index,
+            .descriptorCount = 1u,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            .pImageInfo      = &descriptor_image_info,
+        };
+        vkUpdateDescriptorSets(device->device, 1, &write_descriptor_set, 0, nullptr);
     }
 
     void destroy_image_view(Device* device, ImageView* image_view)
@@ -1287,6 +1427,12 @@ namespace orion::gpu
     {
         command_buffer->pso = pipeline_state;
         vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->pipeline);
+        vkCmdBindDescriptorSets(
+            command_buffer->handle,
+            pipeline_state->bind_point,
+            pipeline_state->pipeline_layout,
+            0, 1, &pipeline_state->descriptor_set,
+            0, nullptr);
     }
 
     void bind_index_buffer(CommandBuffer* command_buffer, Buffer* index_buffer)
