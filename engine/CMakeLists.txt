@@ -54,6 +54,7 @@ target_sources(orion.engine
 		"orion/renderer/gpu.hpp"
 		"orion/renderer/mesh.hpp"
 		"orion/renderer/texture.hpp"
+		"orion/renderer/material.hpp"
 		"orion/renderer/camera.hpp"
 		"orion/renderer/deletion_queue.hpp"
 

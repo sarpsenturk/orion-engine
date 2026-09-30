@@ -68,6 +68,13 @@ namespace orion
                   .memory = gpu::Memory::Default,
                   .usage  = gpu::BufferUsage::DeviceAddress,
               }))
+        , m_material_buffer(gpu::create_buffer(
+              m_device,
+              gpu::BufferDesc{
+                  .size   = sizeof(MaterialData) * max_material_count,
+                  .memory = gpu::Memory::Default,
+                  .usage  = gpu::BufferUsage::DeviceAddress,
+              }))
         , m_frame_data(make_array<frames_in_flight>([this]() {
             return FrameData{
                 .command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics),
@@ -138,6 +145,7 @@ namespace orion
             frame_data.delete_queue.flush();
             gpu::destroy_command_allocator(m_device, frame_data.command_allocator);
         }
+        gpu::destroy_buffer(m_device, m_material_buffer);
         gpu::destroy_buffer(m_device, m_scene_buffer);
         gpu::destroy_buffer(m_device, m_index_buffer);
         gpu::destroy_buffer(m_device, m_vertex_buffer);
@@ -459,6 +467,29 @@ namespace orion
             queue_delete(texture_data.image);
             m_textures.erase(handle);
         }
+    }
+
+    Material Renderer::create_material(const MaterialDesc& desc)
+    {
+        const auto albedo_texture = SlotMap<TextureData>::Handle::from_uint64(desc.albedo.handle);
+        const auto material       = m_materials.emplace(albedo_texture.index);
+        if (material.index >= max_material_count) {
+            m_materials.erase(material);
+            throw std::runtime_error("Exceeded Renderer material limits.");
+        }
+        const auto* material_data = m_materials.get(material);
+        gpu::copy_to_buffer(
+            m_device,
+            m_material_buffer,
+            sizeof(MaterialData) * material.index,
+            std::as_bytes(std::span{material_data, 1}));
+        return Material{.handle = material.to_uint64()};
+    }
+
+    void Renderer::destroy_material(Material material)
+    {
+        const auto handle = SlotMap<MaterialData>::Handle::from_uint64(material.handle);
+        m_materials.erase(handle);
     }
 
     void Renderer::resize_swapchain(std::uint32_t width, std::uint32_t height)

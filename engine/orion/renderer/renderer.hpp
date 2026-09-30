@@ -4,6 +4,7 @@
 #include "orion/renderer/camera.hpp"
 #include "orion/renderer/deletion_queue.hpp"
 #include "orion/renderer/gpu.hpp"
+#include "orion/renderer/material.hpp"
 #include "orion/renderer/mesh.hpp"
 #include "orion/renderer/texture.hpp"
 
@@ -20,6 +21,7 @@ namespace orion
     struct RenderObject {
         Mesh mesh;
         glm::mat4 model;
+        Material material;
     };
 
     struct View {
@@ -34,9 +36,10 @@ namespace orion
     class Renderer
     {
     public:
-        static constexpr auto frames_in_flight = 2u;
-        static constexpr auto max_vertex_count = 1'024u;
-        static constexpr auto max_index_count  = 4'096u;
+        static constexpr auto frames_in_flight   = 2u;
+        static constexpr auto max_vertex_count   = 1'024u;
+        static constexpr auto max_index_count    = 4'096u;
+        static constexpr auto max_material_count = 128u;
 
         explicit Renderer(const RendererDesc& desc);
         Renderer(const Renderer&)            = delete;
@@ -54,6 +57,9 @@ namespace orion
 
         Texture create_texture(const TextureDesc& desc, std::span<const std::byte> data);
         void destroy_texture(Texture texture);
+
+        Material create_material(const MaterialDesc& desc);
+        void destroy_material(Material material);
 
         void resize_swapchain(std::uint32_t width, std::uint32_t height);
 
@@ -83,6 +89,11 @@ namespace orion
             gpu::ImageView* image_view = nullptr;
         };
 
+        struct MaterialData {
+            std::uint32_t albedo_texture_idx = 0u;
+            std::uint32_t sampler_idx        = 0u;
+        };
+
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] FrameData& current_frame_data() { return m_frame_data[current_frame_index()]; }
 
@@ -100,8 +111,10 @@ namespace orion
         std::uint32_t m_index_offset = 0u;
 
         SlotMap<TextureData> m_textures;
+        SlotMap<MaterialData> m_materials;
 
         gpu::Buffer* m_scene_buffer;
+        gpu::Buffer* m_material_buffer;
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;

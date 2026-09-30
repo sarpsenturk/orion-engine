@@ -38,6 +38,7 @@ public:
                   .depth  = 1u,
               },
               std::array{std::byte{0x00}, std::byte{0xff}, std::byte{0x00}, std::byte{0xff}}))
+        , m_green_material(m_renderer.create_material({.albedo = m_green_texture}))
         , m_red_texture(m_renderer.create_texture(
               orion::TextureDesc{
                   .width  = 1u,
@@ -45,13 +46,16 @@ public:
                   .depth  = 1u,
               },
               std::array{std::byte{0xff}, std::byte{0x00}, std::byte{0x00}, std::byte{0xff}}))
+        , m_red_material(m_renderer.create_material({.albedo = m_red_texture}))
     {
     }
 
     ~SandboxApp()
     {
         m_renderer.destroy_texture(m_red_texture);
+        m_renderer.destroy_material(m_red_material);
         m_renderer.destroy_texture(m_green_texture);
+        m_renderer.destroy_material(m_green_material);
         m_renderer.destroy_mesh(m_triangle);
         m_renderer.destroy_mesh(m_quad);
     }
@@ -70,12 +74,14 @@ public:
             },
             .objects = {{
                 orion::RenderObject{
-                    .mesh  = m_quad,
-                    .model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f)),
+                    .mesh     = m_quad,
+                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f)),
+                    .material = m_green_material,
                 },
                 orion::RenderObject{
-                    .mesh  = m_triangle,
-                    .model = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f)),
+                    .mesh     = m_triangle,
+                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f)),
+                    .material = m_red_material,
                 },
             }},
         });
@@ -87,7 +93,9 @@ private:
     orion::Mesh m_quad;
     orion::Mesh m_triangle;
     orion::Texture m_green_texture;
+    orion::Material m_green_material;
     orion::Texture m_red_texture;
+    orion::Material m_red_material;
 };
 
 int main()
