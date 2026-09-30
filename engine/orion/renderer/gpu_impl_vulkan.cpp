@@ -495,6 +495,7 @@ namespace orion::gpu
             .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
             .descriptorBindingUpdateUnusedWhilePending    = VK_TRUE,
             .descriptorBindingPartiallyBound              = VK_TRUE,
+            .runtimeDescriptorArray                       = VK_TRUE,
             .scalarBlockLayout                            = VK_TRUE,
             .timelineSemaphore                            = VK_TRUE,
             .bufferDeviceAddress                          = VK_TRUE,
