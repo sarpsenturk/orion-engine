@@ -49,6 +49,7 @@ target_sources(orion.engine
 		"orion/core/assert.hpp"
 		"orion/core/platform.hpp"
 		"orion/core/window.hpp"
+		"orion/core/input.hpp"
 
 		"orion/memory/memory.hpp"
 

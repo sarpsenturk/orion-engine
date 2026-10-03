@@ -1,3 +1,4 @@
+#include "input.hpp"
 #include "platform.hpp"
 #include "window.hpp"
 
@@ -89,5 +90,30 @@ namespace orion
     bool Window::should_close() const noexcept
     {
         return glfwWindowShouldClose(static_cast<GLFWwindow*>(m_handle));
+    }
+
+    Input::Input(Window* window)
+        : m_window(window)
+    {
+    }
+
+    bool Input::is_key_pressed(Keycode key) const
+    {
+        auto* window = static_cast<GLFWwindow*>(m_window->handle());
+        return glfwGetKey(window, static_cast<int>(key)) == GLFW_PRESS;
+    }
+
+    bool Input::is_mouse_button_pressed(MouseButton button) const
+    {
+        auto* window = static_cast<GLFWwindow*>(m_window->handle());
+        return glfwGetMouseButton(window, static_cast<int>(button)) == GLFW_PRESS;
+    }
+
+    MousePosition Input::mouse_position() const
+    {
+        auto* window = static_cast<GLFWwindow*>(m_window->handle());
+        MousePosition position;
+        glfwGetCursorPos(window, &position.x, &position.y);
+        return position;
     }
 } // namespace orion

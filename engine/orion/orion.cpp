@@ -1,9 +1,12 @@
 #include "orion.hpp"
 
+#include "orion/core/input.hpp"
 #include "orion/core/logger.hpp"
 #include "orion/core/platform.hpp"
 #include "orion/core/window.hpp"
 #include "orion/renderer/renderer.hpp"
+
+#include <chrono>
 
 namespace orion
 {
@@ -21,6 +24,7 @@ namespace orion
         : m_logger(std::make_unique<Logger>())
         , m_platform(std::make_unique<Platform>())
         , m_window(std::make_unique<Window>(WindowDesc{"Orion Engine", 800, 600}))
+        , m_input(std::make_unique<Input>(m_window.get()))
         , m_renderer(std::make_unique<Renderer>(RendererDesc{m_window.get()}))
     {
         ORION_LOG_INFO(LogChannel::Core, "Orion Engine");
@@ -34,9 +38,18 @@ namespace orion
 
     void Engine::run(std::unique_ptr<Application> app)
     {
+        using Clock     = std::chrono::high_resolution_clock;
+        using TimePoint = std::chrono::time_point<Clock>;
+        using Duration  = std::chrono::duration<float>;
+
+        auto last_time = Clock::now();
         while (!m_window->should_close()) {
             m_platform->poll_events();
-            app->update(0.0f);
+
+            const auto current_time = Clock::now();
+            const auto delta_time   = Duration(current_time - last_time);
+            last_time               = current_time;
+            app->update(delta_time.count());
 
             if (m_renderer->begin_frame()) {
                 app->render();
