@@ -50,6 +50,8 @@ target_sources(orion.engine
 		"orion/core/platform.hpp"
 		"orion/core/window.hpp"
 
+		"orion/memory/memory.hpp"
+
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/gpu.hpp"
 		"orion/renderer/mesh.hpp"
