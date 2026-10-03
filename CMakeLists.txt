@@ -13,6 +13,11 @@ option(
 	"Enable building examples. Default: ${PROJECT_IS_TOP_LEVEL}. Values: { ON, OFF }."
 	${PROJECT_IS_TOP_LEVEL}
 )
+option(
+	ORION_BUILD_TESTS
+	"Enable building tests. Default: ${PROJECT_IS_TOP_LEVEL}. Values: { ON, OFF }."
+	${PROJECT_IS_TOP_LEVEL}
+)
 
 # Third-party dependencies
 find_package(spdlog 1.17.0 CONFIG REQUIRED)
@@ -23,6 +28,11 @@ find_package(glm 1.0.3 CONFIG REQUIRED)
 
 # Disable modules
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+if (ORION_BUILD_TESTS)
+	enable_testing()
+	include(cmake/gtest.cmake)
+endif()
 
 # Engine core source
 add_subdirectory(engine)
