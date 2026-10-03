@@ -61,6 +61,7 @@ target_sources(orion.engine
 		"orion/lib/scope_guard.hpp"
 		"orion/lib/array.hpp"
 		"orion/lib/slot_map.hpp"
+		"orion/lib/hash.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
@@ -77,3 +78,8 @@ target_sources(orion.engine
 # Offline compilation using slangc
 add_subdirectory(shaders)
 add_dependencies(orion.engine orion.shaders)
+
+# Engine tests
+if (ORION_BUILD_TESTS)
+	add_subdirectory(tests)
+endif()
