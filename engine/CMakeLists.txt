@@ -65,6 +65,8 @@ target_sources(orion.engine
 		"orion/lib/array.hpp"
 		"orion/lib/slot_map.hpp"
 		"orion/lib/hash.hpp"
+
+		"orion/controllers/fly_camera.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
@@ -75,6 +77,8 @@ target_sources(orion.engine
 		"orion/renderer/renderer.cpp"
 		"orion/renderer/gpu_impl_vulkan.cpp"
 		"orion/renderer/deletion_queue.cpp"
+
+		"orion/controllers/fly_camera.cpp"
 )
 
 # Engine shaders
