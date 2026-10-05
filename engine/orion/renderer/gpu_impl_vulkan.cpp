@@ -159,8 +159,16 @@ namespace orion::gpu
                 return VK_FORMAT_UNDEFINED;
             case Format::RGBA8_Unorm:
                 return VK_FORMAT_R8G8B8A8_UNORM;
+            case Format::RGBA8_Srgb:
+                return VK_FORMAT_R8G8B8A8_SRGB;
             case Format::BGRA8_Unorm:
                 return VK_FORMAT_B8G8R8A8_UNORM;
+            case Format::BGRA8_Srgb:
+                return VK_FORMAT_B8G8R8A8_SRGB;
+            case Format::R32_Float:
+                return VK_FORMAT_R32_SFLOAT;
+            case Format::D32_Float:
+                return VK_FORMAT_D32_SFLOAT;
         }
         std::unreachable();
     }

@@ -46,8 +46,15 @@ namespace orion
 
         enum class Format {
             Undefined = 0,
+
             RGBA8_Unorm,
+            RGBA8_Srgb,
+
             BGRA8_Unorm,
+            BGRA8_Srgb,
+
+            R32_Float,
+            D32_Float,
         };
 
         enum class PipelineStage : std::uint64_t {
