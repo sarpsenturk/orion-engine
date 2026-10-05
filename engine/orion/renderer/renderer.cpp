@@ -228,7 +228,8 @@ namespace orion
         // Push buffer addresses to the shader via push constants
         const auto push_constants = PushConstants{
             .vertex_buffer_address   = gpu::get_buffer_device_address(m_vertex_buffer),
-            .scene_buffer_address    = gpu::get_buffer_device_address(m_scene_buffer),
+            .scene_buffer_address    = gpu::get_buffer_device_address(m_scene_buffer) +
+                                       current_frame_index() * sizeof(SceneData),
             .material_buffer_address = gpu::get_buffer_device_address(m_material_buffer),
         };
         gpu::push_constants(command_buffer, 0u, std::as_bytes(std::span{&push_constants, 1}));
