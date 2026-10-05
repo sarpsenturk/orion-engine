@@ -9,6 +9,21 @@
 
 namespace orion
 {
+    static int to_glfw_cursor_mode(CursorMode mode)
+    {
+        switch (mode) {
+            case CursorMode::Normal:
+                return GLFW_CURSOR_NORMAL;
+            case CursorMode::Hidden:
+                return GLFW_CURSOR_HIDDEN;
+            case CursorMode::Disabled:
+                return GLFW_CURSOR_DISABLED;
+            case CursorMode::Captured:
+                return GLFW_CURSOR_CAPTURED;
+        }
+        std::unreachable();
+    }
+
     Platform::Platform()
     {
         if (!glfwInit()) {
@@ -90,6 +105,12 @@ namespace orion
     bool Window::should_close() const noexcept
     {
         return glfwWindowShouldClose(static_cast<GLFWwindow*>(m_handle));
+    }
+
+    void Window::set_cursor_mode(CursorMode mode)
+    {
+        auto* window = static_cast<GLFWwindow*>(m_handle);
+        glfwSetInputMode(window, GLFW_CURSOR, to_glfw_cursor_mode(mode));
     }
 
     Input::Input(Window* window)

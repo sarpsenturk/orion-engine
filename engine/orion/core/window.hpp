@@ -4,6 +4,13 @@
 
 namespace orion
 {
+    enum class CursorMode {
+        Normal,
+        Hidden,
+        Disabled,
+        Captured,
+    };
+
     struct WindowDesc {
         const char* title;
         int width;
@@ -26,6 +33,8 @@ namespace orion
         [[nodiscard]] float aspect_ratio() const noexcept { return static_cast<float>(m_width) / m_height; }
 
         [[nodiscard]] bool should_close() const noexcept;
+
+        void set_cursor_mode(CursorMode mode);
 
     private:
         void* m_handle;
