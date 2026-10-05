@@ -132,13 +132,13 @@ public:
             },
             .objects = {{
                 orion::RenderObject{
-                    .mesh     = m_quad,
-                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f)),
+                    .mesh     = m_triangle,
+                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
                     .material = m_green_material,
                 },
                 orion::RenderObject{
-                    .mesh     = m_triangle,
-                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f)),
+                    .mesh     = m_quad,
+                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
                     .material = m_red_material,
                 },
             }},

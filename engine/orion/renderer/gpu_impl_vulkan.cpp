@@ -296,6 +296,29 @@ namespace orion::gpu
         std::unreachable();
     }
 
+    static VkCompareOp to_vk_compare_op(CompareOp compare_op)
+    {
+        switch (compare_op) {
+            case CompareOp::Never:
+                return VK_COMPARE_OP_NEVER;
+            case CompareOp::Less:
+                return VK_COMPARE_OP_LESS;
+            case CompareOp::Equal:
+                return VK_COMPARE_OP_EQUAL;
+            case CompareOp::LessOrEqual:
+                return VK_COMPARE_OP_LESS_OR_EQUAL;
+            case CompareOp::Greater:
+                return VK_COMPARE_OP_GREATER;
+            case CompareOp::NotEqual:
+                return VK_COMPARE_OP_NOT_EQUAL;
+            case CompareOp::GreaterOrEqual:
+                return VK_COMPARE_OP_GREATER_OR_EQUAL;
+            case CompareOp::Always:
+                return VK_COMPARE_OP_ALWAYS;
+        }
+        std::unreachable();
+    }
+
     static VkAttachmentLoadOp to_vk_load_op(LoadOp load_op)
     {
         switch (load_op) {
@@ -307,6 +330,21 @@ namespace orion::gpu
                 return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         }
         std::unreachable();
+    }
+
+    static VkClearColorValue to_vk_clear_color_value(const ClearColorValue& value)
+    {
+        return VkClearColorValue{
+            .float32 = {value.float32[0], value.float32[1], value.float32[2], value.float32[3]},
+        };
+    }
+
+    static VkClearDepthStencilValue to_vk_clear_depth_stencil_value(const ClearDepthStencilValue& value)
+    {
+        return VkClearDepthStencilValue{
+            .depth   = value.depth,
+            .stencil = value.stencil,
+        };
     }
 
     static VmaAllocationCreateFlags to_vma_allocation_flags(Memory memory)
@@ -1100,8 +1138,8 @@ namespace orion::gpu
             .depthClampEnable        = VK_FALSE,
             .rasterizerDiscardEnable = VK_FALSE,
             .polygonMode             = VK_POLYGON_MODE_FILL,
-            .cullMode                = to_vk_cull_mode(desc.cull_mode),
-            .frontFace               = desc.front_face_ccw ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE,
+            .cullMode                = to_vk_cull_mode(desc.rasterizer.cull_mode),
+            .frontFace               = desc.rasterizer.front_face_ccw ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE,
             .depthBiasEnable         = VK_FALSE,
             .lineWidth               = 1.0f,
         };
@@ -1114,7 +1152,10 @@ namespace orion::gpu
 
         // Depth stencil
         const auto depth_stencil_state = VkPipelineDepthStencilStateCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable  = desc.depth_stencil.depth_test_enable,
+            .depthWriteEnable = desc.depth_stencil.depth_write_enable,
+            .depthCompareOp   = to_vk_compare_op(desc.depth_stencil.depth_compare_op),
         };
 
         // Color blending
@@ -1139,12 +1180,13 @@ namespace orion::gpu
         };
 
         // Render pass
-        std::array<VkFormat, 8> color_attachments;
+        std::array<VkFormat, max_color_attachments> color_attachments;
         std::ranges::transform(desc.color_attachments, color_attachments.begin(), to_vk_format);
         const auto rendering_info = VkPipelineRenderingCreateInfo{
             .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
             .colorAttachmentCount    = static_cast<std::uint32_t>(desc.color_attachments.size()),
             .pColorAttachmentFormats = color_attachments.data(),
+            .depthAttachmentFormat   = to_vk_format(desc.depth_attachment),
         };
 
         const auto pipeline_info = VkGraphicsPipelineCreateInfo{
@@ -1415,7 +1457,7 @@ namespace orion::gpu
                 .newLayout        = to_vk_image_layout(image_barrier.new_layout),
                 .image            = image_barrier.image->handle,
                 .subresourceRange = {
-                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .aspectMask     = format_aspect_flags(image_barrier.image->format),
                     .baseMipLevel   = 0u,
                     .levelCount     = 1u,
                     .baseArrayLayer = 0u,
@@ -1487,9 +1529,21 @@ namespace orion::gpu
                 .imageView   = attachment.image_view->handle,
                 .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 .loadOp      = to_vk_load_op(attachment.load_op),
-                .clearValue  = VkClearValue{.color = VkClearColorValue{0.0f, 0.0f, 0.0f, 1.0f}},
+                .clearValue  = VkClearValue{.color = to_vk_clear_color_value(attachment.clear_value.color)},
             };
         });
+
+        VkRenderingAttachmentInfo depth_attachment{};
+        if (render_pass.depth_attachment.has_value()) {
+            const auto& attachment         = render_pass.depth_attachment.value();
+            depth_attachment               = VkRenderingAttachmentInfo{
+                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = attachment.image_view->handle,
+                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                .loadOp      = to_vk_load_op(attachment.load_op),
+                .clearValue  = VkClearValue{.depthStencil = to_vk_clear_depth_stencil_value(attachment.clear_value.depth_stencil)},
+            };
+        }
 
         const auto* area_view     = render_pass.color_attachments[0].image_view;
         const auto rendering_info = VkRenderingInfo{
@@ -1500,6 +1554,7 @@ namespace orion::gpu
             .layerCount           = 1u,
             .colorAttachmentCount = static_cast<std::uint32_t>(render_pass.color_attachments.size()),
             .pColorAttachments    = color_attachments.data(),
+            .pDepthAttachment     = render_pass.depth_attachment.has_value() ? &depth_attachment : nullptr,
         };
         vkCmdBeginRendering(command_buffer->handle, &rendering_info);
     }

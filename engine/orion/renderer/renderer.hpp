@@ -115,6 +115,9 @@ namespace orion
         gpu::Swapchain* m_swapchain;
         gpu::PipelineState* m_pso;
 
+        gpu::Image* m_depth_image;
+        gpu::ImageView* m_depth_image_view;
+
         gpu::Buffer* m_vertex_buffer;
         gpu::Buffer* m_index_buffer;
         std::int32_t m_vertex_offset = 0u;

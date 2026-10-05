@@ -41,40 +41,47 @@ namespace orion
         , m_pso(gpu::create_graphics_pipeline(
               m_device,
               gpu::GraphicsPipelineDesc{
-                  .spirv             = load_shader(ORION_SHADER_OUTPUT_DIR "/mesh.spv"),
-                  .topology          = gpu::Topology::TriangleList,
-                  .cull_mode         = gpu::CullMode::Back,
-                  .front_face_ccw    = true,
+                  .spirv      = load_shader(ORION_SHADER_OUTPUT_DIR "/mesh.spv"),
+                  .topology   = gpu::Topology::TriangleList,
+                  .rasterizer = {
+                      .cull_mode      = gpu::CullMode::Back,
+                      .front_face_ccw = true,
+                  },
+                  .depth_stencil = {
+                      .depth_test_enable  = true,
+                      .depth_write_enable = true,
+                      .depth_compare_op   = gpu::CompareOp::Less,
+                  },
                   .color_attachments = {{gpu::Format::BGRA8_Unorm}},
+                  .depth_attachment  = gpu::Format::D32_Float,
               }))
-        , m_vertex_buffer(gpu::create_buffer(
-              m_device,
-              gpu::BufferDesc{
-                  .size   = sizeof(Vertex) * max_vertex_count,
-                  .memory = gpu::Memory::Default,
-                  .usage  = gpu::BufferUsage::DeviceAddress,
-              }))
-        , m_index_buffer(gpu::create_buffer(
-              m_device,
-              gpu::BufferDesc{
-                  .size   = sizeof(std::uint32_t) * max_index_count,
-                  .memory = gpu::Memory::Default,
-                  .usage  = gpu::BufferUsage::IndexBuffer,
-              }))
-        , m_scene_buffer(gpu::create_buffer(
-              m_device,
-              gpu::BufferDesc{
-                  .size   = sizeof(SceneData) * frames_in_flight,
-                  .memory = gpu::Memory::Default,
-                  .usage  = gpu::BufferUsage::DeviceAddress,
-              }))
-        , m_material_buffer(gpu::create_buffer(
-              m_device,
-              gpu::BufferDesc{
-                  .size   = sizeof(MaterialData) * max_material_count,
-                  .memory = gpu::Memory::Default,
-                  .usage  = gpu::BufferUsage::DeviceAddress,
-              }))
+        , m_depth_image(gpu::create_image(m_device, gpu::ImageDesc{
+                                                        .width  = static_cast<std::uint32_t>(desc.window->width()),
+                                                        .height = static_cast<std::uint32_t>(desc.window->height()),
+                                                        .format = gpu::Format::D32_Float,
+                                                        .usage  = gpu::ImageUsage::DepthStencilAttachment,
+                                                    }))
+        , m_depth_image_view(gpu::create_image_view(m_device, {m_depth_image}))
+        , m_vertex_buffer(gpu::create_buffer(m_device, gpu::BufferDesc{
+                                                           .size   = sizeof(Vertex) * max_vertex_count,
+                                                           .memory = gpu::Memory::Default,
+                                                           .usage  = gpu::BufferUsage::DeviceAddress,
+                                                       }))
+        , m_index_buffer(gpu::create_buffer(m_device, gpu::BufferDesc{
+                                                          .size   = sizeof(std::uint32_t) * max_index_count,
+                                                          .memory = gpu::Memory::Default,
+                                                          .usage  = gpu::BufferUsage::IndexBuffer,
+                                                      }))
+        , m_scene_buffer(gpu::create_buffer(m_device, gpu::BufferDesc{
+                                                          .size   = sizeof(SceneData) * frames_in_flight,
+                                                          .memory = gpu::Memory::Default,
+                                                          .usage  = gpu::BufferUsage::DeviceAddress,
+                                                      }))
+        , m_material_buffer(gpu::create_buffer(m_device, gpu::BufferDesc{
+                                                             .size   = sizeof(MaterialData) * max_material_count,
+                                                             .memory = gpu::Memory::Default,
+                                                             .usage  = gpu::BufferUsage::DeviceAddress,
+                                                         }))
         , m_frame_data(make_array<frames_in_flight>([this]() {
             return FrameData{
                 .command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics),
@@ -149,6 +156,8 @@ namespace orion
         gpu::destroy_buffer(m_device, m_scene_buffer);
         gpu::destroy_buffer(m_device, m_index_buffer);
         gpu::destroy_buffer(m_device, m_vertex_buffer);
+        gpu::destroy_image(m_device, m_depth_image);
+        gpu::destroy_image_view(m_device, m_depth_image_view);
         gpu::destroy_pipeline_state(m_device, m_pso);
         gpu::destroy_swapchain(m_device, m_swapchain);
         gpu::destroy_device(m_device);
@@ -203,6 +212,7 @@ namespace orion
         auto* command_buffer = gpu::begin_command_buffer(m_device, frame_data.command_allocator);
 
         // Transition the swapchain image to a color attachment
+        // Transition the depth image to a depth attachment
         gpu::barrier(
             command_buffer,
             gpu::Barrier{
@@ -215,6 +225,15 @@ namespace orion
                         .dst_access = gpu::Access::ColorAttachmentWrite,
                         .old_layout = gpu::ImageLayout::Undefined,
                         .new_layout = gpu::ImageLayout::ColorAttachment,
+                    },
+                    gpu::ImageBarrier{
+                        .image      = m_depth_image,
+                        .src_stages = gpu::PipelineStage::None,
+                        .src_access = gpu::Access::None,
+                        .dst_stages = gpu::PipelineStage::DepthStencilTests,
+                        .dst_access = gpu::Access::DepthStencilAttachmentWrite,
+                        .old_layout = gpu::ImageLayout::Undefined,
+                        .new_layout = gpu::ImageLayout::DepthStencilAttachment,
                     },
                 }},
             });
@@ -256,10 +275,16 @@ namespace orion
             gpu::RenderPass{
                 .color_attachments = {{
                     gpu::RenderPassAttachment{
-                        .image_view = frame_data.swapchain_frame.image_view,
-                        .load_op    = gpu::LoadOp::Clear,
+                        .image_view  = frame_data.swapchain_frame.image_view,
+                        .load_op     = gpu::LoadOp::Clear,
+                        .clear_value = gpu::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f},
                     },
                 }},
+                .depth_attachment  = gpu::RenderPassAttachment{
+                    .image_view  = m_depth_image_view,
+                    .load_op     = gpu::LoadOp::Clear,
+                    .clear_value = gpu::ClearValue{.depth_stencil = {1.0f, 0u}},
+                },
             });
 
         // Draw objects
@@ -284,12 +309,27 @@ namespace orion
                 });
         }
 
+        // End render pass
+        gpu::end_render_pass(command_buffer);
+
+        // Begin Dear ImGui render pass
+        gpu::begin_render_pass(
+            command_buffer,
+            gpu::RenderPass{
+                .color_attachments = {{
+                    gpu::RenderPassAttachment{
+                        .image_view = frame_data.swapchain_frame.image_view,
+                        .load_op    = gpu::LoadOp::Load,
+                    },
+                }},
+            });
+
         // Render ImGui draw data
         ImGui::Render();
         auto* imgui_draw_data = ImGui::GetDrawData();
         ImGui_ImplOrion_RenderDrawData(imgui_draw_data, command_buffer);
 
-        // End render pass
+        // End Dear ImGui render pass
         gpu::end_render_pass(command_buffer);
 
         // Transition the swapchain image to a presentable layout

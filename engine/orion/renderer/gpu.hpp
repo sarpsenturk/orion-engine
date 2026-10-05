@@ -118,6 +118,17 @@ namespace orion
             Back,
         };
 
+        enum class CompareOp {
+            Never = 0,
+            Less,
+            Equal,
+            LessOrEqual,
+            Greater,
+            NotEqual,
+            GreaterOrEqual,
+            Always,
+        };
+
         enum class LoadOp {
             Load = 0,
             Clear,
@@ -195,13 +206,31 @@ namespace orion
             Extent2D extent = {};
         };
 
+        struct ClearColorValue {
+            float float32[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+        };
+
+        struct ClearDepthStencilValue {
+            float depth           = 0.0f;
+            std::uint32_t stencil = 0u;
+        };
+
+        struct ClearValue {
+            union {
+                ClearColorValue color;
+                ClearDepthStencilValue depth_stencil;
+            };
+        };
+
         struct RenderPassAttachment {
-            ImageView* image_view = nullptr;
-            LoadOp load_op        = LoadOp::Load;
+            ImageView* image_view  = nullptr;
+            LoadOp load_op         = LoadOp::Load;
+            ClearValue clear_value = {};
         };
 
         struct RenderPass {
             std::span<const RenderPassAttachment> color_attachments;
+            std::optional<RenderPassAttachment> depth_attachment;
         };
 
         struct Draw {
@@ -260,12 +289,24 @@ namespace orion
             Format image_format        = Format::Undefined;
         };
 
+        struct RasterizerDesc {
+            CullMode cull_mode  = CullMode::None;
+            bool front_face_ccw = false;
+        };
+
+        struct DepthStencilDesc {
+            bool depth_test_enable     = false;
+            bool depth_write_enable    = false;
+            CompareOp depth_compare_op = CompareOp::Never;
+        };
+
         struct GraphicsPipelineDesc {
             std::span<const std::uint32_t> spirv;
-            Topology topology   = Topology::TriangleList;
-            CullMode cull_mode  = CullMode::Back;
-            bool front_face_ccw = true;
+            Topology topology              = Topology::TriangleList;
+            RasterizerDesc rasterizer      = {};
+            DepthStencilDesc depth_stencil = {};
             std::span<const Format> color_attachments;
+            Format depth_attachment = Format::Undefined;
         };
 
         struct ImageDesc {
