@@ -272,13 +272,14 @@ namespace orion
             gpu::push_constants(command_buffer, offsetof(PushConstants, model), std::as_bytes(std::span{&object.model, 1}));
 
             // Draw mesh
+            const auto* mesh_data = m_meshes.get(SlotMap<MeshData>::Handle::from_uint64(object.mesh.handle));
             gpu::draw_indexed(
                 command_buffer,
                 gpu::DrawIndexed{
-                    .index_count    = object.mesh.index_count,
+                    .index_count    = mesh_data->index_count,
                     .instance_count = 1u,
-                    .first_index    = object.mesh.index_offset,
-                    .vertex_offset  = object.mesh.vertex_offset,
+                    .first_index    = mesh_data->index_offset,
+                    .vertex_offset  = mesh_data->vertex_offset,
                     .first_instance = 0u,
                 });
         }
@@ -355,18 +356,20 @@ namespace orion
             m_vertex_offset += static_cast<std::uint32_t>(vertices.size());
             m_index_offset += static_cast<std::uint32_t>(indices.size());
 
-            return Mesh{
+            const auto handle = m_meshes.emplace(MeshData{
                 .vertex_count  = static_cast<std::uint32_t>(vertices.size()),
                 .vertex_offset = vertex_offset,
                 .index_offset  = index_offset,
                 .index_count   = static_cast<std::uint32_t>(indices.size()),
-            };
+            });
+            return Mesh{.handle = handle.to_uint64()};
         }
     }
 
-    void Renderer::destroy_mesh(Mesh /*mesh*/)
+    void Renderer::destroy_mesh(Mesh mesh)
     {
-        // No-op for now.
+        const auto handle = SlotMap<MeshData>::Handle::from_uint64(mesh.handle);
+        m_meshes.erase(handle);
     }
 
     Texture Renderer::create_texture(const TextureDesc& desc, std::span<const std::byte> data)

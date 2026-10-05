@@ -87,6 +87,13 @@ namespace orion
         };
         static_assert(sizeof(PushConstants) <= gpu::max_push_constants_size);
 
+        struct MeshData {
+            std::uint32_t vertex_count = 0u;
+            std::int32_t vertex_offset = 0u;
+            std::uint32_t index_offset = 0u;
+            std::uint32_t index_count  = 0u;
+        };
+
         struct TextureData {
             gpu::Image* image          = nullptr;
             gpu::ImageView* image_view = nullptr;
@@ -113,6 +120,7 @@ namespace orion
         std::int32_t m_vertex_offset = 0u;
         std::uint32_t m_index_offset = 0u;
 
+        SlotMap<MeshData> m_meshes;
         SlotMap<TextureData> m_textures;
         SlotMap<MaterialData> m_materials;
 
