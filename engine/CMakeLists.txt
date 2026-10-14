@@ -62,6 +62,7 @@ target_sources(orion.engine
 		"orion/lib/array.hpp"
 		"orion/lib/slot_map.hpp"
 		"orion/lib/hash.hpp"
+		"orion/lib/inline_function.hpp"
 
 		"orion/controllers/fly_camera.hpp"
 	PRIVATE

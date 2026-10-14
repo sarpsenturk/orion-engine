@@ -6,3 +6,9 @@ orion_add_test(
 	SOURCES hash.test.cpp
 	DEPENDS orion.engine
 )
+
+orion_add_test(
+	NAME orion.test.inline_function
+	SOURCES inline_function.test.cpp
+	DEPENDS orion.engine
+)
