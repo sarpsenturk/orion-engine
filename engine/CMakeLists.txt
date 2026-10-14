@@ -54,12 +54,9 @@ target_sources(orion.engine
 		"orion/memory/memory.hpp"
 
 		"orion/renderer/renderer.hpp"
+		"orion/renderer/camera.hpp"
 		"orion/renderer/gpu/gpu.hpp"
 		"orion/renderer/gpu/deletion_queue.hpp"
-		"orion/renderer/mesh.hpp"
-		"orion/renderer/texture.hpp"
-		"orion/renderer/material.hpp"
-		"orion/renderer/camera.hpp"
 
 		"orion/lib/scope_guard.hpp"
 		"orion/lib/array.hpp"

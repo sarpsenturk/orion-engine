@@ -1,29 +1,6 @@
 #include <orion/orion.hpp>
 
-#include <orion/controllers/fly_camera.hpp>
-#include <orion/core/input.hpp>
-#include <orion/core/window.hpp>
 #include <orion/renderer/renderer.hpp>
-
-#include <array>
-
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/glm.hpp>
-
-static constexpr auto quad_vertices = std::array{
-    orion::Vertex{.position = glm::vec3(-0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(0.0f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(1.0f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.5f, 0.5f, 0.0f), .texcoord = glm::vec2(1.0f, 1.0f)},
-    orion::Vertex{.position = glm::vec3(-0.5f, 0.5f, 0.0f), .texcoord = glm::vec2(0.0f, 1.0f)},
-};
-static constexpr auto quad_indices      = std::array{0u, 1u, 2u, 0u, 2u, 3u};
-static constexpr auto triangle_vertices = std::array{
-    orion::Vertex{.position = glm::vec3(-0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(0.0f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.5f, -0.5f, 0.0f), .texcoord = glm::vec2(1.0f, 0.0f)},
-    orion::Vertex{.position = glm::vec3(0.0f, 0.5f, 0.0f), .texcoord = glm::vec2(0.5f, 1.0f)},
-};
-static constexpr auto triangle_indices = std::array{0u, 1u, 2u};
 
 class SandboxApp : public orion::Application
 {
@@ -31,79 +8,23 @@ public:
     explicit SandboxApp(orion::Engine& engine)
         : m_window(engine.window())
         , m_renderer(engine.renderer())
-        , m_input(engine.input())
-        , m_quad(m_renderer.create_mesh(quad_vertices, quad_indices))
-        , m_triangle(m_renderer.create_mesh(triangle_vertices, triangle_indices))
-        , m_green_texture(m_renderer.create_texture(
-              orion::TextureDesc{
-                  .width  = 1u,
-                  .height = 1u,
-                  .depth  = 1u,
-              },
-              std::array{std::byte{0x00}, std::byte{0xff}, std::byte{0x00}, std::byte{0xff}}))
-        , m_green_material(m_renderer.create_material({.albedo = m_green_texture}))
-        , m_red_texture(m_renderer.create_texture(
-              orion::TextureDesc{
-                  .width  = 1u,
-                  .height = 1u,
-                  .depth  = 1u,
-              },
-              std::array{std::byte{0xff}, std::byte{0x00}, std::byte{0x00}, std::byte{0xff}}))
-        , m_red_material(m_renderer.create_material({.albedo = m_red_texture}))
     {
-        m_window.set_cursor_mode(orion::CursorMode::Disabled);
-    }
-
-    ~SandboxApp()
-    {
-        m_renderer.destroy_texture(m_red_texture);
-        m_renderer.destroy_material(m_red_material);
-        m_renderer.destroy_texture(m_green_texture);
-        m_renderer.destroy_material(m_green_material);
-        m_renderer.destroy_mesh(m_triangle);
-        m_renderer.destroy_mesh(m_quad);
     }
 
     void on_update(float dt) override
     {
-        m_fly_camera.update(dt);
     }
 
     void on_render() override
     {
-        m_renderer.render({
-            .camera = {
-                .view       = glm::lookAtRH(m_fly_camera.position(), m_fly_camera.center(), m_fly_camera.up()),
-                .projection = glm::perspectiveRH_ZO(glm::radians(60.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
-            },
-            .objects = {{
-                orion::RenderObject{
-                    .mesh     = m_triangle,
-                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
-                    .material = m_green_material,
-                },
-                orion::RenderObject{
-                    .mesh     = m_quad,
-                    .model    = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
-                    .material = m_red_material,
-                },
-            }},
-        });
+        ImGui::ShowDemoWindow();
+
+        m_renderer.render({});
     }
 
 private:
     orion::Window& m_window;
     orion::Renderer& m_renderer;
-    orion::Input& m_input;
-
-    orion::Mesh m_quad;
-    orion::Mesh m_triangle;
-    orion::Texture m_green_texture;
-    orion::Material m_green_material;
-    orion::Texture m_red_texture;
-    orion::Material m_red_material;
-
-    orion::FlyCamera m_fly_camera{m_input};
 };
 
 int main()
