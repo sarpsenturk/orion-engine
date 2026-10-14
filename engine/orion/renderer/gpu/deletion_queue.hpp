@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orion/renderer/gpu.hpp"
+#include "orion/renderer/gpu/gpu.hpp"
 
 #include <utility>
 #include <vector>

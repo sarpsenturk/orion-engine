@@ -2,8 +2,8 @@
 
 #include "orion/lib/slot_map.hpp"
 #include "orion/renderer/camera.hpp"
-#include "orion/renderer/deletion_queue.hpp"
-#include "orion/renderer/gpu.hpp"
+#include "orion/renderer/gpu/deletion_queue.hpp"
+#include "orion/renderer/gpu/gpu.hpp"
 #include "orion/renderer/material.hpp"
 #include "orion/renderer/mesh.hpp"
 #include "orion/renderer/texture.hpp"

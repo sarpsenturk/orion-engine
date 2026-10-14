@@ -54,12 +54,12 @@ target_sources(orion.engine
 		"orion/memory/memory.hpp"
 
 		"orion/renderer/renderer.hpp"
-		"orion/renderer/gpu.hpp"
+		"orion/renderer/gpu/gpu.hpp"
+		"orion/renderer/gpu/deletion_queue.hpp"
 		"orion/renderer/mesh.hpp"
 		"orion/renderer/texture.hpp"
 		"orion/renderer/material.hpp"
 		"orion/renderer/camera.hpp"
-		"orion/renderer/deletion_queue.hpp"
 
 		"orion/lib/scope_guard.hpp"
 		"orion/lib/array.hpp"
@@ -75,8 +75,8 @@ target_sources(orion.engine
 		"orion/core/platform_impl_glfw.cpp"
 
 		"orion/renderer/renderer.cpp"
-		"orion/renderer/gpu_impl_vulkan.cpp"
-		"orion/renderer/deletion_queue.cpp"
+		"orion/renderer/gpu/gpu_impl_vulkan.cpp"
+		"orion/renderer/gpu/deletion_queue.cpp"
 
 		"orion/controllers/fly_camera.cpp"
 )
