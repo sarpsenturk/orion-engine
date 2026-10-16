@@ -37,8 +37,8 @@
 
 namespace orion::gpu
 {
-    static constexpr auto vulkan_api_version    = VK_API_VERSION_1_3;
-    static constexpr auto max_textures          = 16u;
+    static constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
+    static constexpr auto max_textures       = 16u;
 
     static constexpr auto sampler_descriptor_binding = 0u;
     static constexpr auto texture_descriptor_binding = 1u;
@@ -486,9 +486,15 @@ namespace orion::gpu
     {
         // Initialize Volk and create VkInstance
         GPU_CHECK(volkInitialize());
+        std::vector<const char*> instance_extensions;
+#if defined(ORION_DEBUG)
+        instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
         std::uint32_t glfw_extension_count;
         const auto* glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
-        const auto app_info         = VkApplicationInfo{
+        instance_extensions.insert(instance_extensions.end(), glfw_extensions, glfw_extensions + glfw_extension_count);
+
+        const auto app_info = VkApplicationInfo{
             .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
             .pApplicationName   = "Orion Engine",
             .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -499,8 +505,8 @@ namespace orion::gpu
         const auto instance_info = VkInstanceCreateInfo{
             .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pApplicationInfo        = &app_info,
-            .enabledExtensionCount   = glfw_extension_count,
-            .ppEnabledExtensionNames = glfw_extensions,
+            .enabledExtensionCount   = static_cast<uint32_t>(instance_extensions.size()),
+            .ppEnabledExtensionNames = instance_extensions.data(),
         };
         VkInstance instance;
         GPU_CHECK(vkCreateInstance(&instance_info, nullptr, &instance));
@@ -1720,6 +1726,24 @@ namespace orion::gpu
             .queue = queue,
             .value = vulkan_queue.value,
         };
+    }
+
+    void debug_marker_begin(CommandBuffer* command_buffer, const char* name)
+    {
+#if defined(ORION_DEBUG)
+        const auto label_info = VkDebugUtilsLabelEXT{
+            .sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+            .pLabelName = name,
+        };
+        vkCmdBeginDebugUtilsLabelEXT(command_buffer->handle, &label_info);
+#endif
+    }
+
+    void debug_marker_end(CommandBuffer* command_buffer)
+    {
+#if defined(ORION_DEBUG)
+        vkCmdEndDebugUtilsLabelEXT(command_buffer->handle);
+#endif
     }
 
     const char* backend_name()

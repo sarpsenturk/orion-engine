@@ -412,6 +412,9 @@ namespace orion
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
+        void debug_marker_begin(CommandBuffer* command_buffer, const char* name);
+        void debug_marker_end(CommandBuffer* command_buffer);
+
         [[nodiscard]] const char* backend_name();
         [[nodiscard]] const char* backend_version();
         [[nodiscard]] const char* device_name(const Device* device);

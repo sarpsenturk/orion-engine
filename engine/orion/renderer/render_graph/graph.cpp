@@ -89,6 +89,9 @@ namespace orion
     {
         // Execute each pass in order
         for (const auto& pass : m_passes) {
+            // Set debug name for the pass
+            gpu::debug_marker_begin(command_buffer, pass.name.c_str());
+
             // Insert barriers for the pass
             gpu::barrier(command_buffer, gpu::Barrier{pass.image_barriers, pass.buffer_barriers});
 
@@ -98,6 +101,8 @@ namespace orion
                     execute_graphics_pass(command_buffer, pass);
                     break;
             }
+
+            gpu::debug_marker_end(command_buffer);
         }
 
         // Insert final layout transition barriers
