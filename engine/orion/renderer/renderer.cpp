@@ -146,108 +146,60 @@ namespace orion
         // Begin recording commands for this frame
         auto* command_buffer = gpu::begin_command_buffer(m_device, frame_data.command_allocator);
 
-        // Transition the swapchain image to a color attachment
-        // Transition the depth image to a depth attachment
-        gpu::barrier(
-            command_buffer,
-            gpu::Barrier{
-                .image_barriers = {{
-                    gpu::ImageBarrier{
-                        .image      = frame_data.swapchain_frame.image,
-                        .src_stages = gpu::PipelineStage::ColorAttachmentOutput,
-                        .src_access = gpu::Access::None,
-                        .dst_stages = gpu::PipelineStage::ColorAttachmentOutput,
-                        .dst_access = gpu::Access::ColorAttachmentWrite,
-                        .old_layout = gpu::ImageLayout::Undefined,
-                        .new_layout = gpu::ImageLayout::ColorAttachment,
-                    },
-                    gpu::ImageBarrier{
-                        .image      = m_depth_image,
-                        .src_stages = gpu::PipelineStage::None,
-                        .src_access = gpu::Access::None,
-                        .dst_stages = gpu::PipelineStage::DepthStencilTests,
-                        .dst_access = gpu::Access::DepthStencilAttachmentWrite,
-                        .old_layout = gpu::ImageLayout::Undefined,
-                        .new_layout = gpu::ImageLayout::DepthStencilAttachment,
-                    },
-                }},
-            });
+        // Reset the render graph
+        m_render_graph.reset();
 
         // Get swapchain image extent
         const auto swapchain_extent = gpu::get_image_extent_2d(frame_data.swapchain_frame.image);
 
-        // Set viewport and scissor
-        gpu::set_viewport(
-            command_buffer,
-            gpu::Viewport{
-                .x         = 0.0f,
-                .y         = 0.0f,
-                .width     = static_cast<float>(swapchain_extent.width),
-                .height    = static_cast<float>(swapchain_extent.height),
-                .min_depth = 0.0f,
-                .max_depth = 1.0f,
-            });
-        gpu::set_scissor(command_buffer, gpu::Rect2D{.extent = swapchain_extent});
-
-        // Begin render pass
-        gpu::begin_render_pass(
-            command_buffer,
-            gpu::RenderPass{
-                .color_attachments = {{
-                    gpu::RenderPassAttachment{
-                        .image_view  = frame_data.swapchain_frame.image_view,
-                        .load_op     = gpu::LoadOp::Clear,
-                        .clear_value = gpu::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f},
-                    },
-                }},
-                .depth_attachment  = gpu::RenderPassAttachment{
-                    .image_view  = m_depth_image_view,
-                    .load_op     = gpu::LoadOp::Clear,
-                    .clear_value = gpu::ClearValue{.depth_stencil = {1.0f, 0u}},
+        // Import swapchain image as a render graph resource
+        auto backbuffer = m_render_graph.import_texture(
+            "Backbuffer",
+            RGTextureDesc{
+                .width  = swapchain_extent.width,
+                .height = swapchain_extent.height,
+                .depth  = 1u,
+                .format = gpu::Format::BGRA8_Unorm,
+            },
+            RGTextureImportDesc{
+                .image         = frame_data.swapchain_frame.image,
+                .image_view    = frame_data.swapchain_frame.image_view,
+                .initial_state = {
+                    .stages = gpu::PipelineStage::ColorAttachmentOutput,
+                    .access = gpu::Access::None,
+                    .layout = gpu::ImageLayout::Undefined,
+                },
+                .final_state = {
+                    .stages = gpu::PipelineStage::AllCommands,
+                    .access = gpu::Access::None,
+                    .layout = gpu::ImageLayout::Present,
                 },
             });
 
-        // TODO: Render here
+        // Test clear pass
+        backbuffer = m_render_graph.add_pass(
+            "Clear",
+            [&](RenderPassBuilder& builder) {
+                return builder.add_color_attachment(backbuffer, gpu::LoadOp::Clear);
+            },
+            [](RenderPassContext& /*context*/, RGTexture /*backbuffer*/) {});
 
-        // End render pass
-        gpu::end_render_pass(command_buffer);
-
-        // Begin Dear ImGui render pass
-        gpu::begin_render_pass(
-            command_buffer,
-            gpu::RenderPass{
-                .color_attachments = {{
-                    gpu::RenderPassAttachment{
-                        .image_view = frame_data.swapchain_frame.image_view,
-                        .load_op    = gpu::LoadOp::Load,
-                    },
-                }},
+        // ImGui pass
+        backbuffer = m_render_graph.add_pass(
+            "ImGui",
+            [&](RenderPassBuilder& builder) {
+                return builder.add_color_attachment(backbuffer, gpu::LoadOp::Load);
+            },
+            [](RenderPassContext& context, RGTexture /*backbuffer*/) {
+                ImGui::Render();
+                ImGui_ImplOrion_RenderDrawData(ImGui::GetDrawData(), context.command_buffer());
             });
 
-        // Render ImGui draw data
-        ImGui::Render();
-        auto* imgui_draw_data = ImGui::GetDrawData();
-        ImGui_ImplOrion_RenderDrawData(imgui_draw_data, command_buffer);
+        // Compile the render graph
+        m_render_graph.compile();
 
-        // End Dear ImGui render pass
-        gpu::end_render_pass(command_buffer);
-
-        // Transition the swapchain image to a presentable layout
-        gpu::barrier(
-            command_buffer,
-            gpu::Barrier{
-                .image_barriers = {{
-                    gpu::ImageBarrier{
-                        .image      = frame_data.swapchain_frame.image,
-                        .src_stages = gpu::PipelineStage::ColorAttachmentOutput,
-                        .src_access = gpu::Access::ColorAttachmentWrite,
-                        .dst_stages = gpu::PipelineStage::None,
-                        .dst_access = gpu::Access::None,
-                        .old_layout = gpu::ImageLayout::ColorAttachment,
-                        .new_layout = gpu::ImageLayout::Present,
-                    },
-                }},
-            });
+        // Execute the render graph
+        m_render_graph.execute(command_buffer);
 
         // Submit commands for execution
         frame_data.timeline_point = gpu::submit(

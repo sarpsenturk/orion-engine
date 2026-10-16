@@ -3,6 +3,7 @@
 #include "orion/renderer/camera.hpp"
 #include "orion/renderer/gpu/deletion_queue.hpp"
 #include "orion/renderer/gpu/gpu.hpp"
+#include "orion/renderer/render_graph/graph.hpp"
 
 #include <glm/mat4x4.hpp>
 
@@ -64,6 +65,8 @@ namespace orion
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;
+
+        RenderGraph m_render_graph;
 
         bool m_swapchain_out_of_date = false;
     };

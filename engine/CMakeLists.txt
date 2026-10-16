@@ -55,6 +55,10 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/camera.hpp"
+		"orion/renderer/render_graph/builder.hpp"
+		"orion/renderer/render_graph/context.hpp"
+		"orion/renderer/render_graph/graph.hpp"
+		"orion/renderer/render_graph/resource.hpp"
 		"orion/renderer/gpu/gpu.hpp"
 		"orion/renderer/gpu/deletion_queue.hpp"
 
@@ -73,6 +77,10 @@ target_sources(orion.engine
 		"orion/core/platform_impl_glfw.cpp"
 
 		"orion/renderer/renderer.cpp"
+		"orion/renderer/render_graph/builder.cpp"
+		"orion/renderer/render_graph/context.cpp"
+		"orion/renderer/render_graph/graph.cpp"
+		"orion/renderer/render_graph/resource.cpp"
 		"orion/renderer/gpu/gpu_impl_vulkan.cpp"
 		"orion/renderer/gpu/deletion_queue.cpp"
 
