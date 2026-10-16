@@ -13,6 +13,16 @@
     [[nodiscard]] constexpr EnumType operator&(EnumType lhs, EnumType rhs) noexcept      \
     {                                                                                    \
         return static_cast<EnumType>(std::to_underlying(lhs) & std::to_underlying(rhs)); \
+    }                                                                                    \
+    constexpr EnumType& operator&=(EnumType& lhs, EnumType rhs) noexcept                 \
+    {                                                                                    \
+        lhs = lhs & rhs;                                                                 \
+        return lhs;                                                                      \
+    }                                                                                    \
+    constexpr EnumType& operator|=(EnumType& lhs, EnumType rhs) noexcept                 \
+    {                                                                                    \
+        lhs = lhs | rhs;                                                                 \
+        return lhs;                                                                      \
     }
 
 namespace orion
