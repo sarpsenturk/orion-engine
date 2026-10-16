@@ -30,6 +30,9 @@ namespace orion
     namespace gpu
     {
         inline constexpr auto max_push_constants_size = 128u;
+        inline constexpr auto max_color_attachments   = 8u;
+
+        inline constexpr auto buffer_whole_size = static_cast<std::size_t>(~0ull);
 
         struct Device;
         struct Image;
@@ -181,8 +184,19 @@ namespace orion
             ImageLayout new_layout   = ImageLayout::Undefined;
         };
 
+        struct BufferBarrier {
+            Buffer* buffer           = nullptr;
+            PipelineStage src_stages = PipelineStage::None;
+            Access src_access        = Access::None;
+            PipelineStage dst_stages = PipelineStage::None;
+            Access dst_access        = Access::None;
+            std::size_t size         = 0ull;
+            std::size_t offset       = 0ull;
+        };
+
         struct Barrier {
             std::span<const ImageBarrier> image_barriers;
+            std::span<const BufferBarrier> buffer_barriers;
         };
 
         struct Viewport {

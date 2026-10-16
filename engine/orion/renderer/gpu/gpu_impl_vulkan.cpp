@@ -38,7 +38,6 @@
 namespace orion::gpu
 {
     static constexpr auto vulkan_api_version    = VK_API_VERSION_1_3;
-    static constexpr auto max_color_attachments = 8u;
     static constexpr auto max_textures          = 16u;
 
     static constexpr auto sampler_descriptor_binding = 0u;
@@ -115,6 +114,7 @@ namespace orion::gpu
     struct Buffer {
         VkBuffer handle          = VK_NULL_HANDLE;
         VmaAllocation allocation = VK_NULL_HANDLE;
+        std::size_t size         = 0ull;
 
         void* cpu_address           = nullptr;
         VkDeviceAddress gpu_address = 0ull;
@@ -1401,6 +1401,7 @@ namespace orion::gpu
         return new Buffer{
             .handle      = buffer,
             .allocation  = allocation,
+            .size        = buffer_info.size,
             .cpu_address = allocation_info.pMappedData,
             .gpu_address = device_address,
         };
@@ -1477,10 +1478,26 @@ namespace orion::gpu
             };
         });
 
+        std::vector<VkBufferMemoryBarrier2> buffer_barriers(barrier.buffer_barriers.size());
+        std::ranges::transform(barrier.buffer_barriers, buffer_barriers.begin(), [](const BufferBarrier& buffer_barrier) {
+            return VkBufferMemoryBarrier2{
+                .sType         = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                .srcStageMask  = to_vk_pipeline_stages(buffer_barrier.src_stages),
+                .srcAccessMask = to_vk_access(buffer_barrier.src_access),
+                .dstStageMask  = to_vk_pipeline_stages(buffer_barrier.dst_stages),
+                .dstAccessMask = to_vk_access(buffer_barrier.dst_access),
+                .buffer        = buffer_barrier.buffer->handle,
+                .offset        = buffer_barrier.offset,
+                .size          = buffer_barrier.size == buffer_whole_size ? VK_WHOLE_SIZE : buffer_barrier.size,
+            };
+        });
+
         const auto dependency_info = VkDependencyInfo{
-            .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            .imageMemoryBarrierCount = static_cast<std::uint32_t>(image_barriers.size()),
-            .pImageMemoryBarriers    = image_barriers.data(),
+            .sType                    = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = static_cast<std::uint32_t>(buffer_barriers.size()),
+            .pBufferMemoryBarriers    = buffer_barriers.data(),
+            .imageMemoryBarrierCount  = static_cast<std::uint32_t>(image_barriers.size()),
+            .pImageMemoryBarriers     = image_barriers.data(),
         };
         vkCmdPipelineBarrier2(command_buffer->handle, &dependency_info);
     }
