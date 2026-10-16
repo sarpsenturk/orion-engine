@@ -178,7 +178,7 @@ namespace orion
 
         // Test clear pass
         backbuffer = m_render_graph.add_pass(
-            "Clear",
+            "Clear", RenderPassType::Graphics,
             [&](RenderPassBuilder& builder) {
                 return builder.add_color_attachment(backbuffer, gpu::LoadOp::Clear);
             },
@@ -186,7 +186,7 @@ namespace orion
 
         // ImGui pass
         backbuffer = m_render_graph.add_pass(
-            "ImGui",
+            "ImGui", RenderPassType::Graphics,
             [&](RenderPassBuilder& builder) {
                 return builder.add_color_attachment(backbuffer, gpu::LoadOp::Load);
             },

@@ -17,6 +17,10 @@
 
 namespace orion
 {
+    enum class RenderPassType {
+        Graphics = 0,
+    };
+
     class RenderGraph
     {
     public:
@@ -29,10 +33,10 @@ namespace orion
             requires(std::is_invocable_v<SetupFn, RenderPassBuilder&> &&
                      std::is_invocable_v<ExecuteFn, RenderPassContext&, Params> &&
                      std::is_trivially_copyable_v<Params>)
-        Params add_pass(std::string name, SetupFn&& setup, ExecuteFn&& execute)
+        Params add_pass(std::string name, RenderPassType type, SetupFn&& setup, ExecuteFn&& execute)
         {
             const auto index = static_cast<std::uint32_t>(m_passes.size());
-            auto& pass       = m_passes.emplace_back(std::move(name));
+            auto& pass       = m_passes.emplace_back(std::move(name), type);
             auto builder     = RenderPassBuilder(this, index);
             auto params      = setup(builder);
             pass.execute     = [execute = std::forward<ExecuteFn>(execute),
@@ -101,6 +105,8 @@ namespace orion
         struct RenderPass {
             // Debug name for the render pass
             std::string name;
+            // Type of the render pass (graphics, compute, etc.)
+            RenderPassType type;
 
             // Callback to execute the render pass, with the parameters returned from the setup function
             InlineFunction<max_pass_callback_size, void(RenderPassContext&)> execute;
@@ -117,6 +123,10 @@ namespace orion
             std::vector<gpu::ImageBarrier> image_barriers;
             std::vector<gpu::BufferBarrier> buffer_barriers;
         };
+
+        void execute_graphics_pass(
+            gpu::CommandBuffer* command_buffer,
+            const RenderPass& pass);
 
         [[nodiscard]] gpu::ImageBarrier make_image_barrier(
             gpu::Image* image,

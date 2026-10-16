@@ -39,7 +39,7 @@ namespace orion
         // and insert barriers as needed
         for (std::uint32_t pass_index = 0u; pass_index < m_passes.size(); ++pass_index) {
             auto& pass = m_passes[pass_index];
-            ORION_ASSERT(!pass.color_attachments.empty() && "Passes without color attachments are not supported");
+            ORION_ASSERT((pass.type == RenderPassType::Graphics) == (!pass.color_attachments.empty()) && "Graphics passes must have at least one color attachment");
             for (const auto& access : pass.resource_accesses) {
                 auto& state = resource_states[access.resource_index];
                 // There are 3 hazards to consider:
@@ -92,29 +92,12 @@ namespace orion
             // Insert barriers for the pass
             gpu::barrier(command_buffer, gpu::Barrier{pass.image_barriers, pass.buffer_barriers});
 
-            // Begin the render pass
-            std::array<gpu::RenderPassAttachment, gpu::max_color_attachments> color_attachments;
-            std::ranges::transform(pass.color_attachments, color_attachments.begin(), [this](const AttachmentRef& attachment_ref) {
-                const auto& texture = std::get<GpuTexture>(m_gpu_resources[attachment_ref.resource_index]);
-                return gpu::RenderPassAttachment{
-                    .image_view  = texture.view,
-                    .load_op     = attachment_ref.load_op,
-                    .store_op    = attachment_ref.store_op,
-                    .clear_value = attachment_ref.clear_value,
-                };
-            });
-            gpu::begin_render_pass(
-                command_buffer,
-                gpu::RenderPass{
-                    .color_attachments = std::span{color_attachments.begin(), pass.color_attachments.size()},
-                });
-
-            // Execute the pass callback
-            auto context = RenderPassContext(this, command_buffer);
-            pass.execute(context);
-
-            // End the render pass
-            gpu::end_render_pass(command_buffer);
+            // Execute the pass
+            switch (pass.type) {
+                case RenderPassType::Graphics:
+                    execute_graphics_pass(command_buffer, pass);
+                    break;
+            }
         }
 
         // Insert final layout transition barriers
@@ -161,6 +144,33 @@ namespace orion
             std::initializer_list{ResourceVersion{.writer_pass = ~0u, .contents_defined = true}});
         m_gpu_resources.emplace(index, GpuBuffer{import.buffer});
         return RGBuffer{index, 0u};
+    }
+
+    void RenderGraph::execute_graphics_pass(gpu::CommandBuffer* command_buffer, const RenderPass& pass)
+    {
+        // Begin the render pass
+        std::array<gpu::RenderPassAttachment, gpu::max_color_attachments> color_attachments;
+        std::ranges::transform(pass.color_attachments, color_attachments.begin(), [this](const AttachmentRef& attachment_ref) {
+            const auto& texture = std::get<GpuTexture>(m_gpu_resources[attachment_ref.resource_index]);
+            return gpu::RenderPassAttachment{
+                .image_view  = texture.view,
+                .load_op     = attachment_ref.load_op,
+                .store_op    = attachment_ref.store_op,
+                .clear_value = attachment_ref.clear_value,
+            };
+        });
+        gpu::begin_render_pass(
+            command_buffer,
+            gpu::RenderPass{
+                .color_attachments = std::span{color_attachments.begin(), pass.color_attachments.size()},
+            });
+
+        // Execute the pass callback
+        auto context = RenderPassContext(this, command_buffer);
+        pass.execute(context);
+
+        // End the render pass
+        gpu::end_render_pass(command_buffer);
     }
 
     gpu::ImageBarrier RenderGraph::make_image_barrier(
