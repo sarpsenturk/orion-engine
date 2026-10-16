@@ -135,6 +135,11 @@ namespace orion
             DontCare,
         };
 
+        enum class StoreOp {
+            Store = 0,
+            DontCare,
+        };
+
         enum class ImageUsage : std::uint32_t {
             None                   = 0u,
             TransferSrc            = 1u << 0u,
@@ -225,6 +230,7 @@ namespace orion
         struct RenderPassAttachment {
             ImageView* image_view  = nullptr;
             LoadOp load_op         = LoadOp::Load;
+            StoreOp store_op       = StoreOp::Store;
             ClearValue clear_value = {};
         };
 

@@ -332,6 +332,17 @@ namespace orion::gpu
         std::unreachable();
     }
 
+    static VkAttachmentStoreOp to_vk_store_op(StoreOp store_op)
+    {
+        switch (store_op) {
+            case StoreOp::Store:
+                return VK_ATTACHMENT_STORE_OP_STORE;
+            case StoreOp::DontCare:
+                return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+        std::unreachable();
+    }
+
     static VkClearColorValue to_vk_clear_color_value(const ClearColorValue& value)
     {
         return VkClearColorValue{
@@ -1529,18 +1540,20 @@ namespace orion::gpu
                 .imageView   = attachment.image_view->handle,
                 .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 .loadOp      = to_vk_load_op(attachment.load_op),
+                .storeOp     = to_vk_store_op(attachment.store_op),
                 .clearValue  = VkClearValue{.color = to_vk_clear_color_value(attachment.clear_value.color)},
             };
         });
 
         VkRenderingAttachmentInfo depth_attachment{};
         if (render_pass.depth_attachment.has_value()) {
-            const auto& attachment         = render_pass.depth_attachment.value();
-            depth_attachment               = VkRenderingAttachmentInfo{
+            const auto& attachment = render_pass.depth_attachment.value();
+            depth_attachment       = VkRenderingAttachmentInfo{
                 .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                 .imageView   = attachment.image_view->handle,
                 .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 .loadOp      = to_vk_load_op(attachment.load_op),
+                .storeOp     = to_vk_store_op(attachment.store_op),
                 .clearValue  = VkClearValue{.depthStencil = to_vk_clear_depth_stencil_value(attachment.clear_value.depth_stencil)},
             };
         }
