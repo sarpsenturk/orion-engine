@@ -1,7 +1,6 @@
 #pragma once
 
 #include "orion/core/input.hpp"
-#include "orion/renderer/camera.hpp"
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>

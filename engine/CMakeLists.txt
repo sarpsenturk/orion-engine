@@ -54,7 +54,6 @@ target_sources(orion.engine
 		"orion/memory/memory.hpp"
 
 		"orion/renderer/renderer.hpp"
-		"orion/renderer/camera.hpp"
 		"orion/renderer/render_graph/builder.hpp"
 		"orion/renderer/render_graph/context.hpp"
 		"orion/renderer/render_graph/graph.hpp"

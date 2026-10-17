@@ -19,7 +19,7 @@ public:
     {
         ImGui::ShowDemoWindow();
 
-        m_renderer.render({});
+        m_renderer.render();
     }
 
 private:

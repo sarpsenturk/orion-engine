@@ -1,6 +1,5 @@
 #pragma once
 
-#include "orion/renderer/camera.hpp"
 #include "orion/renderer/gpu/deletion_queue.hpp"
 #include "orion/renderer/gpu/gpu.hpp"
 #include "orion/renderer/render_graph/graph.hpp"
@@ -15,10 +14,6 @@
 
 namespace orion
 {
-    struct View {
-        Camera camera;
-    };
-
     struct RendererDesc {
         const class Window* window = nullptr;
     };
@@ -39,7 +34,7 @@ namespace orion
         ~Renderer();
 
         bool begin_frame();
-        void render(const View& view);
+        void render();
         void end_frame();
 
         void resize_swapchain(std::uint32_t width, std::uint32_t height);

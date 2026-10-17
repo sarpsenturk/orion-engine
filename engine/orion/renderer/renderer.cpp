@@ -139,7 +139,7 @@ namespace orion
         return false;
     }
 
-    void Renderer::render(const View& /*view*/)
+    void Renderer::render()
     {
         auto& frame_data = current_frame_data();
 
