@@ -27,9 +27,6 @@ namespace orion
         static constexpr auto frames_in_flight      = 2u;
         static constexpr auto swapchain_image_count = 3u;
         static constexpr auto swapchain_format      = gpu::Format::BGRA8_Unorm;
-        static constexpr auto max_vertex_count      = 1'024u;
-        static constexpr auto max_index_count       = 4'096u;
-        static constexpr auto max_material_count    = 128u;
 
         explicit Renderer(const RendererDesc& desc);
         Renderer(const Renderer&)            = delete;
