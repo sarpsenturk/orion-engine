@@ -4,7 +4,9 @@ This describes the current implementation, which is early and subject to change.
 
 ## Responsibilities
 
-- `Renderer` owns the GPU device, main swapchain, per-frame command allocators and deletion queues, render graph, and ImGui context/integration. It also currently allocates a depth image/view that the active passes do not use.
+- `Renderer` owns the GPU device, main swapchain, per-frame command allocators and deletion queues, and render graph. It manages frame acquisition, execution, submission, and presentation without declaring rendering passes.
+- `ImGuiRenderer` owns the ImGui context/integration and provides an explicit graph pass targeting an application-selected color attachment. `Engine` owns it separately from `Renderer` and coordinates its frame lifecycle.
+- Applications compose rendering in `on_render(RenderFrame&)`, using the frame's graph, imported backbuffer, and framebuffer extent. They may add engine-provided or custom passes through the same graph API.
 - `orion::gpu` exposes opaque GPU objects and explicit resource/command operations in [gpu.hpp](../engine/orion/renderer/gpu/gpu.hpp). The sole backend is [gpu_impl_vulkan.cpp](../engine/orion/renderer/gpu/gpu_impl_vulkan.cpp), which uses Vulkan, Volk, and Vulkan Memory Allocator.
 - `RenderGraph` records pass declarations and resource accesses, compiles barriers/attachments, and executes passes through the GPU API.
 
@@ -25,7 +27,7 @@ Resource handles contain an index and version. Writing to a resource creates a n
 
 The current graph imports externally owned textures/buffers and executes graphics passes in declaration order. Compilation resolves attachments, tracks resource states, and emits barriers for hazards/layout transitions and imported resources' final states. Version bookkeeping does not currently schedule or cull passes. There is no public transient-resource allocation API, compute-pass support, or general shader-read/write declaration API yet.
 
-Reset before declaring each frame's passes, compile once, and execute while imported objects remain valid. The current renderer follows that sequence.
+`Renderer::begin_frame()` returns an optional `RenderFrame`. Successful acquisition resets the graph and imports the swapchain image with a final presentation state. The application declares passes, then `Renderer::end_frame()` compiles once, executes, submits, and presents. The frame context and graph handles are valid only for that frame; imported objects must remain alive through execution and GPU use. The application must initialize the backbuffer before presenting it; there are no implicit clear or UI passes.
 
 ## Resource lifetime and synchronization
 
@@ -37,8 +39,10 @@ Changes to submission, presentation, resizing, or deferred deletion must preserv
 
 ## Shaders and ImGui
 
-[engine/shaders/CMakeLists.txt](../engine/shaders/CMakeLists.txt) registers shader programs with `orion_add_shader`. Slang compiles them offline to SPIR-V using the `spirv_1_6` profile, with dependency files for incremental builds. Output defaults to `<build-dir>/engine/shaders`; `ORION_SHADER_OUTPUT_DIR` overrides it. Building `orion.engine` builds `orion.shaders`. The current triangle and mesh programs are compiled but are not drawn by the active clear/ImGui path.
+[engine/shaders/CMakeLists.txt](../engine/shaders/CMakeLists.txt) registers shader programs with `orion_add_shader`. Slang compiles them offline to SPIR-V using the `spirv_1_6` profile, with dependency files for incremental builds. Output defaults to `<build-dir>/engine/shaders`; `ORION_SHADER_OUTPUT_DIR` overrides it. Building `orion.engine` builds `orion.shaders`. The current triangle and mesh programs are compiled but are not drawn by the sandbox's ImGui pass.
 
-Dear ImGui is vendored under `engine/imgui/` with docking and multi-viewport support enabled by `Renderer`. The `ImGui_ImplOrion_*` bridge lives at the end of the Vulkan backend and connects ImGui's GLFW/Vulkan backends to engine GPU objects. The Vulkan backend has a local transition fix recorded under `engine/imgui/patches/`; review that patch when updating the vendored backend.
+Dear ImGui is vendored under `engine/imgui/` with docking and multi-viewport support enabled by `ImGuiRenderer`. It owns the single ImGui context and waits for GPU completion before shutting down its backends. The `ImGui_ImplOrion_*` bridge lives at the end of the Vulkan backend and connects ImGui's GLFW/Vulkan backends to engine GPU objects. The Vulkan backend has a local transition fix recorded under `engine/imgui/patches/`; review that patch when updating the vendored backend.
+
+The engine begins the ImGui frame before application rendering and finalizes its draw data afterward, before graph execution. `ImGuiRenderer::add_pass(graph, target, load_op, clear_color)` returns the updated target handle. The target's format must match the format configured when initializing `ImGuiRenderer`. The default load operation preserves previously rendered content; use `Clear` when UI is the first writer. The sandbox does this directly in its ImGui pass, without a separate clear pass. Execute the graph before starting the next ImGui frame, while its draw data remains valid. Additional platform windows render after the main frame is presented.
 
 For verification, use the sandbox checks in [development](development.md#run-and-verify). The existing utility unit tests do not cover GPU rendering or render-graph behavior.

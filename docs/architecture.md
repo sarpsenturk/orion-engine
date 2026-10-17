@@ -29,17 +29,17 @@ The game and tools will be native C++ applications using the engine directly. Th
 
 ## Current application lifecycle
 
-`Engine` owns the logger, platform, window, input, and renderer. Construction initializes those services in that order; destruction follows reverse member order, keeping the window/platform alive through renderer teardown.
+`Engine` owns the logger, platform, window, input, renderer, and ImGui renderer. Construction initializes those services in that order; destruction follows reverse member order, keeping the GPU device alive through ImGui teardown and the window/platform alive through renderer teardown.
 
-An application derives from `Application`, implements `on_update(float dt)` and `on_render()`, and is passed to `Engine::run` as a `std::unique_ptr`. The sandbox retains references to the engine services it uses; the engine must outlive those references.
+An application derives from `Application`, implements `on_update(float dt)` and `on_render(RenderFrame&)`, and is passed to `Engine::run` as a `std::unique_ptr`. The render callback receives the frame's graph, imported backbuffer, and framebuffer extent. It declares engine-provided and application-defined passes directly on that graph. The sandbox retains a reference to `Engine::imgui_renderer()` and adds its pass explicitly; the engine must outlive that reference.
 
 Each main-loop iteration:
 
 1. Poll platform events.
 2. Compute elapsed time in seconds and call the application's update callback.
-3. Attempt to begin a rendering frame. On success, call the application's render callback, then end/present the frame. The sandbox's render callback builds ImGui UI and calls `Renderer::render`.
+3. Attempt to acquire a rendering frame. On success, reset the graph and import the backbuffer, begin the ImGui frame, and call the application's render callback. Finalize ImGui draw data, then compile/execute the graph, submit, and present through `Renderer::end_frame()`.
 4. If frame acquisition fails, attempt swapchain resizing when the framebuffer dimensions are nonzero.
-5. Update and render additional ImGui platform windows when multi-viewport support is enabled.
+5. After a successful frame, update and render additional ImGui platform windows when multi-viewport support is enabled. Failed acquisition does not start an ImGui frame.
 
 Updates currently use variable elapsed time; there is no game simulation or fixed-step simulation loop yet. This describes the current implementation, not a commitment for the future game's physics loop.
 

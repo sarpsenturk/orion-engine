@@ -4,13 +4,9 @@
 #include "orion/renderer/gpu/gpu.hpp"
 #include "orion/renderer/render_graph/graph.hpp"
 
-#include <glm/mat4x4.hpp>
-
-#include <imgui.h>
-
 #include <array>
 #include <cstdint>
-#include <span>
+#include <optional>
 
 namespace orion
 {
@@ -18,13 +14,22 @@ namespace orion
         const class Window* window = nullptr;
     };
 
+    // Valid only between begin_frame() and end_frame(). Graph handles are frame-local.
+    struct RenderFrame {
+        RenderGraph& graph;
+        RGTexture backbuffer;
+        gpu::Extent2D extent;
+    };
+
     class Renderer
     {
     public:
-        static constexpr auto frames_in_flight   = 2u;
-        static constexpr auto max_vertex_count   = 1'024u;
-        static constexpr auto max_index_count    = 4'096u;
-        static constexpr auto max_material_count = 128u;
+        static constexpr auto frames_in_flight      = 2u;
+        static constexpr auto swapchain_image_count = 3u;
+        static constexpr auto swapchain_format      = gpu::Format::BGRA8_Unorm;
+        static constexpr auto max_vertex_count      = 1'024u;
+        static constexpr auto max_index_count       = 4'096u;
+        static constexpr auto max_material_count    = 128u;
 
         explicit Renderer(const RendererDesc& desc);
         Renderer(const Renderer&)            = delete;
@@ -33,8 +38,7 @@ namespace orion
         Renderer& operator=(Renderer&&)      = delete;
         ~Renderer();
 
-        bool begin_frame();
-        void render();
+        [[nodiscard]] std::optional<RenderFrame> begin_frame();
         void end_frame();
 
         void resize_swapchain(std::uint32_t width, std::uint32_t height);
@@ -54,9 +58,6 @@ namespace orion
 
         gpu::Device* m_device;
         gpu::Swapchain* m_swapchain;
-
-        gpu::Image* m_depth_image;
-        gpu::ImageView* m_depth_image_view;
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;

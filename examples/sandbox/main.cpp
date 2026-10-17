@@ -1,13 +1,15 @@
 #include <orion/orion.hpp>
 
+#include <orion/renderer/imgui_renderer.hpp>
 #include <orion/renderer/renderer.hpp>
+
+#include <imgui.h>
 
 class SandboxApp : public orion::Application
 {
 public:
     explicit SandboxApp(orion::Engine& engine)
-        : m_window(engine.window())
-        , m_renderer(engine.renderer())
+        : m_imgui_renderer(engine.imgui_renderer())
     {
     }
 
@@ -15,16 +17,15 @@ public:
     {
     }
 
-    void on_render() override
+    void on_render(orion::RenderFrame& frame) override
     {
         ImGui::ShowDemoWindow();
 
-        m_renderer.render();
+        frame.backbuffer = m_imgui_renderer.add_pass(frame.graph, frame.backbuffer, orion::gpu::LoadOp::Clear);
     }
 
 private:
-    orion::Window& m_window;
-    orion::Renderer& m_renderer;
+    orion::ImGuiRenderer& m_imgui_renderer;
 };
 
 int main()

@@ -74,7 +74,7 @@ ctest --test-dir build/debug-x64-msvc-windows --output-on-failure
 ./build/debug-x64-msvc-windows/examples/orion.sandbox.exe
 ```
 
-The sandbox currently displays the ImGui demo over a cleared background. For windowing or rendering changes, check drawing, input, resizing, minimizing/restoring, detached ImGui windows when relevant, and closing the application. Running from the executable's output directory keeps generated files such as `imgui.ini` under the ignored build tree.
+The sandbox currently builds its frame graph with an ImGui pass that clears the backbuffer and displays the demo. For windowing or rendering changes, check drawing, input, resizing, minimizing/restoring, detached ImGui windows when relevant, and closing the application. Running from the executable's output directory keeps generated files such as `imgui.ini` under the ignored build tree.
 
 Tests currently cover hashing and `InlineFunction`; passing them does not verify rendering. Tests live in `engine/tests/`, are registered in its `CMakeLists.txt` through `orion_add_test`, and are discovered with GoogleTest by CTest. Build before testing so results reflect the current source. Run relevant tests and add meaningful regression coverage when appropriate to the change.
 
