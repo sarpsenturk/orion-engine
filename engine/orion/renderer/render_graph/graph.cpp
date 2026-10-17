@@ -205,6 +205,7 @@ namespace orion
             command_buffer,
             gpu::RenderPass{
                 .color_attachments = pass.color_attachments,
+                .depth_attachment  = pass.depth_attachment,
             });
 
         // Execute the pass callback
