@@ -37,10 +37,13 @@ namespace orion
 
         // Walk through the passes, keeping track of resource states,
         // and insert barriers as needed
-        for (std::uint32_t pass_index = 0u; pass_index < m_passes.size(); ++pass_index) {
-            auto& pass = m_passes[pass_index];
-            ORION_ASSERT((pass.type == RenderPassType::Graphics) == (!pass.color_attachments.empty()) && "Graphics passes must have at least one color attachment");
-            for (const auto& access : pass.resource_accesses) {
+        for (std::uint32_t pass_index = 0u; pass_index < m_pass_decls.size(); ++pass_index) {
+            auto& pass_decl = m_pass_decls[pass_index];
+            ORION_ASSERT((pass_decl.type == RenderPassType::Graphics) == (!pass_decl.color_attachments.empty()) && "Graphics passes must have at least one color attachment");
+            auto& compiled_pass = m_compiled_passes.emplace_back(pass_index);
+
+            // 1. Walk through the resources accessed by this pass and insert barriers if needed
+            for (const auto& access : pass_decl.resource_accesses) {
                 auto& state = resource_states[access.resource_index];
                 // There are 3 hazards to consider:
                 // 1. Write after Read (WAR):
@@ -55,15 +58,39 @@ namespace orion
                 if (is_write(state) || is_write(access.state) || is_layout_transition(state, access.state)) {
                     // Insert a barrier to ensure the previous access is complete before the current access
                     if (auto* texture = std::get_if<GpuTexture>(&m_gpu_resources[access.resource_index])) {
-                        pass.image_barriers.push_back(make_image_barrier(texture->image, state, access.state));
+                        compiled_pass.image_barriers.push_back(make_image_barrier(texture->image, state, access.state));
                     } else {
                         auto& buffer = std::get<GpuBuffer>(m_gpu_resources[access.resource_index]);
-                        pass.buffer_barriers.push_back(make_buffer_barrier(buffer.buffer, state, access.state));
+                        compiled_pass.buffer_barriers.push_back(make_buffer_barrier(buffer.buffer, state, access.state));
                     }
                 }
 
                 // Update the resource state to the current access state
                 state = access.state;
+            }
+
+            // 2. Resolve the attachments for the pass
+            if (pass_decl.type == RenderPassType::Graphics) {
+                compiled_pass.color_attachments.resize(pass_decl.color_attachments.size());
+                std::ranges::transform(pass_decl.color_attachments, compiled_pass.color_attachments.begin(), [this](const AttachmentRef& attachment) {
+                    auto& texture = std::get<GpuTexture>(m_gpu_resources[attachment.resource_index]);
+                    return gpu::RenderPassAttachment{
+                        .image_view  = texture.view,
+                        .load_op     = attachment.load_op,
+                        .store_op    = attachment.store_op,
+                        .clear_value = attachment.clear_value,
+                    };
+                });
+                if (pass_decl.depth_attachment.has_value()) {
+                    const auto& attachment         = *pass_decl.depth_attachment;
+                    auto& texture                  = std::get<GpuTexture>(m_gpu_resources[attachment.resource_index]);
+                    compiled_pass.depth_attachment = gpu::RenderPassAttachment{
+                        .image_view  = texture.view,
+                        .load_op     = attachment.load_op,
+                        .store_op    = attachment.store_op,
+                        .clear_value = attachment.clear_value,
+                    };
+                }
             }
         }
 
@@ -88,17 +115,19 @@ namespace orion
     void RenderGraph::execute(gpu::CommandBuffer* command_buffer)
     {
         // Execute each pass in order
-        for (const auto& pass : m_passes) {
+        for (const auto& pass : m_compiled_passes) {
+            const auto& pass_decl = m_pass_decls[pass.pass_index];
+
             // Set debug name for the pass
-            gpu::debug_marker_begin(command_buffer, pass.name.c_str());
+            gpu::debug_marker_begin(command_buffer, pass_decl.name.c_str());
 
             // Insert barriers for the pass
             gpu::barrier(command_buffer, gpu::Barrier{pass.image_barriers, pass.buffer_barriers});
 
             // Execute the pass
-            switch (pass.type) {
+            switch (pass_decl.type) {
                 case RenderPassType::Graphics:
-                    execute_graphics_pass(command_buffer, pass);
+                    execute_graphics_pass(command_buffer, pass_decl, pass);
                     break;
             }
 
@@ -112,7 +141,8 @@ namespace orion
     void RenderGraph::reset()
     {
         // Clear all internal data structures to prepare for a new frame
-        m_passes.clear();
+        m_pass_decls.clear();
+        m_compiled_passes.clear();
         m_resources.clear();
         m_gpu_resources.clear();
         m_final_image_barriers.clear();
@@ -151,28 +181,21 @@ namespace orion
         return RGBuffer{index, 0u};
     }
 
-    void RenderGraph::execute_graphics_pass(gpu::CommandBuffer* command_buffer, const RenderPass& pass)
+    void RenderGraph::execute_graphics_pass(
+        gpu::CommandBuffer* command_buffer,
+        const RenderPassDecl& pass_decl,
+        const RenderPass& pass)
     {
         // Begin the render pass
-        std::array<gpu::RenderPassAttachment, gpu::max_color_attachments> color_attachments;
-        std::ranges::transform(pass.color_attachments, color_attachments.begin(), [this](const AttachmentRef& attachment_ref) {
-            const auto& texture = std::get<GpuTexture>(m_gpu_resources[attachment_ref.resource_index]);
-            return gpu::RenderPassAttachment{
-                .image_view  = texture.view,
-                .load_op     = attachment_ref.load_op,
-                .store_op    = attachment_ref.store_op,
-                .clear_value = attachment_ref.clear_value,
-            };
-        });
         gpu::begin_render_pass(
             command_buffer,
             gpu::RenderPass{
-                .color_attachments = std::span{color_attachments.begin(), pass.color_attachments.size()},
+                .color_attachments = pass.color_attachments,
             });
 
         // Execute the pass callback
         auto context = RenderPassContext(this, command_buffer);
-        pass.execute(context);
+        pass_decl.execute(context);
 
         // End the render pass
         gpu::end_render_pass(command_buffer);

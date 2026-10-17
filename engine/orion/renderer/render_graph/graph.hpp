@@ -35,8 +35,8 @@ namespace orion
                      std::is_trivially_copyable_v<Params>)
         Params add_pass(std::string name, RenderPassType type, SetupFn&& setup, ExecuteFn&& execute)
         {
-            const auto index = static_cast<std::uint32_t>(m_passes.size());
-            auto& pass       = m_passes.emplace_back(std::move(name), type);
+            const auto index = static_cast<std::uint32_t>(m_pass_decls.size());
+            auto& pass       = m_pass_decls.emplace_back(std::move(name), type);
             auto builder     = RenderPassBuilder(this, index);
             auto params      = setup(builder);
             pass.execute     = [execute = std::forward<ExecuteFn>(execute),
@@ -102,7 +102,7 @@ namespace orion
             gpu::ClearValue clear_value  = {};
         };
 
-        struct RenderPass {
+        struct RenderPassDecl {
             // Debug name for the render pass
             std::string name;
             // Type of the render pass (graphics, compute, etc.)
@@ -118,14 +118,24 @@ namespace orion
             std::vector<AttachmentRef> color_attachments;
             // Depth attachment for the render pass
             std::optional<AttachmentRef> depth_attachment;
+        };
 
-            // Compiled barriers for the render pass
+        struct RenderPass {
+            // Index of the render pass in the render graph (reference to the RenderPassDecl)
+            std::uint32_t pass_index;
+
+            // Compiled attachments
+            std::vector<gpu::RenderPassAttachment> color_attachments;
+            std::optional<gpu::RenderPassAttachment> depth_attachment;
+
+            // Compiled barriers
             std::vector<gpu::ImageBarrier> image_barriers;
             std::vector<gpu::BufferBarrier> buffer_barriers;
         };
 
         void execute_graphics_pass(
             gpu::CommandBuffer* command_buffer,
+            const RenderPassDecl& pass_decl,
             const RenderPass& pass);
 
         [[nodiscard]] gpu::ImageBarrier make_image_barrier(
@@ -137,7 +147,8 @@ namespace orion
             const RGResourceState& before,
             const RGResourceState& after) const;
 
-        std::vector<RenderPass> m_passes;
+        std::vector<RenderPassDecl> m_pass_decls;
+        std::vector<RenderPass> m_compiled_passes;
 
         std::vector<Resource> m_resources;
         std::flat_map<std::uint32_t, GpuResource> m_gpu_resources;

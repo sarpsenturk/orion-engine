@@ -17,9 +17,9 @@ namespace orion
         gpu::StoreOp store_op,
         gpu::ClearColorValue clear_color)
     {
-        auto& resource = m_graph->m_resources[texture.index];
-        auto& pass     = m_graph->m_passes[m_pass_index];
-        ORION_ASSERT(pass.color_attachments.size() < gpu::max_color_attachments && "Maximum number of color attachments exceeded");
+        auto& resource  = m_graph->m_resources[texture.index];
+        auto& pass_decl = m_graph->m_pass_decls[m_pass_index];
+        ORION_ASSERT(pass_decl.color_attachments.size() < gpu::max_color_attachments && "Maximum number of color attachments exceeded");
 
         // Ensure the texture is valid and the version matches the latest version of the resource
         ORION_ASSERT(texture.version == resource.latest_version_number());
@@ -45,7 +45,7 @@ namespace orion
              (load_op == gpu::LoadOp::Load && input_defined));
 
         // Add the resource access for this pass
-        pass.resource_accesses.push_back(RenderGraph::ResourceAccess{
+        pass_decl.resource_accesses.push_back(RenderGraph::ResourceAccess{
             texture.index,
             RGResourceState{
                 .stages = gpu::PipelineStage::ColorAttachmentOutput,
@@ -54,7 +54,7 @@ namespace orion
             },
         });
         // Add the color attachment reference for this pass
-        pass.color_attachments.emplace_back(texture.index, load_op, store_op, gpu::ClearValue{clear_color});
+        pass_decl.color_attachments.emplace_back(texture.index, load_op, store_op, gpu::ClearValue{clear_color});
         return RGTexture{texture.index, texture.version + 1};
     }
 } // namespace orion
