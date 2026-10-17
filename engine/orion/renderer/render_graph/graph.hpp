@@ -133,6 +133,14 @@ namespace orion
             std::vector<gpu::BufferBarrier> buffer_barriers;
         };
 
+        void compile_pass_emit_barriers(
+            RenderPass& compiled_pass,
+            const RenderPassDecl& pass_decl,
+            std::vector<RGResourceState>& resource_states);
+        void compile_pass_resolve_attachments(
+            RenderPass& compiled_pass,
+            const RenderPassDecl& pass_decl);
+
         void execute_graphics_pass(
             gpu::CommandBuffer* command_buffer,
             const RenderPassDecl& pass_decl,
