@@ -174,6 +174,12 @@ namespace orion
         };
         GPU_DEFINE_BITFLAG(BufferUsage)
 
+        struct BufferView {
+            Buffer* buffer     = nullptr;
+            std::size_t offset = 0ull;
+            std::size_t size   = 0ull;
+        };
+
         struct ImageBarrier {
             Image* image             = nullptr;
             PipelineStage src_stages = PipelineStage::None;
