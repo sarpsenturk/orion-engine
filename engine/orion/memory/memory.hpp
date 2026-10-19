@@ -15,7 +15,7 @@ namespace orion
     T* align_pointer(T* ptr, std::size_t alignment)
     {
         const auto addr         = reinterpret_cast<std::uintptr_t>(ptr);
-        const auto addr_aligned = align(addr, alignment);
+        const auto addr_aligned = align_address(addr, alignment);
         return reinterpret_cast<T*>(addr_aligned);
     }
 } // namespace orion
