@@ -16,6 +16,7 @@ namespace orion
                   .image_count          = swapchain_image_count,
                   .image_format         = swapchain_format,
               }))
+        , m_geometry_manager(std::make_unique<GeometryManager>(m_device))
         , m_frame_data(make_array<frames_in_flight>([this]() {
             return FrameData{
                 .command_allocator = gpu::create_command_allocator(m_device, gpu::Queue::Graphics),
@@ -34,6 +35,7 @@ namespace orion
             frame_data.delete_queue.flush();
             gpu::destroy_command_allocator(m_device, frame_data.command_allocator);
         }
+        m_geometry_manager.reset();
         gpu::destroy_swapchain(m_device, m_swapchain);
         gpu::destroy_device(m_device);
     }
@@ -114,6 +116,8 @@ namespace orion
                 .swapchain       = m_swapchain,
                 .swapchain_frame = &frame_data.swapchain_frame,
             });
+
+        m_geometry_manager->retire_meshes(frame_data.delete_queue);
 
         // Present the swapchain frame
         gpu::present(m_device, m_swapchain, frame_data.swapchain_frame);

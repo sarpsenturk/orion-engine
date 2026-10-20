@@ -1,11 +1,13 @@
 #pragma once
 
+#include "orion/renderer/geometry.hpp"
 #include "orion/renderer/gpu/deletion_queue.hpp"
 #include "orion/renderer/gpu/gpu.hpp"
 #include "orion/renderer/render_graph/graph.hpp"
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <optional>
 
 namespace orion
@@ -41,6 +43,7 @@ namespace orion
         void resize_swapchain(std::uint32_t width, std::uint32_t height);
 
         [[nodiscard]] gpu::Device* device() const { return m_device; }
+        [[nodiscard]] GeometryManager& geometry_manager() const { return *m_geometry_manager; }
 
     private:
         struct FrameData {
@@ -55,6 +58,7 @@ namespace orion
 
         gpu::Device* m_device;
         gpu::Swapchain* m_swapchain;
+        std::unique_ptr<GeometryManager> m_geometry_manager;
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;

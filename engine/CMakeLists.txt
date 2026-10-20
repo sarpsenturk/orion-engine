@@ -56,6 +56,7 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/imgui_renderer.hpp"
+		"orion/renderer/geometry.hpp"
 		"orion/renderer/render_graph/builder.hpp"
 		"orion/renderer/render_graph/context.hpp"
 		"orion/renderer/render_graph/graph.hpp"
@@ -81,6 +82,7 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.cpp"
 		"orion/renderer/imgui_renderer.cpp"
+		"orion/renderer/geometry.cpp"
 		"orion/renderer/render_graph/builder.cpp"
 		"orion/renderer/render_graph/context.cpp"
 		"orion/renderer/render_graph/graph.cpp"

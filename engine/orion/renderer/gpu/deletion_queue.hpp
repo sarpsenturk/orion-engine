@@ -1,8 +1,8 @@
 #pragma once
 
+#include "orion/lib/inline_function.hpp"
 #include "orion/renderer/gpu/gpu.hpp"
 
-#include <utility>
 #include <vector>
 
 namespace orion
@@ -10,7 +10,7 @@ namespace orion
     class DeletionQueue
     {
     public:
-        using DeleteFn = void (*)(gpu::Device*, void*);
+        using DeleteFn = InlineFunction<64, void(gpu::Device*)>;
 
         explicit DeletionQueue(gpu::Device* device);
         DeletionQueue(const DeletionQueue&)            = delete;
@@ -22,10 +22,11 @@ namespace orion
         void push(gpu::Image* image);
         void push(gpu::ImageView* image_view);
         void push(gpu::Buffer* buffer);
+        void push(DeleteFn callback);
         void flush();
 
     private:
         gpu::Device* m_device;
-        std::vector<std::pair<void*, DeleteFn>> m_queue;
+        std::vector<DeleteFn> m_queue;
     };
 } // namespace orion
