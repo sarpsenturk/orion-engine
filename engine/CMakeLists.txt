@@ -52,6 +52,7 @@ target_sources(orion.engine
 		"orion/core/input.hpp"
 
 		"orion/memory/memory.hpp"
+		"orion/memory/offset_allocator.hpp"
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/imgui_renderer.hpp"
@@ -75,6 +76,8 @@ target_sources(orion.engine
 		"orion/core/logger.cpp"
 		"orion/core/assert.cpp"
 		"orion/core/platform_impl_glfw.cpp"
+
+		"orion/memory/offset_allocator.cpp"
 
 		"orion/renderer/renderer.cpp"
 		"orion/renderer/imgui_renderer.cpp"
