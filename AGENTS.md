@@ -1,29 +1,19 @@
-# Project essentials
+# AI Agent Guidelines
 
-- Orion is a modern KSP successor: a physics sandbox with potentially interstellar scales. Game development has not started.
-- `engine/` is the native C++ framework for the game and its tools; `game/` will contain the game. Let game requirements inform engine capabilities, but keep game concepts such as orbital mechanics out of engine code.
-- Applications use the engine directly through C++; development is code-focused, without an editor or scripting boundary.
-- Target Windows x64 with MSVC today; Linux and macOS are future targets. Desktop only; no consoles.
-- Follow modern C++ best practices. Consider performance throughout development, while avoiding premature optimization. All code, interfaces, and architecture may change; there is no stable engine API.
-- Follow `.clang-format` and the surrounding code. Engine compilation treats MSVC warnings as errors.
+- Write simple, efficient, minimal C/C++ code.
+- Write self documenting code, avoid unnecessary comments.
+- Avoid overly defensive code unless validation is part of the requirements. (e.g., an allocation holding a reference to the allocator to ensure `deallocate` was called with the correct owner)
+- Do not try to handle unrecoverable errors such as memory allocation failures.
+- Avoid copying large data structures. Prefer references or pointers, use spans for array data in structures and function parameters.
+- Always use standard C++ fixed width integer types.
+- Use C++ 20 designated initializers with named fields for structures.
+- All code is subject to change, no public API is finalized yet.
+- Do not proactively write tests, only do so when the user asks.
 
-## Build, run, and test
+## Further Context
 
-Run from the repository root in an x64 Visual Studio developer environment. On the current Windows setup, tools such as CMake and clang-format are supplied by Visual Studio and are absent from the default shell. Initialize the developer shell first; see [development setup](docs/development.md#visual-studio-developer-shell).
+Read the relevant document(s) before working in its area:
 
-```powershell
-cmake --preset debug-x64-msvc-windows
-cmake --build build/debug-x64-msvc-windows
-ctest --test-dir build/debug-x64-msvc-windows --output-on-failure
-./build/debug-x64-msvc-windows/examples/orion.sandbox.exe
-```
-
-Build and run relevant tests for code changes; use the sandbox for changes needing visual or interactive verification. Report any verification that could not be completed.
-
-## Further context
-
-Read the relevant document before working in its area, and update it when behavior or workflow changes:
-
-- [Development](docs/development.md): prerequisites, shell setup, build options, and verification.
-- [Architecture](docs/architecture.md): source map, application lifecycle, and engine/game responsibilities.
-- [Renderer](docs/renderer.md): GPU backend, frame flow, render graph, shaders, and ImGui integration.
+- [Building](docs/BUILD.md): Configuration, build steps, requirements.
+- [Testing](docs/TESTS.md): Writing, configurnig, executing tests.
+- [Renderer](docs/RENDERER.md): GPU backend, render graph, frame flow, renderer resources.
