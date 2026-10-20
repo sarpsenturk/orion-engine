@@ -42,10 +42,14 @@ namespace orion
 
         void resize_swapchain(std::uint32_t width, std::uint32_t height);
 
-        [[nodiscard]] gpu::Device* device() const { return m_device; }
-        [[nodiscard]] GeometryManager& geometry_manager() const { return *m_geometry_manager; }
+        [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
+        [[nodiscard]] GeometryManager& geometry_manager() { return m_geometry_manager; }
 
     private:
+        struct DeviceDeleter {
+            void operator()(gpu::Device* device) const { gpu::destroy_device(device); }
+        };
+
         struct FrameData {
             gpu::CommandAllocator* command_allocator = nullptr;
             gpu::TimelinePoint timeline_point        = {};
@@ -56,9 +60,9 @@ namespace orion
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] FrameData& current_frame_data() { return m_frame_data[current_frame_index()]; }
 
-        gpu::Device* m_device;
+        std::unique_ptr<gpu::Device, DeviceDeleter> m_device;
         gpu::Swapchain* m_swapchain;
-        std::unique_ptr<GeometryManager> m_geometry_manager;
+        GeometryManager m_geometry_manager;
 
         std::array<FrameData, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;

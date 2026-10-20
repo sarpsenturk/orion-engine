@@ -14,7 +14,7 @@ The guiding principle of the renderer is to provide a framework upon which appli
 
 `get_geometry(mesh)` returns the mesh's pre-offset position address and draw counts. Pass that address to the shader, bind `index_buffer()`, and use `first_index` with `gpu::draw_indexed`. Indices are local to the mesh, so `vertex_offset` stays zero. Non-indexed draws likewise start at vertex zero.
 
-`destroy_mesh` immediately invalidates the handle. Renderer queues allocation reclamation after its next graphics submission and runs it when that frame completes. Until then, the mesh still consumes buffer capacity and counts toward the 65,536 allocation limit; exhaustion asserts. This lifetime tracking covers renderer frame submissions; work on other queues must finish or be joined into the frame submission before reclamation. Shutdown waits for the GPU, flushes callbacks, and destroys geometry buffers before the device.
+`destroy_mesh` immediately invalidates the handle. Renderer queues allocation reclamation after its next graphics submission and runs it when that frame completes. Until then, the mesh still consumes buffer capacity and counts toward the 65,536 allocation limit; exhaustion asserts. This lifetime tracking covers renderer frame submissions; work on other queues must finish or be joined into the frame submission before reclamation. At shutdown Renderer waits for the GPU and flushes frame callbacks while its value-owned geometry manager is alive. The geometry buffers and remaining renderer resources are then destroyed before the device, which owns the final lifetime scope.
 
 ## Render graph
 
