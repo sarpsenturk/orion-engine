@@ -20,6 +20,16 @@ namespace orion
     class Engine
     {
     public:
+        Engine();
+        Engine(const Engine&)            = delete;
+        Engine& operator=(const Engine&) = delete;
+        Engine(Engine&&)                 = delete;
+        Engine& operator=(Engine&&)      = delete;
+        ~Engine();
+
         void run(std::unique_ptr<Application> app);
+
+    private:
+        std::unique_ptr<class Logger> m_logger;
     };
 } // namespace orion
