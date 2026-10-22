@@ -10,6 +10,7 @@ namespace orion
     static constexpr auto channels = std::array{
         "CORE",
         "APP",
+        "ASSERT",
     };
     static_assert(channels.size() == std::to_underlying(LogChannel::COUNT));
 
