@@ -1,11 +1,22 @@
 #include "orion.hpp"
 
-#include <cstdio>
-
 namespace orion
 {
-    void hello_world()
+    void Application::update()
     {
-        std::puts("Hello, world!\n");
+        on_update();
+    }
+
+    void Application::render()
+    {
+        on_render();
+    }
+
+    void Engine::run(std::unique_ptr<Application> app)
+    {
+        while (!app->should_exit()) {
+            app->update();
+            app->render();
+        }
     }
 } // namespace orion
