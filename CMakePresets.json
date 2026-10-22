@@ -1,0 +1,76 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "_root",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "_debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "_release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "_x64",
+      "hidden": true,
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "_msvc",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": "Windows",
+          "intelliSenseMode": "windows-msvc-x64",
+          "enableMicrosoftCodeAnalysis": true,
+          "disableExternalAnalysis": true,
+          "enableClangTidyCodeAnalysis": true
+        }
+      }
+    },
+    {
+      "name": "debug-x64-msvc-windows",
+      "inherits": [
+        "_root",
+        "_debug",
+        "_x64",
+        "_msvc"
+      ],
+      "displayName": "Debug x64 MSVC Windows"
+    },
+    {
+      "name": "release-x64-msvc-windows",
+      "inherits": [
+        "_root",
+        "_release",
+        "_x64",
+        "_msvc"
+      ],
+      "displayName": "Release x64 MSVC Windows"
+    }
+  ]
+}
