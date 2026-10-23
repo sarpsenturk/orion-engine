@@ -41,6 +41,16 @@ namespace orion
         Keycode key;
     };
 
+    struct OnMouseButtonPress {
+        Window* window;
+        MouseButton button;
+    };
+
+    struct OnMouseButtonRelease {
+        Window* window;
+        MouseButton button;
+    };
+
     using Event = std::variant<
         OnWindowClose,
         OnWindowResize,
@@ -48,6 +58,8 @@ namespace orion
         OnKeyPress,
         OnKeyRepeat,
         OnKeyRelease,
+        OnMouseButtonPress,
+        OnMouseButtonRelease
         >;
 
     std::string format_as(const OnWindowClose& event);
@@ -56,5 +68,7 @@ namespace orion
     std::string format_as(const OnKeyPress& event);
     std::string format_as(const OnKeyRepeat& event);
     std::string format_as(const OnKeyRelease& event);
+    std::string format_as(const OnMouseButtonPress& event);
+    std::string format_as(const OnMouseButtonRelease& event);
     std::string format_as(const Event& event);
 } // namespace orion

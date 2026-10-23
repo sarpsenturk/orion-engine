@@ -36,6 +36,16 @@ namespace orion
         return fmt::format("OnKeyRelease: window={}, key={}", fmt::ptr(event.window), static_cast<int>(event.key));
     }
 
+    std::string format_as(const OnMouseButtonPress& event)
+    {
+        return fmt::format("OnMouseButtonPress: window={}, button={}", fmt::ptr(event.window), static_cast<int>(event.button));
+    }
+
+    std::string format_as(const OnMouseButtonRelease& event)
+    {
+        return fmt::format("OnMouseButtonRelease: window={}, button={}", fmt::ptr(event.window), static_cast<int>(event.button));
+    }
+
     std::string format_as(const Event& event)
     {
         return std::visit([](const auto& e) { return format_as(e); }, event);

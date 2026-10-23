@@ -112,7 +112,20 @@ namespace orion
                     break;
                 default:
                     std::unreachable();
-    }
+            }
+        });
+        glfwSetMouseButtonCallback(window, [](GLFWwindow* window_, int button, int action, int /*mods*/) {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window_));
+            switch (action) {
+                case GLFW_RELEASE:
+                    g_event_queue.push(OnMouseButtonRelease{self, static_cast<MouseButton>(button)});
+                    break;
+                case GLFW_PRESS:
+                    g_event_queue.push(OnMouseButtonPress{self, static_cast<MouseButton>(button)});
+                    break;
+                default:
+                    std::unreachable();
+            }
         });
     }
 
