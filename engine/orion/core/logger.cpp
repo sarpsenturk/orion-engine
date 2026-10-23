@@ -12,6 +12,7 @@ namespace orion
         "APP",
         "ASSERT",
         "GPU",
+        "RENDERER",
     };
     static_assert(channels.size() == std::to_underlying(LogChannel::COUNT));
 

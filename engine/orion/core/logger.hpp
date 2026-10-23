@@ -10,6 +10,7 @@ namespace orion
         Application,
         Assertions,
         Gpu,
+        Renderer,
 
         COUNT,
     };

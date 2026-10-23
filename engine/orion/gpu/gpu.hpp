@@ -7,8 +7,11 @@ namespace orion
     namespace gpu
     {
         struct Device;
+        struct Image;
+        struct ImageView;
         struct CommandAllocator;
         struct CommandBuffer;
+        struct Swapchain;
 
         enum class Queue {
             Graphics = 0,
@@ -16,12 +19,33 @@ namespace orion
             Transfer,
         };
 
+        enum class Format {
+            Undefined = 0,
+
+            RGBA8_Unorm,
+            RGBA8_Srgb,
+
+            BGRA8_Unorm,
+            BGRA8_Srgb,
+        };
+
         struct DeviceDesc {
             std::uint32_t device_index = 0u;
         };
 
+        struct SwapchainDesc {
+            void* native_window_handle = nullptr;
+            std::uint32_t width        = 0u;
+            std::uint32_t height       = 0u;
+            std::uint32_t image_count  = 0u;
+            Format image_format        = Format::Undefined;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
+
+        Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc);
+        void destroy_swapchain(Device* device, Swapchain* swapchain);
 
         CommandAllocator* create_command_allocator(Device* device, Queue queue);
         CommandBuffer* begin_command_buffer(Device* device, CommandAllocator* allocator);
