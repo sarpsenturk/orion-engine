@@ -56,3 +56,8 @@ target_sources(orion.engine
 		"orion/renderer/renderer.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
 )
+
+# Engine shaders
+# Offline compilation using slangc
+add_subdirectory(shaders)
+add_dependencies(orion.engine orion.shaders)
