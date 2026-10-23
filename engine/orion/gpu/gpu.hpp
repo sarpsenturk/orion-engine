@@ -104,6 +104,10 @@ namespace orion
 
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
+        void wait_idle(Device* device);
+        void wait_queue_idle(Device* device, Queue queue);
+        void wait_timeline(Device* device, const TimelinePoint& timeline_point);
+
         [[nodiscard]] const char* backend_name();
         [[nodiscard]] const char* backend_version();
         [[nodiscard]] const char* device_name(const Device* device);

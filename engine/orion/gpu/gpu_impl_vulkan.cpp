@@ -724,6 +724,28 @@ namespace orion::gpu
         };
     }
 
+    void wait_idle(Device* device)
+    {
+        GPU_CHECK(vkDeviceWaitIdle(device->device));
+    }
+
+    void wait_queue_idle(Device* device, Queue queue)
+    {
+        GPU_CHECK(vkQueueWaitIdle(device->get_queue(queue).handle));
+    }
+
+    void wait_timeline(Device* device, const TimelinePoint& timeline_point)
+    {
+        const auto& vulkan_queue  = device->get_queue(timeline_point.queue);
+        const auto semaphore_info = VkSemaphoreWaitInfo{
+            .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            .semaphoreCount = 1u,
+            .pSemaphores    = &vulkan_queue.semaphore,
+            .pValues        = &timeline_point.value,
+        };
+        GPU_CHECK(vkWaitSemaphores(device->device, &semaphore_info, UINT64_MAX));
+    }
+
     const char* backend_name()
     {
         return "Vulkan";
