@@ -488,7 +488,7 @@ namespace orion::gpu
         }};
         VkSemaphore transfer_semaphore;
         GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &transfer_semaphore));
-        ORION_LOG_DEBUG(LogChannel::Gpu, "Created VkSemaphore {} for transfer queue", fmt::ptr(transfer_semaphore));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSemaphore {} for transfer queue", fmt::ptr(transfer_semaphore));
         const auto transfer_semaphore_guard = ScopeFail{[device, transfer_semaphore] {
             vkDestroySemaphore(device, transfer_semaphore, nullptr);
         }};
@@ -510,7 +510,7 @@ namespace orion::gpu
         ORION_ASSERT(device != nullptr);
 
         vkDestroySemaphore(device->device, device->transfer_queue.semaphore, nullptr);
-        ORION_LOG_DEBUG(LogChannel::Gpu, "Destroyed VkSemaphore {} (transfer queue)", fmt::ptr(device->transfer_queue.semaphore));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (transfer queue)", fmt::ptr(device->transfer_queue.semaphore));
         vkDestroySemaphore(device->device, device->compute_queue.semaphore, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (compute queue)", fmt::ptr(device->compute_queue.semaphore));
         vkDestroySemaphore(device->device, device->graphics_queue.semaphore, nullptr);
@@ -983,6 +983,35 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkPipeline {}", fmt::ptr(pipeline->handle));
 
         delete pipeline;
+    }
+
+    void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport)
+    {
+        // Flip Y coordinate to account for Vulkan's coordinate system
+        const auto vk_viewport = VkViewport{
+            .x        = viewport.x,
+            .y        = viewport.y + viewport.height,
+            .width    = viewport.width,
+            .height   = -viewport.height,
+            .minDepth = viewport.min_depth,
+            .maxDepth = viewport.max_depth,
+        };
+        vkCmdSetViewport(command_buffer->handle, 0u, 1u, &vk_viewport);
+    }
+
+    void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor)
+    {
+        const auto vk_scissor = VkRect2D{
+            .offset = {
+                .x = scissor.offset.x,
+                .y = scissor.offset.y,
+            },
+            .extent = {
+                .width  = scissor.extent.width,
+                .height = scissor.extent.height,
+            },
+        };
+        vkCmdSetScissor(command_buffer->handle, 0u, 1u, &vk_scissor);
     }
 
     void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state)

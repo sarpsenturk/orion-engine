@@ -123,6 +123,21 @@ namespace orion
             Always,
         };
 
+        struct Offset2D {
+            std::int32_t x = 0;
+            std::int32_t y = 0;
+        };
+
+        struct Extent2D {
+            std::uint32_t width  = 0u;
+            std::uint32_t height = 0u;
+        };
+
+        struct Rect2D {
+            Offset2D offset = {};
+            Extent2D extent = {};
+        };
+
         struct SubresourceRange {
             std::uint32_t base_mip_level   = 0u;
             std::uint32_t level_count      = 1u;
@@ -154,6 +169,15 @@ namespace orion
         struct RenderPass {
             std::span<const RenderPassAttachment> color_attachments;
             std::optional<RenderPassAttachment> depth_attachment;
+        };
+
+        struct Viewport {
+            float x         = 0.0f;
+            float y         = 0.0f;
+            float width     = 0.0f;
+            float height    = 0.0f;
+            float min_depth = 0.0f;
+            float max_depth = 1.0f;
         };
 
         struct SwapchainFrame {
@@ -229,6 +253,8 @@ namespace orion
         PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc);
         void destroy_pipeline(Device* device, PipelineState* pipeline);
 
+        void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
+        void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
         void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state);
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
