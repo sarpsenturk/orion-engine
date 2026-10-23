@@ -31,6 +31,7 @@ namespace orion
         };
 
         struct SwapchainFrame {
+            Swapchain* swapchain  = nullptr;
             Image* image          = nullptr;
             ImageView* image_view = nullptr;
 

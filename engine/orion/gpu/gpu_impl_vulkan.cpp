@@ -533,6 +533,7 @@ namespace orion::gpu
                     &image_index)) {
             case VK_SUCCESS:
                 return SwapchainFrame{
+                    .swapchain     = swapchain,
                     .image         = &swapchain->images[image_index],
                     .image_view    = &swapchain->image_views[image_index],
                     .image_index   = image_index,
