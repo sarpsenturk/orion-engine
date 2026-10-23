@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace orion
 {
     namespace gpu
@@ -7,6 +9,7 @@ namespace orion
         struct Device;
 
         struct DeviceDesc {
+            std::uint32_t device_index = 0u;
         };
 
         Device* create_device(const DeviceDesc& desc);
@@ -14,5 +17,6 @@ namespace orion
 
         [[nodiscard]] const char* backend_name();
         [[nodiscard]] const char* backend_version();
+        [[nodiscard]] const char* device_name(const Device* device);
     } // namespace gpu
 } // namespace orion

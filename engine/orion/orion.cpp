@@ -29,6 +29,7 @@ namespace orion
         ORION_LOG_INFO(LogChannel::Core, "Orion Engine");
         ORION_LOG_INFO(LogChannel::Core, "Platform: {} {}", m_platform->name(), m_platform->version());
         ORION_LOG_INFO(LogChannel::Core, "GPU Backend: {} {}", gpu::backend_name(), gpu::backend_version());
+        ORION_LOG_INFO(LogChannel::Core, "GPU Device: {}", gpu::device_name(m_renderer->device()));
     }
 
     // Needs to be explicitly defaulted here where members are complete types.

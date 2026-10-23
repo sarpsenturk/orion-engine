@@ -16,6 +16,8 @@ namespace orion
         Renderer& operator=(Renderer&&)      = default;
         ~Renderer();
 
+        [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
+
     private:
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
     };

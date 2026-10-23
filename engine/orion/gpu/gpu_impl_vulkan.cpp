@@ -2,20 +2,28 @@
 
 #include "orion/core/assert.hpp"
 #include "orion/core/logger.hpp"
+#include "orion/utils/scope_guard.hpp"
 
 #include <Volk/volk.h>
 #include <vulkan/vk_enum_string_helper.h>
 
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
+#include <array>
+#include <bit>
 #include <cstdint>
+#include <set>
 #include <stdexcept>
+#include <vector>
 
-#define GPU_CHECK(vkcall)                                                                          \
-    do {                                                                                           \
-        if (VkResult result = (vkcall); result != VK_SUCCESS) [[unlikely]] {                       \
-            throw std::runtime_error(fmt::format(#vkcall " failed: {}", string_VkResult(result))); \
-        }                                                                                          \
+#define GPU_CHECK(vkcall)                                                                 \
+    do {                                                                                  \
+        if (VkResult result = (vkcall); result != VK_SUCCESS) [[unlikely]] {              \
+            const auto msg = fmt::format(#vkcall " failed: {}", string_VkResult(result)); \
+            ORION_LOG_ERROR(::orion::LogChannel::Gpu, msg);                               \
+            throw std::runtime_error(msg);                                                \
+        }                                                                                 \
     } while (0)
 
 namespace orion::gpu
@@ -25,11 +33,35 @@ namespace orion::gpu
 
     struct Device {
         VkInstance instance = VK_NULL_HANDLE;
+
+        VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+        VkDevice device                  = VK_NULL_HANDLE;
+        VkPhysicalDeviceProperties device_properties;
     };
 
-    Device* create_device(const DeviceDesc& /*desc*/)
+    static std::uint32_t select_queue_family(
+        const std::vector<VkQueueFamilyProperties>& queue_families,
+        VkQueueFlags required_flags)
+    {
+        int best_score       = INT_MAX;
+        std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
+        for (std::uint32_t i = 0u; i < queue_families.size(); ++i) {
+            const auto& qf = queue_families[i];
+            if (qf.queueFlags & required_flags) {
+                const auto score = std::popcount(qf.queueFlags & ~required_flags);
+                if (score < best_score) {
+                    best_score = score;
+                    family     = i;
+                }
+            }
+        }
+        return family;
+    }
+
+    Device* create_device(const DeviceDesc& desc)
     {
         // Initialize Volk & create VkInstance
+        ORION_LOG_TRACE(LogChannel::Gpu, "Initializing Vulkan backend...");
         GPU_CHECK(volkInitialize());
         std::uint32_t glfw_extension_count;
         const auto* glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
@@ -51,9 +83,93 @@ namespace orion::gpu
         GPU_CHECK(vkCreateInstance(&instance_info, nullptr, &instance));
         volkLoadInstance(instance);
         ORION_LOG_TRACE(LogChannel::Gpu, "Created VkInstance {}", fmt::ptr(instance));
+        const auto instance_guard = ScopeFail([instance] { vkDestroyInstance(instance, nullptr); });
 
+        // Select physical device
+        std::uint32_t physical_device_count;
+        GPU_CHECK(vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr));
+        std::vector<VkPhysicalDevice> physical_devices(physical_device_count);
+        GPU_CHECK(vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices.data()));
+        VkPhysicalDevice physical_device = physical_devices[desc.device_index];
+        VkPhysicalDeviceProperties device_properties;
+        vkGetPhysicalDeviceProperties(physical_device, &device_properties);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Using VkPhysicalDevice {}", device_properties.deviceName);
+
+        // Select queue families
+        std::uint32_t queue_family_count;
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
+        std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families.data());
+        const auto graphics_family = select_queue_family(queue_families, VK_QUEUE_GRAPHICS_BIT);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Using queue family {} for graphics", graphics_family);
+        const auto compute_family = select_queue_family(queue_families, VK_QUEUE_COMPUTE_BIT);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Using queue family {} for compute", compute_family);
+        const auto transfer_family = select_queue_family(queue_families, VK_QUEUE_TRANSFER_BIT);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Using queue family {} for transfer", transfer_family);
+
+        // Set up queue create infos
+        const auto selected_families = std::set{graphics_family, compute_family, transfer_family};
+        std::vector<VkDeviceQueueCreateInfo> queue_create_infos(selected_families.size());
+        static constexpr auto queue_priority = 1.0f;
+        std::ranges::transform(selected_families, queue_create_infos.begin(), [&](std::uint32_t family) {
+            return VkDeviceQueueCreateInfo{
+                .sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .queueFamilyIndex = family,
+                .queueCount       = 1u,
+                .pQueuePriorities = &queue_priority,
+            };
+        });
+
+        // Enabled device features
+        auto vulkan_13_features = VkPhysicalDeviceVulkan13Features{
+            .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .synchronization2 = VK_TRUE,
+            .dynamicRendering = VK_TRUE,
+        };
+        auto vulkan_12_features = VkPhysicalDeviceVulkan12Features{
+            .sType                                     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext                                     = &vulkan_13_features,
+            .descriptorIndexing                        = VK_TRUE,
+            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+            .scalarBlockLayout                         = VK_TRUE,
+            .timelineSemaphore                         = VK_TRUE,
+            .bufferDeviceAddress                       = VK_TRUE,
+        };
+        auto vulkan_11_features = VkPhysicalDeviceVulkan11Features{
+            .sType                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+            .pNext                = &vulkan_12_features,
+            .shaderDrawParameters = VK_TRUE,
+        };
+        const auto vulkan_10_features = VkPhysicalDeviceFeatures2{
+            .sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext    = &vulkan_11_features,
+            .features = {
+                .samplerAnisotropy = VK_TRUE,
+            },
+        };
+
+        // Create VkDevice
+        const auto device_extensions = std::array{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        const auto device_info       = VkDeviceCreateInfo{
+            .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext                   = &vulkan_10_features,
+            .queueCreateInfoCount    = static_cast<std::uint32_t>(queue_create_infos.size()),
+            .pQueueCreateInfos       = queue_create_infos.data(),
+            .enabledExtensionCount   = static_cast<std::uint32_t>(device_extensions.size()),
+            .ppEnabledExtensionNames = device_extensions.data(),
+        };
+        VkDevice device;
+        GPU_CHECK(vkCreateDevice(physical_device, &device_info, nullptr, &device));
+        volkLoadDevice(device);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDevice {}", fmt::ptr(device));
+        const auto device_guard = ScopeFail{[device] { vkDestroyDevice(device, nullptr); }};
+
+        ORION_LOG_TRACE(LogChannel::Gpu, "Vulkan backend initialized");
         return new Device{
-            .instance = instance,
+            .instance          = instance,
+            .physical_device   = physical_device,
+            .device            = device,
+            .device_properties = device_properties,
         };
     }
 
@@ -61,7 +177,10 @@ namespace orion::gpu
     {
         ORION_ASSERT(device != nullptr);
 
+        vkDestroyDevice(device->device, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDevice {}", fmt::ptr(device));
         vkDestroyInstance(device->instance, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkInstance {}", fmt::ptr(device->instance));
 
         delete device;
     }
@@ -82,5 +201,11 @@ namespace orion::gpu
             return fmt::format("{}.{}.{}", major, minor, patch);
         }();
         return version.c_str();
+    }
+
+    const char* device_name(const Device* device)
+    {
+        ORION_ASSERT(device != nullptr);
+        return device->device_properties.deviceName;
     }
 } // namespace orion::gpu
