@@ -127,6 +127,10 @@ namespace orion
                     std::unreachable();
             }
         });
+        glfwSetCursorPosCallback(window, [](GLFWwindow* window_, double xpos, double ypos) {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window_));
+            g_event_queue.push(OnCursorMove{self, xpos, ypos});
+        });
     }
 
     Window::Window(Window&& other) noexcept
