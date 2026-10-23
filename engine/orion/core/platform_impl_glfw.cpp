@@ -149,4 +149,21 @@ namespace orion
     {
         return glfwWindowShouldClose(static_cast<GLFWwindow*>(m_handle));
     }
+
+    bool Window::is_key_pressed(Keycode key) const noexcept
+    {
+        return glfwGetKey(static_cast<GLFWwindow*>(m_handle), static_cast<int>(key)) == GLFW_PRESS;
+    }
+
+    bool Window::is_mouse_button_pressed(MouseButton button) const noexcept
+    {
+        return glfwGetMouseButton(static_cast<GLFWwindow*>(m_handle), static_cast<int>(button)) == GLFW_PRESS;
+    }
+
+    MousePosition Window::mouse_position() const noexcept
+    {
+        MousePosition pos;
+        glfwGetCursorPos(static_cast<GLFWwindow*>(m_handle), &pos.x, &pos.y);
+        return pos;
+    }
 } // namespace orion
