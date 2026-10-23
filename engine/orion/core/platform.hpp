@@ -1,6 +1,6 @@
 #pragma once
 
-#include "window.hpp"
+#include "event.hpp"
 
 namespace orion
 {
@@ -14,7 +14,8 @@ namespace orion
         Platform& operator=(Platform&&)      = delete;
         ~Platform();
 
-        void poll_events();
+        void pump_events();
+        bool poll_event(Event& event);
 
         [[nodiscard]] const char* name() const noexcept;
         [[nodiscard]] const char* version() const noexcept;

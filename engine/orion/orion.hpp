@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/core/event.hpp"
+
 #include <memory>
 
 namespace orion
@@ -12,12 +14,14 @@ namespace orion
 
         void update();
         void render();
+        void event(const Event& event);
 
         [[nodiscard]] virtual bool should_exit() const = 0;
 
     private:
-        virtual void on_update() = 0;
-        virtual void on_render() = 0;
+        virtual void on_update()                  = 0;
+        virtual void on_render()                  = 0;
+        virtual void on_event(const Event& event) = 0;
     };
 
     class Engine

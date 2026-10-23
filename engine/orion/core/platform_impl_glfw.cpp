@@ -1,13 +1,19 @@
+#include "event.hpp"
 #include "platform.hpp"
 #include "window.hpp"
 
+#include "orion/core/assert.hpp"
+
 #include <GLFW/glfw3.h>
 
+#include <queue>
 #include <stdexcept>
 #include <utility>
 
 namespace orion
 {
+    static std::queue<Event> g_event_queue;
+
     Platform::Platform()
     {
         if (!glfwInit()) {
@@ -20,9 +26,21 @@ namespace orion
         glfwTerminate();
     }
 
-    void Platform::poll_events()
+    void Platform::pump_events()
     {
+        ORION_ASSERT(g_event_queue.empty() && "All previous events should be processed before pump_events() is called");
         glfwPollEvents();
+    }
+
+    bool Platform::poll_event(Event& event)
+    {
+        if (g_event_queue.empty()) {
+            return false;
+        } else {
+            event = std::move(g_event_queue.front());
+            g_event_queue.pop();
+            return true;
+        }
     }
 
     const char* Platform::name() const noexcept
@@ -50,10 +68,35 @@ namespace orion
 
         // Set user pointer and callbacks
         glfwSetWindowUserPointer(window, this);
+        glfwSetWindowCloseCallback(window, [](GLFWwindow* window_) {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window_));
+            g_event_queue.push(OnWindowClose{self});
+        });
         glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window_, int width, int height) {
             auto* self     = static_cast<Window*>(glfwGetWindowUserPointer(window_));
             self->m_width  = width;
             self->m_height = height;
+
+            // Coalesce only adjacent events to preserve ordering with other events.
+            if (!g_event_queue.empty()) {
+                auto* pending = std::get_if<OnWindowResize>(&g_event_queue.back());
+                if (pending && pending->window == self) {
+                    *pending = OnWindowResize{self, width, height};
+                    return;
+                }
+            }
+            g_event_queue.push(OnWindowResize{self, width, height});
+        });
+        glfwSetWindowPosCallback(window, [](GLFWwindow* window_, int x, int y) {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window_));
+            if (!g_event_queue.empty()) {
+                auto* pending = std::get_if<OnWindowMove>(&g_event_queue.back());
+                if (pending && pending->window == self) {
+                    *pending = OnWindowMove{self, x, y};
+                    return;
+                }
+            }
+            g_event_queue.push(OnWindowMove{self, x, y});
         });
     }
 

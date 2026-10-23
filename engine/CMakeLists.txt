@@ -33,10 +33,12 @@ target_sources(orion.engine
 		"orion/core/logger.hpp"
 		"orion/core/assert.hpp"
 		"orion/core/window.hpp"
+		"orion/core/event.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 		"orion/core/logger.cpp"
 		"orion/core/assert.cpp"
 		"orion/core/platform.hpp"
 		"orion/core/platform_impl_glfw.cpp"
+		"orion/core/event.cpp"
 )

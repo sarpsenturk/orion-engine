@@ -15,6 +15,11 @@ namespace orion
         on_render();
     }
 
+    void Application::event(const Event& event)
+    {
+        on_event(event);
+    }
+
     Engine::Engine()
         : m_logger(std::make_unique<Logger>())
         , m_platform(std::make_unique<Platform>())
@@ -29,7 +34,13 @@ namespace orion
     void Engine::run(std::unique_ptr<Application> app)
     {
         while (!app->should_exit()) {
-            m_platform->poll_events();
+            m_platform->pump_events();
+            Event event;
+            while (m_platform->poll_event(event)) {
+                ORION_LOG_TRACE(LogChannel::Core, event);
+                app->event(event);
+            }
+
             app->update();
             app->render();
         }
