@@ -254,6 +254,30 @@ namespace orion::gpu
         }
     }
 
+    static VkAttachmentLoadOp to_vk_load_op(LoadOp load_op)
+    {
+        switch (load_op) {
+            case LoadOp::Load:
+                return VK_ATTACHMENT_LOAD_OP_LOAD;
+            case LoadOp::Clear:
+                return VK_ATTACHMENT_LOAD_OP_CLEAR;
+            case LoadOp::DontCare:
+                return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        }
+        std::unreachable();
+    }
+
+    static VkAttachmentStoreOp to_vk_store_op(StoreOp store_op)
+    {
+        switch (store_op) {
+            case StoreOp::Store:
+                return VK_ATTACHMENT_STORE_OP_STORE;
+            case StoreOp::DontCare:
+                return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+        std::unreachable();
+    }
+
     static std::uint32_t select_queue_family(
         const std::vector<VkQueueFamilyProperties>& queue_families,
         VkQueueFlags required_flags)
@@ -759,6 +783,55 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkCommandPool {}", fmt::ptr(allocator->command_pool));
 
         delete allocator;
+    }
+
+    void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass)
+    {
+        ORION_ASSERT(render_pass.color_attachments.size() <= max_color_attachments);
+
+        std::array<VkRenderingAttachmentInfo, max_color_attachments> color_attachments;
+        std::ranges::transform(render_pass.color_attachments, color_attachments.begin(), [](const RenderPassAttachment& attachment) {
+            return VkRenderingAttachmentInfo{
+                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = attachment.image_view->handle,
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp      = to_vk_load_op(attachment.load_op),
+                .storeOp     = to_vk_store_op(attachment.store_op),
+                .clearValue  = VkClearValue{.color = {0.0f, 0.0f, 0.0f, 1.0f}},
+            };
+        });
+
+        auto depth_attachment = VkRenderingAttachmentInfo{};
+        if (render_pass.depth_attachment.has_value()) {
+            const auto& attachment = render_pass.depth_attachment.value();
+            depth_attachment       = VkRenderingAttachmentInfo{
+                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = attachment.image_view->handle,
+                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                .loadOp      = to_vk_load_op(attachment.load_op),
+                .storeOp     = to_vk_store_op(attachment.store_op),
+                .clearValue  = VkClearValue{.depthStencil = {1.0f, 0u}},
+            };
+        }
+
+        const auto* area_view     = render_pass.color_attachments[0].image_view;
+        const auto rendering_info = VkRenderingInfo{
+            .sType      = VK_STRUCTURE_TYPE_RENDERING_INFO,
+            .renderArea = {
+                .offset = {},
+                .extent = {area_view->width, area_view->height},
+            },
+            .layerCount           = 1u,
+            .colorAttachmentCount = static_cast<std::uint32_t>(render_pass.color_attachments.size()),
+            .pColorAttachments    = color_attachments.data(),
+            .pDepthAttachment     = render_pass.depth_attachment.has_value() ? &depth_attachment : nullptr,
+        };
+        vkCmdBeginRendering(command_buffer->handle, &rendering_info);
+    }
+
+    void end_render_pass(CommandBuffer* command_buffer)
+    {
+        vkCmdEndRendering(command_buffer->handle);
     }
 
     void barrier(CommandBuffer* command_buffer, const Barrier& barrier)

@@ -79,8 +79,21 @@ namespace orion
                 }},
             });
         // Begin render pass
+        gpu::begin_render_pass(
+            command_buffer,
+            gpu::RenderPass{
+                .color_attachments = {{
+                    gpu::RenderPassAttachment{
+                        .image_view = frame_data.swapchain_frame.image_view,
+                        .load_op    = gpu::LoadOp::Clear,
+                        .store_op   = gpu::StoreOp::Store,
+                    },
+                }},
+                .depth_attachment  = std::nullopt,
+            });
         // Record rendering commands
         // End render pass
+        gpu::end_render_pass(command_buffer);
         // Transition the swapchain image to present source layout
         gpu::barrier(
             command_buffer,

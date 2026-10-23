@@ -8,6 +8,8 @@ namespace orion
 {
     namespace gpu
     {
+        inline constexpr auto max_color_attachments = 8u;
+
         struct Device;
         struct Image;
         struct ImageView;
@@ -88,6 +90,17 @@ namespace orion
             Present,
         };
 
+        enum class LoadOp {
+            Load = 0,
+            Clear,
+            DontCare,
+        };
+
+        enum class StoreOp {
+            Store = 0,
+            DontCare,
+        };
+
         struct SubresourceRange {
             std::uint32_t base_mip_level   = 0u;
             std::uint32_t level_count      = 1u;
@@ -108,6 +121,17 @@ namespace orion
 
         struct Barrier {
             std::span<const ImageBarrier> image_barriers;
+        };
+
+        struct RenderPassAttachment {
+            ImageView* image_view = nullptr;
+            LoadOp load_op        = LoadOp::Load;
+            StoreOp store_op      = StoreOp::Store;
+        };
+
+        struct RenderPass {
+            std::span<const RenderPassAttachment> color_attachments;
+            std::optional<RenderPassAttachment> depth_attachment;
         };
 
         struct SwapchainFrame {
@@ -160,6 +184,8 @@ namespace orion
         void reset_command_allocator(Device* device, CommandAllocator* allocator);
         void destroy_command_allocator(Device* device, CommandAllocator* allocator);
 
+        void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
+        void end_render_pass(CommandBuffer* command_buffer);
         void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
