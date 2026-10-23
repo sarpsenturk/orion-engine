@@ -38,6 +38,7 @@ target_sources(orion.engine
 		"orion/core/event.hpp"
 		"orion/core/input.hpp"
 
+		"orion/utils/array.hpp"
 		"orion/utils/scope_guard.hpp"
 
 		"orion/renderer/renderer.hpp"
