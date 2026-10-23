@@ -95,6 +95,7 @@ namespace orion
 
         Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc);
         std::optional<SwapchainFrame> acquire_swapchain_frame(Device* device, Swapchain* swapchain);
+        void present(Device* device, const SwapchainFrame& swapchain_frame);
         void destroy_swapchain(Device* device, Swapchain* swapchain);
 
         CommandAllocator* create_command_allocator(Device* device, Queue queue);

@@ -304,7 +304,7 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Created VkQueue {} for compute", fmt::ptr(compute_queue));
         VkQueue transfer_queue;
         vkGetDeviceQueue(device, transfer_family, 0u, &transfer_queue);
-        ORION_LOG_DEBUG(LogChannel::Gpu, "Created VkQueue {} for transfer", fmt::ptr(transfer_queue));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkQueue {} for transfer", fmt::ptr(transfer_queue));
 
         // Create timeline semaphores for each queue
         const auto semaphore_type_info = VkSemaphoreTypeCreateInfo{
@@ -583,6 +583,22 @@ namespace orion::gpu
                 throw std::runtime_error(fmt::format(
                     "vkAcquireNextImageKHR failed: {}", string_VkResult(result)));
         }
+    }
+
+    void present(Device* device, const SwapchainFrame& swapchain_frame)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(swapchain_frame.swapchain != nullptr);
+
+        const auto present_info = VkPresentInfoKHR{
+            .sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1u,
+            .pWaitSemaphores    = &swapchain_frame.swapchain->present_semaphores[swapchain_frame.image_index],
+            .swapchainCount     = 1u,
+            .pSwapchains        = &swapchain_frame.swapchain->swapchain,
+            .pImageIndices      = &swapchain_frame.image_index,
+        };
+        GPU_CHECK(vkQueuePresentKHR(device->graphics_queue.handle, &present_info));
     }
 
     void destroy_swapchain(Device* device, Swapchain* swapchain)
