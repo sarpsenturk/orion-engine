@@ -67,6 +67,11 @@ namespace orion::gpu
         std::uint32_t layer_count       = 1u;
     };
 
+    struct PipelineState {
+        VkPipeline handle              = VK_NULL_HANDLE;
+        VkPipelineBindPoint bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    };
+
     struct CommandBuffer {
         VkCommandBuffer handle = VK_NULL_HANDLE;
     };
@@ -274,6 +279,51 @@ namespace orion::gpu
                 return VK_ATTACHMENT_STORE_OP_STORE;
             case StoreOp::DontCare:
                 return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        }
+        std::unreachable();
+    }
+
+    static VkPrimitiveTopology to_vk_primitive_topology(Topology topology)
+    {
+        switch (topology) {
+            case Topology::TriangleList:
+                return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        }
+        std::unreachable();
+    }
+
+    static VkCullModeFlags to_vk_cull_mode(CullMode cull_mode)
+    {
+        switch (cull_mode) {
+            case CullMode::None:
+                return VK_CULL_MODE_NONE;
+            case CullMode::Front:
+                return VK_CULL_MODE_FRONT_BIT;
+            case CullMode::Back:
+                return VK_CULL_MODE_BACK_BIT;
+        }
+        std::unreachable();
+    }
+
+    static VkCompareOp to_vk_compare_op(CompareOp compare_op)
+    {
+        switch (compare_op) {
+            case CompareOp::Never:
+                return VK_COMPARE_OP_NEVER;
+            case CompareOp::Less:
+                return VK_COMPARE_OP_LESS;
+            case CompareOp::Equal:
+                return VK_COMPARE_OP_EQUAL;
+            case CompareOp::LessOrEqual:
+                return VK_COMPARE_OP_LESS_OR_EQUAL;
+            case CompareOp::Greater:
+                return VK_COMPARE_OP_GREATER;
+            case CompareOp::NotEqual:
+                return VK_COMPARE_OP_NOT_EQUAL;
+            case CompareOp::GreaterOrEqual:
+                return VK_COMPARE_OP_GREATER_OR_EQUAL;
+            case CompareOp::Always:
+                return VK_COMPARE_OP_ALWAYS;
         }
         std::unreachable();
     }
@@ -783,6 +833,161 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkCommandPool {}", fmt::ptr(allocator->command_pool));
 
         delete allocator;
+    }
+
+    PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(!desc.spirv.empty());
+        ORION_ASSERT(!desc.color_attachments.empty());
+        ORION_ASSERT(desc.color_attachments.size() <= max_color_attachments);
+
+        // Shaders
+        const auto shader_module_info = VkShaderModuleCreateInfo{
+            .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .codeSize = desc.spirv.size_bytes(),
+            .pCode    = desc.spirv.data(),
+        };
+        VkShaderModule shader_module;
+        GPU_CHECK(vkCreateShaderModule(device->device, &shader_module_info, nullptr, &shader_module));
+        const auto shader_module_guard = ScopeExit{[&]() { vkDestroyShaderModule(device->device, shader_module, nullptr); }};
+
+        const auto shader_stages = std::array{
+            VkPipelineShaderStageCreateInfo{
+                .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                .stage  = VK_SHADER_STAGE_VERTEX_BIT,
+                .module = shader_module,
+                .pName  = "vsmain",
+            },
+            VkPipelineShaderStageCreateInfo{
+                .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                .stage  = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .module = shader_module,
+                .pName  = "fsmain",
+            },
+        };
+
+        // Vertex input
+        const auto vertex_input_state = VkPipelineVertexInputStateCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        };
+
+        // Input assembly
+        const auto input_assembly_state = VkPipelineInputAssemblyStateCreateInfo{
+            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+            .topology               = to_vk_primitive_topology(desc.topology),
+            .primitiveRestartEnable = VK_FALSE,
+        };
+
+        // Tessellation
+        const auto tessellation_state = VkPipelineTessellationStateCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+        };
+
+        // Viewport and scissor
+        const auto viewport_state = VkPipelineViewportStateCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            .viewportCount = 1,
+            .scissorCount  = 1,
+        };
+
+        // Rasterization
+        const auto rasterization_state = VkPipelineRasterizationStateCreateInfo{
+            .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            .depthClampEnable        = VK_FALSE,
+            .rasterizerDiscardEnable = VK_FALSE,
+            .polygonMode             = VK_POLYGON_MODE_FILL,
+            .cullMode                = to_vk_cull_mode(desc.rasterizer.cull_mode),
+            .frontFace               = desc.rasterizer.front_face_ccw ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE,
+            .depthBiasEnable         = VK_FALSE,
+            .lineWidth               = 1.0f,
+        };
+
+        // Multisampling
+        const auto multisample_state = VkPipelineMultisampleStateCreateInfo{
+            .sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+        };
+
+        // Depth stencil
+        const auto depth_stencil_state = VkPipelineDepthStencilStateCreateInfo{
+            .sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable  = desc.depth_stencil.depth_test_enable,
+            .depthWriteEnable = desc.depth_stencil.depth_write_enable,
+            .depthCompareOp   = to_vk_compare_op(desc.depth_stencil.depth_compare_op),
+        };
+
+        // Color blending
+        static constexpr auto blend_disabled = VkPipelineColorBlendAttachmentState{.colorWriteMask = 0xf};
+        std::array<VkPipelineColorBlendAttachmentState, max_color_attachments> color_blend_attachments;
+        std::ranges::fill_n(color_blend_attachments.begin(), desc.color_attachments.size(), blend_disabled);
+        const auto color_blend_state = VkPipelineColorBlendStateCreateInfo{
+            .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+            .attachmentCount = static_cast<std::uint32_t>(desc.color_attachments.size()),
+            .pAttachments    = color_blend_attachments.data(),
+        };
+
+        // Dynamic state
+        static constexpr auto dynamic_states = std::array{
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR,
+        };
+        const auto dynamic_state = VkPipelineDynamicStateCreateInfo{
+            .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+            .dynamicStateCount = static_cast<std::uint32_t>(dynamic_states.size()),
+            .pDynamicStates    = dynamic_states.data(),
+        };
+
+        // Render pass
+        std::array<VkFormat, max_color_attachments> color_attachments;
+        std::ranges::transform(desc.color_attachments, color_attachments.begin(), to_vk_format);
+        const auto rendering_info = VkPipelineRenderingCreateInfo{
+            .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+            .colorAttachmentCount    = static_cast<std::uint32_t>(desc.color_attachments.size()),
+            .pColorAttachmentFormats = color_attachments.data(),
+            .depthAttachmentFormat   = to_vk_format(desc.depth_attachment),
+        };
+
+        const auto pipeline_info = VkGraphicsPipelineCreateInfo{
+            .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .pNext               = &rendering_info,
+            .stageCount          = static_cast<std::uint32_t>(shader_stages.size()),
+            .pStages             = shader_stages.data(),
+            .pVertexInputState   = &vertex_input_state,
+            .pInputAssemblyState = &input_assembly_state,
+            .pTessellationState  = &tessellation_state,
+            .pViewportState      = &viewport_state,
+            .pRasterizationState = &rasterization_state,
+            .pMultisampleState   = &multisample_state,
+            .pDepthStencilState  = &depth_stencil_state,
+            .pColorBlendState    = &color_blend_state,
+            .pDynamicState       = &dynamic_state,
+            .layout              = VK_NULL_HANDLE,
+        };
+        VkPipeline pipeline;
+        GPU_CHECK(vkCreateGraphicsPipelines(device->device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkPipeline {} (graphics)", fmt::ptr(pipeline));
+
+        return new PipelineState{
+            .handle     = pipeline,
+            .bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        };
+    }
+
+    void destroy_pipeline(Device* device, PipelineState* pipeline)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(pipeline != nullptr);
+
+        vkDestroyPipeline(device->device, pipeline->handle, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkPipeline {}", fmt::ptr(pipeline->handle));
+
+        delete pipeline;
+    }
+
+    void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state)
+    {
+        vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->handle);
     }
 
     void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass)

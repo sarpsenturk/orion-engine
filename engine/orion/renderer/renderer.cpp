@@ -6,9 +6,27 @@
 #include "orion/utils/array.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <fstream>
+#include <vector>
 
 namespace orion
 {
+    static std::vector<std::uint32_t> load_spirv(const char* path)
+    {
+        // Load spirv from disk
+        auto file = std::ifstream(path, std::ios::binary | std::ios::ate);
+        if (!file.is_open()) {
+            ORION_LOG_ERROR(LogChannel::Renderer, "Failed to open SPIR-V file: {}", path);
+            throw std::runtime_error(fmt::format("Failed to open SPIR-V file: {}", path));
+        }
+        const auto size = file.tellg();
+        file.seekg(0, std::ios::beg);
+        std::vector<std::uint32_t> spirv(size / sizeof(std::uint32_t));
+        file.read(reinterpret_cast<char*>(spirv.data()), size);
+        return spirv;
+    }
+
     Renderer::Renderer()
         : m_device(gpu::create_device(gpu::DeviceDesc{}), gpu::destroy_device)
         , m_frame_data(make_array<frames_in_flight>([this] {
@@ -16,6 +34,16 @@ namespace orion
                 .command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics),
             };
         }))
+        , m_dummy_pipeline(gpu::create_graphics_pipeline(
+              m_device.get(),
+              gpu::GraphicsPipelineDesc{
+                  .spirv             = load_spirv("../shaders/triangle.spv"),
+                  .topology          = gpu::Topology::TriangleList,
+                  .rasterizer        = gpu::RasterizerDesc{},
+                  .depth_stencil     = gpu::DepthStencilDesc{},
+                  .color_attachments = {{gpu::Format::BGRA8_Unorm}},
+                  .depth_attachment  = gpu::Format::Undefined,
+              }))
     {
     }
 
@@ -23,6 +51,8 @@ namespace orion
     {
         // Wait until all work on the GPU has finished before tearing down the Renderer
         gpu::wait_idle(m_device.get());
+
+        gpu::destroy_pipeline(m_device.get(), m_dummy_pipeline);
 
         for (auto& frame : m_frame_data) {
             gpu::destroy_command_allocator(m_device.get(), frame.command_allocator);
@@ -91,7 +121,8 @@ namespace orion
                 }},
                 .depth_attachment  = std::nullopt,
             });
-        // Record rendering commands
+        // Bind the dummy graphics pipeline
+        gpu::bind_pipeline_state(command_buffer, m_dummy_pipeline);
         // End render pass
         gpu::end_render_pass(command_buffer);
         // Transition the swapchain image to present source layout

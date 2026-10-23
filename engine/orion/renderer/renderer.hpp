@@ -51,5 +51,7 @@ namespace orion
 
         std::array<FrameInFlight, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;
+
+        gpu::PipelineState* m_dummy_pipeline = nullptr;
     };
 } // namespace orion

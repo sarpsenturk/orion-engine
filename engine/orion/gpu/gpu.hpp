@@ -13,6 +13,7 @@ namespace orion
         struct Device;
         struct Image;
         struct ImageView;
+        struct PipelineState;
         struct CommandAllocator;
         struct CommandBuffer;
         struct Swapchain;
@@ -101,6 +102,27 @@ namespace orion
             DontCare,
         };
 
+        enum class Topology {
+            TriangleList = 0,
+        };
+
+        enum class CullMode {
+            None = 0,
+            Front,
+            Back,
+        };
+
+        enum class CompareOp {
+            Never = 0,
+            Less,
+            Equal,
+            LessOrEqual,
+            Greater,
+            NotEqual,
+            GreaterOrEqual,
+            Always,
+        };
+
         struct SubresourceRange {
             std::uint32_t base_mip_level   = 0u;
             std::uint32_t level_count      = 1u;
@@ -171,6 +193,26 @@ namespace orion
             Format image_format        = Format::Undefined;
         };
 
+        struct RasterizerDesc {
+            CullMode cull_mode  = CullMode::None;
+            bool front_face_ccw = false;
+        };
+
+        struct DepthStencilDesc {
+            bool depth_test_enable     = false;
+            bool depth_write_enable    = false;
+            CompareOp depth_compare_op = CompareOp::Never;
+        };
+
+        struct GraphicsPipelineDesc {
+            std::span<const std::uint32_t> spirv;
+            Topology topology              = Topology::TriangleList;
+            RasterizerDesc rasterizer      = {};
+            DepthStencilDesc depth_stencil = {};
+            std::span<const Format> color_attachments;
+            Format depth_attachment = Format::Undefined;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
 
@@ -184,6 +226,10 @@ namespace orion
         void reset_command_allocator(Device* device, CommandAllocator* allocator);
         void destroy_command_allocator(Device* device, CommandAllocator* allocator);
 
+        PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc);
+        void destroy_pipeline(Device* device, PipelineState* pipeline);
+
+        void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state);
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
         void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
