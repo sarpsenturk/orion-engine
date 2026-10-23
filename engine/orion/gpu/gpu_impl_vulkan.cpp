@@ -13,6 +13,7 @@
 #include <array>
 #include <bit>
 #include <cstdint>
+#include <deque>
 #include <set>
 #include <stdexcept>
 #include <utility>
@@ -35,6 +36,16 @@ namespace orion::gpu
     struct VulkanQueue {
         VkQueue handle       = VK_NULL_HANDLE;
         std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
+    };
+
+    struct CommandBuffer {
+        VkCommandBuffer handle = VK_NULL_HANDLE;
+    };
+
+    struct CommandAllocator {
+        VkCommandPool command_pool = VK_NULL_HANDLE;
+        std::deque<CommandBuffer> command_buffers;
+        std::size_t current_command_buffer_index = 0z;
     };
 
     struct Device {
@@ -221,6 +232,69 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkInstance {}", fmt::ptr(device->instance));
 
         delete device;
+    }
+
+    CommandAllocator* create_command_allocator(Device* device, Queue queue)
+    {
+        ORION_ASSERT(device != nullptr);
+
+        const auto command_pool_info = VkCommandPoolCreateInfo{
+            .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+            .queueFamilyIndex = device->get_queue(queue).family,
+        };
+        VkCommandPool command_pool;
+        GPU_CHECK(vkCreateCommandPool(device->device, &command_pool_info, nullptr, &command_pool));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkCommandPool {}", fmt::ptr(command_pool));
+        return new CommandAllocator{.command_pool = command_pool};
+    }
+
+    CommandBuffer* begin_command_buffer(Device* device, CommandAllocator* allocator)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(allocator != nullptr);
+
+        // If there are no available command buffers in the allocator, allocate a new one
+        if (allocator->current_command_buffer_index >= allocator->command_buffers.size()) {
+            const auto command_buffer_allocate_info = VkCommandBufferAllocateInfo{
+                .sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                .commandPool        = allocator->command_pool,
+                .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                .commandBufferCount = 1u,
+            };
+            VkCommandBuffer command_buffer;
+            GPU_CHECK(vkAllocateCommandBuffers(device->device, &command_buffer_allocate_info, &command_buffer));
+            allocator->command_buffers.emplace_back(command_buffer);
+        }
+        auto* command_buffer = &allocator->command_buffers[allocator->current_command_buffer_index++];
+
+        // Begin recording the command buffer
+        const auto command_buffer_begin_info = VkCommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
+        GPU_CHECK(vkBeginCommandBuffer(command_buffer->handle, &command_buffer_begin_info));
+        return command_buffer;
+    }
+
+    void reset_command_allocator(Device* device, CommandAllocator* allocator)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(allocator != nullptr);
+
+        GPU_CHECK(vkResetCommandPool(device->device, allocator->command_pool, 0u));
+        allocator->current_command_buffer_index = 0z;
+    }
+
+    void destroy_command_allocator(Device* device, CommandAllocator* allocator)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(allocator != nullptr);
+
+        vkDestroyCommandPool(device->device, allocator->command_pool, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkCommandPool {}", fmt::ptr(allocator->command_pool));
+
+        delete allocator;
     }
 
     const char* backend_name()
