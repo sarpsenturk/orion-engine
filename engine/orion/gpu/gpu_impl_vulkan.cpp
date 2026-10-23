@@ -1020,6 +1020,11 @@ namespace orion::gpu
         vkCmdSetScissor(command_buffer->handle, 0u, 1u, &vk_scissor);
     }
 
+    void draw(CommandBuffer* command_buffer, const Draw& draw)
+    {
+        vkCmdDraw(command_buffer->handle, draw.vertex_count, draw.instance_count, draw.first_vertex, draw.first_instance);
+    }
+
     void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state)
     {
         vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->handle);

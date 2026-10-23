@@ -123,6 +123,27 @@ namespace orion
             });
         // Bind the dummy graphics pipeline
         gpu::bind_pipeline_state(command_buffer, m_dummy_pipeline);
+        // Get the extent of the swapchain image
+        const auto swapchain_extent = gpu::image_extent_2d(frame_data.swapchain_frame.image);
+        // Set viewport and scissor to cover the entire swapchain image
+        gpu::set_viewport(
+            command_buffer,
+            gpu::Viewport{
+                .x         = 0.0f,
+                .y         = 0.0f,
+                .width     = static_cast<float>(swapchain_extent.width),
+                .height    = static_cast<float>(swapchain_extent.height),
+                .min_depth = 0.0f,
+                .max_depth = 1.0f,
+            });
+        gpu::set_scissor(
+            command_buffer,
+            gpu::Rect2D{
+                .offset = {0, 0},
+                .extent = swapchain_extent,
+            });
+        // Issue a draw call for a triangle
+        gpu::draw(command_buffer, {3u, 1u, 0u, 0u});
         // End render pass
         gpu::end_render_pass(command_buffer);
         // Transition the swapchain image to present source layout

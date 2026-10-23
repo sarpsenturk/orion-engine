@@ -180,6 +180,13 @@ namespace orion
             float max_depth = 1.0f;
         };
 
+        struct Draw {
+            std::uint32_t vertex_count   = 0u;
+            std::uint32_t instance_count = 1u;
+            std::uint32_t first_vertex   = 0u;
+            std::uint32_t first_instance = 0u;
+        };
+
         struct SwapchainFrame {
             Swapchain* swapchain  = nullptr;
             Image* image          = nullptr;
@@ -257,6 +264,7 @@ namespace orion
 
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
+        void draw(CommandBuffer* command_buffer, const Draw& draw);
         void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state);
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
