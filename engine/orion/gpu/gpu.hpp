@@ -253,6 +253,8 @@ namespace orion
         PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc);
         void destroy_pipeline(Device* device, PipelineState* pipeline);
 
+        Extent2D image_extent_2d(const Image* image);
+
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
         void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state);

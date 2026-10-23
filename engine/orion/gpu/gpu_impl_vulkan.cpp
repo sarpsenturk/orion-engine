@@ -985,6 +985,12 @@ namespace orion::gpu
         delete pipeline;
     }
 
+    Extent2D image_extent_2d(const Image* image)
+    {
+        ORION_ASSERT(image != nullptr);
+        return Extent2D{.width = image->width, .height = image->height};
+    }
+
     void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport)
     {
         // Flip Y coordinate to account for Vulkan's coordinate system
