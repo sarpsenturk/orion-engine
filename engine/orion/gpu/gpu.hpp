@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -13,6 +14,7 @@ namespace orion
         struct Device;
         struct Image;
         struct ImageView;
+        struct Buffer;
         struct PipelineState;
         struct CommandAllocator;
         struct CommandBuffer;
@@ -23,6 +25,14 @@ namespace orion
             Compute,
             Transfer,
         };
+
+        enum class Memory {
+            GpuOnly,
+            CpuVisible,
+            Readback,
+        };
+
+        using Address = std::uint64_t;
 
         enum class Format {
             Undefined = 0,
@@ -244,6 +254,11 @@ namespace orion
             Format depth_attachment = Format::Undefined;
         };
 
+        struct BufferDesc {
+            std::size_t size = 0z;
+            Memory memory    = Memory::GpuOnly;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
 
@@ -261,6 +276,12 @@ namespace orion
         void destroy_pipeline(Device* device, PipelineState* pipeline);
 
         Extent2D image_extent_2d(const Image* image);
+
+        Buffer* create_buffer(Device* device, const BufferDesc& desc);
+        // Returns nullptr for GpuOnly buffers; CpuVisible and Readback buffers are mapped and host-coherent.
+        void* buffer_host_address(const Buffer* buffer);
+        Address buffer_device_address(const Buffer* buffer);
+        void destroy_buffer(Device* device, Buffer* buffer);
 
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
