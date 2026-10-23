@@ -98,6 +98,22 @@ namespace orion
             }
             g_event_queue.push(OnWindowMove{self, x, y});
         });
+        glfwSetKeyCallback(window, [](GLFWwindow* window_, int key, int /*scancode*/, int action, int /*mods*/) {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window_));
+            switch (action) {
+                case GLFW_RELEASE:
+                    g_event_queue.push(OnKeyRelease{self, static_cast<Keycode>(key)});
+                    break;
+                case GLFW_PRESS:
+                    g_event_queue.push(OnKeyPress{self, static_cast<Keycode>(key)});
+                    break;
+                case GLFW_REPEAT:
+                    g_event_queue.push(OnKeyRepeat{self, static_cast<Keycode>(key)});
+                    break;
+                default:
+                    std::unreachable();
+    }
+        });
     }
 
     Window::Window(Window&& other) noexcept

@@ -21,6 +21,21 @@ namespace orion
                            fmt::ptr(event.window), event.x, event.y);
     }
 
+    std::string format_as(const OnKeyPress& event)
+    {
+        return fmt::format("OnKeyPress: window={}, key={}", fmt::ptr(event.window), static_cast<int>(event.key));
+    }
+
+    std::string format_as(const OnKeyRepeat& event)
+    {
+        return fmt::format("OnKeyRepeat: window={}, key={}", fmt::ptr(event.window), static_cast<int>(event.key));
+    }
+
+    std::string format_as(const OnKeyRelease& event)
+    {
+        return fmt::format("OnKeyRelease: window={}, key={}", fmt::ptr(event.window), static_cast<int>(event.key));
+    }
+
     std::string format_as(const Event& event)
     {
         return std::visit([](const auto& e) { return format_as(e); }, event);
