@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace orion
 {
@@ -30,6 +31,28 @@ namespace orion
             BGRA8_Srgb,
         };
 
+        enum class PipelineStage : std::uint64_t {
+            None                  = 0ULL,
+            DrawIndirect          = 1ull << 0u,
+            IndexInput            = 1ull << 1u,
+            VertexShader          = 1ull << 2u,
+            FragmentShader        = 1ull << 3u,
+            DepthStencilTests     = 1ull << 4u,
+            ColorAttachmentOutput = 1ull << 5u,
+            ComputeShader         = 1ull << 6u,
+            Transfer              = 1ull << 7u,
+            Host                  = 1ull << 8u,
+            AllCommands           = 1ull << 9u,
+        };
+        inline constexpr PipelineStage operator|(PipelineStage lhs, PipelineStage rhs)
+        {
+            return static_cast<PipelineStage>(static_cast<std::uint64_t>(lhs) | static_cast<std::uint64_t>(rhs));
+        }
+        inline constexpr PipelineStage operator&(PipelineStage lhs, PipelineStage rhs)
+        {
+            return static_cast<PipelineStage>(static_cast<std::uint64_t>(lhs) & static_cast<std::uint64_t>(rhs));
+        }
+
         struct SwapchainFrame {
             Swapchain* swapchain  = nullptr;
             Image* image          = nullptr;
@@ -37,6 +60,22 @@ namespace orion
 
             std::uint32_t image_index   = 0u;
             std::uint32_t acquire_index = 0u;
+        };
+
+        struct TimelinePoint {
+            Queue queue         = Queue::Graphics;
+            std::uint64_t value = 0ull;
+        };
+
+        struct QueueWait {
+            TimelinePoint timeline_point = {};
+            PipelineStage wait_stages    = PipelineStage::None;
+        };
+
+        struct Submit {
+            std::span<const QueueWait> waits;
+            std::span<const CommandBuffer* const> command_buffers;
+            SwapchainFrame* swapchain_frame = nullptr;
         };
 
         struct DeviceDesc {
@@ -62,6 +101,8 @@ namespace orion
         CommandBuffer* begin_command_buffer(Device* device, CommandAllocator* allocator);
         void reset_command_allocator(Device* device, CommandAllocator* allocator);
         void destroy_command_allocator(Device* device, CommandAllocator* allocator);
+
+        TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
         [[nodiscard]] const char* backend_name();
         [[nodiscard]] const char* backend_version();

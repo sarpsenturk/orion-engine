@@ -134,6 +134,42 @@ namespace orion::gpu
         }
     }
 
+    static VkPipelineStageFlags2 to_vk_pipeline_stages(PipelineStage stages)
+    {
+        VkPipelineStageFlags2 output = 0ull;
+        if ((stages & PipelineStage::DrawIndirect) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+        }
+        if ((stages & PipelineStage::IndexInput) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
+        }
+        if ((stages & PipelineStage::VertexShader) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+        }
+        if ((stages & PipelineStage::FragmentShader) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        }
+        if ((stages & PipelineStage::DepthStencilTests) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        }
+        if ((stages & PipelineStage::ColorAttachmentOutput) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
+        if ((stages & PipelineStage::ComputeShader) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        }
+        if ((stages & PipelineStage::Transfer) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        }
+        if ((stages & PipelineStage::Host) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_HOST_BIT;
+        }
+        if ((stages & PipelineStage::AllCommands) != PipelineStage::None) {
+            output |= VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+        }
+        return output;
+    }
+
     static std::uint32_t select_queue_family(
         const std::vector<VkQueueFamilyProperties>& queue_families,
         VkQueueFlags required_flags)
@@ -622,6 +658,70 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkCommandPool {}", fmt::ptr(allocator->command_pool));
 
         delete allocator;
+    }
+
+    TimelinePoint submit(Device* device, Queue queue, const Submit& submit)
+    {
+        ORION_ASSERT(device != nullptr);
+        auto& vulkan_queue = device->get_queue(queue);
+
+        std::vector<VkSemaphoreSubmitInfo> wait_infos(submit.waits.size());
+        std::ranges::transform(submit.waits, wait_infos.begin(), [device](const QueueWait& wait) {
+            return VkSemaphoreSubmitInfo{
+                .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = device->get_queue(wait.timeline_point.queue).semaphore,
+                .value     = wait.timeline_point.value,
+                .stageMask = to_vk_pipeline_stages(wait.wait_stages),
+            };
+        });
+
+        std::vector<VkCommandBufferSubmitInfo> command_buffer_infos(submit.command_buffers.size());
+        std::ranges::transform(submit.command_buffers, command_buffer_infos.begin(), [](const CommandBuffer* command_buffer) {
+            GPU_CHECK(vkEndCommandBuffer(command_buffer->handle));
+            return VkCommandBufferSubmitInfo{
+                .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                .commandBuffer = command_buffer->handle,
+            };
+        });
+
+        std::vector<VkSemaphoreSubmitInfo> signal_infos{
+            VkSemaphoreSubmitInfo{
+                .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = vulkan_queue.semaphore,
+                .value     = ++vulkan_queue.value,
+                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            },
+        };
+
+        // Append swapchain semaphores if a swapchain frame is provided
+        if (submit.swapchain_frame != nullptr) {
+            wait_infos.push_back(VkSemaphoreSubmitInfo{
+                .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = submit.swapchain_frame->swapchain->acquire_semaphores[submit.swapchain_frame->acquire_index],
+                .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            });
+            signal_infos.push_back(VkSemaphoreSubmitInfo{
+                .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .semaphore = submit.swapchain_frame->swapchain->present_semaphores[submit.swapchain_frame->image_index],
+                .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            });
+        }
+
+        const auto submit_info = VkSubmitInfo2{
+            .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .waitSemaphoreInfoCount   = static_cast<std::uint32_t>(wait_infos.size()),
+            .pWaitSemaphoreInfos      = wait_infos.data(),
+            .commandBufferInfoCount   = static_cast<std::uint32_t>(command_buffer_infos.size()),
+            .pCommandBufferInfos      = command_buffer_infos.data(),
+            .signalSemaphoreInfoCount = static_cast<std::uint32_t>(signal_infos.size()),
+            .pSignalSemaphoreInfos    = signal_infos.data(),
+        };
+        GPU_CHECK(vkQueueSubmit2(vulkan_queue.handle, 1u, &submit_info, VK_NULL_HANDLE));
+
+        return TimelinePoint{
+            .queue = queue,
+            .value = vulkan_queue.value,
+        };
     }
 
     const char* backend_name()
