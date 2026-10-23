@@ -476,6 +476,39 @@ namespace orion::gpu
         return swapchain;
     }
 
+    std::optional<SwapchainFrame> acquire_swapchain_frame(Device* device, Swapchain* swapchain)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(swapchain != nullptr);
+
+        const auto acquire_index         = swapchain->current_acquire_index;
+        swapchain->current_acquire_index = (swapchain->current_acquire_index + 1u) % swapchain->images.size();
+
+        std::uint32_t image_index;
+        switch (const auto result = vkAcquireNextImageKHR(
+                    device->device,
+                    swapchain->swapchain,
+                    UINT64_MAX,
+                    swapchain->acquire_semaphores[acquire_index],
+                    VK_NULL_HANDLE,
+                    &image_index)) {
+            case VK_SUCCESS:
+                return SwapchainFrame{
+                    .image         = &swapchain->images[image_index],
+                    .image_view    = &swapchain->image_views[image_index],
+                    .image_index   = image_index,
+                    .acquire_index = acquire_index,
+                };
+            case VK_SUBOPTIMAL_KHR:
+                [[fallthrough]];
+            case VK_ERROR_OUT_OF_DATE_KHR:
+                return std::nullopt;
+            default:
+                throw std::runtime_error(fmt::format(
+                    "vkAcquireNextImageKHR failed: {}", string_VkResult(result)));
+        }
+    }
+
     void destroy_swapchain(Device* device, Swapchain* swapchain)
     {
         ORION_ASSERT(device != nullptr);

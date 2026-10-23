@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 namespace orion
 {
@@ -29,6 +30,14 @@ namespace orion
             BGRA8_Srgb,
         };
 
+        struct SwapchainFrame {
+            Image* image          = nullptr;
+            ImageView* image_view = nullptr;
+
+            std::uint32_t image_index   = 0u;
+            std::uint32_t acquire_index = 0u;
+        };
+
         struct DeviceDesc {
             std::uint32_t device_index = 0u;
         };
@@ -45,6 +54,7 @@ namespace orion
         void destroy_device(Device* device);
 
         Swapchain* create_swapchain(Device* device, const SwapchainDesc& desc);
+        std::optional<SwapchainFrame> acquire_swapchain_frame(Device* device, Swapchain* swapchain);
         void destroy_swapchain(Device* device, Swapchain* swapchain);
 
         CommandAllocator* create_command_allocator(Device* device, Queue queue);
