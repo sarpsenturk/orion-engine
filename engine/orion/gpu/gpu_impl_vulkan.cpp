@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <set>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #define GPU_CHECK(vkcall)                                                                 \
@@ -31,12 +32,35 @@ namespace orion::gpu
     // Target Vulkan API version
     static constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
 
+    struct VulkanQueue {
+        VkQueue handle       = VK_NULL_HANDLE;
+        std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
+    };
+
     struct Device {
         VkInstance instance = VK_NULL_HANDLE;
 
         VkPhysicalDevice physical_device = VK_NULL_HANDLE;
         VkDevice device                  = VK_NULL_HANDLE;
         VkPhysicalDeviceProperties device_properties;
+
+        VulkanQueue graphics_queue = {};
+        VulkanQueue compute_queue  = {};
+        VulkanQueue transfer_queue = {};
+
+        [[nodiscard]] VulkanQueue& get_queue(Queue queue)
+        {
+            switch (queue) {
+                case Queue::Graphics:
+                    return graphics_queue;
+                case Queue::Compute:
+                    return compute_queue;
+                case Queue::Transfer:
+                    return transfer_queue;
+                default:
+                    std::unreachable();
+            }
+        }
     };
 
     static std::uint32_t select_queue_family(
@@ -164,12 +188,26 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDevice {}", fmt::ptr(device));
         const auto device_guard = ScopeFail{[device] { vkDestroyDevice(device, nullptr); }};
 
+        // Retrieve queue handles
+        VkQueue graphics_queue;
+        vkGetDeviceQueue(device, graphics_family, 0u, &graphics_queue);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkQueue {} for graphics", fmt::ptr(graphics_queue));
+        VkQueue compute_queue;
+        vkGetDeviceQueue(device, compute_family, 0u, &compute_queue);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkQueue {} for compute", fmt::ptr(compute_queue));
+        VkQueue transfer_queue;
+        vkGetDeviceQueue(device, transfer_family, 0u, &transfer_queue);
+        ORION_LOG_DEBUG(LogChannel::Gpu, "Created VkQueue {} for transfer", fmt::ptr(transfer_queue));
+
         ORION_LOG_TRACE(LogChannel::Gpu, "Vulkan backend initialized");
         return new Device{
             .instance          = instance,
             .physical_device   = physical_device,
             .device            = device,
             .device_properties = device_properties,
+            .graphics_queue    = {graphics_queue, graphics_family},
+            .compute_queue     = {compute_queue, compute_family},
+            .transfer_queue    = {transfer_queue, transfer_family},
         };
     }
 

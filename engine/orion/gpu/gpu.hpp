@@ -8,6 +8,12 @@ namespace orion
     {
         struct Device;
 
+        enum class Queue {
+            Graphics = 0,
+            Compute,
+            Transfer,
+        };
+
         struct DeviceDesc {
             std::uint32_t device_index = 0u;
         };
