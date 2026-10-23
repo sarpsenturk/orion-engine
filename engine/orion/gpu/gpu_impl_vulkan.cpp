@@ -36,6 +36,9 @@ namespace orion::gpu
     struct VulkanQueue {
         VkQueue handle       = VK_NULL_HANDLE;
         std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
+
+        VkSemaphore semaphore = VK_NULL_HANDLE;
+        std::uint64_t value   = 0ull;
     };
 
     struct Image {
@@ -267,21 +270,57 @@ namespace orion::gpu
         vkGetDeviceQueue(device, transfer_family, 0u, &transfer_queue);
         ORION_LOG_DEBUG(LogChannel::Gpu, "Created VkQueue {} for transfer", fmt::ptr(transfer_queue));
 
+        // Create timeline semaphores for each queue
+        const auto semaphore_type_info = VkSemaphoreTypeCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+            .initialValue  = 0ull,
+        };
+        const auto semaphore_info = VkSemaphoreCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = &semaphore_type_info,
+        };
+        VkSemaphore graphics_semaphore;
+        GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &graphics_semaphore));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSemaphore {} for graphics queue", fmt::ptr(graphics_semaphore));
+        const auto graphics_semaphore_guard = ScopeFail{[device, graphics_semaphore] {
+            vkDestroySemaphore(device, graphics_semaphore, nullptr);
+        }};
+        VkSemaphore compute_semaphore;
+        GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &compute_semaphore));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSemaphore {} for compute queue", fmt::ptr(compute_semaphore));
+        const auto compute_semaphore_guard = ScopeFail{[device, compute_semaphore] {
+            vkDestroySemaphore(device, compute_semaphore, nullptr);
+        }};
+        VkSemaphore transfer_semaphore;
+        GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &transfer_semaphore));
+        ORION_LOG_DEBUG(LogChannel::Gpu, "Created VkSemaphore {} for transfer queue", fmt::ptr(transfer_semaphore));
+        const auto transfer_semaphore_guard = ScopeFail{[device, transfer_semaphore] {
+            vkDestroySemaphore(device, transfer_semaphore, nullptr);
+        }};
+
         ORION_LOG_TRACE(LogChannel::Gpu, "Vulkan backend initialized");
         return new Device{
             .instance          = instance,
             .physical_device   = physical_device,
             .device            = device,
             .device_properties = device_properties,
-            .graphics_queue    = {graphics_queue, graphics_family},
-            .compute_queue     = {compute_queue, compute_family},
-            .transfer_queue    = {transfer_queue, transfer_family},
+            .graphics_queue    = {graphics_queue, graphics_family, graphics_semaphore},
+            .compute_queue     = {compute_queue, compute_family, compute_semaphore},
+            .transfer_queue    = {transfer_queue, transfer_family, transfer_semaphore},
         };
     }
 
     void destroy_device(Device* device)
     {
         ORION_ASSERT(device != nullptr);
+
+        vkDestroySemaphore(device->device, device->transfer_queue.semaphore, nullptr);
+        ORION_LOG_DEBUG(LogChannel::Gpu, "Destroyed VkSemaphore {} (transfer queue)", fmt::ptr(device->transfer_queue.semaphore));
+        vkDestroySemaphore(device->device, device->compute_queue.semaphore, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (compute queue)", fmt::ptr(device->compute_queue.semaphore));
+        vkDestroySemaphore(device->device, device->graphics_queue.semaphore, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (graphics queue)", fmt::ptr(device->graphics_queue.semaphore));
 
         vkDestroyDevice(device->device, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDevice {}", fmt::ptr(device));
