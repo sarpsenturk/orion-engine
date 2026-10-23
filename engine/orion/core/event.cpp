@@ -51,6 +51,11 @@ namespace orion
         return fmt::format("OnCursorMove: window={}, xpos={}, ypos={}", fmt::ptr(event.window), event.xpos, event.ypos);
     }
 
+    std::string format_as(const OnScoll& event)
+    {
+        return fmt::format("OnScoll: window={}, xoffset={}, yoffset={}", fmt::ptr(event.window), event.xoffset, event.yoffset);
+    }
+
     std::string format_as(const Event& event)
     {
         return std::visit([](const auto& e) { return format_as(e); }, event);

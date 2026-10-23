@@ -37,7 +37,6 @@ namespace orion
             m_platform->pump_events();
             Event event;
             while (m_platform->poll_event(event)) {
-                ORION_LOG_TRACE(LogChannel::Core, event);
                 app->event(event);
             }
 

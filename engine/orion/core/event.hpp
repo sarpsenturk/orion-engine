@@ -57,6 +57,12 @@ namespace orion
         double ypos;
     };
 
+    struct OnScoll {
+        Window* window;
+        double xoffset;
+        double yoffset;
+    };
+
     using Event = std::variant<
         OnWindowClose,
         OnWindowResize,
@@ -66,7 +72,8 @@ namespace orion
         OnKeyRelease,
         OnMouseButtonPress,
         OnMouseButtonRelease,
-        OnCursorMove>;
+        OnCursorMove,
+        OnScoll>;
 
     std::string format_as(const OnWindowClose& event);
     std::string format_as(const OnWindowResize& event);
@@ -77,5 +84,6 @@ namespace orion
     std::string format_as(const OnMouseButtonPress& event);
     std::string format_as(const OnMouseButtonRelease& event);
     std::string format_as(const OnCursorMove& event);
+    std::string format_as(const OnScoll& event);
     std::string format_as(const Event& event);
 } // namespace orion

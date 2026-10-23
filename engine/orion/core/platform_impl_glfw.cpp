@@ -131,6 +131,10 @@ namespace orion
             auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window_));
             g_event_queue.push(OnCursorMove{self, xpos, ypos});
         });
+        glfwSetScrollCallback(window, [](GLFWwindow* window_, double xoffset, double yoffset) {
+            auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window_));
+            g_event_queue.push(OnScoll{self, xoffset, yoffset});
+        });
     }
 
     Window::Window(Window&& other) noexcept
