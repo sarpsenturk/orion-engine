@@ -23,6 +23,7 @@ target_link_libraries(orion.engine
 		spdlog::spdlog
 	PRIVATE
 		glfw
+		Vulkan::Headers Vulkan::volk
 )
 
 # Engine sources
@@ -30,17 +31,25 @@ target_link_libraries(orion.engine
 target_sources(orion.engine
 	PUBLIC FILE_SET HEADERS FILES
 		"orion/orion.hpp"
+
 		"orion/core/logger.hpp"
 		"orion/core/assert.hpp"
 		"orion/core/window.hpp"
 		"orion/core/event.hpp"
 		"orion/core/input.hpp"
+
+		"orion/renderer/renderer.hpp"
+		"orion/gpu/gpu.hpp"
 	PRIVATE
 		"orion/orion.cpp"
+
 		"orion/core/logger.cpp"
 		"orion/core/assert.cpp"
 		"orion/core/platform.hpp"
 		"orion/core/platform_impl_glfw.cpp"
 		"orion/core/event.cpp"
 		"orion/core/input.cpp"
+
+		"orion/renderer/renderer.cpp"
+		"orion/gpu/gpu_impl_vulkan.cpp"
 )

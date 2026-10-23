@@ -9,6 +9,7 @@ namespace orion
         Core,
         Application,
         Assertions,
+        Gpu,
 
         COUNT,
     };
