@@ -49,8 +49,9 @@ namespace orion::gpu
         std::uint32_t depth  = 0u;
         VkFormat format      = VK_FORMAT_UNDEFINED;
 
-        std::uint32_t mip_levels   = 0u;
-        std::uint32_t array_layers = 0u;
+        VkImageAspectFlags aspect_flags = 0u;
+        std::uint32_t mip_levels        = 0u;
+        std::uint32_t array_layers      = 0u;
     };
 
     struct ImageView {
@@ -168,6 +169,89 @@ namespace orion::gpu
             output |= VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
         }
         return output;
+    }
+
+    static VkAccessFlags2 to_vk_access_flags(Access access)
+    {
+        VkAccessFlags2 output = 0ull;
+        if ((access & Access::IndirectRead) != Access::None) {
+            output |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+        }
+        if ((access & Access::IndexRead) != Access::None) {
+            output |= VK_ACCESS_2_INDEX_READ_BIT;
+        }
+        if ((access & Access::ShaderRead) != Access::None) {
+            output |= VK_ACCESS_2_SHADER_READ_BIT;
+        }
+        if ((access & Access::ShaderWrite) != Access::None) {
+            output |= VK_ACCESS_2_SHADER_WRITE_BIT;
+        }
+        if ((access & Access::ColorAttachmentRead) != Access::None) {
+            output |= VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+        }
+        if ((access & Access::ColorAttachmentWrite) != Access::None) {
+            output |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        }
+        if ((access & Access::DepthStencilAttachmentRead) != Access::None) {
+            output |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        }
+        if ((access & Access::DepthStencilAttachmentWrite) != Access::None) {
+            output |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        }
+        if ((access & Access::TransferRead) != Access::None) {
+            output |= VK_ACCESS_2_TRANSFER_READ_BIT;
+        }
+        if ((access & Access::TransferWrite) != Access::None) {
+            output |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        }
+        if ((access & Access::HostRead) != Access::None) {
+            output |= VK_ACCESS_2_HOST_READ_BIT;
+        }
+        if ((access & Access::HostWrite) != Access::None) {
+            output |= VK_ACCESS_2_HOST_WRITE_BIT;
+        }
+        return output;
+    }
+
+    static VkImageLayout to_vk_image_layout(ImageLayout layout)
+    {
+        switch (layout) {
+            case ImageLayout::Undefined:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageLayout::ColorAttachment:
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            case ImageLayout::DepthStencilAttachment:
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            case ImageLayout::DepthStencilReadOnly:
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            case ImageLayout::ShaderReadOnly:
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            case ImageLayout::TransferSrc:
+                return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            case ImageLayout::TransferDst:
+                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            case ImageLayout::Present:
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        }
+        std::unreachable();
+    }
+
+    static VkImageAspectFlags aspect_flags_from_format(VkFormat format)
+    {
+        switch (format) {
+            case VK_FORMAT_D16_UNORM:
+            case VK_FORMAT_X8_D24_UNORM_PACK32:
+            case VK_FORMAT_D32_SFLOAT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT;
+            case VK_FORMAT_S8_UINT:
+                return VK_IMAGE_ASPECT_STENCIL_BIT;
+            case VK_FORMAT_D16_UNORM_S8_UINT:
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+                return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+            default:
+                return VK_IMAGE_ASPECT_COLOR_BIT;
+        }
     }
 
     static std::uint32_t select_queue_family(
@@ -470,6 +554,7 @@ namespace orion::gpu
                 .height       = swapchain_extent.height,
                 .depth        = 1u,
                 .format       = format,
+                .aspect_flags = aspect_flags_from_format(format),
                 .mip_levels   = 1u,
                 .array_layers = 1u,
             };
@@ -674,6 +759,37 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkCommandPool {}", fmt::ptr(allocator->command_pool));
 
         delete allocator;
+    }
+
+    void barrier(CommandBuffer* command_buffer, const Barrier& barrier)
+    {
+        std::vector<VkImageMemoryBarrier2> image_barriers(barrier.image_barriers.size());
+        std::ranges::transform(barrier.image_barriers, image_barriers.begin(), [](const ImageBarrier& ib) {
+            return VkImageMemoryBarrier2{
+                .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                .srcStageMask     = to_vk_pipeline_stages(ib.src_stages),
+                .srcAccessMask    = to_vk_access_flags(ib.src_access),
+                .dstStageMask     = to_vk_pipeline_stages(ib.dst_stages),
+                .dstAccessMask    = to_vk_access_flags(ib.dst_access),
+                .oldLayout        = to_vk_image_layout(ib.old_layout),
+                .newLayout        = to_vk_image_layout(ib.new_layout),
+                .image            = ib.image->handle,
+                .subresourceRange = {
+                    .aspectMask     = ib.image->aspect_flags,
+                    .baseMipLevel   = ib.subresource_range.base_mip_level,
+                    .levelCount     = ib.subresource_range.level_count,
+                    .baseArrayLayer = ib.subresource_range.base_array_layer,
+                    .layerCount     = ib.subresource_range.layer_count,
+                },
+            };
+        });
+
+        const auto dependency_info = VkDependencyInfo{
+            .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = static_cast<std::uint32_t>(image_barriers.size()),
+            .pImageMemoryBarriers    = image_barriers.data(),
+        };
+        vkCmdPipelineBarrier2(command_buffer->handle, &dependency_info);
     }
 
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)

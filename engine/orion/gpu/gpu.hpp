@@ -53,6 +53,63 @@ namespace orion
             return static_cast<PipelineStage>(static_cast<std::uint64_t>(lhs) & static_cast<std::uint64_t>(rhs));
         }
 
+        enum class Access : std::uint64_t {
+            None                        = 0ULL,
+            IndirectRead                = 1ull << 0u,
+            IndexRead                   = 1ull << 1u,
+            ShaderRead                  = 1ull << 2u,
+            ShaderWrite                 = 1ull << 3u,
+            ColorAttachmentRead         = 1ull << 4u,
+            ColorAttachmentWrite        = 1ull << 5u,
+            DepthStencilAttachmentRead  = 1ull << 6u,
+            DepthStencilAttachmentWrite = 1ull << 7u,
+            TransferRead                = 1ull << 8u,
+            TransferWrite               = 1ull << 9u,
+            HostRead                    = 1ull << 10u,
+            HostWrite                   = 1ull << 11u,
+        };
+        inline constexpr Access operator|(Access lhs, Access rhs)
+        {
+            return static_cast<Access>(static_cast<std::uint64_t>(lhs) | static_cast<std::uint64_t>(rhs));
+        }
+        inline constexpr Access operator&(Access lhs, Access rhs)
+        {
+            return static_cast<Access>(static_cast<std::uint64_t>(lhs) & static_cast<std::uint64_t>(rhs));
+        }
+
+        enum class ImageLayout {
+            Undefined = 0,
+            ColorAttachment,
+            DepthStencilAttachment,
+            DepthStencilReadOnly,
+            ShaderReadOnly,
+            TransferSrc,
+            TransferDst,
+            Present,
+        };
+
+        struct SubresourceRange {
+            std::uint32_t base_mip_level   = 0u;
+            std::uint32_t level_count      = 1u;
+            std::uint32_t base_array_layer = 0u;
+            std::uint32_t layer_count      = 1u;
+        };
+
+        struct ImageBarrier {
+            Image* image             = nullptr;
+            PipelineStage src_stages = PipelineStage::None;
+            Access src_access        = Access::None;
+            PipelineStage dst_stages = PipelineStage::None;
+            Access dst_access        = Access::None;
+            ImageLayout old_layout   = ImageLayout::Undefined;
+            ImageLayout new_layout   = ImageLayout::Undefined;
+            SubresourceRange subresource_range;
+        };
+
+        struct Barrier {
+            std::span<const ImageBarrier> image_barriers;
+        };
+
         struct SwapchainFrame {
             Swapchain* swapchain  = nullptr;
             Image* image          = nullptr;
@@ -103,6 +160,7 @@ namespace orion
         void reset_command_allocator(Device* device, CommandAllocator* allocator);
         void destroy_command_allocator(Device* device, CommandAllocator* allocator);
 
+        void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
         void wait_idle(Device* device);
