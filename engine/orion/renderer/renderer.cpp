@@ -21,6 +21,9 @@ namespace orion
 
     Renderer::~Renderer()
     {
+        // Wait until all work on the GPU has finished before tearing down the Renderer
+        gpu::wait_idle(m_device.get());
+
         for (auto& frame : m_frame_data) {
             gpu::destroy_command_allocator(m_device.get(), frame.command_allocator);
         }
@@ -28,6 +31,90 @@ namespace orion
         for (auto* swapchain : m_swapchains) {
             gpu::destroy_swapchain(m_device.get(), swapchain);
         }
+    }
+
+    std::optional<Frame> Renderer::begin_frame(gpu::Swapchain* swapchain)
+    {
+        auto& frame_data = current_frame();
+        // Wait until the previous submission of this frame has finished
+        gpu::wait_timeline(m_device.get(), frame_data.timeline_point);
+        // Reset the command allocator for this frame
+        gpu::reset_command_allocator(m_device.get(), frame_data.command_allocator);
+        // Acquire the next frame from the swapchain
+        // Return a Frame object if successful, otherwise return std::nullopt
+        if (auto swapchain_frame = gpu::acquire_swapchain_frame(m_device.get(), swapchain)) {
+            frame_data.swapchain_frame = *swapchain_frame;
+            return Frame{};
+        } else {
+            ORION_LOG_WARN(LogChannel::Renderer, "Swapchain frame acquisition failed, possibly due to window resize or minimization");
+            return std::nullopt;
+        }
+    }
+
+    void Renderer::end_frame()
+    {
+        auto& frame_data = current_frame();
+        // Begin command buffer recording
+        auto* command_buffer = gpu::begin_command_buffer(m_device.get(), frame_data.command_allocator);
+        // Transition the swapchain image to color attachment optimal layout
+        gpu::barrier(
+            command_buffer,
+            gpu::Barrier{
+                .image_barriers = {{
+                    gpu::ImageBarrier{
+                        .image             = frame_data.swapchain_frame.image,
+                        .src_stages        = gpu::PipelineStage::ColorAttachmentOutput,
+                        .src_access        = gpu::Access::None,
+                        .dst_stages        = gpu::PipelineStage::ColorAttachmentOutput,
+                        .dst_access        = gpu::Access::ColorAttachmentWrite,
+                        .old_layout        = gpu::ImageLayout::Undefined,
+                        .new_layout        = gpu::ImageLayout::ColorAttachment,
+                        .subresource_range = {
+                            .base_mip_level   = 0u,
+                            .level_count      = 1u,
+                            .base_array_layer = 0u,
+                            .layer_count      = 1u,
+                        },
+                    },
+                }},
+            });
+        // Begin render pass
+        // Record rendering commands
+        // End render pass
+        // Transition the swapchain image to present source layout
+        gpu::barrier(
+            command_buffer,
+            gpu::Barrier{
+                .image_barriers = {{
+                    gpu::ImageBarrier{
+                        .image             = frame_data.swapchain_frame.image,
+                        .src_stages        = gpu::PipelineStage::ColorAttachmentOutput,
+                        .src_access        = gpu::Access::ColorAttachmentWrite,
+                        .dst_stages        = gpu::PipelineStage::AllCommands,
+                        .dst_access        = gpu::Access::None,
+                        .old_layout        = gpu::ImageLayout::ColorAttachment,
+                        .new_layout        = gpu::ImageLayout::Present,
+                        .subresource_range = {
+                            .base_mip_level   = 0u,
+                            .level_count      = 1u,
+                            .base_array_layer = 0u,
+                            .layer_count      = 1u,
+                        },
+                    },
+                }},
+            });
+        // Submit the command buffers to the GPU
+        frame_data.timeline_point = gpu::submit(
+            m_device.get(),
+            gpu::Queue::Graphics,
+            gpu::Submit{
+                .command_buffers = {{command_buffer}},
+                .swapchain_frame = &frame_data.swapchain_frame,
+            });
+        // Present the swapchain image
+        gpu::present(m_device.get(), frame_data.swapchain_frame);
+        // Increment the frame counter
+        ++m_frame_counter;
     }
 
     gpu::Swapchain* Renderer::create_swapchain(

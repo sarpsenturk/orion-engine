@@ -5,10 +5,14 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace orion
 {
+    struct Frame {
+    };
+
     class Renderer
     {
     public:
@@ -21,6 +25,9 @@ namespace orion
         Renderer& operator=(Renderer&&)      = default;
         ~Renderer();
 
+        std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
+        void end_frame();
+
         [[nodiscard]] gpu::Swapchain* create_swapchain(
             const class Window& window,
             std::uint32_t image_count,
@@ -32,6 +39,8 @@ namespace orion
     private:
         struct FrameInFlight {
             gpu::CommandAllocator* command_allocator = nullptr;
+            gpu::TimelinePoint timeline_point;
+            gpu::SwapchainFrame swapchain_frame;
         };
 
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }

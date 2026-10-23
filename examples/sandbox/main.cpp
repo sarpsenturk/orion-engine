@@ -15,8 +15,16 @@ public:
 
 private:
     void on_update() override {}
-    void on_render() override {}
+
+    void on_render() override
+    {
+        auto frame = m_renderer.begin_frame(m_swapchain);
+        if (!frame) { return; }
+        m_renderer.end_frame();
+    }
+
     void on_event(const orion::Event&) override {}
+
     bool should_exit() const override { return m_window.should_close(); }
 
     orion::Window m_window;
