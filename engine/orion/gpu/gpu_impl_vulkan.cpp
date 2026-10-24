@@ -31,7 +31,7 @@
 namespace orion::gpu
 {
     // Target Vulkan API version
-    static constexpr auto vulkan_api_version = VK_API_VERSION_1_3;
+    static constexpr auto vulkan_api_version = VK_API_VERSION_1_4;
 
     struct VulkanQueue {
         VkQueue handle       = VK_NULL_HANDLE;
@@ -512,8 +512,11 @@ namespace orion::gpu
         };
 
         // Create VkDevice
-        const auto device_extensions = std::array{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-        const auto device_info       = VkDeviceCreateInfo{
+        const auto device_extensions = std::array{
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
+        };
+        const auto device_info = VkDeviceCreateInfo{
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext                   = &vulkan_10_features,
             .queueCreateInfoCount    = static_cast<std::uint32_t>(queue_create_infos.size()),
@@ -1037,10 +1040,14 @@ namespace orion::gpu
             .pColorAttachmentFormats = color_attachments.data(),
             .depthAttachmentFormat   = to_vk_format(desc.depth_attachment),
         };
-
+        const auto pipeline_flags_info = VkPipelineCreateFlags2CreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+            .pNext = &rendering_info,
+            .flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+        };
         const auto pipeline_info = VkGraphicsPipelineCreateInfo{
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .pNext               = &rendering_info,
+            .pNext               = &pipeline_flags_info,
             .stageCount          = static_cast<std::uint32_t>(shader_stages.size()),
             .pStages             = shader_stages.data(),
             .pVertexInputState   = &vertex_input_state,
