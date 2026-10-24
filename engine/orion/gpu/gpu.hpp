@@ -1,5 +1,7 @@
 #pragma once
 
+#include "orion/utils/byte_span.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -294,8 +296,8 @@ namespace orion
 
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
-        void draw(CommandBuffer* command_buffer, const Draw& draw);
-        void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw);
+        void draw(CommandBuffer* command_buffer, const Draw& draw, ByteSpan root = {});
+        void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw, ByteSpan root = {});
         void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state);
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);

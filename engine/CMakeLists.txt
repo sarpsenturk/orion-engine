@@ -40,6 +40,7 @@ target_sources(orion.engine
 
 		"orion/utils/array.hpp"
 		"orion/utils/scope_guard.hpp"
+		"orion/utils/byte_span.hpp"
 
 		"orion/renderer/renderer.hpp"
 		"orion/gpu/gpu.hpp"

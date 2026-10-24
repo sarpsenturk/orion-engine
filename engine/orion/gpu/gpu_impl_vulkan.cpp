@@ -1234,13 +1234,32 @@ namespace orion::gpu
         vkCmdSetScissor(command_buffer->handle, 0u, 1u, &vk_scissor);
     }
 
-    void draw(CommandBuffer* command_buffer, const Draw& draw)
+    static void push_root_data(CommandBuffer* command_buffer, ByteSpan root)
     {
-        vkCmdDraw(command_buffer->handle, draw.vertex_count, draw.instance_count, draw.first_vertex, draw.first_instance);
+        if (!root.empty()) {
+            const auto push_data_info = VkPushDataInfoEXT{
+                .sType  = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+                .offset = 0u,
+                .data   = {.address = root.data, .size = root.size},
+            };
+            vkCmdPushDataEXT(command_buffer->handle, &push_data_info);
+        }
     }
 
-    void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw)
+    void draw(CommandBuffer* command_buffer, const Draw& draw, ByteSpan root)
     {
+        push_root_data(command_buffer, root);
+        vkCmdDraw(
+            command_buffer->handle,
+            draw.vertex_count,
+            draw.instance_count,
+            draw.first_vertex,
+            draw.first_instance);
+    }
+
+    void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw, ByteSpan root)
+    {
+        push_root_data(command_buffer, root);
         vkCmdDrawIndexed(
             command_buffer->handle,
             draw.index_count,
