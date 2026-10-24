@@ -39,6 +39,8 @@ namespace orion
         [[nodiscard]] class Renderer& renderer() { return *m_renderer; }
 
     private:
+        void on_event(const Event& event);
+
         std::unique_ptr<class Logger> m_logger;
         std::unique_ptr<class Platform> m_platform;
         std::unique_ptr<class Renderer> m_renderer;

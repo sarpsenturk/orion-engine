@@ -41,11 +41,17 @@ namespace orion
             m_platform->pump_events();
             Event event;
             while (m_platform->poll_event(event)) {
-                app->event(event);
+                on_event(event);   // Handle event at engine level first
+                app->event(event); // Then pass event onto the application
             }
 
             app->update();
             app->render();
         }
+    }
+
+    void Engine::on_event(const Event& event)
+    {
+        m_renderer->on_event(event);
     }
 } // namespace orion

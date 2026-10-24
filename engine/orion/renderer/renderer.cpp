@@ -58,7 +58,7 @@ namespace orion
             gpu::destroy_command_allocator(m_device.get(), frame.command_allocator);
         }
 
-        for (auto* swapchain : m_swapchains) {
+        for (auto [_, swapchain] : m_swapchains) {
             gpu::destroy_swapchain(m_device.get(), swapchain);
         }
     }
@@ -187,6 +187,8 @@ namespace orion
         std::uint32_t image_count,
         gpu::Format image_format)
     {
+        ORION_ASSERT(!m_swapchains.contains(&window) && "A swapchain for this window already exists");
+
         auto* swapchain = gpu::create_swapchain(
             m_device.get(),
             gpu::SwapchainDesc{
@@ -196,19 +198,22 @@ namespace orion
                 .image_count          = image_count,
                 .image_format         = image_format,
             });
-        m_swapchains.push_back(swapchain);
+        m_swapchains.insert(std::make_pair(&window, swapchain));
         return swapchain;
     }
 
-    void Renderer::destroy_swapchain(gpu::Swapchain* swapchain)
+    void Renderer::on_event(const Event& event)
     {
-        ORION_ASSERT(swapchain != nullptr);
-        auto it = std::ranges::find(m_swapchains, swapchain);
-        if (it == m_swapchains.end()) {
-            ORION_LOG_WARN(LogChannel::Renderer, "Destroying swapchain {} that was not created by this renderer", fmt::ptr(swapchain));
-        } else {
-            gpu::destroy_swapchain(m_device.get(), swapchain);
-            m_swapchains.erase(it);
+        if (const auto* window_resize = std::get_if<OnWindowResize>(&event)) {
+            // If a swapchain for this window exists, resize it
+            if (auto it = m_swapchains.find(window_resize->window); it != m_swapchains.end()) {
+                // Skip resizing if the new dimensions are zero (minimized window)
+                if (window_resize->width == 0 || window_resize->height == 0) { return; }
+
+                // Wait until the GPU is idle before resizing the swapchain
+                gpu::wait_idle(m_device.get());
+                gpu::resize_swapchain(m_device.get(), it->second, window_resize->width, window_resize->height);
+            }
         }
     }
 } // namespace orion

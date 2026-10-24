@@ -18,6 +18,7 @@ private:
 
     void on_render() override
     {
+        if (m_window.width() == 0 || m_window.height() == 0) { return; }
         auto frame = m_renderer.begin_frame(m_swapchain);
         if (!frame) { return; }
         m_renderer.end_frame();

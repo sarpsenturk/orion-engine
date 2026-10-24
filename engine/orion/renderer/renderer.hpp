@@ -1,15 +1,20 @@
 #pragma once
 
+#include "orion/core/event.hpp"
 #include "orion/gpu/gpu.hpp"
 
 #include <array>
 #include <cstdint>
+#include <flat_map>
 #include <memory>
 #include <optional>
 #include <vector>
 
 namespace orion
 {
+    // Forward declarations
+    class Window;
+
     struct Frame {
     };
 
@@ -29,10 +34,10 @@ namespace orion
         void end_frame();
 
         [[nodiscard]] gpu::Swapchain* create_swapchain(
-            const class Window& window,
+            const Window& window,
             std::uint32_t image_count,
             gpu::Format image_format);
-        void destroy_swapchain(gpu::Swapchain* swapchain);
+        void on_event(const Event& event);
 
         [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
 
@@ -47,7 +52,7 @@ namespace orion
         [[nodiscard]] FrameInFlight& current_frame() { return m_frame_data[current_frame_index()]; }
 
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
-        std::vector<gpu::Swapchain*> m_swapchains;
+        std::flat_map<const Window*, gpu::Swapchain*> m_swapchains;
 
         std::array<FrameInFlight, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;
