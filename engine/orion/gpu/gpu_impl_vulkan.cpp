@@ -1232,6 +1232,17 @@ namespace orion::gpu
         vkCmdDraw(command_buffer->handle, draw.vertex_count, draw.instance_count, draw.first_vertex, draw.first_instance);
     }
 
+    void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw)
+    {
+        vkCmdDrawIndexed(
+            command_buffer->handle,
+            draw.index_count,
+            draw.instance_count,
+            draw.first_index,
+            draw.vertex_offset,
+            draw.first_instance);
+    }
+
     void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state)
     {
         vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->handle);
