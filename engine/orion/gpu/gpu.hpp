@@ -299,6 +299,7 @@ namespace orion
         void draw(CommandBuffer* command_buffer, const Draw& draw, ByteSpan root = {});
         void draw_indexed(CommandBuffer* command_buffer, const DrawIndexed& draw, ByteSpan root = {});
         void bind_pipeline_state(CommandBuffer* command_buffer, PipelineState* pipeline_state);
+        void bind_index_buffer(CommandBuffer* command_buffer, Buffer* index_buffer, std::size_t offset);
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
         void barrier(CommandBuffer* command_buffer, const Barrier& barrier);

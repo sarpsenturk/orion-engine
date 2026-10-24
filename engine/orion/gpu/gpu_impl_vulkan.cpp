@@ -1274,6 +1274,11 @@ namespace orion::gpu
         vkCmdBindPipeline(command_buffer->handle, pipeline_state->bind_point, pipeline_state->handle);
     }
 
+    void bind_index_buffer(CommandBuffer* command_buffer, Buffer* index_buffer, std::size_t offset)
+    {
+        vkCmdBindIndexBuffer(command_buffer->handle, index_buffer->handle, offset, VK_INDEX_TYPE_UINT32);
+    }
+
     void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass)
     {
         ORION_ASSERT(render_pass.color_attachments.size() <= max_color_attachments);
