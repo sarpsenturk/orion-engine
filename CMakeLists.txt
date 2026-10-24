@@ -25,7 +25,6 @@ set(
 	"Directory for compiled shader (SPIR-V) output"
 )
 
-
 # Third-party dependencies
 find_package(spdlog 1.17.0 CONFIG REQUIRED)
 find_package(glfw3 3.5.1 CONFIG REQUIRED)
@@ -37,6 +36,7 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 if (ORION_BUILD_TESTS)
 	enable_testing()
+	include(cmake/gtest.cmake)
 endif()
 
 # Engine core source

@@ -41,6 +41,7 @@ target_sources(orion.engine
 		"orion/utils/array.hpp"
 		"orion/utils/scope_guard.hpp"
 		"orion/utils/byte_span.hpp"
+		"orion/utils/slot_map.hpp"
 
 		"orion/renderer/renderer.hpp"
 		"orion/gpu/gpu.hpp"
@@ -62,3 +63,8 @@ target_sources(orion.engine
 # Offline compilation using slangc
 add_subdirectory(shaders)
 add_dependencies(orion.engine orion.shaders)
+
+# Engine tests
+if (ORION_BUILD_TESTS)
+	add_subdirectory(tests)
+endif()
