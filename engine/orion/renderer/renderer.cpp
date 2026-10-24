@@ -6,12 +6,25 @@
 #include "orion/utils/array.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <vector>
 
 namespace orion
 {
+    static constexpr auto dummy_vertex_data = std::array{
+        -0.5f, -0.5f, 0.0f, // Vertex 1: position (x, y, z)
+        0.5f, -0.5f, 0.0f,  // Vertex 2: position (x, y, z)
+        0.5f, 0.5f, 0.0f,   // Vertex 3: position (x, y, z)
+        -0.5f, 0.5f, 0.0f   // Vertex 4: position (x, y, z)
+    };
+    static constexpr auto dummy_index_data = std::array{
+        0u, 1u, 2u, // First triangle
+        2u, 3u, 0u  // Second triangle
+    };
+
     static std::vector<std::uint32_t> load_spirv(const char* path)
     {
         // Load spirv from disk
@@ -37,14 +50,28 @@ namespace orion
         , m_dummy_pipeline(gpu::create_graphics_pipeline(
               m_device.get(),
               gpu::GraphicsPipelineDesc{
-                  .spirv             = load_spirv("../shaders/triangle.spv"),
+                  .spirv             = load_spirv("../shaders/vertex_pull.spv"),
                   .topology          = gpu::Topology::TriangleList,
                   .rasterizer        = gpu::RasterizerDesc{},
                   .depth_stencil     = gpu::DepthStencilDesc{},
                   .color_attachments = {{gpu::Format::BGRA8_Unorm}},
                   .depth_attachment  = gpu::Format::Undefined,
               }))
+        , m_dummy_vertex_buffer(gpu::create_buffer(
+              m_device.get(),
+              gpu::BufferDesc{
+                  .size   = sizeof(dummy_vertex_data),
+                  .memory = gpu::Memory::CpuVisible,
+              }))
+        , m_dummy_index_buffer(gpu::create_buffer(
+              m_device.get(),
+              gpu::BufferDesc{
+                  .size   = sizeof(dummy_index_data),
+                  .memory = gpu::Memory::CpuVisible,
+              }))
     {
+        std::memcpy(gpu::buffer_host_address(m_dummy_vertex_buffer), dummy_vertex_data.data(), sizeof(dummy_vertex_data));
+        std::memcpy(gpu::buffer_host_address(m_dummy_index_buffer), dummy_index_data.data(), sizeof(dummy_index_data));
     }
 
     Renderer::~Renderer()
@@ -52,6 +79,8 @@ namespace orion
         // Wait until all work on the GPU has finished before tearing down the Renderer
         gpu::wait_idle(m_device.get());
 
+        gpu::destroy_buffer(m_device.get(), m_dummy_index_buffer);
+        gpu::destroy_buffer(m_device.get(), m_dummy_vertex_buffer);
         gpu::destroy_pipeline(m_device.get(), m_dummy_pipeline);
 
         for (auto& frame : m_frame_data) {
@@ -123,6 +152,8 @@ namespace orion
             });
         // Bind the dummy graphics pipeline
         gpu::bind_pipeline_state(command_buffer, m_dummy_pipeline);
+        // Bind the dummy index buffer
+        gpu::bind_index_buffer(command_buffer, m_dummy_index_buffer, 0z);
         // Get the extent of the swapchain image
         const auto swapchain_extent = gpu::image_extent_2d(frame_data.swapchain_frame.image);
         // Set viewport and scissor to cover the entire swapchain image
@@ -142,8 +173,12 @@ namespace orion
                 .offset = {0, 0},
                 .extent = swapchain_extent,
             });
-        // Issue a draw call for a triangle
-        gpu::draw(command_buffer, {3u, 1u, 0u, 0u});
+        // Draw the indexed quad, passing the vertex buffer address for vertex pulling
+        const auto vertex_buffer_addr = gpu::buffer_device_address(m_dummy_vertex_buffer);
+        gpu::draw_indexed(
+            command_buffer,
+            gpu::DrawIndexed{.index_count = static_cast<std::uint32_t>(dummy_index_data.size())},
+            vertex_buffer_addr);
         // End render pass
         gpu::end_render_pass(command_buffer);
         // Transition the swapchain image to present source layout

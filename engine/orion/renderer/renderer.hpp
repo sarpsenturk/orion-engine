@@ -58,5 +58,7 @@ namespace orion
         std::uint64_t m_frame_counter = 0ull;
 
         gpu::PipelineState* m_dummy_pipeline = nullptr;
+        gpu::Buffer* m_dummy_vertex_buffer   = nullptr;
+        gpu::Buffer* m_dummy_index_buffer    = nullptr;
     };
 } // namespace orion
