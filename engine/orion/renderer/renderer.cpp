@@ -83,7 +83,7 @@ namespace orion
         }
     }
 
-    void Renderer::render(const Scene& scene)
+    void Renderer::render(const RenderView& view)
     {
         auto& frame_data = current_frame();
         // Begin command buffer recording
@@ -146,14 +146,17 @@ namespace orion
             });
         // Bind index buffer
         gpu::bind_index_buffer(command_buffer, m_mesh_manager.index_buffer(), 0);
+        // Calculate view-projection matrix
+        const auto view_projection = view.projection * view.view;
         // Iterate over the scene instances and issue draw calls
-        for (const auto& instance : scene.instances) {
-            const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
+        for (const auto& instance : view.scene.instances) {
             struct MeshRoot {
                 gpu::Address vertices;
                 char padding[8]; // Padding to ensure 16-byte alignment
-                alignas(16) glm::mat4 model;
+                alignas(16) glm::mat4 mvp;
             };
+            const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
+            const auto mvp   = view_projection * instance.model;
             gpu::draw_indexed(
                 command_buffer,
                 gpu::DrawIndexed{
@@ -163,7 +166,7 @@ namespace orion
                     .vertex_offset  = 0,
                     .first_instance = 0u,
                 },
-                MeshRoot{.vertices = mesh.position_address, .model = instance.model});
+                MeshRoot{.vertices = mesh.position_address, .mvp = mvp});
         }
         // End render pass
         gpu::end_render_pass(command_buffer);

@@ -3,6 +3,7 @@
 #include <orion/core/window.hpp>
 #include <orion/renderer/renderer.hpp>
 
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/vec3.hpp>
 
@@ -39,10 +40,14 @@ private:
         auto frame = m_renderer.begin_frame(m_swapchain);
         if (!frame) { return; }
         m_renderer.render({
-            .instances = {{
-                orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
-                orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
-            }},
+            .view       = glm::lookAtRH(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+            .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
+            .scene      = {
+                .instances = {{
+                    orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
+                    orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
+                }},
+            },
         });
     }
 

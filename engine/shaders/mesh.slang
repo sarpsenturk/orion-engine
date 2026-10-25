@@ -1,6 +1,6 @@
 struct MeshRoot {
     float3* vertices;
-    float4x4 model;
+    float4x4 mvp;
 };
 
 [vk::push_constant]
@@ -15,7 +15,7 @@ VSOutput vsmain(uint vtx : SV_VertexID)
 {
     let vertex = root.vertices[vtx];
     VSOutput output;
-    output.position = mul(root.model, float4(vertex, 1.0));
+    output.position = mul(root.mvp, float4(vertex, 1.0));
     return output;
 }
 

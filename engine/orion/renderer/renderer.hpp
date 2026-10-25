@@ -6,6 +6,8 @@
 #include "orion/core/event.hpp"
 #include "orion/gpu/gpu.hpp"
 
+#include <glm/mat4x4.hpp>
+
 #include <array>
 #include <cstdint>
 #include <flat_map>
@@ -17,6 +19,12 @@ namespace orion
 {
     // Forward declarations
     class Window;
+
+    struct RenderView {
+        glm::mat4 view;
+        glm::mat4 projection;
+        const Scene& scene;
+    };
 
     struct Frame {
     };
@@ -34,7 +42,7 @@ namespace orion
         ~Renderer();
 
         std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
-        void render(const Scene& scene);
+        void render(const RenderView& view);
 
         [[nodiscard]] gpu::Swapchain* create_swapchain(
             const Window& window,
