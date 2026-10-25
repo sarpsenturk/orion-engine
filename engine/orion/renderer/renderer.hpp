@@ -26,8 +26,8 @@ namespace orion
         Renderer();
         Renderer(const Renderer&)            = delete;
         Renderer& operator=(const Renderer&) = delete;
-        Renderer(Renderer&&)                 = default;
-        Renderer& operator=(Renderer&&)      = default;
+        Renderer(Renderer&&)                 = delete;
+        Renderer& operator=(Renderer&&)      = delete;
         ~Renderer();
 
         std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
