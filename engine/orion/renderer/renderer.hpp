@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mesh.hpp"
+#include "scene.hpp"
 
 #include "orion/core/event.hpp"
 #include "orion/gpu/gpu.hpp"
@@ -33,7 +34,7 @@ namespace orion
         ~Renderer();
 
         std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
-        void end_frame();
+        void render(const Scene& scene);
 
         [[nodiscard]] gpu::Swapchain* create_swapchain(
             const Window& window,

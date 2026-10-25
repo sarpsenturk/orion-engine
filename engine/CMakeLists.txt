@@ -46,6 +46,7 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/mesh.hpp"
+		"orion/renderer/scene.hpp"
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/bump_allocator.hpp"
 	PRIVATE
@@ -60,6 +61,7 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.cpp"
 		"orion/renderer/mesh.cpp"
+		"orion/renderer/scene.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
 )
 

@@ -3,6 +3,7 @@
 #include <orion/core/window.hpp>
 #include <orion/renderer/renderer.hpp>
 
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/vec3.hpp>
 
 #include <array>
@@ -37,7 +38,12 @@ private:
         if (m_window.width() == 0 || m_window.height() == 0) { return; }
         auto frame = m_renderer.begin_frame(m_swapchain);
         if (!frame) { return; }
-        m_renderer.end_frame();
+        m_renderer.render({
+            .instances = {{
+                orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
+                orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
+            }},
+        });
     }
 
     void on_event(const orion::Event&) override {}

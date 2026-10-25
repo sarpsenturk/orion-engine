@@ -39,7 +39,7 @@ namespace orion
         , m_dummy_pipeline(gpu::create_graphics_pipeline(
               m_device.get(),
               gpu::GraphicsPipelineDesc{
-                  .spirv             = load_spirv("../shaders/vertex_pull.spv"),
+                  .spirv             = load_spirv("../shaders/mesh.spv"),
                   .topology          = gpu::Topology::TriangleList,
                   .rasterizer        = gpu::RasterizerDesc{},
                   .depth_stencil     = gpu::DepthStencilDesc{},
@@ -83,7 +83,7 @@ namespace orion
         }
     }
 
-    void Renderer::end_frame()
+    void Renderer::render(const Scene& scene)
     {
         auto& frame_data = current_frame();
         // Begin command buffer recording
@@ -144,7 +144,27 @@ namespace orion
                 .offset = {0, 0},
                 .extent = swapchain_extent,
             });
-        // TODO: Draw calls
+        // Bind index buffer
+        gpu::bind_index_buffer(command_buffer, m_mesh_manager.index_buffer(), 0);
+        // Iterate over the scene instances and issue draw calls
+        for (const auto& instance : scene.instances) {
+            const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
+            struct MeshRoot {
+                gpu::Address vertices;
+                char padding[8]; // Padding to ensure 16-byte alignment
+                alignas(16) glm::mat4 model;
+            };
+            gpu::draw_indexed(
+                command_buffer,
+                gpu::DrawIndexed{
+                    .index_count    = mesh.index_count,
+                    .instance_count = 1u,
+                    .first_index    = mesh.first_index,
+                    .vertex_offset  = 0,
+                    .first_instance = 0u,
+                },
+                MeshRoot{.vertices = mesh.position_address, .model = instance.model});
+        }
         // End render pass
         gpu::end_render_pass(command_buffer);
         // Transition the swapchain image to present source layout
