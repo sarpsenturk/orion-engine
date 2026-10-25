@@ -1,5 +1,7 @@
 #pragma once
 
+#include "mesh.hpp"
+
 #include "orion/core/event.hpp"
 #include "orion/gpu/gpu.hpp"
 
@@ -39,6 +41,9 @@ namespace orion
             gpu::Format image_format);
         void on_event(const Event& event);
 
+        [[nodiscard]] Mesh create_mesh(const MeshDesc& desc);
+        void destroy_mesh(Mesh mesh);
+
         [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
 
     private:
@@ -57,8 +62,8 @@ namespace orion
         std::array<FrameInFlight, frames_in_flight> m_frame_data;
         std::uint64_t m_frame_counter = 0ull;
 
+        MeshManager m_mesh_manager;
+
         gpu::PipelineState* m_dummy_pipeline = nullptr;
-        gpu::Buffer* m_dummy_vertex_buffer   = nullptr;
-        gpu::Buffer* m_dummy_index_buffer    = nullptr;
     };
 } // namespace orion

@@ -21,6 +21,7 @@ target_compile_definitions(orion.engine
 target_link_libraries(orion.engine
 	PUBLIC
 		spdlog::spdlog
+		glm::glm
 	PRIVATE
 		glfw
 		Vulkan::Headers Vulkan::volk
@@ -44,7 +45,9 @@ target_sources(orion.engine
 		"orion/utils/slot_map.hpp"
 
 		"orion/renderer/renderer.hpp"
+		"orion/renderer/mesh.hpp"
 		"orion/gpu/gpu.hpp"
+		"orion/gpu/bump_allocator.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
@@ -56,6 +59,7 @@ target_sources(orion.engine
 		"orion/core/input.cpp"
 
 		"orion/renderer/renderer.cpp"
+		"orion/renderer/mesh.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
 )
 

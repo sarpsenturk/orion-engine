@@ -3,6 +3,21 @@
 #include <orion/core/window.hpp>
 #include <orion/renderer/renderer.hpp>
 
+#include <glm/vec3.hpp>
+
+#include <array>
+
+static constexpr auto quad_vertices = std::array{
+    glm::vec3(-0.5f, -0.5f, 0.0f), // Vertex 1: position (x, y, z)
+    glm::vec3(0.5f, -0.5f, 0.0f),  // Vertex 2: position (x, y, z)
+    glm::vec3(0.5f, 0.5f, 0.0f),   // Vertex 3: position (x, y, z)
+    glm::vec3(-0.5f, 0.5f, 0.0f)   // Vertex 4: position (x, y, z)
+};
+static constexpr auto quad_indices = std::array{
+    0u, 1u, 2u, // First triangle
+    2u, 3u, 0u  // Second triangle
+};
+
 class Sandbox : public orion::Application
 {
 public:
@@ -10,6 +25,7 @@ public:
         : m_window(orion::WindowDesc{"Sandbox", 1'280, 720})
         , m_renderer(engine.renderer())
         , m_swapchain(m_renderer.create_swapchain(m_window, 2u, orion::gpu::Format::BGRA8_Unorm))
+        , m_quad_mesh(m_renderer.create_mesh({quad_vertices, quad_indices, 4u}))
     {
     }
 
@@ -31,6 +47,8 @@ private:
     orion::Window m_window;
     orion::Renderer& m_renderer;
     orion::gpu::Swapchain* m_swapchain;
+
+    orion::Mesh m_quad_mesh;
 };
 
 int main()
