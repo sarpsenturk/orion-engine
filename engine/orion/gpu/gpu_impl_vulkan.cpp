@@ -42,7 +42,8 @@ namespace orion::gpu
     };
 
     struct Image {
-        VkImage handle = VK_NULL_HANDLE;
+        VkImage handle        = VK_NULL_HANDLE;
+        VkDeviceMemory memory = VK_NULL_HANDLE;
 
         std::uint32_t width  = 0u;
         std::uint32_t height = 0u;
@@ -174,6 +175,8 @@ namespace orion::gpu
                 return VK_FORMAT_B8G8R8A8_UNORM;
             case Format::BGRA8_Srgb:
                 return VK_FORMAT_B8G8R8A8_SRGB;
+            case Format::D32_Float:
+                return VK_FORMAT_D32_SFLOAT;
             default:
                 std::unreachable();
         }
@@ -278,6 +281,30 @@ namespace orion::gpu
                 return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         }
         std::unreachable();
+    }
+
+    static VkImageUsageFlags to_vk_image_usage_flags(ImageUsage usage)
+    {
+        VkImageUsageFlags output = 0u;
+        if ((usage & ImageUsage::TransferSrc) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+        if ((usage & ImageUsage::TransferDst) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        }
+        if ((usage & ImageUsage::Sampled) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_SAMPLED_BIT;
+        }
+        if ((usage & ImageUsage::Storage) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_STORAGE_BIT;
+        }
+        if ((usage & ImageUsage::ColorAttachment) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        }
+        if ((usage & ImageUsage::DepthStencilAttachment) != ImageUsage::None) {
+            output |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        }
+        return output;
     }
 
     static VkImageAspectFlags aspect_flags_from_format(VkFormat format)
@@ -1082,10 +1109,151 @@ namespace orion::gpu
         delete pipeline;
     }
 
+    Image* create_image(Device* device, const ImageDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(desc.width != 0u);
+        ORION_ASSERT(desc.height != 0u);
+        ORION_ASSERT(desc.format != Format::Undefined);
+        ORION_ASSERT(desc.mip_levels != 0u);
+        ORION_ASSERT(desc.array_layers != 0u);
+        ORION_ASSERT(desc.usage != ImageUsage::None);
+
+        // Create VkImage
+        const auto image_info = VkImageCreateInfo{
+            .sType     = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format    = to_vk_format(desc.format),
+            .extent    = {
+                .width  = desc.width,
+                .height = desc.height,
+                .depth  = 1u,
+            },
+            .mipLevels     = desc.mip_levels,
+            .arrayLayers   = desc.array_layers,
+            .samples       = VK_SAMPLE_COUNT_1_BIT,
+            .tiling        = VK_IMAGE_TILING_OPTIMAL,
+            .usage         = to_vk_image_usage_flags(desc.usage),
+            .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+        VkImage image;
+        GPU_CHECK(vkCreateImage(device->device, &image_info, nullptr, &image));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkImage {}", fmt::ptr(image));
+        const auto image_guard = ScopeFail{[device, image] {
+            vkDestroyImage(device->device, image, nullptr);
+        }};
+
+        // Get image memory requirements
+        VkMemoryRequirements memory_requirements;
+        vkGetImageMemoryRequirements(device->device, image, &memory_requirements);
+
+        // Find suitable memory type
+        const auto memory_type_index = device->find_memory_type(
+            memory_requirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            0u,
+            VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+            memory_requirements.size);
+        if (memory_type_index == VK_MAX_MEMORY_TYPES) {
+            throw std::runtime_error("Vulkan: Failed to find suitable memory type for image");
+        }
+
+        // Allocate memory
+        const auto allocation_info = VkMemoryAllocateInfo{
+            .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize  = memory_requirements.size,
+            .memoryTypeIndex = memory_type_index,
+        };
+        VkDeviceMemory memory;
+        GPU_CHECK(vkAllocateMemory(device->device, &allocation_info, nullptr, &memory));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Allocated VkDeviceMemory {} for image {}", fmt::ptr(memory), fmt::ptr(image));
+        const auto memory_guard = ScopeFail{[device, memory] {
+            vkFreeMemory(device->device, memory, nullptr);
+        }};
+
+        // Bind the allocation to the image
+        GPU_CHECK(vkBindImageMemory(device->device, image, memory, 0));
+
+        return new Image{
+            .handle       = image,
+            .memory       = memory,
+            .width        = desc.width,
+            .height       = desc.height,
+            .depth        = 1u,
+            .format       = image_info.format,
+            .aspect_flags = aspect_flags_from_format(to_vk_format(desc.format)),
+            .mip_levels   = desc.mip_levels,
+            .array_layers = desc.array_layers,
+        };
+    }
+
     Extent2D image_extent_2d(const Image* image)
     {
         ORION_ASSERT(image != nullptr);
         return Extent2D{.width = image->width, .height = image->height};
+    }
+
+    void destroy_image(Device* device, Image* image)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(image != nullptr);
+        ORION_ASSERT(image->memory != VK_NULL_HANDLE && "Can't destroy unowned images (e.g. swapchain images)");
+
+        vkFreeMemory(device->device, image->memory, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Freed VkDeviceMemory {} for image {}", fmt::ptr(image->memory), fmt::ptr(image->handle));
+        vkDestroyImage(device->device, image->handle, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkImage {}", fmt::ptr(image->handle));
+
+        delete image;
+    }
+
+    ImageView* create_image_view(Device* device, const ImageViewDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(desc.image != nullptr);
+
+        const auto image_view_info = VkImageViewCreateInfo{
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image            = desc.image->handle,
+            .viewType         = VK_IMAGE_VIEW_TYPE_2D,
+            .format           = desc.image->format,
+            .components       = {},
+            .subresourceRange = {
+                .aspectMask     = desc.image->aspect_flags,
+                .baseMipLevel   = desc.subresource_range.base_mip_level,
+                .levelCount     = desc.subresource_range.level_count,
+                .baseArrayLayer = desc.subresource_range.base_array_layer,
+                .layerCount     = desc.subresource_range.layer_count,
+            },
+        };
+        VkImageView image_view;
+        GPU_CHECK(vkCreateImageView(device->device, &image_view_info, nullptr, &image_view));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkImageView {} for image {}", fmt::ptr(image_view), fmt::ptr(desc.image->handle));
+
+        // Calculate width & height based on the base mip level
+        const auto width  = std::max(1u, desc.image->width >> desc.subresource_range.base_mip_level);
+        const auto height = std::max(1u, desc.image->height >> desc.subresource_range.base_mip_level);
+
+        return new ImageView{
+            .handle         = image_view,
+            .width          = width,
+            .height         = height,
+            .aspect_flags   = desc.image->aspect_flags,
+            .base_mip_level = desc.subresource_range.base_mip_level,
+            .level_count    = desc.subresource_range.level_count,
+        };
+    }
+
+    void destroy_image_view(Device* device, ImageView* image_view)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(image_view != nullptr);
+
+        vkDestroyImageView(device->device, image_view->handle, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkImageView {}", fmt::ptr(image_view->handle));
+
+        delete image_view;
     }
 
     Buffer* create_buffer(Device* device, const BufferDesc& desc)

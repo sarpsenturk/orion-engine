@@ -28,8 +28,22 @@ namespace orion
         return spirv;
     }
 
-    Renderer::Renderer()
+    Renderer::Renderer(const RendererDesc& desc)
         : m_device(gpu::create_device(gpu::DeviceDesc{}), gpu::destroy_device)
+        , m_renderer_extent{desc.width, desc.height}
+        , m_depth_image(gpu::create_image(
+              m_device.get(),
+              gpu::ImageDesc{
+                  .width  = desc.width,
+                  .height = desc.height,
+                  .format = gpu::Format::D32_Float,
+                  .usage  = gpu::ImageUsage::DepthStencilAttachment,
+              }))
+        , m_depth_image_view(gpu::create_image_view(
+              m_device.get(),
+              gpu::ImageViewDesc{
+                  .image = m_depth_image,
+              }))
         , m_frame_data(make_array<frames_in_flight>([this] {
             return FrameInFlight{
                 .command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics),
@@ -39,12 +53,16 @@ namespace orion
         , m_dummy_pipeline(gpu::create_graphics_pipeline(
               m_device.get(),
               gpu::GraphicsPipelineDesc{
-                  .spirv             = load_spirv("../shaders/mesh.spv"),
-                  .topology          = gpu::Topology::TriangleList,
-                  .rasterizer        = gpu::RasterizerDesc{},
-                  .depth_stencil     = gpu::DepthStencilDesc{},
+                  .spirv         = load_spirv("../shaders/mesh.spv"),
+                  .topology      = gpu::Topology::TriangleList,
+                  .rasterizer    = gpu::RasterizerDesc{},
+                  .depth_stencil = gpu::DepthStencilDesc{
+                      .depth_test_enable  = true,
+                      .depth_write_enable = true,
+                      .depth_compare_op   = gpu::CompareOp::LessOrEqual,
+                  },
                   .color_attachments = {{gpu::Format::BGRA8_Unorm}},
-                  .depth_attachment  = gpu::Format::Undefined,
+                  .depth_attachment  = gpu::Format::D32_Float,
               }))
     {
     }
@@ -63,6 +81,9 @@ namespace orion
         for (auto [_, swapchain] : m_swapchains) {
             gpu::destroy_swapchain(m_device.get(), swapchain);
         }
+
+        gpu::destroy_image_view(m_device.get(), m_depth_image_view);
+        gpu::destroy_image(m_device.get(), m_depth_image);
     }
 
     std::optional<Frame> Renderer::begin_frame(gpu::Swapchain* swapchain)
@@ -89,6 +110,7 @@ namespace orion
         // Begin command buffer recording
         auto* command_buffer = gpu::begin_command_buffer(m_device.get(), frame_data.command_allocator);
         // Transition the swapchain image to color attachment optimal layout
+        // Transition the depth image to depth attachment optimal layout
         gpu::barrier(
             command_buffer,
             gpu::Barrier{
@@ -101,6 +123,21 @@ namespace orion
                         .dst_access        = gpu::Access::ColorAttachmentWrite,
                         .old_layout        = gpu::ImageLayout::Undefined,
                         .new_layout        = gpu::ImageLayout::ColorAttachment,
+                        .subresource_range = {
+                            .base_mip_level   = 0u,
+                            .level_count      = 1u,
+                            .base_array_layer = 0u,
+                            .layer_count      = 1u,
+                        },
+                    },
+                    gpu::ImageBarrier{
+                        .image             = m_depth_image,
+                        .src_stages        = gpu::PipelineStage::None,
+                        .src_access        = gpu::Access::None,
+                        .dst_stages        = gpu::PipelineStage::DepthStencilTests,
+                        .dst_access        = gpu::Access::DepthStencilAttachmentWrite,
+                        .old_layout        = gpu::ImageLayout::Undefined,
+                        .new_layout        = gpu::ImageLayout::DepthStencilAttachment,
                         .subresource_range = {
                             .base_mip_level   = 0u,
                             .level_count      = 1u,
@@ -121,7 +158,11 @@ namespace orion
                         .store_op   = gpu::StoreOp::Store,
                     },
                 }},
-                .depth_attachment  = std::nullopt,
+                .depth_attachment  = gpu::RenderPassAttachment{
+                    .image_view = m_depth_image_view,
+                    .load_op    = gpu::LoadOp::Clear,
+                    .store_op   = gpu::StoreOp::Store,
+                },
             });
         // Bind the dummy graphics pipeline
         gpu::bind_pipeline_state(command_buffer, m_dummy_pipeline);

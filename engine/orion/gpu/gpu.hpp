@@ -44,6 +44,8 @@ namespace orion
 
             BGRA8_Unorm,
             BGRA8_Srgb,
+
+            D32_Float,
         };
 
         enum class PipelineStage : std::uint64_t {
@@ -102,6 +104,24 @@ namespace orion
             TransferDst,
             Present,
         };
+
+        enum class ImageUsage : std::uint32_t {
+            None                   = 0u,
+            TransferSrc            = 1u << 0u,
+            TransferDst            = 1u << 1u,
+            Sampled                = 1u << 2u,
+            Storage                = 1u << 3u,
+            ColorAttachment        = 1u << 4u,
+            DepthStencilAttachment = 1u << 5u,
+        };
+        inline constexpr ImageUsage operator|(ImageUsage lhs, ImageUsage rhs)
+        {
+            return static_cast<ImageUsage>(static_cast<std::uint32_t>(lhs) | static_cast<std::uint32_t>(rhs));
+        }
+        inline constexpr ImageUsage operator&(ImageUsage lhs, ImageUsage rhs)
+        {
+            return static_cast<ImageUsage>(static_cast<std::uint32_t>(lhs) & static_cast<std::uint32_t>(rhs));
+        }
 
         enum class LoadOp {
             Load = 0,
@@ -269,6 +289,20 @@ namespace orion
             Memory memory    = Memory::GpuOnly;
         };
 
+        struct ImageDesc {
+            std::uint32_t width        = 0u;
+            std::uint32_t height       = 0u;
+            Format format              = Format::Undefined;
+            std::uint32_t mip_levels   = 1u;
+            std::uint32_t array_layers = 1u;
+            ImageUsage usage           = ImageUsage::None;
+        };
+
+        struct ImageViewDesc {
+            Image* image = nullptr;
+            SubresourceRange subresource_range;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
 
@@ -286,7 +320,12 @@ namespace orion
         PipelineState* create_graphics_pipeline(Device* device, const GraphicsPipelineDesc& desc);
         void destroy_pipeline(Device* device, PipelineState* pipeline);
 
+        Image* create_image(Device* device, const ImageDesc& desc);
         Extent2D image_extent_2d(const Image* image);
+        void destroy_image(Device* device, Image* image);
+
+        ImageView* create_image_view(Device* device, const ImageViewDesc& desc);
+        void destroy_image_view(Device* device, ImageView* image_view);
 
         Buffer* create_buffer(Device* device, const BufferDesc& desc);
         // Returns nullptr for GpuOnly buffers; CpuVisible and Readback buffers are mapped and host-coherent.

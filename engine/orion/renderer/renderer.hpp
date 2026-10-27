@@ -29,12 +29,17 @@ namespace orion
     struct Frame {
     };
 
+    struct RendererDesc {
+        std::uint32_t width;
+        std::uint32_t height;
+    };
+
     class Renderer
     {
     public:
         static constexpr auto frames_in_flight = 2u;
 
-        Renderer();
+        explicit Renderer(const RendererDesc& desc);
         Renderer(const Renderer&)            = delete;
         Renderer& operator=(const Renderer&) = delete;
         Renderer(Renderer&&)                 = delete;
@@ -66,6 +71,10 @@ namespace orion
         [[nodiscard]] FrameInFlight& current_frame() { return m_frame_data[current_frame_index()]; }
 
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
+        gpu::Extent2D m_renderer_extent;
+        gpu::Image* m_depth_image          = nullptr;
+        gpu::ImageView* m_depth_image_view = nullptr;
+
         std::flat_map<const Window*, gpu::Swapchain*> m_swapchains;
 
         std::array<FrameInFlight, frames_in_flight> m_frame_data;

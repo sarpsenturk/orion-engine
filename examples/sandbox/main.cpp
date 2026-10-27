@@ -9,15 +9,23 @@
 
 #include <array>
 
-static constexpr auto quad_vertices = std::array{
-    glm::vec3(-0.5f, -0.5f, 0.0f), // Vertex 1: position (x, y, z)
-    glm::vec3(0.5f, -0.5f, 0.0f),  // Vertex 2: position (x, y, z)
-    glm::vec3(0.5f, 0.5f, 0.0f),   // Vertex 3: position (x, y, z)
-    glm::vec3(-0.5f, 0.5f, 0.0f)   // Vertex 4: position (x, y, z)
+static constexpr auto cube_vertices = std::array{
+    glm::vec3(-0.5f, -0.5f, -0.5f), // Vertex 1: position (x, y, z)
+    glm::vec3(0.5f, -0.5f, -0.5f),  // Vertex 2: position (x, y, z)
+    glm::vec3(0.5f, 0.5f, -0.5f),   // Vertex 3: position (x, y, z)
+    glm::vec3(-0.5f, 0.5f, -0.5f),  // Vertex 4: position (x, y, z)
+    glm::vec3(-0.5f, -0.5f, 0.5f),  // Vertex 5: position (x, y, z)
+    glm::vec3(0.5f, -0.5f, 0.5f),   // Vertex 6: position (x, y, z)
+    glm::vec3(0.5f, 0.5f, 0.5f),    // Vertex 7: position (x, y, z)
+    glm::vec3(-0.5f, 0.5f, 0.5f)    // Vertex 8: position (x, y, z)
 };
-static constexpr auto quad_indices = std::array{
-    0u, 1u, 2u, // First triangle
-    2u, 3u, 0u  // Second triangle
+static constexpr auto cube_indices = std::array{
+    0u, 1u, 2u, 2u, 3u, 0u, // Back face
+    4u, 5u, 6u, 6u, 7u, 4u, // Front face
+    0u, 4u, 7u, 7u, 3u, 0u, // Left face
+    1u, 5u, 6u, 6u, 2u, 1u, // Right face
+    3u, 2u, 6u, 6u, 7u, 3u, // Top face
+    0u, 1u, 5u, 5u, 4u, 0u  // Bottom face
 };
 
 class Sandbox : public orion::Application
@@ -27,7 +35,7 @@ public:
         : m_window(orion::WindowDesc{"Sandbox", 1'280, 720})
         , m_renderer(engine.renderer())
         , m_swapchain(m_renderer.create_swapchain(m_window, 2u, orion::gpu::Format::BGRA8_Unorm))
-        , m_quad_mesh(m_renderer.create_mesh({quad_vertices, quad_indices, 4u}))
+        , m_cube_mesh(m_renderer.create_mesh({cube_vertices, cube_indices, 8u}))
     {
     }
 
@@ -44,8 +52,8 @@ private:
             .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
             .scene      = {
                 .instances = {{
-                    orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
-                    orion::RenderInstance{m_quad_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
+                    orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
+                    orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
                 }},
             },
         });
@@ -59,7 +67,7 @@ private:
     orion::Renderer& m_renderer;
     orion::gpu::Swapchain* m_swapchain;
 
-    orion::Mesh m_quad_mesh;
+    orion::Mesh m_cube_mesh;
 };
 
 int main()
