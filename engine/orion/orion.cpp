@@ -59,6 +59,8 @@ namespace orion
             app->update(delta_time.count());
             app->render();
         }
+
+        gpu::wait_idle(m_renderer->device());
     }
 
     void Engine::on_event(const Event& event)

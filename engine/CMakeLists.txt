@@ -50,6 +50,7 @@ target_sources(orion.engine
 		"orion/renderer/scene.hpp"
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/bump_allocator.hpp"
+		"orion/imgui/imgui.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 
@@ -64,6 +65,7 @@ target_sources(orion.engine
 		"orion/renderer/mesh.cpp"
 		"orion/renderer/scene.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
+		"orion/imgui/imgui.cpp"
 )
 
 # Engine shaders

@@ -13,7 +13,9 @@
 #include <flat_map>
 #include <memory>
 #include <optional>
-#include <vector>
+
+// ImGui forward declarations
+struct ImDrawData;
 
 namespace orion
 {
@@ -51,6 +53,7 @@ namespace orion
 
         std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
         void render_scene(const SceneView& view);
+        void render_ui(ImDrawData* imgui_draw_data);
         void end_frame();
 
         [[nodiscard]] gpu::Swapchain* create_swapchain(const Window& window);

@@ -5,6 +5,8 @@
 #include "orion/core/window.hpp"
 #include "orion/utils/array.hpp"
 
+#include <imgui.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -215,6 +217,34 @@ namespace orion
         }
         // End render pass
         gpu::end_render_pass(command_buffer);
+    }
+
+    void Renderer::render_ui(ImDrawData* imgui_draw_data)
+    {
+        auto& frame_data     = current_frame();
+        auto* command_buffer = frame_data.command_buffer;
+
+        // ImGui render pass
+        gpu::begin_render_pass(
+            command_buffer,
+            gpu::RenderPass{
+                .color_attachments = {{
+                    gpu::RenderPassAttachment{
+                        .image_view = frame_data.swapchain_frame.image_view,
+                        .load_op    = gpu::LoadOp::Load,
+                        .store_op   = gpu::StoreOp::Store,
+                    },
+                }},
+            });
+        ImGui_ImplOrion_RenderDrawData(imgui_draw_data, frame_data.command_buffer);
+        gpu::end_render_pass(command_buffer);
+    }
+
+    void Renderer::end_frame()
+    {
+        auto& frame_data     = current_frame();
+        auto* command_buffer = frame_data.command_buffer;
+
         // Transition the swapchain image to present source layout
         gpu::barrier(
             command_buffer,
@@ -237,6 +267,7 @@ namespace orion
                     },
                 }},
             });
+
         // Submit the command buffers to the GPU
         frame_data.timeline_point = gpu::submit(
             m_device.get(),
@@ -245,11 +276,7 @@ namespace orion
                 .command_buffers = {{command_buffer}},
                 .swapchain_frame = &frame_data.swapchain_frame,
             });
-    }
 
-    void Renderer::end_frame()
-    {
-        auto& frame_data = current_frame();
         // Present the swapchain image
         gpu::present(m_device.get(), frame_data.swapchain_frame);
         // Increment the frame counter
