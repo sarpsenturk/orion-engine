@@ -187,4 +187,25 @@ namespace orion
         glfwGetCursorPos(static_cast<GLFWwindow*>(m_handle), &pos.x, &pos.y);
         return pos;
     }
+
+    void Window::set_cursor_mode(CursorMode mode)
+    {
+        glfwSetInputMode(
+            static_cast<GLFWwindow*>(m_handle),
+            GLFW_CURSOR,
+            [mode] {
+                switch (mode) {
+                    case CursorMode::Normal:
+                        return GLFW_CURSOR_NORMAL;
+                    case CursorMode::Hidden:
+                        return GLFW_CURSOR_HIDDEN;
+                    case CursorMode::Disabled:
+                        return GLFW_CURSOR_DISABLED;
+                    case CursorMode::Captured:
+                        return GLFW_CURSOR_CAPTURED;
+                    default:
+                        std::unreachable();
+                }
+            }());
+    }
 } // namespace orion

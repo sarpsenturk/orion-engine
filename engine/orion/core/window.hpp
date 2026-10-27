@@ -4,6 +4,13 @@
 
 namespace orion
 {
+    enum class CursorMode {
+        Normal = 0,
+        Hidden,
+        Disabled,
+        Captured,
+    };
+
     struct WindowDesc {
         const char* title;
         int width;
@@ -29,6 +36,8 @@ namespace orion
         [[nodiscard]] bool is_key_pressed(Keycode key) const noexcept;
         [[nodiscard]] bool is_mouse_button_pressed(MouseButton button) const noexcept;
         [[nodiscard]] MousePosition mouse_position() const noexcept;
+
+        void set_cursor_mode(CursorMode mode);
 
     private:
         void* m_handle;
