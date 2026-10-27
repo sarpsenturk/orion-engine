@@ -39,10 +39,11 @@ public:
         , m_cube_mesh(m_renderer.create_mesh({cube_vertices, cube_indices, 8u}))
     {
         m_window.set_cursor_mode(orion::CursorMode::Disabled);
+        m_last_mouse_position = m_window.mouse_position();
     }
 
 private:
-    void on_update() override
+    void on_update(float delta_time) override
     {
         // Handle camera movement based on keyboard input
         float xdelta = 0.0f;
@@ -74,8 +75,9 @@ private:
         }
 
         // Update camera position based on input
-        m_camera_position += m_camera_right * xdelta * 0.1f;
-        m_camera_position += m_camera_front * ydelta * 0.1f;
+        constexpr float movement_speed = 6.0f; // World units per second
+        m_camera_position += m_camera_right * xdelta * movement_speed * delta_time;
+        m_camera_position += m_camera_front * ydelta * movement_speed * delta_time;
     }
 
     void on_event(const orion::Event& event) override
@@ -124,9 +126,9 @@ private:
     glm::vec3 m_camera_position{0.0f, 0.0f, -5.0f};
     glm::vec3 m_camera_front{0.0f, 0.0f, 1.0f};
     glm::vec3 m_camera_up{0.0f, 1.0f, 0.0f};
-    glm::vec3 m_camera_right{1.0f, 0.0f, 0.0f};
+    glm::vec3 m_camera_right{-1.0f, 0.0f, 0.0f};
     float m_camera_pitch{0.0f};
-    float m_camera_yaw{0.0f};
+    float m_camera_yaw{90.0f};
     bool m_cursor_locked{true};
 };
 

@@ -4,11 +4,13 @@
 #include "orion/core/platform.hpp"
 #include "orion/renderer/renderer.hpp"
 
+#include <chrono>
+
 namespace orion
 {
-    void Application::update()
+    void Application::update(float delta_time)
     {
-        on_update();
+        on_update(delta_time);
     }
 
     void Application::render()
@@ -37,7 +39,16 @@ namespace orion
 
     void Engine::run(std::unique_ptr<Application> app)
     {
+        using Clock     = std::chrono::steady_clock;
+        using Duration  = std::chrono::duration<float, std::chrono::seconds::period>;
+        using TimePoint = std::chrono::time_point<Clock, Duration>;
+
+        auto last_time = Clock::now();
         while (!app->should_exit()) {
+            const auto now        = Clock::now();
+            const auto delta_time = Duration{now - last_time};
+            last_time             = now;
+
             m_platform->pump_events();
             Event event;
             while (m_platform->poll_event(event)) {
@@ -45,7 +56,7 @@ namespace orion
                 app->event(event); // Then pass event onto the application
             }
 
-            app->update();
+            app->update(delta_time.count());
             app->render();
         }
     }

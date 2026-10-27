@@ -12,14 +12,14 @@ namespace orion
         Application()          = default;
         virtual ~Application() = default;
 
-        void update();
+        void update(float delta_time);
         void render();
         void event(const Event& event);
 
         [[nodiscard]] virtual bool should_exit() const = 0;
 
     private:
-        virtual void on_update()                  = 0;
+        virtual void on_update(float delta_time)  = 0;
         virtual void on_render()                  = 0;
         virtual void on_event(const Event& event) = 0;
     };
