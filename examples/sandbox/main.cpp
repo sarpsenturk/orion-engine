@@ -100,18 +100,19 @@ private:
     void on_render() override
     {
         if (m_window.width() == 0 || m_window.height() == 0) { return; }
-        auto frame = m_renderer.begin_frame(m_swapchain);
-        if (!frame) { return; }
-        m_renderer.render({
-            .view       = glm::lookAtRH(m_camera_position, m_camera_position + m_camera_front, m_camera_up),
-            .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
-            .scene      = {
-                .instances = {{
-                    orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
-                    orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
-                }},
-            },
-        });
+        if (auto frame = m_renderer.begin_frame(m_swapchain)) {
+            m_renderer.render_scene({
+                .view       = glm::lookAtRH(m_camera_position, m_camera_position + m_camera_front, m_camera_up),
+                .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
+                .scene      = {
+                    .instances = {{
+                        orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
+                        orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
+                    }},
+                },
+            });
+            m_renderer.end_frame();
+        }
     }
 
     bool should_exit() const override { return m_window.should_close(); }

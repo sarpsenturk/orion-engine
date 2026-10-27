@@ -100,6 +100,7 @@ namespace orion
         // Return a Frame object if successful, otherwise return std::nullopt
         if (auto swapchain_frame = gpu::acquire_swapchain_frame(m_device.get(), swapchain)) {
             frame_data.swapchain_frame = *swapchain_frame;
+            frame_data.command_buffer  = gpu::begin_command_buffer(m_device.get(), frame_data.command_allocator);
             return Frame{};
         } else {
             ORION_LOG_WARN(LogChannel::Renderer, "Swapchain frame acquisition failed, possibly due to window resize or minimization");
@@ -107,11 +108,11 @@ namespace orion
         }
     }
 
-    void Renderer::render(const RenderView& view)
+    void Renderer::render_scene(const SceneView& view)
     {
-        auto& frame_data = current_frame();
-        // Begin command buffer recording
-        auto* command_buffer = gpu::begin_command_buffer(m_device.get(), frame_data.command_allocator);
+        auto& frame_data     = current_frame();
+        auto* command_buffer = frame_data.command_buffer;
+
         // Transition the swapchain image to color attachment optimal layout
         // Transition the depth image to depth attachment optimal layout
         gpu::barrier(
@@ -244,6 +245,11 @@ namespace orion
                 .command_buffers = {{command_buffer}},
                 .swapchain_frame = &frame_data.swapchain_frame,
             });
+    }
+
+    void Renderer::end_frame()
+    {
+        auto& frame_data = current_frame();
         // Present the swapchain image
         gpu::present(m_device.get(), frame_data.swapchain_frame);
         // Increment the frame counter

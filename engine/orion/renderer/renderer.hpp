@@ -20,13 +20,14 @@ namespace orion
     // Forward declarations
     class Window;
 
-    struct RenderView {
+    struct SceneView {
         glm::mat4 view;
         glm::mat4 projection;
         const Scene& scene;
     };
 
     struct Frame {
+        std::uint64_t frame_index = 0ull;
     };
 
     struct RendererDesc {
@@ -49,7 +50,8 @@ namespace orion
         ~Renderer();
 
         std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
-        void render(const RenderView& view);
+        void render_scene(const SceneView& view);
+        void end_frame();
 
         [[nodiscard]] gpu::Swapchain* create_swapchain(const Window& window);
         void on_event(const Event& event);
@@ -62,6 +64,7 @@ namespace orion
     private:
         struct FrameInFlight {
             gpu::CommandAllocator* command_allocator = nullptr;
+            gpu::CommandBuffer* command_buffer       = nullptr;
             gpu::TimelinePoint timeline_point;
             gpu::SwapchainFrame swapchain_frame;
         };
