@@ -250,10 +250,7 @@ namespace orion
         ++m_frame_counter;
     }
 
-    gpu::Swapchain* Renderer::create_swapchain(
-        const Window& window,
-        std::uint32_t image_count,
-        gpu::Format image_format)
+    gpu::Swapchain* Renderer::create_swapchain(const Window& window)
     {
         ORION_ASSERT(!m_swapchains.contains(&window) && "A swapchain for this window already exists");
 
@@ -263,8 +260,8 @@ namespace orion
                 .native_window_handle = window.handle(),
                 .width                = static_cast<std::uint32_t>(window.width()),
                 .height               = static_cast<std::uint32_t>(window.height()),
-                .image_count          = image_count,
-                .image_format         = image_format,
+                .image_count          = swapchain_image_count,
+                .image_format         = swapchain_image_format,
             });
         m_swapchains.insert(std::make_pair(&window, swapchain));
         return swapchain;

@@ -37,7 +37,9 @@ namespace orion
     class Renderer
     {
     public:
-        static constexpr auto frames_in_flight = 2u;
+        static constexpr auto frames_in_flight       = 2u;
+        static constexpr auto swapchain_image_count  = 3u;
+        static constexpr auto swapchain_image_format = gpu::Format::BGRA8_Unorm;
 
         explicit Renderer(const RendererDesc& desc);
         Renderer(const Renderer&)            = delete;
@@ -49,10 +51,7 @@ namespace orion
         std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
         void render(const RenderView& view);
 
-        [[nodiscard]] gpu::Swapchain* create_swapchain(
-            const Window& window,
-            std::uint32_t image_count,
-            gpu::Format image_format);
+        [[nodiscard]] gpu::Swapchain* create_swapchain(const Window& window);
         void on_event(const Event& event);
 
         [[nodiscard]] Mesh create_mesh(const MeshDesc& desc);

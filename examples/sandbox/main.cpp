@@ -35,7 +35,7 @@ public:
     explicit Sandbox(orion::Engine& engine)
         : m_window(orion::WindowDesc{"Sandbox", 1'280, 720})
         , m_renderer(engine.renderer())
-        , m_swapchain(m_renderer.create_swapchain(m_window, 2u, orion::gpu::Format::BGRA8_Unorm))
+        , m_swapchain(m_renderer.create_swapchain(m_window))
         , m_cube_mesh(m_renderer.create_mesh({cube_vertices, cube_indices, 8u}))
     {
         m_window.set_cursor_mode(orion::CursorMode::Disabled);
