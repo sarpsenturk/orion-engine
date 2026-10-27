@@ -40,6 +40,9 @@ if (ORION_BUILD_TESTS)
 	include(cmake/gtest.cmake)
 endif()
 
+# Vendored dependencies
+add_subdirectory(third_party)
+
 # Engine core source
 add_subdirectory(engine)
 

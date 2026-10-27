@@ -22,6 +22,7 @@ target_link_libraries(orion.engine
 	PUBLIC
 		spdlog::spdlog
 		glm::glm
+		imgui
 	PRIVATE
 		glfw
 		Vulkan::Headers Vulkan::volk
