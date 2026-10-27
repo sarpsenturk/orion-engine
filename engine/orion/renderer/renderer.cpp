@@ -53,9 +53,12 @@ namespace orion
         , m_dummy_pipeline(gpu::create_graphics_pipeline(
               m_device.get(),
               gpu::GraphicsPipelineDesc{
-                  .spirv         = load_spirv("../shaders/mesh.spv"),
-                  .topology      = gpu::Topology::TriangleList,
-                  .rasterizer    = gpu::RasterizerDesc{},
+                  .spirv      = load_spirv("../shaders/mesh.spv"),
+                  .topology   = gpu::Topology::TriangleList,
+                  .rasterizer = gpu::RasterizerDesc{
+                      .cull_mode      = gpu::CullMode::Back,
+                      .front_face_ccw = true,
+                  },
                   .depth_stencil = gpu::DepthStencilDesc{
                       .depth_test_enable  = true,
                       .depth_write_enable = true,
