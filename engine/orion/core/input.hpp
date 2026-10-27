@@ -159,6 +159,11 @@ namespace orion
     struct MousePosition {
         double x;
         double y;
+
+        constexpr MousePosition operator-(const MousePosition& other) const noexcept
+        {
+            return {x - other.x, y - other.y};
+        }
     };
 
     const char* format_as(Keycode keycode);
