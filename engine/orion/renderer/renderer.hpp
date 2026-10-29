@@ -1,5 +1,6 @@
 #pragma once
 
+#include "material.hpp"
 #include "mesh.hpp"
 #include "scene.hpp"
 
@@ -62,6 +63,9 @@ namespace orion
         [[nodiscard]] Mesh create_mesh(const MeshDesc& desc);
         void destroy_mesh(Mesh mesh);
 
+        [[nodiscard]] Material create_material(const PbrMaterial& material);
+        void destroy_material(Material material);
+
         [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
 
     private:
@@ -86,6 +90,7 @@ namespace orion
         std::uint64_t m_frame_counter = 0ull;
 
         MeshManager m_mesh_manager;
+        MaterialManager m_material_manager;
 
         gpu::PipelineState* m_dummy_pipeline = nullptr;
     };

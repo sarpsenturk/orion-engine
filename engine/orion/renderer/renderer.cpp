@@ -52,6 +52,7 @@ namespace orion
             };
         }))
         , m_mesh_manager(m_device.get())
+        , m_material_manager(m_device.get())
         , m_dummy_pipeline(gpu::create_graphics_pipeline(
               m_device.get(),
               gpu::GraphicsPipelineDesc{
@@ -199,11 +200,12 @@ namespace orion
         for (const auto& instance : view.scene.instances) {
             struct MeshRoot {
                 gpu::Address vertices;
-                char padding[8]; // Padding to ensure 16-byte alignment
+                gpu::Address material;
                 alignas(16) glm::mat4 mvp;
             };
-            const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
-            const auto mvp   = view_projection * instance.model;
+            const auto& mesh     = m_mesh_manager.get_mesh_record(instance.mesh);
+            const auto& material = m_material_manager.get_material_record(instance.material);
+            const auto mvp       = view_projection * instance.model;
             gpu::draw_indexed(
                 command_buffer,
                 gpu::DrawIndexed{
@@ -213,7 +215,7 @@ namespace orion
                     .vertex_offset  = 0,
                     .first_instance = 0u,
                 },
-                MeshRoot{.vertices = mesh.position_address, .mvp = mvp});
+                MeshRoot{.vertices = mesh.position_address, .material = material.address, .mvp = mvp});
         }
         // End render pass
         gpu::end_render_pass(command_buffer);
@@ -323,5 +325,15 @@ namespace orion
     void Renderer::destroy_mesh(Mesh mesh)
     {
         return m_mesh_manager.destroy_mesh(mesh);
+    }
+
+    Material Renderer::create_material(const PbrMaterial& material)
+    {
+        return m_material_manager.create_material(material);
+    }
+
+    void Renderer::destroy_material(Material material)
+    {
+        return m_material_manager.destroy_material(material);
     }
 } // namespace orion

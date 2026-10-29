@@ -1,5 +1,10 @@
+struct Material {
+    float4 base_color;
+}
+
 struct MeshRoot {
     float3* vertices;
+    Material* material;
     float4x4 mvp;
 };
 
@@ -22,5 +27,6 @@ VSOutput vsmain(uint vtx : SV_VertexID)
 [shader("fragment")]
 float4 fsmain() : SV_Target
 {
-    return float4(1.0, 0.0, 0.0, 1.0);
+    let material = root.material;
+    return material.base_color;
 }

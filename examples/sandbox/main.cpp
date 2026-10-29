@@ -39,6 +39,8 @@ public:
         , m_swapchain(m_renderer.create_swapchain(m_window))
         , m_imgui(m_renderer, m_window)
         , m_cube_mesh(m_renderer.create_mesh({cube_vertices, cube_indices, 8u}))
+        , m_red_material(m_renderer.create_material({glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)}))
+        , m_green_material(m_renderer.create_material({glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)}))
     {
         m_window.set_cursor_mode(orion::CursorMode::Disabled);
         m_last_mouse_position = m_window.mouse_position();
@@ -122,8 +124,8 @@ private:
                 .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
                 .scene      = {
                     .instances = {{
-                        orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
-                        orion::RenderInstance{m_cube_mesh, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
+                        orion::RenderInstance{m_cube_mesh, m_red_material, glm::translate(glm::mat4(1.0f), glm::vec3(-1.f, 0.0f, 0.0f))},
+                        orion::RenderInstance{m_cube_mesh, m_green_material, glm::translate(glm::mat4(1.0f), glm::vec3(1.f, 0.0f, 0.0f))},
                     }},
                 },
             });
@@ -142,6 +144,8 @@ private:
     orion::ImGuiContext m_imgui;
 
     orion::Mesh m_cube_mesh;
+    orion::Material m_red_material;
+    orion::Material m_green_material;
 
     orion::MousePosition m_last_mouse_position{0.0f, 0.0f};
     glm::vec3 m_camera_position{0.0f, 0.0f, -5.0f};
