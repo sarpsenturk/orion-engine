@@ -1,6 +1,8 @@
 #pragma once
 
-#define SPDLOG_ACTIVE_LEVEL 0
+#ifndef SPDLOG_ACTIVE_LEVEL
+    #define SPDLOG_ACTIVE_LEVEL 0
+#endif
 #include <spdlog/spdlog.h>
 
 namespace orion

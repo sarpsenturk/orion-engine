@@ -1,8 +1,10 @@
 #include "gpu.hpp"
 
 #include "orion/core/assert.hpp"
-#include "orion/core/logger.hpp"
 #include "orion/utils/scope_guard.hpp"
+
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#include "orion/core/logger.hpp"
 
 #include <Volk/volk.h>
 #include <vulkan/vk_enum_string_helper.h>
