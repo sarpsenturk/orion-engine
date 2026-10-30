@@ -17,6 +17,7 @@ namespace orion
         struct Image;
         struct ImageView;
         struct Buffer;
+        struct Sampler;
         struct PipelineState;
         struct CommandAllocator;
         struct CommandBuffer;
@@ -153,6 +154,27 @@ namespace orion
             NotEqual,
             GreaterOrEqual,
             Always,
+        };
+
+        enum class Filter {
+            Nearest = 0,
+            Linear,
+        };
+
+        enum class SamplerAddressMode {
+            Repeat = 0,
+            MirroredRepeat,
+            ClampToEdge,
+            ClampToBorder,
+        };
+
+        enum class BorderColor {
+            FloatTransparentBlack = 0,
+            IntTransparentBlack,
+            FloatOpaqueBlack,
+            IntOpaqueBlack,
+            FloatOpaqueWhite,
+            IntOpaqueWhite,
         };
 
         struct Offset2D {
@@ -303,6 +325,21 @@ namespace orion
             SubresourceRange subresource_range;
         };
 
+        struct SamplerDesc {
+            Filter filter;
+            SamplerAddressMode address_mode_u;
+            SamplerAddressMode address_mode_v;
+            SamplerAddressMode address_mode_w;
+            float mip_lod_bias       = 0.0f;
+            bool anisotropy_enable   = false;
+            float max_anisotropy     = 1.0f;
+            bool compare_enable      = false;
+            CompareOp compare_op     = CompareOp::Never;
+            BorderColor border_color = BorderColor::FloatTransparentBlack;
+            float min_lod            = 0.0f;
+            float max_lod            = 0.0f;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
 
@@ -332,6 +369,9 @@ namespace orion
         void* buffer_host_address(const Buffer* buffer);
         Address buffer_device_address(const Buffer* buffer);
         void destroy_buffer(Device* device, Buffer* buffer);
+
+        Sampler* create_sampler(Device* device, const SamplerDesc& desc);
+        void destroy_sampler(Device* device, Sampler* sampler);
 
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);

@@ -87,6 +87,10 @@ namespace orion::gpu
         VkDeviceAddress device_address = 0ull;
     };
 
+    struct Sampler {
+        VkSampler handle = VK_NULL_HANDLE;
+    };
+
     struct PipelineState {
         VkPipeline handle              = VK_NULL_HANDLE;
         VkPipelineBindPoint bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -401,6 +405,51 @@ namespace orion::gpu
                 return VK_COMPARE_OP_GREATER_OR_EQUAL;
             case CompareOp::Always:
                 return VK_COMPARE_OP_ALWAYS;
+        }
+        std::unreachable();
+    }
+
+    static VkFilter to_vk_filter(Filter filter)
+    {
+        switch (filter) {
+            case Filter::Nearest:
+                return VK_FILTER_NEAREST;
+            case Filter::Linear:
+                return VK_FILTER_LINEAR;
+        }
+        std::unreachable();
+    }
+
+    static VkSamplerAddressMode to_vk_sampler_address_mode(SamplerAddressMode address_mode)
+    {
+        switch (address_mode) {
+            case SamplerAddressMode::Repeat:
+                return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+            case SamplerAddressMode::MirroredRepeat:
+                return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+            case SamplerAddressMode::ClampToEdge:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            case SamplerAddressMode::ClampToBorder:
+                return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        }
+        std::unreachable();
+    }
+
+    static VkBorderColor to_vk_border_color(BorderColor border_color)
+    {
+        switch (border_color) {
+            case BorderColor::FloatTransparentBlack:
+                return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+            case BorderColor::IntTransparentBlack:
+                return VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
+            case BorderColor::FloatOpaqueBlack:
+                return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+            case BorderColor::IntOpaqueBlack:
+                return VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+            case BorderColor::FloatOpaqueWhite:
+                return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+            case BorderColor::IntOpaqueWhite:
+                return VK_BORDER_COLOR_INT_OPAQUE_WHITE;
         }
         std::unreachable();
     }
@@ -1398,6 +1447,46 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkBuffer {}", fmt::ptr(buffer->handle));
 
         delete buffer;
+    }
+
+    Sampler* create_sampler(Device* device, const SamplerDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+
+        const auto sampler_info = VkSamplerCreateInfo{
+            .sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter               = to_vk_filter(desc.filter),
+            .minFilter               = to_vk_filter(desc.filter),
+            .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+            .addressModeU            = to_vk_sampler_address_mode(desc.address_mode_u),
+            .addressModeV            = to_vk_sampler_address_mode(desc.address_mode_v),
+            .addressModeW            = to_vk_sampler_address_mode(desc.address_mode_w),
+            .mipLodBias              = desc.mip_lod_bias,
+            .anisotropyEnable        = desc.anisotropy_enable,
+            .maxAnisotropy           = desc.max_anisotropy,
+            .compareEnable           = desc.compare_enable,
+            .compareOp               = to_vk_compare_op(desc.compare_op),
+            .minLod                  = desc.min_lod,
+            .maxLod                  = desc.max_lod,
+            .borderColor             = to_vk_border_color(desc.border_color),
+            .unnormalizedCoordinates = VK_FALSE,
+        };
+        VkSampler sampler = VK_NULL_HANDLE;
+        GPU_CHECK(vkCreateSampler(device->device, &sampler_info, nullptr, &sampler));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSampler {}", fmt::ptr(sampler));
+
+        return new Sampler{.handle = sampler};
+    }
+
+    void destroy_sampler(Device* device, Sampler* sampler)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(sampler != nullptr);
+
+        vkDestroySampler(device->device, sampler->handle, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSampler {}", fmt::ptr(sampler->handle));
+
+        delete sampler;
     }
 
     void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport)
