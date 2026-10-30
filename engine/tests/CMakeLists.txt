@@ -6,3 +6,9 @@ orion_add_test(
 	SOURCES "slot_map.test.cpp"
 	DEPENDS orion.engine
 )
+
+orion_add_test(
+    NAME orion.test.inplace_function
+    SOURCES "inplace_function.test.cpp"
+    DEPENDS orion.engine
+)

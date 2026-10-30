@@ -46,6 +46,7 @@ target_sources(orion.engine
 		"orion/utils/scope_guard.hpp"
 		"orion/utils/byte_span.hpp"
 		"orion/utils/slot_map.hpp"
+		"orion/utils/inplace_function.hpp"
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/mesh.hpp"
