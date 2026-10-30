@@ -127,7 +127,10 @@ namespace orion::gpu
         VkPhysicalDevice physical_device = VK_NULL_HANDLE;
         VkDevice device                  = VK_NULL_HANDLE;
 
-        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout sampler_set_layout       = VK_NULL_HANDLE;
+        VkDescriptorSetLayout sampled_image_set_layout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout storage_image_set_layout = VK_NULL_HANDLE;
+        VkPipelineLayout pipeline_layout               = VK_NULL_HANDLE;
 
         VkPhysicalDeviceProperties device_properties;
         VkPhysicalDeviceMemoryProperties memory_properties;
@@ -577,13 +580,20 @@ namespace orion::gpu
             .dynamicRendering = VK_TRUE,
         };
         auto vulkan_12_features = VkPhysicalDeviceVulkan12Features{
-            .sType                                     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-            .pNext                                     = &vulkan_13_features,
-            .descriptorIndexing                        = VK_TRUE,
-            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
-            .scalarBlockLayout                         = VK_TRUE,
-            .timelineSemaphore                         = VK_TRUE,
-            .bufferDeviceAddress                       = VK_TRUE,
+            .sType                                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext                                        = &vulkan_13_features,
+            .descriptorIndexing                           = VK_TRUE,
+            .shaderSampledImageArrayNonUniformIndexing    = VK_TRUE,
+            .shaderStorageImageArrayNonUniformIndexing    = VK_TRUE,
+            .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+            .descriptorBindingStorageImageUpdateAfterBind = VK_TRUE,
+            .descriptorBindingUpdateUnusedWhilePending    = VK_TRUE,
+            .descriptorBindingPartiallyBound              = VK_TRUE,
+            .descriptorBindingVariableDescriptorCount     = VK_TRUE,
+            .runtimeDescriptorArray                       = VK_TRUE,
+            .scalarBlockLayout                            = VK_TRUE,
+            .timelineSemaphore                            = VK_TRUE,
+            .bufferDeviceAddress                          = VK_TRUE,
         };
         auto vulkan_11_features = VkPhysicalDeviceVulkan11Features{
             .sType                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
@@ -616,7 +626,84 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDevice {}", fmt::ptr(device));
         const auto device_guard = ScopeFail{[device] { vkDestroyDevice(device, nullptr); }};
 
+        // Create descriptor set layouts for samplers, sampled images, and storage images
+        const auto binding_flags = VkDescriptorBindingFlags{
+            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT,
+        };
+        const auto binding_flags_info = VkDescriptorSetLayoutBindingFlagsCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount  = 1u,
+            .pBindingFlags = &binding_flags,
+        };
+
+        const auto sampler_set_layout_binding = VkDescriptorSetLayoutBinding{
+            .binding         = 0u,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
+            .descriptorCount = 4'096u,
+            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT,
+        };
+        const auto sampler_set_layout_info = VkDescriptorSetLayoutCreateInfo{
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = &binding_flags_info,
+            .flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            .bindingCount = 1u,
+            .pBindings    = &sampler_set_layout_binding,
+        };
+        VkDescriptorSetLayout sampler_set_layout;
+        GPU_CHECK(vkCreateDescriptorSetLayout(device, &sampler_set_layout_info, nullptr, &sampler_set_layout));
+        const auto sampler_set_layout_guard = ScopeFail{[device, sampler_set_layout] {
+            vkDestroyDescriptorSetLayout(device, sampler_set_layout, nullptr);
+        }};
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorSetLayout {} (samplers)", fmt::ptr(sampler_set_layout));
+
+        const auto sampled_image_set_layout_binding = VkDescriptorSetLayoutBinding{
+            .binding         = 0u,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            .descriptorCount = 4'096u,
+            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT,
+        };
+        const auto sampled_image_set_layout_info = VkDescriptorSetLayoutCreateInfo{
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = &binding_flags_info,
+            .flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            .bindingCount = 1u,
+            .pBindings    = &sampled_image_set_layout_binding,
+        };
+        VkDescriptorSetLayout sampled_image_set_layout;
+        GPU_CHECK(vkCreateDescriptorSetLayout(device, &sampled_image_set_layout_info, nullptr, &sampled_image_set_layout));
+        const auto sampled_image_set_layout_guard = ScopeFail{[device, sampled_image_set_layout] {
+            vkDestroyDescriptorSetLayout(device, sampled_image_set_layout, nullptr);
+        }};
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorSetLayout {} (sampled images)", fmt::ptr(sampled_image_set_layout));
+
+        const auto storage_image_set_layout_binding = VkDescriptorSetLayoutBinding{
+            .binding         = 0u,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .descriptorCount = 4'096u,
+            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
+        };
+        const auto storage_image_set_layout_info = VkDescriptorSetLayoutCreateInfo{
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = &binding_flags_info,
+            .flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+            .bindingCount = 1u,
+            .pBindings    = &storage_image_set_layout_binding,
+        };
+        VkDescriptorSetLayout storage_image_set_layout;
+        GPU_CHECK(vkCreateDescriptorSetLayout(device, &storage_image_set_layout_info, nullptr, &storage_image_set_layout));
+        const auto storage_image_set_layout_guard = ScopeFail{[device, storage_image_set_layout] {
+            vkDestroyDescriptorSetLayout(device, storage_image_set_layout, nullptr);
+        }};
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorSetLayout {} (storage images)", fmt::ptr(storage_image_set_layout));
+
         // Create the default pipeline layout shared by all pipelines on this device.
+        const auto set_layouts = std::array{
+            sampler_set_layout,
+            sampled_image_set_layout,
+            storage_image_set_layout,
+        };
         const auto push_constant_range = VkPushConstantRange{
             .stageFlags = VK_SHADER_STAGE_ALL,
             .offset     = 0u,
@@ -624,6 +711,8 @@ namespace orion::gpu
         };
         const auto pipeline_layout_info = VkPipelineLayoutCreateInfo{
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount         = static_cast<std::uint32_t>(set_layouts.size()),
+            .pSetLayouts            = set_layouts.data(),
             .pushConstantRangeCount = 1u,
             .pPushConstantRanges    = &push_constant_range,
         };
@@ -676,15 +765,18 @@ namespace orion::gpu
 
         ORION_LOG_TRACE(LogChannel::Gpu, "Vulkan backend initialized");
         return new Device{
-            .instance          = instance,
-            .physical_device   = physical_device,
-            .device            = device,
-            .pipeline_layout   = pipeline_layout,
-            .device_properties = device_properties,
-            .memory_properties = memory_properties,
-            .graphics_queue    = {graphics_queue, graphics_family, graphics_semaphore},
-            .compute_queue     = {compute_queue, compute_family, compute_semaphore},
-            .transfer_queue    = {transfer_queue, transfer_family, transfer_semaphore},
+            .instance                 = instance,
+            .physical_device          = physical_device,
+            .device                   = device,
+            .sampler_set_layout       = sampler_set_layout,
+            .sampled_image_set_layout = sampled_image_set_layout,
+            .storage_image_set_layout = storage_image_set_layout,
+            .pipeline_layout          = pipeline_layout,
+            .device_properties        = device_properties,
+            .memory_properties        = memory_properties,
+            .graphics_queue           = {graphics_queue, graphics_family, graphics_semaphore},
+            .compute_queue            = {compute_queue, compute_family, compute_semaphore},
+            .transfer_queue           = {transfer_queue, transfer_family, transfer_semaphore},
         };
     }
 
@@ -701,6 +793,12 @@ namespace orion::gpu
 
         vkDestroyPipelineLayout(device->device, device->pipeline_layout, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkPipelineLayout {}", fmt::ptr(device->pipeline_layout));
+        vkDestroyDescriptorSetLayout(device->device, device->storage_image_set_layout, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorSetLayout {} (storage images)", fmt::ptr(device->storage_image_set_layout));
+        vkDestroyDescriptorSetLayout(device->device, device->sampled_image_set_layout, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorSetLayout {} (sampled images)", fmt::ptr(device->sampled_image_set_layout));
+        vkDestroyDescriptorSetLayout(device->device, device->sampler_set_layout, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorSetLayout {} (samplers)", fmt::ptr(device->sampler_set_layout));
 
         vkDestroyDevice(device->device, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDevice {}", fmt::ptr(device));
