@@ -56,7 +56,7 @@ namespace orion
         , m_dummy_pipeline(gpu::create_graphics_pipeline(
               m_device.get(),
               gpu::GraphicsPipelineDesc{
-                  .spirv      = load_spirv("../shaders/mesh.spv"),
+                  .spirv      = load_spirv(ORION_SHADER_OUTPUT_DIR "/mesh.spv"),
                   .topology   = gpu::Topology::TriangleList,
                   .rasterizer = gpu::RasterizerDesc{
                       .cull_mode      = gpu::CullMode::Back,

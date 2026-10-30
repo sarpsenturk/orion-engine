@@ -15,6 +15,8 @@ target_compile_options(orion.engine
 target_compile_definitions(orion.engine
 	PUBLIC
 		$<$<CONFIG:Debug>:ORION_DEBUG>
+	PRIVATE
+		ORION_SHADER_OUTPUT_DIR="${ORION_SHADER_OUTPUT_DIR}"
 )
 
 # Third-party libraries
