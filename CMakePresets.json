@@ -53,6 +53,22 @@
       }
     },
     {
+      "name": "_xcode",
+      "hidden": true,
+      "generator": "Xcode",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": null,
+        "CMAKE_CONFIGURATION_TYPES": "Debug;RelWithDebInfo",
+        "CMAKE_XCODE_GENERATE_SCHEME": "ON",
+        "CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE": "PRE_TEST"
+      }
+    },
+    {
       "name": "debug-x64-msvc-windows",
       "inherits": [
         "_root",
@@ -71,6 +87,18 @@
         "_msvc"
       ],
       "displayName": "Release x64 MSVC Windows"
+    },
+    {
+      "name": "arm64-clang-macos",
+      "inherits": [
+        "_xcode",
+        "_root"
+      ],
+      "displayName": "arm64 Clang macOS (Xcode)",
+      "cacheVariables": {
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "VCPKG_TARGET_TRIPLET": "arm64-osx"
+      }
     }
   ]
 }
