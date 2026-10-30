@@ -91,6 +91,17 @@ namespace orion::gpu
         VkSampler handle = VK_NULL_HANDLE;
     };
 
+    struct SamplerHeap {
+        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        VkDescriptorSet descriptor_set   = VK_NULL_HANDLE;
+    };
+
+    struct ResourceHeap {
+        VkDescriptorPool descriptor_pool             = VK_NULL_HANDLE;
+        VkDescriptorSet sampled_image_descriptor_set = VK_NULL_HANDLE;
+        VkDescriptorSet storage_image_descriptor_set = VK_NULL_HANDLE;
+    };
+
     struct PipelineState {
         VkPipeline handle              = VK_NULL_HANDLE;
         VkPipelineBindPoint bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -1585,6 +1596,131 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSampler {}", fmt::ptr(sampler->handle));
 
         delete sampler;
+    }
+
+    SamplerHeap* create_sampler_heap(Device* device, const SamplerHeapDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(desc.sampler_count > 0u);
+
+        // Create a descriptor pool for the samplers in the heap
+        const auto pool_size = VkDescriptorPoolSize{
+            .type            = VK_DESCRIPTOR_TYPE_SAMPLER,
+            .descriptorCount = desc.sampler_count,
+        };
+        const auto descriptor_pool_info = VkDescriptorPoolCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+            .maxSets       = 1u,
+            .poolSizeCount = 1u,
+            .pPoolSizes    = &pool_size,
+        };
+        VkDescriptorPool descriptor_pool;
+        GPU_CHECK(vkCreateDescriptorPool(device->device, &descriptor_pool_info, nullptr, &descriptor_pool));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorPool {} (samplers)", fmt::ptr(descriptor_pool));
+        const auto descriptor_pool_guard = ScopeFail{[device, descriptor_pool] {
+            vkDestroyDescriptorPool(device->device, descriptor_pool, nullptr);
+        }};
+
+        // Allocate the descriptor set for the samplers in the heap
+        const auto variable_descriptor_count_info = VkDescriptorSetVariableDescriptorCountAllocateInfo{
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+            .descriptorSetCount = 1u,
+            .pDescriptorCounts  = &desc.sampler_count,
+        };
+        const auto descriptor_set_allocate_info = VkDescriptorSetAllocateInfo{
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext              = &variable_descriptor_count_info,
+            .descriptorPool     = descriptor_pool,
+            .descriptorSetCount = 1u,
+            .pSetLayouts        = &device->sampler_set_layout,
+        };
+        VkDescriptorSet descriptor_set;
+        GPU_CHECK(vkAllocateDescriptorSets(device->device, &descriptor_set_allocate_info, &descriptor_set));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Allocated VkDescriptorSet {} for {} samplers", fmt::ptr(descriptor_set), desc.sampler_count);
+
+        return new SamplerHeap{.descriptor_pool = descriptor_pool, .descriptor_set = descriptor_set};
+    }
+
+    ResourceHeap* create_resource_heap(Device* device, const ResourceHeapDesc& desc)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(desc.sampled_image_count > 0u || desc.storage_image_count > 0u);
+
+        // Create a descriptor pool for the sampled and storage images in the heap
+        const auto pool_sizes = std::array{
+            VkDescriptorPoolSize{
+                .type            = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                .descriptorCount = desc.sampled_image_count,
+            },
+            VkDescriptorPoolSize{
+                .type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                .descriptorCount = desc.storage_image_count,
+            },
+        };
+        const auto descriptor_pool_info = VkDescriptorPoolCreateInfo{
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+            .maxSets       = 2u,
+            .poolSizeCount = static_cast<std::uint32_t>(pool_sizes.size()),
+            .pPoolSizes    = pool_sizes.data(),
+        };
+        VkDescriptorPool descriptor_pool;
+        GPU_CHECK(vkCreateDescriptorPool(device->device, &descriptor_pool_info, nullptr, &descriptor_pool));
+        const auto descriptor_pool_guard = ScopeFail{[device, descriptor_pool] {
+            vkDestroyDescriptorPool(device->device, descriptor_pool, nullptr);
+        }};
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorPool {} (sampled & storage images)", fmt::ptr(descriptor_pool));
+
+        // Allocate the descriptor set for the sampled and storage images in the heap
+        const auto variable_descriptor_sizes      = std::array{desc.sampled_image_count, desc.storage_image_count};
+        const auto variable_descriptor_count_info = VkDescriptorSetVariableDescriptorCountAllocateInfo{
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+            .descriptorSetCount = 2u,
+            .pDescriptorCounts  = variable_descriptor_sizes.data(),
+        };
+        const auto descriptor_set_layouts       = std::array{device->sampled_image_set_layout, device->storage_image_set_layout};
+        const auto descriptor_set_allocate_info = VkDescriptorSetAllocateInfo{
+            .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext              = &variable_descriptor_count_info,
+            .descriptorPool     = descriptor_pool,
+            .descriptorSetCount = 2u,
+            .pSetLayouts        = descriptor_set_layouts.data(),
+        };
+        std::array<VkDescriptorSet, 2u> descriptor_sets;
+        GPU_CHECK(vkAllocateDescriptorSets(device->device, &descriptor_set_allocate_info, descriptor_sets.data()));
+        ORION_LOG_TRACE(LogChannel::Gpu,
+                        "Allocated VkDescriptorSets {} and {} for {} sampled images and {} storage images",
+                        fmt::ptr(descriptor_sets[0]), fmt::ptr(descriptor_sets[1]),
+                        desc.sampled_image_count, desc.storage_image_count);
+
+        return new ResourceHeap{
+            .descriptor_pool              = descriptor_pool,
+            .sampled_image_descriptor_set = descriptor_sets[0],
+            .storage_image_descriptor_set = descriptor_sets[1],
+        };
+    }
+
+    void destroy_sampler_heap(Device* device, SamplerHeap* sampler_heap)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(sampler_heap != nullptr);
+
+        vkDestroyDescriptorPool(device->device, sampler_heap->descriptor_pool, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorPool {} (samplers)", fmt::ptr(sampler_heap->descriptor_pool));
+
+        delete sampler_heap;
+    }
+
+    void destroy_resource_heap(Device* device, ResourceHeap* resource_heap)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(resource_heap != nullptr);
+
+        vkDestroyDescriptorPool(device->device, resource_heap->descriptor_pool, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorPool {} (sampled & storage images)", fmt::ptr(resource_heap->descriptor_pool));
+
+        delete resource_heap;
     }
 
     void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport)

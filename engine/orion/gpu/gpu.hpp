@@ -18,6 +18,8 @@ namespace orion
         struct ImageView;
         struct Buffer;
         struct Sampler;
+        struct SamplerHeap;
+        struct ResourceHeap;
         struct PipelineState;
         struct CommandAllocator;
         struct CommandBuffer;
@@ -340,6 +342,15 @@ namespace orion
             float max_lod            = 0.0f;
         };
 
+        struct SamplerHeapDesc {
+            std::uint32_t sampler_count = 0u;
+        };
+
+        struct ResourceHeapDesc {
+            std::uint32_t sampled_image_count = 0u;
+            std::uint32_t storage_image_count = 0u;
+        };
+
         Device* create_device(const DeviceDesc& desc);
         void destroy_device(Device* device);
 
@@ -372,6 +383,11 @@ namespace orion
 
         Sampler* create_sampler(Device* device, const SamplerDesc& desc);
         void destroy_sampler(Device* device, Sampler* sampler);
+
+        SamplerHeap* create_sampler_heap(Device* device, const SamplerHeapDesc& desc);
+        ResourceHeap* create_resource_heap(Device* device, const ResourceHeapDesc& desc);
+        void destroy_sampler_heap(Device* device, SamplerHeap* sampler_heap);
+        void destroy_resource_heap(Device* device, ResourceHeap* resource_heap);
 
         void set_viewport(CommandBuffer* command_buffer, const Viewport& viewport);
         void set_scissor(CommandBuffer* command_buffer, const Rect2D& scissor);
