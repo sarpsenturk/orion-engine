@@ -9,6 +9,7 @@ namespace orion
 {
     enum class LogChannel {
         Core,
+        Platform,
         Application,
         Assertions,
         Gpu,

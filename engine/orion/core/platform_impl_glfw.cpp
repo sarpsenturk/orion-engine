@@ -3,6 +3,7 @@
 #include "window.hpp"
 
 #include "orion/core/assert.hpp"
+#include "orion/core/logger.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -65,6 +66,12 @@ namespace orion
 
         // Use framebuffer size to get the actual size of the window in pixels
         glfwGetFramebufferSize(window, &m_width, &m_height);
+        if (m_width != desc.width || m_height != desc.height) {
+            ORION_LOG_WARN(
+                LogChannel::Platform,
+                "Window created with dimensions ({}, {}) not matching requested dimensions ({}, {})",
+                m_width, m_height, desc.width, desc.height);
+        }
 
         // Set user pointer and callbacks
         glfwSetWindowUserPointer(window, this);

@@ -9,6 +9,7 @@ namespace orion
 {
     static constexpr auto channels = std::array{
         "CORE",
+        "PLATFORM",
         "APP",
         "ASSERT",
         "GPU",
