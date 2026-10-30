@@ -1701,6 +1701,80 @@ namespace orion::gpu
         };
     }
 
+    void write_sampler(Device* device, SamplerHeap* sampler_heap, std::uint32_t index, Sampler* sampler)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(sampler_heap != nullptr);
+        ORION_ASSERT(sampler != nullptr);
+
+        const auto descriptor_image_info = VkDescriptorImageInfo{
+            .sampler = sampler->handle,
+        };
+        const auto write_descriptor_set = VkWriteDescriptorSet{
+            .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet          = sampler_heap->descriptor_set,
+            .dstBinding      = 0u,
+            .dstArrayElement = index,
+            .descriptorCount = 1u,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER,
+            .pImageInfo      = &descriptor_image_info,
+        };
+        vkUpdateDescriptorSets(device->device, 1u, &write_descriptor_set, 0u, nullptr);
+    }
+
+    void write_sampled_image(
+        Device* device,
+        ResourceHeap* resource_heap,
+        std::uint32_t sampled_index,
+        ImageView* view,
+        ImageLayout layout)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(resource_heap != nullptr);
+        ORION_ASSERT(view != nullptr);
+
+        const auto descriptor_image_info = VkDescriptorImageInfo{
+            .imageView   = view->handle,
+            .imageLayout = to_vk_image_layout(layout),
+        };
+        const auto write_descriptor_set = VkWriteDescriptorSet{
+            .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet          = resource_heap->sampled_image_descriptor_set,
+            .dstBinding      = 0u,
+            .dstArrayElement = sampled_index,
+            .descriptorCount = 1u,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            .pImageInfo      = &descriptor_image_info,
+        };
+        vkUpdateDescriptorSets(device->device, 1u, &write_descriptor_set, 0u, nullptr);
+    }
+
+    void write_storage_image(
+        Device* device,
+        ResourceHeap* resource_heap,
+        std::uint32_t storage_index,
+        ImageView* view)
+    {
+        ORION_ASSERT(device != nullptr);
+        ORION_ASSERT(resource_heap != nullptr);
+        ORION_ASSERT(view != nullptr);
+
+        const auto descriptor_image_info = VkDescriptorImageInfo{
+            .imageView   = view->handle,
+            .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+        };
+        const auto write_descriptor_set = VkWriteDescriptorSet{
+            .sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet          = resource_heap->storage_image_descriptor_set,
+            .dstBinding      = 0u,
+            .dstArrayElement = storage_index,
+            .descriptorCount = 1u,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .pImageInfo      = &descriptor_image_info,
+        };
+        vkUpdateDescriptorSets(device->device, 1u, &write_descriptor_set, 0u, nullptr);
+    }
+
     void destroy_sampler_heap(Device* device, SamplerHeap* sampler_heap)
     {
         ORION_ASSERT(device != nullptr);

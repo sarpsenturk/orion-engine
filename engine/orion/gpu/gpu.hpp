@@ -386,6 +386,9 @@ namespace orion
 
         SamplerHeap* create_sampler_heap(Device* device, const SamplerHeapDesc& desc);
         ResourceHeap* create_resource_heap(Device* device, const ResourceHeapDesc& desc);
+        void write_sampler(Device* device, SamplerHeap* sampler_heap, std::uint32_t index, Sampler* sampler);
+        void write_sampled_image(Device* device, ResourceHeap* resource_heap, std::uint32_t sampled_index, ImageView* view, ImageLayout layout = ImageLayout::ShaderReadOnly);
+        void write_storage_image(Device* device, ResourceHeap* resource_heap, std::uint32_t storage_index, ImageView* view);
         void destroy_sampler_heap(Device* device, SamplerHeap* sampler_heap);
         void destroy_resource_heap(Device* device, ResourceHeap* resource_heap);
 
