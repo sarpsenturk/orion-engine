@@ -38,6 +38,9 @@ namespace orion::gpu
     // Target Vulkan API version
     static constexpr auto vulkan_api_version = VK_API_VERSION_1_4;
 
+    // Minimum push constant size guaranteed by Vulkan.
+    static constexpr std::uint32_t push_constant_size = 128u;
+
     struct VulkanQueue {
         VkQueue handle       = VK_NULL_HANDLE;
         std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
@@ -90,7 +93,8 @@ namespace orion::gpu
     };
 
     struct CommandBuffer {
-        VkCommandBuffer handle = VK_NULL_HANDLE;
+        VkCommandBuffer handle           = VK_NULL_HANDLE;
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
     };
 
     struct CommandAllocator {
@@ -118,6 +122,8 @@ namespace orion::gpu
 
         VkPhysicalDevice physical_device = VK_NULL_HANDLE;
         VkDevice device                  = VK_NULL_HANDLE;
+
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 
         VkPhysicalDeviceProperties device_properties;
         VkPhysicalDeviceMemoryProperties memory_properties;
@@ -546,7 +552,6 @@ namespace orion::gpu
         // Create VkDevice
         const auto device_extensions = std::array{
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
         };
         const auto device_info = VkDeviceCreateInfo{
             .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -561,6 +566,24 @@ namespace orion::gpu
         volkLoadDevice(device);
         ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDevice {}", fmt::ptr(device));
         const auto device_guard = ScopeFail{[device] { vkDestroyDevice(device, nullptr); }};
+
+        // Create the default pipeline layout shared by all pipelines on this device.
+        const auto push_constant_range = VkPushConstantRange{
+            .stageFlags = VK_SHADER_STAGE_ALL,
+            .offset     = 0u,
+            .size       = push_constant_size,
+        };
+        const auto pipeline_layout_info = VkPipelineLayoutCreateInfo{
+            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pushConstantRangeCount = 1u,
+            .pPushConstantRanges    = &push_constant_range,
+        };
+        VkPipelineLayout pipeline_layout;
+        GPU_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_info, nullptr, &pipeline_layout));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
+        const auto pipeline_layout_guard = ScopeFail{[device, pipeline_layout] {
+            vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
+        }};
 
         // Retrieve queue handles
         VkQueue graphics_queue;
@@ -607,6 +630,7 @@ namespace orion::gpu
             .instance          = instance,
             .physical_device   = physical_device,
             .device            = device,
+            .pipeline_layout   = pipeline_layout,
             .device_properties = device_properties,
             .memory_properties = memory_properties,
             .graphics_queue    = {graphics_queue, graphics_family, graphics_semaphore},
@@ -625,6 +649,9 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (compute queue)", fmt::ptr(device->compute_queue.semaphore));
         vkDestroySemaphore(device->device, device->graphics_queue.semaphore, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (graphics queue)", fmt::ptr(device->graphics_queue.semaphore));
+
+        vkDestroyPipelineLayout(device->device, device->pipeline_layout, nullptr);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkPipelineLayout {}", fmt::ptr(device->pipeline_layout));
 
         vkDestroyDevice(device->device, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDevice {}", fmt::ptr(device));
@@ -927,7 +954,7 @@ namespace orion::gpu
             };
             VkCommandBuffer command_buffer;
             GPU_CHECK(vkAllocateCommandBuffers(device->device, &command_buffer_allocate_info, &command_buffer));
-            allocator->command_buffers.emplace_back(command_buffer);
+            allocator->command_buffers.emplace_back(command_buffer, device->pipeline_layout);
         }
         auto* command_buffer = &allocator->command_buffers[allocator->current_command_buffer_index++];
 
@@ -1072,14 +1099,9 @@ namespace orion::gpu
             .pColorAttachmentFormats = color_attachments.data(),
             .depthAttachmentFormat   = to_vk_format(desc.depth_attachment),
         };
-        const auto pipeline_flags_info = VkPipelineCreateFlags2CreateInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
-            .pNext = &rendering_info,
-            .flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
-        };
         const auto pipeline_info = VkGraphicsPipelineCreateInfo{
             .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .pNext               = &pipeline_flags_info,
+            .pNext               = &rendering_info,
             .stageCount          = static_cast<std::uint32_t>(shader_stages.size()),
             .pStages             = shader_stages.data(),
             .pVertexInputState   = &vertex_input_state,
@@ -1091,7 +1113,7 @@ namespace orion::gpu
             .pDepthStencilState  = &depth_stencil_state,
             .pColorBlendState    = &color_blend_state,
             .pDynamicState       = &dynamic_state,
-            .layout              = VK_NULL_HANDLE,
+            .layout              = device->pipeline_layout,
         };
         VkPipeline pipeline;
         GPU_CHECK(vkCreateGraphicsPipelines(device->device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline));
@@ -1409,13 +1431,16 @@ namespace orion::gpu
 
     static void push_root_data(CommandBuffer* command_buffer, ByteSpan root)
     {
+        ORION_ASSERT(root.size <= push_constant_size);
+        ORION_ASSERT(root.size % 4u == 0u);
         if (!root.empty()) {
-            const auto push_data_info = VkPushDataInfoEXT{
-                .sType  = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
-                .offset = 0u,
-                .data   = {.address = root.data, .size = root.size},
-            };
-            vkCmdPushDataEXT(command_buffer->handle, &push_data_info);
+            vkCmdPushConstants(
+                command_buffer->handle,
+                command_buffer->pipeline_layout,
+                VK_SHADER_STAGE_ALL,
+                0u,
+                static_cast<std::uint32_t>(root.size),
+                root.data);
         }
     }
 
