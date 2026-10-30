@@ -33,11 +33,6 @@ namespace orion
         std::uint64_t frame_index = 0ull;
     };
 
-    struct RendererDesc {
-        std::uint32_t width;
-        std::uint32_t height;
-    };
-
     class Renderer
     {
     public:
@@ -45,7 +40,7 @@ namespace orion
         static constexpr auto swapchain_image_count  = 3u;
         static constexpr auto swapchain_image_format = gpu::Format::BGRA8_Unorm;
 
-        explicit Renderer(const RendererDesc& desc);
+        Renderer();
         Renderer(const Renderer&)            = delete;
         Renderer& operator=(const Renderer&) = delete;
         Renderer(Renderer&&)                 = delete;
@@ -80,7 +75,6 @@ namespace orion
         [[nodiscard]] FrameInFlight& current_frame() { return m_frame_data[current_frame_index()]; }
 
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
-        gpu::Extent2D m_renderer_extent;
         gpu::Image* m_depth_image          = nullptr;
         gpu::ImageView* m_depth_image_view = nullptr;
 

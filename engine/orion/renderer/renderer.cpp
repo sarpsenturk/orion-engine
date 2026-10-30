@@ -30,22 +30,8 @@ namespace orion
         return spirv;
     }
 
-    Renderer::Renderer(const RendererDesc& desc)
+    Renderer::Renderer()
         : m_device(gpu::create_device(gpu::DeviceDesc{}), gpu::destroy_device)
-        , m_renderer_extent{desc.width, desc.height}
-        , m_depth_image(gpu::create_image(
-              m_device.get(),
-              gpu::ImageDesc{
-                  .width  = desc.width,
-                  .height = desc.height,
-                  .format = gpu::Format::D32_Float,
-                  .usage  = gpu::ImageUsage::DepthStencilAttachment,
-              }))
-        , m_depth_image_view(gpu::create_image_view(
-              m_device.get(),
-              gpu::ImageViewDesc{
-                  .image = m_depth_image,
-              }))
         , m_frame_data(make_array<frames_in_flight>([this] {
             return FrameInFlight{
                 .command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics),
@@ -88,8 +74,8 @@ namespace orion
             gpu::destroy_swapchain(m_device.get(), swapchain);
         }
 
-        gpu::destroy_image_view(m_device.get(), m_depth_image_view);
-        gpu::destroy_image(m_device.get(), m_depth_image);
+        if (m_depth_image_view) { gpu::destroy_image_view(m_device.get(), m_depth_image_view); }
+        if (m_depth_image) { gpu::destroy_image(m_device.get(), m_depth_image); }
     }
 
     std::optional<Frame> Renderer::begin_frame(gpu::Swapchain* swapchain)
@@ -102,6 +88,34 @@ namespace orion
         // Acquire the next frame from the swapchain
         // Return a Frame object if successful, otherwise return std::nullopt
         if (auto swapchain_frame = gpu::acquire_swapchain_frame(m_device.get(), swapchain)) {
+            const auto swapchain_extent = gpu::image_extent_2d(swapchain_frame->image);
+            if (m_depth_image) {
+                const auto depth_extent = gpu::image_extent_2d(m_depth_image);
+                if (depth_extent.width != swapchain_extent.width || depth_extent.height != swapchain_extent.height) {
+                    gpu::wait_idle(m_device.get());
+                    gpu::destroy_image_view(m_device.get(), m_depth_image_view);
+                    gpu::destroy_image(m_device.get(), m_depth_image);
+                    m_depth_image_view = nullptr;
+                    m_depth_image      = nullptr;
+                }
+            }
+            // TODO: Replace with a transient render graph image.
+            if (!m_depth_image) {
+                m_depth_image = gpu::create_image(
+                    m_device.get(),
+                    gpu::ImageDesc{
+                        .width  = swapchain_extent.width,
+                        .height = swapchain_extent.height,
+                        .format = gpu::Format::D32_Float,
+                        .usage  = gpu::ImageUsage::DepthStencilAttachment,
+                    });
+                m_depth_image_view = gpu::create_image_view(
+                    m_device.get(),
+                    gpu::ImageViewDesc{
+                        .image = m_depth_image,
+                    });
+            }
+
             frame_data.swapchain_frame = *swapchain_frame;
             frame_data.command_buffer  = gpu::begin_command_buffer(m_device.get(), frame_data.command_allocator);
             return Frame{};
