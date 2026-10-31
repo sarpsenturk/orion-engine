@@ -11,9 +11,18 @@ namespace orion
         using Function = InplaceFunction<32, int(int)>;
         struct Large { char bytes[64]; int operator()(int) { return 0; } };
         struct alignas(64) Aligned { int operator()(int) { return 0; } };
+        struct ThrowingMove {
+            ThrowingMove(const ThrowingMove&) = default;
+            ThrowingMove(ThrowingMove&&) noexcept(false) {}
+            int operator()(int n) { return n; }
+        };
         static_assert(!std::is_copy_constructible_v<Function>);
         static_assert(!std::is_copy_assignable_v<Function>);
-        static_assert(std::is_move_constructible_v<Function>);
+        static_assert(std::is_nothrow_move_constructible_v<Function>);
+        static_assert(std::is_nothrow_move_assignable_v<Function>);
+        static_assert(!std::is_constructible_v<Function, ThrowingMove>);
+        static_assert(!std::is_constructible_v<Function, ThrowingMove&>);
+        static_assert(!std::is_constructible_v<Function, const ThrowingMove&>);
         static_assert(!std::is_constructible_v<Function, Large>);
         static_assert(!std::is_constructible_v<InplaceFunction<128, int(int)>, Aligned>);
         static_assert(!std::is_constructible_v<Function, int>);
@@ -99,23 +108,23 @@ namespace orion
             EXPECT_EQ(function(1), 6);
         }
 
-        TEST(InplaceFunctionTest, ThrowingMoveLeavesDestinationEmpty)
+        TEST(InplaceFunctionTest, ThrowingCopyPreservesDestination)
         {
             struct Target {
                 bool* fail;
                 Target(bool& flag) : fail(&flag) {}
-                Target(Target&& other) : fail(other.fail) { if (*fail) throw std::runtime_error("move"); }
+                Target(const Target& other) : fail(other.fail) { if (*fail) throw std::runtime_error("copy"); }
+                Target(Target&&) noexcept = default;
                 int operator()(int n) { return n; }
             };
-            bool fail = false;
-            Function source(Target{fail});
-            Function destination([](int n) { return n; });
-            fail = true;
-            EXPECT_THROW(destination = std::move(source), std::runtime_error);
-            EXPECT_FALSE(destination);
-            EXPECT_TRUE(source);
-            EXPECT_EQ(source(3), 3);
-            fail = false;
+            static_assert(std::is_nothrow_constructible_v<Function, Target>);
+            static_assert(!std::is_nothrow_constructible_v<Function, Target&>);
+            bool fail = true;
+            Target target{fail};
+            Function destination([](int n) { return n * 2; });
+            EXPECT_THROW(destination = target, std::runtime_error);
+            EXPECT_EQ(destination(3), 6);
+            Function source(std::move(target));
             destination = std::move(source);
             EXPECT_EQ(destination(4), 4);
             EXPECT_FALSE(source);

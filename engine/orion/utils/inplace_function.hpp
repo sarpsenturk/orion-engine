@@ -12,7 +12,8 @@ namespace orion
     class InplaceFunction;
 
     // Move-only callable with Size bytes of inline storage. Targets must fit and
-    // require no more than max_align_t alignment. Empty invocation throws.
+    // require no more than max_align_t alignment, and be nothrow move-constructible.
+    // Empty invocation throws.
     template<std::size_t Size, typename Ret, typename... Args>
     class InplaceFunction<Size, Ret(Args...)>
     {
@@ -20,7 +21,7 @@ namespace orion
 
         struct Operations {
             Ret (*invoke)(void*, Args&&...);
-            void (*move)(void*, void*);
+            void (*move)(void*, void*) noexcept;
             void (*destroy)(void*) noexcept;
         };
 
@@ -34,7 +35,7 @@ namespace orion
                     return std::invoke(target, std::forward<Args>(args)...);
                 }
             },
-            [](void* destination, void* source) {
+            [](void* destination, void* source) noexcept {
                 std::construct_at(reinterpret_cast<F*>(destination),
                     std::move(*std::launder(reinterpret_cast<F*>(source))));
             },
@@ -50,10 +51,10 @@ namespace orion
             requires (!std::is_same_v<Target, InplaceFunction>
                 && sizeof(Target) <= Size && alignof(Target) <= alignof(std::max_align_t)
                 && std::is_constructible_v<Target, F>
-                && std::is_move_constructible_v<Target>
+                && std::is_nothrow_move_constructible_v<Target>
                 && std::is_nothrow_destructible_v<Target>
                 && std::is_invocable_r_v<Ret, Target&, Args...>)
-        InplaceFunction(F&& target)
+        InplaceFunction(F&& target) noexcept(std::is_nothrow_constructible_v<Target, F>)
         {
             if constexpr (std::is_pointer_v<Target> || std::is_member_pointer_v<Target>) {
                 if (target == nullptr) {
@@ -67,13 +68,12 @@ namespace orion
         InplaceFunction(const InplaceFunction&) = delete;
         InplaceFunction& operator=(const InplaceFunction&) = delete;
 
-        InplaceFunction(InplaceFunction&& other)
+        InplaceFunction(InplaceFunction&& other) noexcept
         {
             move_from(other);
         }
 
-        // If the target's move throws, this becomes empty and other remains valid.
-        InplaceFunction& operator=(InplaceFunction&& other)
+        InplaceFunction& operator=(InplaceFunction&& other) noexcept
         {
             if (this != &other) {
                 reset();
@@ -109,7 +109,7 @@ namespace orion
         }
 
     private:
-        void move_from(InplaceFunction& other)
+        void move_from(InplaceFunction& other) noexcept
         {
             if (other.m_operations) {
                 other.m_operations->move(m_storage, other.m_storage);
