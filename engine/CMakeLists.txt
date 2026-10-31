@@ -50,7 +50,8 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/mesh.hpp"
-		"orion/renderer/material.hpp"
+        "orion/renderer/material.hpp"
+		"orion/renderer/texture.hpp"
 		"orion/renderer/scene.hpp"
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/bump_allocator.hpp"
@@ -67,7 +68,8 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.cpp"
 		"orion/renderer/mesh.cpp"
-		"orion/renderer/material.cpp"
+        "orion/renderer/material.cpp"
+		"orion/renderer/texture.cpp"
 		"orion/renderer/scene.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
 		"orion/imgui/imgui.cpp"
