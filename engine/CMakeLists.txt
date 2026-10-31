@@ -55,6 +55,7 @@ target_sources(orion.engine
 		"orion/renderer/scene.hpp"
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/bump_allocator.hpp"
+		"orion/gpu/deletion_queue.hpp"
 		"orion/imgui/imgui.hpp"
 	PRIVATE
 		"orion/orion.cpp"
@@ -72,6 +73,7 @@ target_sources(orion.engine
 		"orion/renderer/texture.cpp"
 		"orion/renderer/scene.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
+		"orion/gpu/deletion_queue.cpp"
 		"orion/imgui/imgui.cpp"
 )
 
