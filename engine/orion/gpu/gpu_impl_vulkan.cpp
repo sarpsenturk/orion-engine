@@ -1651,11 +1651,11 @@ namespace orion::gpu
         const auto pool_sizes = std::array{
             VkDescriptorPoolSize{
                 .type            = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                .descriptorCount = desc.sampled_image_count,
+                .descriptorCount = std::max(1u, desc.sampled_image_count),
             },
             VkDescriptorPoolSize{
                 .type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                .descriptorCount = desc.storage_image_count,
+                .descriptorCount = std::max(1u, desc.storage_image_count),
             },
         };
         const auto descriptor_pool_info = VkDescriptorPoolCreateInfo{
