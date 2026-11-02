@@ -75,7 +75,7 @@ namespace orion
         const auto view_guard = ScopeFail{[image_view, this] { gpu::destroy_image_view(m_device, image_view); }};
 
         // Create texture handle and write to texture heap
-        const auto handle = m_texture_slots.insert({image, image_view});
+        const auto handle     = m_texture_slots.insert({image, image_view});
         const auto slot_guard = ScopeFail{[handle, this] { m_texture_slots.erase(handle); }};
         gpu::write_sampled_image(m_device, m_texture_heap, handle.index, image_view);
 
@@ -100,6 +100,7 @@ namespace orion
         const auto* data  = m_texture_slots.try_get(handle);
         return data ? data->image : nullptr;
     }
+
     gpu::ImageView* TextureManager::get_image_view(Texture texture) const
     {
         const auto handle = SlotMap<TextureData>::Handle::from_uint64(texture.handle);

@@ -15,6 +15,9 @@ namespace orion
     struct TextureDesc {
         std::uint32_t width  = 0u;
         std::uint32_t height = 0u;
+        // Required tightly packed RGBA8 sRGB pixels (width * height * 4 bytes).
+        // Renderer::create_texture copies these bytes before returning.
+        gpu::ByteSpan data = {};
     };
 
     class TextureManager
@@ -35,6 +38,8 @@ namespace orion
 
         [[nodiscard]] gpu::Image* get_image(Texture texture) const;
         [[nodiscard]] gpu::ImageView* get_image_view(Texture texture) const;
+        [[nodiscard]] gpu::SamplerHeap* sampler_heap() const { return m_sampler_heap; }
+        [[nodiscard]] gpu::ResourceHeap* resource_heap() const { return m_texture_heap; }
 
     private:
         struct TextureData {
