@@ -1,5 +1,7 @@
 #pragma once
 
+#include "texture.hpp"
+
 #include "orion/gpu/bump_allocator.hpp"
 #include "orion/gpu/gpu.hpp"
 
@@ -7,6 +9,7 @@
 
 #include <glm/vec4.hpp>
 
+#include <cstddef>
 #include <cstdint>
 
 namespace orion
@@ -21,6 +24,8 @@ namespace orion
 
     struct PbrMaterial {
         glm::vec4 base_color = glm::vec4(1.0f);
+        // Optional; the texture must outlive materials that reference it.
+        Texture base_color_texture = {};
     };
 
     class MaterialManager
@@ -42,9 +47,11 @@ namespace orion
         [[nodiscard]] MaterialRecord get_material_record(Material material) const;
 
     private:
-        struct GpuPbrMaterial {
+        struct alignas(16) GpuPbrMaterial {
             glm::vec4 base_color;
+            std::uint32_t base_color_texture;
         };
+        static_assert(offsetof(GpuPbrMaterial, base_color_texture) == 16z);
         static constexpr auto material_buffer_size = max_material_count * sizeof(GpuPbrMaterial);
 
         gpu::Device* m_device;

@@ -25,9 +25,16 @@ namespace orion
         const auto material_offset = m_material_allocator.allocate(sizeof(GpuPbrMaterial), alignof(GpuPbrMaterial));
         ORION_ASSERT(material_offset != std::numeric_limits<std::size_t>::max());
 
+        // Texture descriptors use the stable slot index, not the generation
+        // encoded in the upper half of the CPU handle. The empty handle maps
+        // to ~0u, which denotes an untextured material in the shader.
+        const auto gpu_material = GpuPbrMaterial{
+            .base_color = material.base_color,
+            .base_color_texture = static_cast<std::uint32_t>(material.base_color_texture.handle),
+        };
         std::memcpy(
             static_cast<char*>(gpu::buffer_host_address(m_material_buffer)) + material_offset,
-            &material,
+            &gpu_material,
             sizeof(GpuPbrMaterial));
 
         const auto handle = m_material_records.insert({
