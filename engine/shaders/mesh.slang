@@ -35,10 +35,7 @@ VSOutput vsmain(uint vtx : SV_VertexID)
     let vertex = root.vertices[vtx];
     VSOutput output;
     output.position = mul(root.mvp, float4(vertex, 1.0));
-    output.uv = float2(0.0, 0.0);
-    if (root.uvs != nullptr) {
-        output.uv = root.uvs[vtx];
-    }
+    output.uv = root.uvs[vtx];
     return output;
 }
 
