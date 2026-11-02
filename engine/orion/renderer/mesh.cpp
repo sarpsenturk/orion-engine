@@ -3,6 +3,7 @@
 #include "orion/core/assert.hpp"
 
 #include <cstring>
+#include <limits>
 
 namespace orion
 {
@@ -20,17 +21,25 @@ namespace orion
                   .size   = index_buffer_size,
                   .memory = gpu::Memory::CpuVisible,
               }))
+        , m_uv_buffer(gpu::create_buffer(
+              m_device,
+              gpu::BufferDesc{
+                  .size   = vertex_buffer_size,
+                  .memory = gpu::Memory::CpuVisible,
+              }))
     {
     }
 
     MeshManager::~MeshManager()
     {
+        gpu::destroy_buffer(m_device, m_uv_buffer);
         gpu::destroy_buffer(m_device, m_index_buffer);
         gpu::destroy_buffer(m_device, m_position_buffer);
     }
 
     Mesh MeshManager::create_mesh(const MeshDesc& desc)
     {
+        ORION_ASSERT(desc.uvs.empty() || desc.uvs.size() == desc.positions.size());
         const auto vertex_offset = m_position_allocator.allocate(desc.positions.size_bytes(), alignof(glm::vec3));
         ORION_ASSERT(vertex_offset != std::numeric_limits<std::size_t>::max());
         std::memcpy(
@@ -45,10 +54,22 @@ namespace orion
             desc.indices.data(),
             desc.indices.size_bytes());
 
+        gpu::Address uv_address = 0ull;
+        if (!desc.uvs.empty()) {
+            const auto uv_offset = m_uv_allocator.allocate(desc.uvs.size_bytes(), alignof(glm::vec2));
+            ORION_ASSERT(uv_offset != std::numeric_limits<std::size_t>::max());
+            std::memcpy(
+                static_cast<char*>(gpu::buffer_host_address(m_uv_buffer)) + uv_offset,
+                desc.uvs.data(),
+                desc.uvs.size_bytes());
+            uv_address = gpu::buffer_device_address(m_uv_buffer) + uv_offset;
+        }
+
         const auto handle = m_mesh_records.insert({
             .position_address = gpu::buffer_device_address(m_position_buffer) + vertex_offset,
             .index_count      = static_cast<std::uint32_t>(desc.indices.size()),
             .first_index      = static_cast<std::uint32_t>(index_offset / sizeof(std::uint32_t)),
+            .uv_address       = uv_address,
         });
         return Mesh{handle.to_uint64()};
     }
