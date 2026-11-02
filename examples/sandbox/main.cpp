@@ -9,26 +9,58 @@
 #include <glm/vec3.hpp>
 
 #include <array>
+#include <cstdint>
 
+// Separate vertices per face allow each face to cover the full UV square.
 static constexpr auto cube_vertices = std::array{
-    glm::vec3(-0.5f, -0.5f, -0.5f), // Vertex 1: position (x, y, z)
-    glm::vec3(0.5f, -0.5f, -0.5f),  // Vertex 2: position (x, y, z)
-    glm::vec3(0.5f, 0.5f, -0.5f),   // Vertex 3: position (x, y, z)
-    glm::vec3(-0.5f, 0.5f, -0.5f),  // Vertex 4: position (x, y, z)
-    glm::vec3(-0.5f, -0.5f, 0.5f),  // Vertex 5: position (x, y, z)
-    glm::vec3(0.5f, -0.5f, 0.5f),   // Vertex 6: position (x, y, z)
-    glm::vec3(0.5f, 0.5f, 0.5f),    // Vertex 7: position (x, y, z)
-    glm::vec3(-0.5f, 0.5f, 0.5f)    // Vertex 8: position (x, y, z)
+    // Back, front, left, right, top, bottom; counterclockwise from outside.
+    glm::vec3(-.5f, -.5f, -.5f), glm::vec3(-.5f, .5f, -.5f), glm::vec3(.5f, .5f, -.5f), glm::vec3(.5f, -.5f, -.5f),
+    glm::vec3(-.5f, -.5f, .5f), glm::vec3(.5f, -.5f, .5f), glm::vec3(.5f, .5f, .5f), glm::vec3(-.5f, .5f, .5f),
+    glm::vec3(-.5f, -.5f, -.5f), glm::vec3(-.5f, -.5f, .5f), glm::vec3(-.5f, .5f, .5f), glm::vec3(-.5f, .5f, -.5f),
+    glm::vec3(.5f, -.5f, -.5f), glm::vec3(.5f, .5f, -.5f), glm::vec3(.5f, .5f, .5f), glm::vec3(.5f, -.5f, .5f),
+    glm::vec3(-.5f, .5f, -.5f), glm::vec3(-.5f, .5f, .5f), glm::vec3(.5f, .5f, .5f), glm::vec3(.5f, .5f, -.5f),
+    glm::vec3(-.5f, -.5f, -.5f), glm::vec3(.5f, -.5f, -.5f), glm::vec3(.5f, -.5f, .5f), glm::vec3(-.5f, -.5f, .5f),
 };
-static constexpr auto cube_indices = std::array{
-    // Counterclockwise winding when viewed from outside the cube.
-    0u, 2u, 1u, 2u, 0u, 3u, // Back face
-    4u, 5u, 6u, 6u, 7u, 4u, // Front face
-    0u, 4u, 7u, 7u, 3u, 0u, // Left face
-    1u, 6u, 5u, 6u, 1u, 2u, // Right face
-    3u, 6u, 2u, 6u, 3u, 7u, // Top face
-    0u, 1u, 5u, 5u, 4u, 0u  // Bottom face
-};
+static constexpr auto cube_uvs = [] {
+    std::array<glm::vec2, 24> uvs{};
+    for (auto face = 0u; face < 6u; ++face) {
+        uvs[face * 4u + 0u] = {0.0f, 0.0f};
+        uvs[face * 4u + 1u] = {1.0f, 0.0f};
+        uvs[face * 4u + 2u] = {1.0f, 1.0f};
+        uvs[face * 4u + 3u] = {0.0f, 1.0f};
+    }
+    return uvs;
+}();
+static constexpr auto cube_indices = [] {
+    std::array<std::uint32_t, 36> indices{};
+    for (auto face = 0u; face < 6u; ++face) {
+        const auto base = face * 4u;
+        const auto offset = face * 6u;
+        indices[offset + 0u] = base;
+        indices[offset + 1u] = base + 1u;
+        indices[offset + 2u] = base + 2u;
+        indices[offset + 3u] = base + 2u;
+        indices[offset + 4u] = base + 3u;
+        indices[offset + 5u] = base;
+    }
+    return indices;
+}();
+
+static constexpr auto checker_size = 64u;
+static constexpr auto checker_pixels = [] {
+    std::array<std::uint8_t, checker_size * checker_size * 4u> pixels{};
+    for (auto y = 0u; y < checker_size; ++y) {
+        for (auto x = 0u; x < checker_size; ++x) {
+            const auto offset = (y * checker_size + x) * 4u;
+            const auto value = static_cast<std::uint8_t>(((x / 8u) + (y / 8u)) % 2u ? 64u : 255u);
+            pixels[offset + 0u] = value;
+            pixels[offset + 1u] = value;
+            pixels[offset + 2u] = value;
+            pixels[offset + 3u] = 255u;
+        }
+    }
+    return pixels;
+}();
 
 class Sandbox : public orion::Application
 {
@@ -38,9 +70,14 @@ public:
         , m_renderer(engine.renderer())
         , m_swapchain(m_renderer.create_swapchain(m_window))
         , m_imgui(m_renderer, m_window)
-        , m_cube_mesh(m_renderer.create_mesh({cube_vertices, cube_indices, 8u}))
-        , m_red_material(m_renderer.create_material({glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)}))
-        , m_green_material(m_renderer.create_material({glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)}))
+        , m_cube_mesh(m_renderer.create_mesh({cube_vertices, cube_uvs, cube_indices, 24u}))
+        , m_checker_texture(m_renderer.create_texture({
+              .width = checker_size,
+              .height = checker_size,
+              .data = {checker_pixels.data(), checker_pixels.size()},
+          }))
+        , m_red_material(m_renderer.create_material({glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), m_checker_texture}))
+        , m_green_material(m_renderer.create_material({glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), m_checker_texture}))
     {
         m_window.set_cursor_mode(orion::CursorMode::Disabled);
         m_last_mouse_position = m_window.mouse_position();
@@ -144,6 +181,7 @@ private:
     orion::ImGuiContext m_imgui;
 
     orion::Mesh m_cube_mesh;
+    orion::Texture m_checker_texture;
     orion::Material m_red_material;
     orion::Material m_green_material;
 

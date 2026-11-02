@@ -3,9 +3,12 @@
 #include "material.hpp"
 #include "mesh.hpp"
 #include "scene.hpp"
+#include "texture.hpp"
 
 #include "orion/core/event.hpp"
+#include "orion/gpu/deletion_queue.hpp"
 #include "orion/gpu/gpu.hpp"
+#include "orion/gpu/upload_queue.hpp"
 
 #include <glm/mat4x4.hpp>
 
@@ -61,6 +64,9 @@ namespace orion
         [[nodiscard]] Material create_material(const PbrMaterial& material);
         void destroy_material(Material material);
 
+        [[nodiscard]] Texture create_texture(const TextureDesc& desc);
+        void destroy_texture(Texture texture);
+
         [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
 
     private:
@@ -69,6 +75,7 @@ namespace orion
             gpu::CommandBuffer* command_buffer       = nullptr;
             gpu::TimelinePoint timeline_point;
             gpu::SwapchainFrame swapchain_frame;
+            gpu::DeletionQueue deletion_queue;
         };
 
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
@@ -81,10 +88,13 @@ namespace orion
         std::flat_map<const Window*, gpu::Swapchain*> m_swapchains;
 
         std::array<FrameInFlight, frames_in_flight> m_frame_data;
+        gpu::DeletionQueue m_pending_deletions;
+        gpu::UploadQueue m_upload_queue;
         std::uint64_t m_frame_counter = 0ull;
 
         MeshManager m_mesh_manager;
         MaterialManager m_material_manager;
+        TextureManager m_texture_manager;
 
         gpu::PipelineState* m_dummy_pipeline = nullptr;
     };

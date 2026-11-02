@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <utility>
 #include <vector>
 
 namespace orion
@@ -37,8 +38,10 @@ namespace orion
                 .command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics),
             };
         }))
+        , m_upload_queue(m_device.get())
         , m_mesh_manager(m_device.get())
         , m_material_manager(m_device.get())
+        , m_texture_manager(m_device.get())
         , m_dummy_pipeline(gpu::create_graphics_pipeline(
               m_device.get(),
               gpu::GraphicsPipelineDesc{
@@ -61,8 +64,16 @@ namespace orion
 
     Renderer::~Renderer()
     {
+        // Submit pending uploads while their destinations are still alive.
+        m_upload_queue.finish();
+
         // Wait until all work on the GPU has finished before tearing down the Renderer
         gpu::wait_idle(m_device.get());
+
+        for (auto& frame : m_frame_data) {
+            frame.deletion_queue.flush();
+        }
+        m_pending_deletions.flush();
 
         gpu::destroy_pipeline(m_device.get(), m_dummy_pipeline);
 
@@ -83,6 +94,7 @@ namespace orion
         auto& frame_data = current_frame();
         // Wait until the previous submission of this frame has finished
         gpu::wait_timeline(m_device.get(), frame_data.timeline_point);
+        frame_data.deletion_queue.flush();
         // Reset the command allocator for this frame
         gpu::reset_command_allocator(m_device.get(), frame_data.command_allocator);
         // Acquire the next frame from the swapchain
@@ -92,9 +104,11 @@ namespace orion
             if (m_depth_image) {
                 const auto depth_extent = gpu::image_extent_2d(m_depth_image);
                 if (depth_extent.width != swapchain_extent.width || depth_extent.height != swapchain_extent.height) {
-                    gpu::wait_idle(m_device.get());
-                    gpu::destroy_image_view(m_device.get(), m_depth_image_view);
-                    gpu::destroy_image(m_device.get(), m_depth_image);
+                    m_pending_deletions.push(
+                        [device = m_device.get(), image_view = m_depth_image_view, image = m_depth_image] {
+                            gpu::destroy_image_view(device, image_view);
+                            gpu::destroy_image(device, image);
+                        });
                     m_depth_image_view = nullptr;
                     m_depth_image      = nullptr;
                 }
@@ -180,13 +194,15 @@ namespace orion
                     },
                 }},
                 .depth_attachment  = gpu::RenderPassAttachment{
-                    .image_view = m_depth_image_view,
-                    .load_op    = gpu::LoadOp::Clear,
-                    .store_op   = gpu::StoreOp::Store,
+                     .image_view = m_depth_image_view,
+                     .load_op    = gpu::LoadOp::Clear,
+                     .store_op   = gpu::StoreOp::Store,
                 },
             });
         // Bind the dummy graphics pipeline
         gpu::bind_pipeline_state(command_buffer, m_dummy_pipeline);
+        gpu::bind_sampler_heap(command_buffer, m_texture_manager.sampler_heap());
+        gpu::bind_resource_heap(command_buffer, m_texture_manager.resource_heap());
         // Get the extent of the swapchain image
         const auto swapchain_extent = gpu::image_extent_2d(frame_data.swapchain_frame.image);
         // Set viewport and scissor to cover the entire swapchain image
@@ -214,9 +230,13 @@ namespace orion
         for (const auto& instance : view.scene.instances) {
             struct MeshRoot {
                 gpu::Address vertices;
+                gpu::Address uvs;
                 gpu::Address material;
                 alignas(16) glm::mat4 mvp;
             };
+            static_assert(offsetof(MeshRoot, uvs) == 8z);
+            static_assert(offsetof(MeshRoot, material) == 16z);
+            static_assert(offsetof(MeshRoot, mvp) == 32z);
             const auto& mesh     = m_mesh_manager.get_mesh_record(instance.mesh);
             const auto& material = m_material_manager.get_material_record(instance.material);
             const auto mvp       = view_projection * instance.model;
@@ -229,7 +249,7 @@ namespace orion
                     .vertex_offset  = 0,
                     .first_instance = 0u,
                 },
-                MeshRoot{.vertices = mesh.position_address, .material = material.address, .mvp = mvp});
+                MeshRoot{.vertices = mesh.position_address, .uvs = mesh.uv_address, .material = material.address, .mvp = mvp});
         }
         // End render pass
         gpu::end_render_pass(command_buffer);
@@ -284,6 +304,10 @@ namespace orion
                 }},
             });
 
+        // Uploads and rendering share the graphics queue. Submit uploads first
+        // so their final barriers cover this frame's texture reads.
+        (void)m_upload_queue.flush();
+
         // Submit the command buffers to the GPU
         frame_data.timeline_point = gpu::submit(
             m_device.get(),
@@ -292,6 +316,10 @@ namespace orion
                 .command_buffers = {{command_buffer}},
                 .swapchain_frame = &frame_data.swapchain_frame,
             });
+
+        // Retire pending resources once this submission has completed. The frame
+        // queue was flushed in begin_frame(), leaving the pending queue empty.
+        std::swap(m_pending_deletions, frame_data.deletion_queue);
 
         // Present the swapchain image
         gpu::present(m_device.get(), frame_data.swapchain_frame);
@@ -338,16 +366,59 @@ namespace orion
 
     void Renderer::destroy_mesh(Mesh mesh)
     {
-        return m_mesh_manager.destroy_mesh(mesh);
+        m_pending_deletions.push([this, mesh] {
+            m_mesh_manager.destroy_mesh(mesh);
+        });
     }
 
     Material Renderer::create_material(const PbrMaterial& material)
     {
+        ORION_ASSERT(material.base_color_texture.handle == Texture{}.handle ||
+                     m_texture_manager.get_image(material.base_color_texture) != nullptr);
         return m_material_manager.create_material(material);
     }
 
     void Renderer::destroy_material(Material material)
     {
-        return m_material_manager.destroy_material(material);
+        m_pending_deletions.push([this, material] {
+            m_material_manager.destroy_material(material);
+        });
+    }
+
+    Texture Renderer::create_texture(const TextureDesc& desc)
+    {
+        ORION_ASSERT(desc.width != 0u);
+        ORION_ASSERT(desc.height != 0u);
+        ORION_ASSERT(desc.data.data != nullptr);
+        ORION_ASSERT(desc.data.size % 4z == 0z);
+        ORION_ASSERT(desc.data.size / 4z % desc.width == 0z);
+        ORION_ASSERT(desc.data.size / 4z / desc.width == desc.height);
+
+        // Create texture object
+        const auto texture = m_texture_manager.create_texture(desc);
+
+        auto* image = m_texture_manager.get_image(texture);
+        m_upload_queue.upload_image(
+            gpu::ImageUpload{
+                .dst    = image,
+                .extent = {desc.width, desc.height},
+                .after  = {
+                     .access = {
+                         .stages = gpu::PipelineStage::FragmentShader,
+                         .access = gpu::Access::ShaderRead,
+                    },
+                     .layout = gpu::ImageLayout::ShaderReadOnly,
+                },
+            },
+            desc.data);
+
+        return texture;
+    }
+
+    void Renderer::destroy_texture(Texture texture)
+    {
+        m_pending_deletions.push([this, texture] {
+            m_texture_manager.destroy_texture(texture);
+        });
     }
 } // namespace orion
