@@ -1972,6 +1972,71 @@ namespace orion::gpu
         vkCmdPipelineBarrier2(command_buffer->handle, &dependency_info);
     }
 
+    void copy_buffer(CommandBuffer* command_buffer, Buffer* src, Buffer* dst, std::span<const BufferCopy> regions)
+    {
+        if (regions.empty()) { return; }
+
+        std::vector<VkBufferCopy2> copy_regions(regions.size());
+        std::ranges::transform(regions, copy_regions.begin(), [](const BufferCopy& region) {
+            return VkBufferCopy2{
+                .sType     = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
+                .srcOffset = region.src_offset,
+                .dstOffset = region.dst_offset,
+                .size      = region.size,
+            };
+        });
+
+        const auto copy_info = VkCopyBufferInfo2{
+            .sType       = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
+            .srcBuffer   = src->handle,
+            .dstBuffer   = dst->handle,
+            .regionCount = static_cast<std::uint32_t>(copy_regions.size()),
+            .pRegions    = copy_regions.data(),
+        };
+        vkCmdCopyBuffer2(command_buffer->handle, &copy_info);
+    }
+
+    void copy_buffer_to_image(CommandBuffer* command_buffer, Buffer* src, Image* dst, std::span<const BufferImageCopy> regions)
+    {
+        if (regions.empty()) { return; }
+
+        std::vector<VkBufferImageCopy2> copy_regions(regions.size());
+        std::ranges::transform(regions, copy_regions.begin(), [dst](const BufferImageCopy& region) {
+            return VkBufferImageCopy2{
+                .sType             = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
+                .bufferOffset      = region.buffer_offset,
+                .bufferRowLength   = region.buffer_row_length,
+                .bufferImageHeight = region.buffer_image_height,
+                .imageSubresource  = {
+                    .aspectMask     = dst->aspect_flags,
+                    .mipLevel       = region.image_subresource.mip_level,
+                    .baseArrayLayer = region.image_subresource.base_array_layer,
+                    .layerCount     = region.image_subresource.layer_count,
+                },
+                .imageOffset = {
+                    .x = region.image_offset.x,
+                    .y = region.image_offset.y,
+                    .z = 0,
+                },
+                .imageExtent = {
+                    .width  = region.image_extent.width,
+                    .height = region.image_extent.height,
+                    .depth  = 1u,
+                },
+            };
+        });
+
+        const auto copy_info = VkCopyBufferToImageInfo2{
+            .sType          = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
+            .srcBuffer      = src->handle,
+            .dstImage       = dst->handle,
+            .dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .regionCount    = static_cast<std::uint32_t>(copy_regions.size()),
+            .pRegions       = copy_regions.data(),
+        };
+        vkCmdCopyBufferToImage2(command_buffer->handle, &copy_info);
+    }
+
     TimelinePoint submit(Device* device, Queue queue, const Submit& submit)
     {
         ORION_ASSERT(device != nullptr);

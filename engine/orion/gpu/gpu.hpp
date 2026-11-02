@@ -201,6 +201,30 @@ namespace orion
             std::uint32_t layer_count      = 1u;
         };
 
+        struct SubresourceLayers {
+            std::uint32_t mip_level        = 0u;
+            std::uint32_t base_array_layer = 0u;
+            std::uint32_t layer_count      = 1u;
+        };
+
+        struct BufferCopy {
+            // Offsets and size are in bytes.
+            std::size_t src_offset = 0z;
+            std::size_t dst_offset = 0z;
+            std::size_t size       = 0z;
+        };
+
+        struct BufferImageCopy {
+            std::size_t buffer_offset = 0z; // Bytes.
+            // Texels; zero means tightly packed according to image_extent.
+            std::uint32_t buffer_row_length   = 0u;
+            std::uint32_t buffer_image_height = 0u;
+
+            SubresourceLayers image_subresource = {};
+            Offset2D image_offset               = {};
+            Extent2D image_extent               = {};
+        };
+
         struct ImageBarrier {
             Image* image             = nullptr;
             PipelineStage src_stages = PipelineStage::None;
@@ -413,6 +437,8 @@ namespace orion
         void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass);
         void end_render_pass(CommandBuffer* command_buffer);
         void barrier(CommandBuffer* command_buffer, const Barrier& barrier);
+        void copy_buffer(CommandBuffer* command_buffer, Buffer* src, Buffer* dst, std::span<const BufferCopy> regions);
+        void copy_buffer_to_image(CommandBuffer* command_buffer, Buffer* src, Image* dst, std::span<const BufferImageCopy> regions);
         TimelinePoint submit(Device* device, Queue queue, const Submit& submit);
 
         void wait_idle(Device* device);
