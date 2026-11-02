@@ -1874,6 +1874,24 @@ namespace orion::gpu
         vkCmdBindIndexBuffer(command_buffer->handle, index_buffer->handle, offset, VK_INDEX_TYPE_UINT32);
     }
 
+    void bind_sampler_heap(CommandBuffer* command_buffer, SamplerHeap* sampler_heap)
+    {
+        vkCmdBindDescriptorSets(command_buffer->handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                command_buffer->pipeline_layout, 0u,
+                                1u, &sampler_heap->descriptor_set, 0u, nullptr);
+    }
+
+    void bind_resource_heap(CommandBuffer* command_buffer, ResourceHeap* resource_heap)
+    {
+        const auto sets = std::array{
+            resource_heap->sampled_image_descriptor_set,
+            resource_heap->storage_image_descriptor_set,
+        };
+        vkCmdBindDescriptorSets(command_buffer->handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                command_buffer->pipeline_layout, 1u,
+                                static_cast<std::uint32_t>(sets.size()), sets.data(), 0u, nullptr);
+    }
+
     void begin_render_pass(CommandBuffer* command_buffer, const RenderPass& render_pass)
     {
         ORION_ASSERT(render_pass.color_attachments.size() <= max_color_attachments);
