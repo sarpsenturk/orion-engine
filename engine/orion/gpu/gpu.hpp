@@ -212,8 +212,20 @@ namespace orion
             SubresourceRange subresource_range;
         };
 
+        struct BufferBarrier {
+            Buffer* buffer           = nullptr;
+            PipelineStage src_stages = PipelineStage::None;
+            Access src_access        = Access::None;
+            PipelineStage dst_stages = PipelineStage::None;
+            Access dst_access        = Access::None;
+            // Byte range affected by the barrier; size must be nonzero.
+            std::size_t offset = 0z;
+            std::size_t size   = 0z;
+        };
+
         struct Barrier {
             std::span<const ImageBarrier> image_barriers;
+            std::span<const BufferBarrier> buffer_barriers;
         };
 
         struct RenderPassAttachment {

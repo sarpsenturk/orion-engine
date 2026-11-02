@@ -1925,6 +1925,22 @@ namespace orion::gpu
 
     void barrier(CommandBuffer* command_buffer, const Barrier& barrier)
     {
+        std::vector<VkBufferMemoryBarrier2> buffer_barriers(barrier.buffer_barriers.size());
+        std::ranges::transform(barrier.buffer_barriers, buffer_barriers.begin(), [](const BufferBarrier& bb) {
+            return VkBufferMemoryBarrier2{
+                .sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                .srcStageMask        = to_vk_pipeline_stages(bb.src_stages),
+                .srcAccessMask       = to_vk_access_flags(bb.src_access),
+                .dstStageMask        = to_vk_pipeline_stages(bb.dst_stages),
+                .dstAccessMask       = to_vk_access_flags(bb.dst_access),
+                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                .buffer              = bb.buffer->handle,
+                .offset              = bb.offset,
+                .size                = bb.size,
+            };
+        });
+
         std::vector<VkImageMemoryBarrier2> image_barriers(barrier.image_barriers.size());
         std::ranges::transform(barrier.image_barriers, image_barriers.begin(), [](const ImageBarrier& ib) {
             return VkImageMemoryBarrier2{
@@ -1947,9 +1963,11 @@ namespace orion::gpu
         });
 
         const auto dependency_info = VkDependencyInfo{
-            .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            .imageMemoryBarrierCount = static_cast<std::uint32_t>(image_barriers.size()),
-            .pImageMemoryBarriers    = image_barriers.data(),
+            .sType                    = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = static_cast<std::uint32_t>(buffer_barriers.size()),
+            .pBufferMemoryBarriers    = buffer_barriers.data(),
+            .imageMemoryBarrierCount  = static_cast<std::uint32_t>(image_barriers.size()),
+            .pImageMemoryBarriers     = image_barriers.data(),
         };
         vkCmdPipelineBarrier2(command_buffer->handle, &dependency_info);
     }
