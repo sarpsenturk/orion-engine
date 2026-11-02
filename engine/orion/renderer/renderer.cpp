@@ -167,8 +167,8 @@ namespace orion
                     },
                     gpu::ImageBarrier{
                         .image             = m_depth_image,
-                        .src_stages        = gpu::PipelineStage::None,
-                        .src_access        = gpu::Access::None,
+                        .src_stages        = gpu::PipelineStage::DepthStencilTests,
+                        .src_access        = gpu::Access::DepthStencilAttachmentWrite,
                         .dst_stages        = gpu::PipelineStage::DepthStencilTests,
                         .dst_access        = gpu::Access::DepthStencilAttachmentWrite,
                         .old_layout        = gpu::ImageLayout::Undefined,
