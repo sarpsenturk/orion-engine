@@ -13,9 +13,9 @@ namespace orion
               device,
               gpu::SamplerDesc{
                   .filter         = gpu::Filter::Linear,
-                  .address_mode_u = gpu::SamplerAddressMode::ClampToEdge,
-                  .address_mode_v = gpu::SamplerAddressMode::ClampToEdge,
-                  .address_mode_w = gpu::SamplerAddressMode::ClampToEdge,
+                  .address_mode_u = gpu::SamplerAddressMode::Repeat,
+                  .address_mode_v = gpu::SamplerAddressMode::Repeat,
+                  .address_mode_w = gpu::SamplerAddressMode::Repeat,
               }))
         , m_sampler_heap(gpu::create_sampler_heap(
               m_device,
