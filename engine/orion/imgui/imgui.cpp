@@ -24,13 +24,12 @@ namespace orion
         style.WindowRounding              = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 
-        const auto init_info = ImGui_ImplOrion_InitInfo{
+        if (!ImGui_ImplOrion_Init({
             .native_window_handle     = window.handle(),
             .device                   = renderer.device(),
             .image_count              = renderer.swapchain_image_count,
             .color_attachment_formats = {{renderer.swapchain_image_format}},
-        };
-        if (!ImGui_ImplOrion_Init(init_info)) {
+        })) {
             ImGui::DestroyContext();
             throw std::runtime_error("Failed to initialize ImGui renderer");
         }
