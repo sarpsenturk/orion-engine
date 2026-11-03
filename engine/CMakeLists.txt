@@ -36,6 +36,8 @@ target_sources(orion.engine
 	PUBLIC FILE_SET HEADERS FILES
 		"orion/orion.hpp"
 
+		"orion/loaders/texture.hpp"
+
 		"orion/core/logger.hpp"
 		"orion/core/assert.hpp"
 		"orion/core/window.hpp"
@@ -60,6 +62,8 @@ target_sources(orion.engine
 		"orion/imgui/imgui.hpp"
 	PRIVATE
 		"orion/orion.cpp"
+		"orion/loaders/texture.cpp"
+		"orion/loaders/stb_image.h"
 
 		"orion/core/logger.cpp"
 		"orion/core/assert.cpp"

@@ -2,6 +2,12 @@
 # Each test is a separate executable that is linked against the engine library.
 
 orion_add_test(
+    NAME orion.test.texture_loader
+    SOURCES "texture_loader.test.cpp"
+    DEPENDS orion.engine
+)
+
+orion_add_test(
 	NAME orion.test.slot_map
 	SOURCES "slot_map.test.cpp"
 	DEPENDS orion.engine
