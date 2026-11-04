@@ -16,6 +16,7 @@
 #include <fastgltf/types.hpp>
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstdint>
 #include <filesystem>
 #include <numeric>
@@ -291,6 +292,27 @@ private:
         ImGui::SliderFloat("Yaw", &m_camera_yaw, -180.0f, 180.0f);
         ImGui::SliderFloat("Speed", &m_camera_speed, 0.1f, 10.0f);
         ImGui::SliderFloat("Sensitivity", &m_camera_sensitivity, 0.01f, 1.0f);
+        ImGui::End();
+
+        if (ImGui::Begin("Frame Stats")) {
+            const auto& stats = m_renderer.frame_stats();
+            ImGui::Text("Last completed frame: %" PRIu64, stats.frame_index);
+
+            ImGui::SeparatorText("CPU timings");
+            ImGui::Text("Frame wait: %.3f ms", stats.frame_wait_ms);
+            ImGui::Text("Swapchain acquire: %.3f ms", stats.swapchain_acquire_ms);
+            ImGui::Text("Scene recording: %.3f ms", stats.scene_record_ms);
+            ImGui::Text("UI recording: %.3f ms", stats.ui_record_ms);
+            ImGui::Text("Upload flush: %.3f ms", stats.upload_flush_ms);
+            ImGui::Text("Command submit: %.3f ms", stats.command_submit_ms);
+            ImGui::Text("Swapchain present: %.3f ms", stats.swapchain_present_ms);
+
+            ImGui::SeparatorText("Scene geometry");
+            ImGui::Text("Instances: %" PRIu32, stats.instance_count);
+            ImGui::Text("Draw calls: %" PRIu32, stats.draw_calls);
+            ImGui::Text("Indices: %" PRIu32, stats.index_count);
+            ImGui::Text("Triangles: %" PRIu32, stats.triangle_count);
+        }
         ImGui::End();
         m_imgui.end_frame();
 

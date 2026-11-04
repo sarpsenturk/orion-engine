@@ -36,6 +36,25 @@ namespace orion
         std::uint64_t frame_index = 0ull;
     };
 
+    struct FrameStats {
+        std::uint64_t frame_index = 0ull;
+
+        // CPU elapsed times, measured in milliseconds.
+        double frame_wait_ms        = 0.0;
+        double swapchain_acquire_ms = 0.0;
+        double scene_record_ms      = 0.0;
+        double ui_record_ms         = 0.0;
+        double upload_flush_ms      = 0.0;
+        double command_submit_ms    = 0.0;
+        double swapchain_present_ms = 0.0;
+
+        // Scene geometry only; excludes ImGui draws.
+        std::uint32_t instance_count = 0u;
+        std::uint32_t draw_calls     = 0u;
+        std::uint32_t index_count    = 0u;
+        std::uint32_t triangle_count = 0u;
+    };
+
     class Renderer
     {
     public:
@@ -69,6 +88,9 @@ namespace orion
 
         [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
 
+        // Last completed frame; zero-initialized until the first frame completes.
+        [[nodiscard]] const FrameStats& frame_stats() const noexcept { return m_last_frame_stats; }
+
     private:
         struct FrameInFlight {
             gpu::CommandAllocator* command_allocator = nullptr;
@@ -91,6 +113,8 @@ namespace orion
         gpu::DeletionQueue m_pending_deletions;
         gpu::UploadQueue m_upload_queue;
         std::uint64_t m_frame_counter = 0ull;
+        FrameStats m_current_frame_stats;
+        FrameStats m_last_frame_stats;
 
         MeshManager m_mesh_manager;
         MaterialManager m_material_manager;

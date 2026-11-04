@@ -8,6 +8,7 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -16,6 +17,16 @@
 
 namespace orion
 {
+    namespace
+    {
+        using Clock = std::chrono::steady_clock;
+
+        double elapsed_ms(Clock::time_point start)
+        {
+            return std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+        }
+    } // namespace
+
     static std::vector<std::uint32_t> load_spirv(const char* path)
     {
         // Load spirv from disk
@@ -91,15 +102,21 @@ namespace orion
 
     std::optional<Frame> Renderer::begin_frame(gpu::Swapchain* swapchain)
     {
+        m_current_frame_stats = FrameStats{.frame_index = m_frame_counter};
         auto& frame_data = current_frame();
         // Wait until the previous submission of this frame has finished
+        const auto wait_start = Clock::now();
         gpu::wait_timeline(m_device.get(), frame_data.timeline_point);
+        m_current_frame_stats.frame_wait_ms = elapsed_ms(wait_start);
         frame_data.deletion_queue.flush();
         // Reset the command allocator for this frame
         gpu::reset_command_allocator(m_device.get(), frame_data.command_allocator);
         // Acquire the next frame from the swapchain
         // Return a Frame object if successful, otherwise return std::nullopt
-        if (auto swapchain_frame = gpu::acquire_swapchain_frame(m_device.get(), swapchain)) {
+        const auto acquire_start = Clock::now();
+        auto swapchain_frame = gpu::acquire_swapchain_frame(m_device.get(), swapchain);
+        m_current_frame_stats.swapchain_acquire_ms = elapsed_ms(acquire_start);
+        if (swapchain_frame) {
             const auto swapchain_extent = gpu::image_extent_2d(swapchain_frame->image);
             if (m_depth_image) {
                 const auto depth_extent = gpu::image_extent_2d(m_depth_image);
@@ -132,7 +149,7 @@ namespace orion
 
             frame_data.swapchain_frame = *swapchain_frame;
             frame_data.command_buffer  = gpu::begin_command_buffer(m_device.get(), frame_data.command_allocator);
-            return Frame{};
+            return Frame{.frame_index = m_frame_counter};
         } else {
             ORION_LOG_WARN(LogChannel::Renderer, "Swapchain frame acquisition failed, possibly due to window resize or minimization");
             return std::nullopt;
@@ -141,6 +158,7 @@ namespace orion
 
     void Renderer::render_scene(const SceneView& view)
     {
+        const auto record_start = Clock::now();
         auto& frame_data     = current_frame();
         auto* command_buffer = frame_data.command_buffer;
 
@@ -257,13 +275,19 @@ namespace orion
                     .material_index = m_material_manager.get_material_index(instance.material),
                     .mvp            = mvp,
                 });
+            ++m_current_frame_stats.instance_count;
+            ++m_current_frame_stats.draw_calls;
+            m_current_frame_stats.index_count += mesh.index_count;
+            m_current_frame_stats.triangle_count += mesh.index_count / 3u;
         }
         // End render pass
         gpu::end_render_pass(command_buffer);
+        m_current_frame_stats.scene_record_ms += elapsed_ms(record_start);
     }
 
     void Renderer::render_ui(ImDrawData* imgui_draw_data)
     {
+        const auto record_start = Clock::now();
         auto& frame_data     = current_frame();
         auto* command_buffer = frame_data.command_buffer;
 
@@ -281,6 +305,7 @@ namespace orion
             });
         ImGui_ImplOrion_RenderDrawData(imgui_draw_data, frame_data.command_buffer);
         gpu::end_render_pass(command_buffer);
+        m_current_frame_stats.ui_record_ms += elapsed_ms(record_start);
     }
 
     void Renderer::end_frame()
@@ -313,9 +338,12 @@ namespace orion
 
         // Uploads and rendering share the graphics queue. Submit uploads first
         // so their final barriers cover this frame's texture reads.
+        const auto upload_start = Clock::now();
         (void)m_upload_queue.flush();
+        m_current_frame_stats.upload_flush_ms = elapsed_ms(upload_start);
 
         // Submit the command buffers to the GPU
+        const auto submit_start = Clock::now();
         frame_data.timeline_point = gpu::submit(
             m_device.get(),
             gpu::Queue::Graphics,
@@ -323,13 +351,17 @@ namespace orion
                 .command_buffers = {{command_buffer}},
                 .swapchain_frame = &frame_data.swapchain_frame,
             });
+        m_current_frame_stats.command_submit_ms = elapsed_ms(submit_start);
 
         // Retire pending resources once this submission has completed. The frame
         // queue was flushed in begin_frame(), leaving the pending queue empty.
         std::swap(m_pending_deletions, frame_data.deletion_queue);
 
         // Present the swapchain image
+        const auto present_start = Clock::now();
         gpu::present(m_device.get(), frame_data.swapchain_frame);
+        m_current_frame_stats.swapchain_present_ms = elapsed_ms(present_start);
+        m_last_frame_stats = m_current_frame_stats;
         // Increment the frame counter
         ++m_frame_counter;
     }
