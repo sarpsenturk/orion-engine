@@ -39,6 +39,9 @@ namespace orion
         Material create_material(const PbrMaterial& material);
         void destroy_material(Material material);
 
+        // Includes resources awaiting deferred destruction.
+        [[nodiscard]] std::uint32_t material_count() const noexcept { return static_cast<std::uint32_t>(m_material_records.size()); }
+
         [[nodiscard]] std::uint32_t get_material_index(Material material) const;
         [[nodiscard]] gpu::Address material_table_address() const { return gpu::buffer_device_address(m_material_buffer); }
 

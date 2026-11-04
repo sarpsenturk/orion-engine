@@ -62,6 +62,9 @@ namespace orion
         Mesh create_mesh(const MeshDesc& desc);
         void destroy_mesh(Mesh mesh);
 
+        // Includes resources awaiting deferred destruction.
+        [[nodiscard]] std::uint32_t mesh_count() const noexcept { return static_cast<std::uint32_t>(m_mesh_records.size()); }
+
         [[nodiscard]] MeshRecord get_mesh_record(Mesh mesh) const;
         [[nodiscard]] std::uint32_t get_mesh_index(Mesh mesh) const;
         [[nodiscard]] gpu::Address mesh_table_address() const { return gpu::buffer_device_address(m_mesh_buffer); }

@@ -398,6 +398,15 @@ namespace orion
         }
     }
 
+    RendererStats Renderer::renderer_stats() const noexcept
+    {
+        return RendererStats{
+            .mesh_count     = m_mesh_manager.mesh_count(),
+            .material_count = m_material_manager.material_count(),
+            .texture_count  = m_texture_manager.texture_count(),
+        };
+    }
+
     Mesh Renderer::create_mesh(const MeshDesc& desc)
     {
         return m_mesh_manager.create_mesh(desc);

@@ -314,6 +314,15 @@ private:
             ImGui::Text("Triangles: %" PRIu32, stats.triangle_count);
         }
         ImGui::End();
+
+        if (ImGui::Begin("Renderer Stats")) {
+            const auto stats = m_renderer.renderer_stats();
+            ImGui::Text("Meshes: %" PRIu32, stats.mesh_count);
+            ImGui::Text("Materials: %" PRIu32, stats.material_count);
+            ImGui::Text("Textures: %" PRIu32, stats.texture_count);
+            ImGui::TextDisabled("Includes resources pending destruction.");
+        }
+        ImGui::End();
         m_imgui.end_frame();
 
         if (m_window.width() == 0 || m_window.height() == 0) { return; }

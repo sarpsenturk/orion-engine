@@ -55,6 +55,13 @@ namespace orion
         std::uint32_t triangle_count = 0u;
     };
 
+    struct RendererStats {
+        // Resources currently held by managers, including pending destruction.
+        std::uint32_t mesh_count     = 0u;
+        std::uint32_t material_count = 0u;
+        std::uint32_t texture_count  = 0u;
+    };
+
     class Renderer
     {
     public:
@@ -90,6 +97,9 @@ namespace orion
 
         // Last completed frame; zero-initialized until the first frame completes.
         [[nodiscard]] const FrameStats& frame_stats() const noexcept { return m_last_frame_stats; }
+
+        // Current resource snapshot, independent of frame completion.
+        [[nodiscard]] RendererStats renderer_stats() const noexcept;
 
     private:
         struct FrameInFlight {

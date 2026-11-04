@@ -36,6 +36,9 @@ namespace orion
         Texture create_texture(const TextureDesc& desc);
         void destroy_texture(Texture texture);
 
+        // Includes resources awaiting deferred destruction.
+        [[nodiscard]] std::uint32_t texture_count() const noexcept { return static_cast<std::uint32_t>(m_texture_slots.size()); }
+
         [[nodiscard]] gpu::Image* get_image(Texture texture) const;
         [[nodiscard]] gpu::ImageView* get_image_view(Texture texture) const;
         [[nodiscard]] gpu::SamplerHeap* sampler_heap() const { return m_sampler_heap; }
