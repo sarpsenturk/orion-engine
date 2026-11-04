@@ -2,7 +2,6 @@
 
 #include "texture.hpp"
 
-#include "orion/gpu/bump_allocator.hpp"
 #include "orion/gpu/gpu.hpp"
 
 #include "orion/utils/slot_map.hpp"
@@ -18,10 +17,6 @@ namespace orion
         std::uint64_t handle = ~0ull;
     };
 
-    struct MaterialRecord {
-        gpu::Address address = 0ull;
-    };
-
     struct PbrMaterial {
         glm::vec4 base_color = glm::vec4(1.0f);
         // Optional; the texture must outlive materials that reference it.
@@ -31,7 +26,7 @@ namespace orion
     class MaterialManager
     {
     public:
-        // Maximum number of materials that can be created.
+        // Maximum number of live materials, including pending destruction.
         static constexpr auto max_material_count = 128u;
 
         explicit MaterialManager(gpu::Device* device);
@@ -44,21 +39,24 @@ namespace orion
         Material create_material(const PbrMaterial& material);
         void destroy_material(Material material);
 
-        [[nodiscard]] MaterialRecord get_material_record(Material material) const;
+        [[nodiscard]] std::uint32_t get_material_index(Material material) const;
+        [[nodiscard]] gpu::Address material_table_address() const { return gpu::buffer_device_address(m_material_buffer); }
 
     private:
         struct alignas(16) GpuPbrMaterial {
             glm::vec4 base_color;
             std::uint32_t base_color_texture;
+            std::uint32_t padding[3] = {};
         };
+        static_assert(sizeof(GpuPbrMaterial) == 32z);
+        static_assert(offsetof(GpuPbrMaterial, base_color) == 0z);
         static_assert(offsetof(GpuPbrMaterial, base_color_texture) == 16z);
+        static_assert(offsetof(GpuPbrMaterial, padding) == 20z);
         static constexpr auto material_buffer_size = max_material_count * sizeof(GpuPbrMaterial);
 
         gpu::Device* m_device;
         gpu::Buffer* m_material_buffer;
 
-        gpu::BumpAllocator m_material_allocator{material_buffer_size};
-
-        SlotMap<MaterialRecord> m_material_records;
+        SlotMap<GpuPbrMaterial> m_material_records;
     };
 } // namespace orion

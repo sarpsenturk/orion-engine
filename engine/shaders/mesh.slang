@@ -12,6 +12,8 @@ struct Material {
     float4 base_color;
     // Index into sampled_images; ~0u means no texture.
     uint base_color_texture;
+    // Match the 32-byte CPU material array stride.
+    uint padding[3];
 }
 
 struct MeshRecord {
@@ -24,8 +26,9 @@ struct MeshRecord {
 
 struct MeshRoot {
     MeshRecord* meshes;
-    Material* material;
+    Material* materials;
     uint mesh_index;
+    uint material_index;
     float4x4 mvp;
 };
 
@@ -51,7 +54,7 @@ VSOutput vsmain(uint vtx : SV_VertexID)
 [shader("fragment")]
 float4 fsmain(VSOutput input) : SV_Target
 {
-    let material = root.material;
+    let material = root.materials[root.material_index];
     float4 color = material.base_color;
     if (material.base_color_texture != ~0u) {
         color *= sampled_images[material.base_color_texture].Sample(samplers[0], input.uv);

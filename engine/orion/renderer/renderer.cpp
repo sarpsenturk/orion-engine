@@ -230,16 +230,17 @@ namespace orion
         for (const auto& instance : view.scene.instances) {
             struct MeshRoot {
                 gpu::Address meshes;
-                gpu::Address material;
+                gpu::Address materials;
                 std::uint32_t mesh_index;
+                std::uint32_t material_index;
                 alignas(16) glm::mat4 mvp;
             };
-            static_assert(offsetof(MeshRoot, material) == 8z);
+            static_assert(offsetof(MeshRoot, materials) == 8z);
             static_assert(offsetof(MeshRoot, mesh_index) == 16z);
+            static_assert(offsetof(MeshRoot, material_index) == 20z);
             static_assert(offsetof(MeshRoot, mvp) == 32z);
-            const auto& mesh     = m_mesh_manager.get_mesh_record(instance.mesh);
-            const auto& material = m_material_manager.get_material_record(instance.material);
-            const auto mvp       = view_projection * instance.model;
+            const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
+            const auto mvp   = view_projection * instance.model;
             gpu::draw_indexed(
                 command_buffer,
                 gpu::DrawIndexed{
@@ -250,10 +251,11 @@ namespace orion
                     .first_instance = 0u,
                 },
                 MeshRoot{
-                    .meshes     = m_mesh_manager.mesh_table_address(),
-                    .material   = material.address,
-                    .mesh_index = m_mesh_manager.get_mesh_index(instance.mesh),
-                    .mvp        = mvp,
+                    .meshes         = m_mesh_manager.mesh_table_address(),
+                    .materials      = m_material_manager.material_table_address(),
+                    .mesh_index     = m_mesh_manager.get_mesh_index(instance.mesh),
+                    .material_index = m_material_manager.get_material_index(instance.material),
+                    .mvp            = mvp,
                 });
         }
         // End render pass
