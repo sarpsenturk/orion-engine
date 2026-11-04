@@ -27,11 +27,18 @@ namespace orion
                   .size   = vertex_buffer_size,
                   .memory = gpu::Memory::CpuVisible,
               }))
+        , m_normal_buffer(gpu::create_buffer(
+              m_device,
+              gpu::BufferDesc{
+                  .size   = vertex_buffer_size,
+                  .memory = gpu::Memory::CpuVisible,
+              }))
     {
     }
 
     MeshManager::~MeshManager()
     {
+        gpu::destroy_buffer(m_device, m_normal_buffer);
         gpu::destroy_buffer(m_device, m_uv_buffer);
         gpu::destroy_buffer(m_device, m_index_buffer);
         gpu::destroy_buffer(m_device, m_position_buffer);
@@ -40,6 +47,7 @@ namespace orion
     Mesh MeshManager::create_mesh(const MeshDesc& desc)
     {
         ORION_ASSERT(desc.uvs.empty() || desc.uvs.size() == desc.positions.size());
+        ORION_ASSERT(desc.normals.empty() || desc.normals.size() == desc.positions.size());
         const auto vertex_offset = m_position_allocator.allocate(desc.positions.size_bytes(), alignof(glm::vec3));
         ORION_ASSERT(vertex_offset != std::numeric_limits<std::size_t>::max());
         std::memcpy(
@@ -65,11 +73,23 @@ namespace orion
             uv_address = gpu::buffer_device_address(m_uv_buffer) + uv_offset;
         }
 
+        gpu::Address normal_address = 0ull;
+        if (!desc.normals.empty()) {
+            const auto normal_offset = m_normal_allocator.allocate(desc.normals.size_bytes(), alignof(glm::vec3));
+            ORION_ASSERT(normal_offset != std::numeric_limits<std::size_t>::max());
+            std::memcpy(
+                static_cast<char*>(gpu::buffer_host_address(m_normal_buffer)) + normal_offset,
+                desc.normals.data(),
+                desc.normals.size_bytes());
+            normal_address = gpu::buffer_device_address(m_normal_buffer) + normal_offset;
+        }
+
         const auto handle = m_mesh_records.insert({
             .position_address = gpu::buffer_device_address(m_position_buffer) + vertex_offset,
+            .uv_address       = uv_address,
+            .normal_address   = normal_address,
             .index_count      = static_cast<std::uint32_t>(desc.indices.size()),
             .first_index      = static_cast<std::uint32_t>(index_offset / sizeof(std::uint32_t)),
-            .uv_address       = uv_address,
         });
         return Mesh{handle.to_uint64()};
     }

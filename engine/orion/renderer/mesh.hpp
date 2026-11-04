@@ -20,6 +20,7 @@ namespace orion
     struct MeshRecord {
         gpu::Address position_address;
         gpu::Address uv_address = 0ull;
+        gpu::Address normal_address = 0ull;
         std::uint32_t index_count;
         std::uint32_t first_index;
     };
@@ -27,6 +28,7 @@ namespace orion
     struct MeshDesc {
         std::span<const glm::vec3> positions;
         std::span<const glm::vec2> uvs;
+        std::span<const glm::vec3> normals;
         std::span<const std::uint32_t> indices;
         std::uint32_t vertex_count;
     };
@@ -58,10 +60,12 @@ namespace orion
         gpu::Buffer* m_position_buffer;
         gpu::Buffer* m_index_buffer;
         gpu::Buffer* m_uv_buffer;
+        gpu::Buffer* m_normal_buffer;
 
         gpu::BumpAllocator m_position_allocator{vertex_buffer_size};
         gpu::BumpAllocator m_index_allocator{index_buffer_size};
         gpu::BumpAllocator m_uv_allocator{vertex_buffer_size};
+        gpu::BumpAllocator m_normal_allocator{vertex_buffer_size};
 
         SlotMap<MeshRecord> m_mesh_records;
     };
