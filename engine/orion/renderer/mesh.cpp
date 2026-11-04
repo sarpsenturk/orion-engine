@@ -4,11 +4,18 @@
 
 #include <cstring>
 #include <limits>
+#include <stdexcept>
 
 namespace orion
 {
     MeshManager::MeshManager(gpu::Device* device)
         : m_device(device)
+        , m_mesh_buffer(gpu::create_buffer(
+              m_device,
+              gpu::BufferDesc{
+                  .size   = max_mesh_count * sizeof(MeshRecord),
+                  .memory = gpu::Memory::CpuVisible,
+              }))
         , m_position_buffer(gpu::create_buffer(
               m_device,
               gpu::BufferDesc{
@@ -42,10 +49,15 @@ namespace orion
         gpu::destroy_buffer(m_device, m_uv_buffer);
         gpu::destroy_buffer(m_device, m_index_buffer);
         gpu::destroy_buffer(m_device, m_position_buffer);
+        gpu::destroy_buffer(m_device, m_mesh_buffer);
     }
 
     Mesh MeshManager::create_mesh(const MeshDesc& desc)
     {
+        // Slot indices cannot exceed the peak live count when slots are reused.
+        if (m_mesh_records.size() >= max_mesh_count) {
+            throw std::length_error("Mesh table capacity exhausted");
+        }
         ORION_ASSERT(desc.uvs.empty() || desc.uvs.size() == desc.positions.size());
         ORION_ASSERT(desc.normals.empty() || desc.normals.size() == desc.positions.size());
         const auto vertex_offset = m_position_allocator.allocate(desc.positions.size_bytes(), alignof(glm::vec3));
@@ -91,6 +103,12 @@ namespace orion
             .index_count      = static_cast<std::uint32_t>(desc.indices.size()),
             .first_index      = static_cast<std::uint32_t>(index_offset / sizeof(std::uint32_t)),
         });
+        // GPU records use stable handle slots, not the SlotMap's dense positions.
+        const auto& record = m_mesh_records.get(handle);
+        std::memcpy(
+            static_cast<char*>(gpu::buffer_host_address(m_mesh_buffer)) + handle.index * sizeof(MeshRecord),
+            &record,
+            sizeof(record));
         return Mesh{handle.to_uint64()};
     }
 
@@ -98,6 +116,13 @@ namespace orion
     {
         const auto handle = SlotMap<MeshRecord>::Handle::from_uint64(mesh.handle);
         m_mesh_records.erase(handle);
+    }
+
+    std::uint32_t MeshManager::get_mesh_index(Mesh mesh) const
+    {
+        const auto handle = SlotMap<MeshRecord>::Handle::from_uint64(mesh.handle);
+        ORION_ASSERT(m_mesh_records.contains(handle));
+        return handle.index;
     }
 
     MeshRecord MeshManager::get_mesh_record(Mesh mesh) const

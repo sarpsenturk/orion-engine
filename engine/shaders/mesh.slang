@@ -14,10 +14,18 @@ struct Material {
     uint base_color_texture;
 }
 
-struct MeshRoot {
-    float3* vertices;
+struct MeshRecord {
+    float3* positions;
     float2* uvs;
+    float3* normals;
+    uint index_count;
+    uint first_index;
+};
+
+struct MeshRoot {
+    MeshRecord* meshes;
     Material* material;
+    uint mesh_index;
     float4x4 mvp;
 };
 
@@ -32,10 +40,11 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput vsmain(uint vtx : SV_VertexID)
 {
-    let vertex = root.vertices[vtx];
+    let mesh = root.meshes[root.mesh_index];
+    let vertex = mesh.positions[vtx];
     VSOutput output;
     output.position = mul(root.mvp, float4(vertex, 1.0));
-    output.uv = root.uvs[vtx];
+    output.uv = mesh.uvs[vtx];
     return output;
 }
 

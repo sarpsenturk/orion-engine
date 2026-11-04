@@ -229,13 +229,13 @@ namespace orion
         // Iterate over the scene instances and issue draw calls
         for (const auto& instance : view.scene.instances) {
             struct MeshRoot {
-                gpu::Address vertices;
-                gpu::Address uvs;
+                gpu::Address meshes;
                 gpu::Address material;
+                std::uint32_t mesh_index;
                 alignas(16) glm::mat4 mvp;
             };
-            static_assert(offsetof(MeshRoot, uvs) == 8z);
-            static_assert(offsetof(MeshRoot, material) == 16z);
+            static_assert(offsetof(MeshRoot, material) == 8z);
+            static_assert(offsetof(MeshRoot, mesh_index) == 16z);
             static_assert(offsetof(MeshRoot, mvp) == 32z);
             const auto& mesh     = m_mesh_manager.get_mesh_record(instance.mesh);
             const auto& material = m_material_manager.get_material_record(instance.material);
@@ -249,7 +249,12 @@ namespace orion
                     .vertex_offset  = 0,
                     .first_instance = 0u,
                 },
-                MeshRoot{.vertices = mesh.position_address, .uvs = mesh.uv_address, .material = material.address, .mvp = mvp});
+                MeshRoot{
+                    .meshes     = m_mesh_manager.mesh_table_address(),
+                    .material   = material.address,
+                    .mesh_index = m_mesh_manager.get_mesh_index(instance.mesh),
+                    .mvp        = mvp,
+                });
         }
         // End render pass
         gpu::end_render_pass(command_buffer);
