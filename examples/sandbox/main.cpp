@@ -170,6 +170,19 @@ private:
                     uvs.resize(accessor.count);
                     fastgltf::copyFromAccessor<glm::vec2>(m_asset, accessor, uvs.data());
                 }
+                
+                std::vector<glm::vec3> normals;
+                if (const auto attribute = primitive.findAttribute("NORMAL"); attribute != primitive.attributes.end()) {
+                    const auto& accessor = m_asset.accessors[attribute->accessorIndex];
+                    if (accessor.count != positions.size()) {
+                        ORION_LOG_WARN(orion::LogChannel::Application,
+                                       "Skipping primitive with mismatched NORMAL count in mesh {}",
+                                       mesh_index);
+                        continue;
+                    }
+                    normals.resize(accessor.count);
+                    fastgltf::copyFromAccessor<glm::vec3>(m_asset, accessor, normals.data());
+                }
 
                 std::vector<std::uint32_t> indices;
                 if (primitive.indicesAccessor.has_value()) {
@@ -192,6 +205,7 @@ private:
                 const auto mesh = m_renderer.create_mesh({
                     .positions = positions,
                     .uvs = uvs,
+                    .normals = normals,
                     .indices = indices,
                     .vertex_count = static_cast<std::uint32_t>(positions.size()),
                 });
