@@ -23,6 +23,12 @@ namespace orion
             Ret (*invoke)(void*, Args&&...);
             void (*move)(void*, void*) noexcept;
             void (*destroy)(void*) noexcept;
+
+            constexpr Operations(Ret (*invoke_fn)(void*, Args&&...),
+                void (*move_fn)(void*, void*) noexcept,
+                void (*destroy_fn)(void*) noexcept) noexcept
+                : invoke(invoke_fn), move(move_fn), destroy(destroy_fn)
+            {}
         };
 
         template<typename F>
