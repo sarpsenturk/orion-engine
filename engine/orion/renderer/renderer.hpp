@@ -6,11 +6,13 @@
 #include "texture.hpp"
 
 #include "orion/core/event.hpp"
+#include "orion/gpu/bump_allocator.hpp"
 #include "orion/gpu/deletion_queue.hpp"
 #include "orion/gpu/gpu.hpp"
 #include "orion/gpu/upload_queue.hpp"
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec4.hpp>
 
 #include <array>
 #include <cstdint>
@@ -74,6 +76,7 @@ namespace orion
         static constexpr auto frames_in_flight       = 2u;
         static constexpr auto swapchain_image_count  = 3u;
         static constexpr auto swapchain_image_format = gpu::Format::BGRA8_Unorm;
+        static constexpr auto max_views_per_frame    = 64u;
 
         Renderer();
         Renderer(const Renderer&)            = delete;
@@ -108,18 +111,34 @@ namespace orion
         [[nodiscard]] RendererStats renderer_stats() const noexcept;
 
     private:
+        struct alignas(16) GpuView {
+            glm::mat4 view;
+            glm::mat4 projection;
+            glm::mat4 view_projection;
+            glm::vec4 camera_world_position;
+        };
+        static_assert(sizeof(GpuView) == 208z);
+        static_assert(offsetof(GpuView, view) == 0z);
+        static_assert(offsetof(GpuView, projection) == 64z);
+        static_assert(offsetof(GpuView, view_projection) == 128z);
+        static_assert(offsetof(GpuView, camera_world_position) == 192z);
+        static constexpr auto view_frame_size = max_views_per_frame * sizeof(GpuView);
+
         struct FrameInFlight {
             gpu::CommandAllocator* command_allocator = nullptr;
             gpu::CommandBuffer* command_buffer       = nullptr;
             gpu::TimelinePoint timeline_point;
             gpu::SwapchainFrame swapchain_frame;
             gpu::DeletionQueue deletion_queue;
+            gpu::BumpAllocator view_allocator{view_frame_size};
         };
 
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] FrameInFlight& current_frame() { return m_frame_data[current_frame_index()]; }
 
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
+        // One allocation, partitioned into independently retired frame regions.
+        gpu::Buffer* m_view_buffer = nullptr;
         gpu::Image* m_depth_image          = nullptr;
         gpu::ImageView* m_depth_image_view = nullptr;
 

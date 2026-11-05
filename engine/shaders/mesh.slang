@@ -24,12 +24,20 @@ struct MeshRecord {
     uint first_index;
 };
 
+struct ViewData {
+    float4x4 view;
+    float4x4 projection;
+    float4x4 view_projection;
+    float4 camera_world_position;
+};
+
 struct MeshRoot {
     MeshRecord* meshes;
     Material* materials;
+    ViewData* view;
     uint mesh_index;
     uint material_index;
-    float4x4 mvp;
+    float4x4 model;
 };
 
 [vk::push_constant]
@@ -46,7 +54,8 @@ VSOutput vsmain(uint vtx : SV_VertexID)
     let mesh = root.meshes[root.mesh_index];
     let vertex = mesh.positions[vtx];
     VSOutput output;
-    output.position = mul(root.mvp, float4(vertex, 1.0));
+    let world_position = mul(root.model, float4(vertex, 1.0));
+    output.position = mul(root.view->view_projection, world_position);
     output.uv = mesh.uvs[vtx];
     return output;
 }

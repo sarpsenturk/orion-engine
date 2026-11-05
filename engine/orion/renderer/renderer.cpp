@@ -5,6 +5,7 @@
 #include "orion/core/window.hpp"
 #include "orion/utils/array.hpp"
 
+#include <glm/matrix.hpp>
 #include <imgui.h>
 
 #include <algorithm>
@@ -12,6 +13,8 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <limits>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -44,6 +47,12 @@ namespace orion
 
     Renderer::Renderer()
         : m_device(gpu::create_device(gpu::DeviceDesc{}), gpu::destroy_device)
+        , m_view_buffer(gpu::create_buffer(
+              m_device.get(),
+              gpu::BufferDesc{
+                  frames_in_flight * view_frame_size,
+                  gpu::Memory::CpuVisible,
+              }))
         , m_frame_data(make_array<frames_in_flight>([this] {
             return FrameInFlight{
                 .command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics),
@@ -87,6 +96,7 @@ namespace orion
         m_pending_deletions.flush();
 
         gpu::destroy_pipeline(m_device.get(), m_dummy_pipeline);
+        gpu::destroy_buffer(m_device.get(), m_view_buffer);
 
         for (auto& frame : m_frame_data) {
             gpu::destroy_command_allocator(m_device.get(), frame.command_allocator);
@@ -103,18 +113,19 @@ namespace orion
     std::optional<Frame> Renderer::begin_frame(gpu::Swapchain* swapchain)
     {
         m_current_frame_stats = FrameStats{.frame_index = m_frame_counter};
-        auto& frame_data = current_frame();
+        auto& frame_data      = current_frame();
         // Wait until the previous submission of this frame has finished
         const auto wait_start = Clock::now();
         gpu::wait_timeline(m_device.get(), frame_data.timeline_point);
+        frame_data.view_allocator.reset();
         m_current_frame_stats.frame_wait_ms = elapsed_ms(wait_start);
         frame_data.deletion_queue.flush();
         // Reset the command allocator for this frame
         gpu::reset_command_allocator(m_device.get(), frame_data.command_allocator);
         // Acquire the next frame from the swapchain
         // Return a Frame object if successful, otherwise return std::nullopt
-        const auto acquire_start = Clock::now();
-        auto swapchain_frame = gpu::acquire_swapchain_frame(m_device.get(), swapchain);
+        const auto acquire_start                   = Clock::now();
+        auto swapchain_frame                       = gpu::acquire_swapchain_frame(m_device.get(), swapchain);
         m_current_frame_stats.swapchain_acquire_ms = elapsed_ms(acquire_start);
         if (swapchain_frame) {
             const auto swapchain_extent = gpu::image_extent_2d(swapchain_frame->image);
@@ -159,8 +170,25 @@ namespace orion
     void Renderer::render_scene(const SceneView& view)
     {
         const auto record_start = Clock::now();
-        auto& frame_data     = current_frame();
-        auto* command_buffer = frame_data.command_buffer;
+        auto& frame_data        = current_frame();
+        auto* command_buffer    = frame_data.command_buffer;
+
+        // Each render call gets its own record. Reuse this frame's region only
+        // after begin_frame() has waited for its previous submission.
+        const auto view_offset = frame_data.view_allocator.allocate(sizeof(GpuView), alignof(GpuView));
+        if (view_offset == std::numeric_limits<std::size_t>::max()) {
+            throw std::length_error("View buffer capacity exhausted for this frame");
+        }
+        const auto buffer_offset = current_frame_index() * view_frame_size + view_offset;
+        const auto gpu_view      = GpuView{
+                 .view                  = view.view,
+                 .projection            = view.projection,
+                 .view_projection       = view.projection * view.view,
+                 .camera_world_position = glm::inverse(view.view)[3],
+        };
+        std::memcpy(static_cast<char*>(gpu::buffer_host_address(m_view_buffer)) + buffer_offset,
+                    &gpu_view, sizeof(gpu_view));
+        const auto view_address = gpu::buffer_device_address(m_view_buffer) + buffer_offset;
 
         // Transition the swapchain image to color attachment optimal layout
         // Transition the depth image to depth attachment optimal layout
@@ -242,23 +270,22 @@ namespace orion
             });
         // Bind index buffer
         gpu::bind_index_buffer(command_buffer, m_mesh_manager.index_buffer(), 0);
-        // Calculate view-projection matrix
-        const auto view_projection = view.projection * view.view;
         // Iterate over the scene instances and issue draw calls
         for (const auto& instance : view.scene.instances) {
             struct MeshRoot {
                 gpu::Address meshes;
                 gpu::Address materials;
+                gpu::Address view;
                 std::uint32_t mesh_index;
                 std::uint32_t material_index;
-                alignas(16) glm::mat4 mvp;
+                alignas(16) glm::mat4 model;
             };
             static_assert(offsetof(MeshRoot, materials) == 8z);
-            static_assert(offsetof(MeshRoot, mesh_index) == 16z);
-            static_assert(offsetof(MeshRoot, material_index) == 20z);
-            static_assert(offsetof(MeshRoot, mvp) == 32z);
+            static_assert(offsetof(MeshRoot, view) == 16z);
+            static_assert(offsetof(MeshRoot, mesh_index) == 24z);
+            static_assert(offsetof(MeshRoot, material_index) == 28z);
+            static_assert(offsetof(MeshRoot, model) == 32z);
             const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
-            const auto mvp   = view_projection * instance.model;
             gpu::draw_indexed(
                 command_buffer,
                 gpu::DrawIndexed{
@@ -271,9 +298,10 @@ namespace orion
                 MeshRoot{
                     .meshes         = m_mesh_manager.mesh_table_address(),
                     .materials      = m_material_manager.material_table_address(),
+                    .view           = view_address,
                     .mesh_index     = m_mesh_manager.get_mesh_index(instance.mesh),
                     .material_index = m_material_manager.get_material_index(instance.material),
-                    .mvp            = mvp,
+                    .model          = instance.model,
                 });
             ++m_current_frame_stats.instance_count;
             ++m_current_frame_stats.draw_calls;
@@ -288,8 +316,8 @@ namespace orion
     void Renderer::render_ui(ImDrawData* imgui_draw_data)
     {
         const auto record_start = Clock::now();
-        auto& frame_data     = current_frame();
-        auto* command_buffer = frame_data.command_buffer;
+        auto& frame_data        = current_frame();
+        auto* command_buffer    = frame_data.command_buffer;
 
         // ImGui render pass
         gpu::begin_render_pass(
@@ -343,7 +371,7 @@ namespace orion
         m_current_frame_stats.upload_flush_ms = elapsed_ms(upload_start);
 
         // Submit the command buffers to the GPU
-        const auto submit_start = Clock::now();
+        const auto submit_start   = Clock::now();
         frame_data.timeline_point = gpu::submit(
             m_device.get(),
             gpu::Queue::Graphics,
@@ -361,7 +389,7 @@ namespace orion
         const auto present_start = Clock::now();
         gpu::present(m_device.get(), frame_data.swapchain_frame);
         m_current_frame_stats.swapchain_present_ms = elapsed_ms(present_start);
-        m_last_frame_stats = m_current_frame_stats;
+        m_last_frame_stats                         = m_current_frame_stats;
         // Increment the frame counter
         ++m_frame_counter;
     }
