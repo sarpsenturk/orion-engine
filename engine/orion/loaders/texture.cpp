@@ -2,12 +2,19 @@
 
 #include "orion/utils/scope_guard.hpp"
 
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4'505) // unreferenced local function has been removed
+#endif
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
 #define STBI_ONLY_PNG
 #define STBI_ONLY_JPEG
 #define STBI_NO_STDIO
 #include "stb_image.h"
+#ifndef _MSC_VER
+    #pragma warning(pop)
+#endif
 
 #include <fstream>
 #include <limits>
@@ -21,15 +28,15 @@ namespace orion
             return std::unexpected(LoadImageError::InputTooLarge);
         }
 
-        int width = 0;
-        int height = 0;
+        int width    = 0;
+        int height   = 0;
         auto* pixels = stbi_load_from_memory(encoded.data(), static_cast<int>(encoded.size()), &width, &height, nullptr, STBI_rgb_alpha);
         if (!pixels) { return std::unexpected(LoadImageError::DecodeFailed); }
         const auto pixels_guard = ScopeExit{[pixels] { stbi_image_free(pixels); }};
 
         const auto size = static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4u;
         return LoadImageResult{
-            .width = static_cast<std::uint32_t>(width),
+            .width  = static_cast<std::uint32_t>(width),
             .height = static_cast<std::uint32_t>(height),
             .pixels = std::vector<std::uint8_t>(pixels, pixels + size),
         };
