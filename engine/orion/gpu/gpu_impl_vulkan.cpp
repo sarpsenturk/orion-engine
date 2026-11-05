@@ -52,7 +52,7 @@ namespace orion::gpu
     struct Image {
         VkImage handle                = VK_NULL_HANDLE;
         VkDeviceMemory memory         = VK_NULL_HANDLE;
-        std::uint64_t allocation_size  = 0ull;
+        std::uint64_t allocation_size = 0ull;
 
         std::uint32_t width  = 0u;
         std::uint32_t height = 0u;
@@ -1663,15 +1663,20 @@ namespace orion::gpu
         ORION_ASSERT(device != nullptr);
         ORION_ASSERT(desc.sampled_image_count > 0u || desc.storage_image_count > 0u);
 
+        // Ensure that counts are at least 1 as some platforms seem to return VK_ERROR_OUT_OF_POOL_MEMORY
+        // creating descriptor pools or sets with 0 descriptors.
+        const auto sampled_image_count = std::max(1u, desc.sampled_image_count);
+        const auto storage_image_count = std::max(1u, desc.storage_image_count);
+
         // Create a descriptor pool for the sampled and storage images in the heap
         const auto pool_sizes = std::array{
             VkDescriptorPoolSize{
                 .type            = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                .descriptorCount = std::max(1u, desc.sampled_image_count),
+                .descriptorCount = sampled_image_count,
             },
             VkDescriptorPoolSize{
                 .type            = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                .descriptorCount = std::max(1u, desc.storage_image_count),
+                .descriptorCount = storage_image_count,
             },
         };
         const auto descriptor_pool_info = VkDescriptorPoolCreateInfo{
@@ -1689,7 +1694,7 @@ namespace orion::gpu
         ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorPool {} (sampled & storage images)", fmt::ptr(descriptor_pool));
 
         // Allocate the descriptor set for the sampled and storage images in the heap
-        const auto variable_descriptor_sizes      = std::array{desc.sampled_image_count, desc.storage_image_count};
+        const auto variable_descriptor_sizes      = std::array{sampled_image_count, storage_image_count};
         const auto variable_descriptor_count_info = VkDescriptorSetVariableDescriptorCountAllocateInfo{
             .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
             .descriptorSetCount = 2u,
