@@ -406,6 +406,9 @@ namespace orion
 
         Image* create_image(Device* device, const ImageDesc& desc);
         Extent2D image_extent_2d(const Image* image);
+        // Orion-owned backing allocation size in bytes, including backend-required padding.
+        // Returns zero for externally owned images (e.g. swapchain images).
+        [[nodiscard]] std::uint64_t image_allocation_size(const Image* image);
         void destroy_image(Device* device, Image* image);
 
         ImageView* create_image_view(Device* device, const ImageViewDesc& desc);
@@ -415,6 +418,8 @@ namespace orion
         // Returns nullptr for GpuOnly buffers; CpuVisible and Readback buffers are mapped and host-coherent.
         void* buffer_host_address(const Buffer* buffer);
         Address buffer_device_address(const Buffer* buffer);
+        // Backing allocation size in bytes, including backend-required padding; may exceed BufferDesc::size.
+        [[nodiscard]] std::uint64_t buffer_allocation_size(const Buffer* buffer);
         void destroy_buffer(Device* device, Buffer* buffer);
 
         Sampler* create_sampler(Device* device, const SamplerDesc& desc);

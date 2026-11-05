@@ -50,8 +50,9 @@ namespace orion::gpu
     };
 
     struct Image {
-        VkImage handle        = VK_NULL_HANDLE;
-        VkDeviceMemory memory = VK_NULL_HANDLE;
+        VkImage handle                = VK_NULL_HANDLE;
+        VkDeviceMemory memory         = VK_NULL_HANDLE;
+        std::uint64_t allocation_size  = 0ull;
 
         std::uint32_t width  = 0u;
         std::uint32_t height = 0u;
@@ -81,6 +82,7 @@ namespace orion::gpu
         VkDeviceMemory memory = VK_NULL_HANDLE;
 
         std::size_t size                = 0z;
+        std::uint64_t allocation_size   = 0ull;
         std::uint32_t memory_type_index = 0u;
 
         void* mapped                   = nullptr;
@@ -1361,15 +1363,16 @@ namespace orion::gpu
         GPU_CHECK(vkBindImageMemory(device->device, image, memory, 0));
 
         return new Image{
-            .handle       = image,
-            .memory       = memory,
-            .width        = desc.width,
-            .height       = desc.height,
-            .depth        = 1u,
-            .format       = image_info.format,
-            .aspect_flags = aspect_flags_from_format(to_vk_format(desc.format)),
-            .mip_levels   = desc.mip_levels,
-            .array_layers = desc.array_layers,
+            .handle          = image,
+            .memory          = memory,
+            .allocation_size = allocation_info.allocationSize,
+            .width           = desc.width,
+            .height          = desc.height,
+            .depth           = 1u,
+            .format          = image_info.format,
+            .aspect_flags    = aspect_flags_from_format(to_vk_format(desc.format)),
+            .mip_levels      = desc.mip_levels,
+            .array_layers    = desc.array_layers,
         };
     }
 
@@ -1377,6 +1380,12 @@ namespace orion::gpu
     {
         ORION_ASSERT(image != nullptr);
         return Extent2D{.width = image->width, .height = image->height};
+    }
+
+    std::uint64_t image_allocation_size(const Image* image)
+    {
+        ORION_ASSERT(image != nullptr);
+        return image->allocation_size;
     }
 
     void destroy_image(Device* device, Image* image)
@@ -1522,6 +1531,7 @@ namespace orion::gpu
             .handle            = buffer,
             .memory            = memory,
             .size              = desc.size,
+            .allocation_size   = allocation_info.allocationSize,
             .memory_type_index = memory_type_index,
             .mapped            = mapped,
             .device_address    = device_address,
@@ -1538,6 +1548,12 @@ namespace orion::gpu
     {
         ORION_ASSERT(buffer != nullptr);
         return buffer->device_address;
+    }
+
+    std::uint64_t buffer_allocation_size(const Buffer* buffer)
+    {
+        ORION_ASSERT(buffer != nullptr);
+        return buffer->allocation_size;
     }
 
     void destroy_buffer(Device* device, Buffer* buffer)
