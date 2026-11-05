@@ -21,7 +21,8 @@ function(orion_add_shader shader_source)
 		COMMENT "Building SPV object ${shader_output}"
 		VERBATIM
 	)
-	target_sources(orion.shaders PRIVATE ${shader_output})
+	target_sources(orion.shaders PRIVATE ${shader_source} ${shader_output})
+	set_source_files_properties(${shader_source} PROPERTIES HEADER_FILE_ONLY TRUE)
 	set_source_files_properties(${shader_output} PROPERTIES GENERATED TRUE)
 endfunction()
 
