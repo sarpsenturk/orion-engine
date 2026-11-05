@@ -56,8 +56,6 @@ float4 fsmain(VSOutput input) : SV_Target
 {
     let material = root.materials[root.material_index];
     float4 color = material.base_color;
-    if (material.base_color_texture != ~0u) {
-        color *= sampled_images[material.base_color_texture].Sample(samplers[0], input.uv);
-    }
+    color *= sampled_images[material.base_color_texture].Sample(samplers[0], input.uv);
     return color;
 }
