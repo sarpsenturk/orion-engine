@@ -39,6 +39,9 @@ namespace orion
         // Includes resources awaiting deferred destruction.
         [[nodiscard]] std::uint32_t texture_count() const noexcept { return static_cast<std::uint32_t>(m_texture_slots.size()); }
 
+        // Owned image backing allocations in bytes, including pending destruction.
+        [[nodiscard]] std::uint64_t allocation_bytes() const noexcept { return m_allocation_bytes; }
+
         [[nodiscard]] gpu::Image* get_image(Texture texture) const;
         [[nodiscard]] gpu::ImageView* get_image_view(Texture texture) const;
         [[nodiscard]] gpu::SamplerHeap* sampler_heap() const { return m_sampler_heap; }
@@ -55,5 +58,6 @@ namespace orion
         gpu::SamplerHeap* m_sampler_heap;
         gpu::ResourceHeap* m_texture_heap;
         SlotMap<TextureData> m_texture_slots;
+        std::uint64_t m_allocation_bytes = 0ull;
     };
 } // namespace orion

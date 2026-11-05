@@ -20,6 +20,11 @@ namespace orion
         gpu::destroy_buffer(m_device, m_material_buffer);
     }
 
+    std::uint64_t MaterialManager::allocation_bytes() const noexcept
+    {
+        return gpu::buffer_allocation_size(m_material_buffer);
+    }
+
     Material MaterialManager::create_material(const PbrMaterial& material)
     {
         if (m_material_records.size() >= max_material_count) {

@@ -65,6 +65,9 @@ namespace orion
         // Includes resources awaiting deferred destruction.
         [[nodiscard]] std::uint32_t mesh_count() const noexcept { return static_cast<std::uint32_t>(m_mesh_records.size()); }
 
+        // Owned buffer backing allocations in bytes, including unused capacity.
+        [[nodiscard]] std::uint64_t allocation_bytes() const noexcept;
+
         [[nodiscard]] MeshRecord get_mesh_record(Mesh mesh) const;
         [[nodiscard]] std::uint32_t get_mesh_index(Mesh mesh) const;
         [[nodiscard]] gpu::Address mesh_table_address() const { return gpu::buffer_device_address(m_mesh_buffer); }

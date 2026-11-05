@@ -60,6 +60,12 @@ namespace orion
         std::uint32_t mesh_count     = 0u;
         std::uint32_t material_count = 0u;
         std::uint32_t texture_count  = 0u;
+
+        // Manager-owned buffer/image backing allocations in bytes, including unused
+        // capacity and pending destruction. Excludes CPU storage and other GPU objects.
+        std::uint64_t mesh_allocation_bytes     = 0ull;
+        std::uint64_t material_allocation_bytes = 0ull;
+        std::uint64_t texture_allocation_bytes  = 0ull;
     };
 
     class Renderer

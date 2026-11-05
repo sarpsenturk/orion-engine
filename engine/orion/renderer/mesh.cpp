@@ -52,6 +52,15 @@ namespace orion
         gpu::destroy_buffer(m_device, m_mesh_buffer);
     }
 
+    std::uint64_t MeshManager::allocation_bytes() const noexcept
+    {
+        return gpu::buffer_allocation_size(m_mesh_buffer)
+            + gpu::buffer_allocation_size(m_position_buffer)
+            + gpu::buffer_allocation_size(m_index_buffer)
+            + gpu::buffer_allocation_size(m_uv_buffer)
+            + gpu::buffer_allocation_size(m_normal_buffer);
+    }
+
     Mesh MeshManager::create_mesh(const MeshDesc& desc)
     {
         // Slot indices cannot exceed the peak live count when slots are reused.

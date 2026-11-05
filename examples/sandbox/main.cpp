@@ -317,9 +317,17 @@ private:
 
         if (ImGui::Begin("Renderer Stats")) {
             const auto stats = m_renderer.renderer_stats();
+            ImGui::SeparatorText("Resource counts");
             ImGui::Text("Meshes: %" PRIu32, stats.mesh_count);
             ImGui::Text("Materials: %" PRIu32, stats.material_count);
             ImGui::Text("Textures: %" PRIu32, stats.texture_count);
+
+            constexpr auto bytes_per_mib = 1024.0 * 1024.0;
+            ImGui::SeparatorText("Allocated memory");
+            ImGui::Text("Meshes: %.3f MiB", static_cast<double>(stats.mesh_allocation_bytes) / bytes_per_mib);
+            ImGui::Text("Materials: %.3f MiB", static_cast<double>(stats.material_allocation_bytes) / bytes_per_mib);
+            ImGui::Text("Textures: %.3f MiB", static_cast<double>(stats.texture_allocation_bytes) / bytes_per_mib);
+            ImGui::TextDisabled("Buffer/image allocations, including unused capacity.");
             ImGui::TextDisabled("Includes resources pending destruction.");
         }
         ImGui::End();

@@ -42,6 +42,9 @@ namespace orion
         // Includes resources awaiting deferred destruction.
         [[nodiscard]] std::uint32_t material_count() const noexcept { return static_cast<std::uint32_t>(m_material_records.size()); }
 
+        // Owned buffer backing allocation in bytes, including unused capacity.
+        [[nodiscard]] std::uint64_t allocation_bytes() const noexcept;
+
         [[nodiscard]] std::uint32_t get_material_index(Material material) const;
         [[nodiscard]] gpu::Address material_table_address() const { return gpu::buffer_device_address(m_material_buffer); }
 

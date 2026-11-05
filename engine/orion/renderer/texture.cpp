@@ -78,6 +78,7 @@ namespace orion
         const auto handle     = m_texture_slots.insert({image, image_view});
         const auto slot_guard = ScopeFail{[handle, this] { m_texture_slots.erase(handle); }};
         gpu::write_sampled_image(m_device, m_texture_heap, handle.index, image_view);
+        m_allocation_bytes += gpu::image_allocation_size(image);
 
         return Texture{handle.to_uint64()};
     }
@@ -86,9 +87,11 @@ namespace orion
     {
         const auto handle = SlotMap<TextureData>::Handle::from_uint64(texture.handle);
         if (const auto* data = m_texture_slots.try_get(handle)) {
+            const auto allocation_size = gpu::image_allocation_size(data->image);
             gpu::destroy_image_view(m_device, data->image_view);
             gpu::destroy_image(m_device, data->image);
             m_texture_slots.erase(handle);
+            m_allocation_bytes -= allocation_size;
         } else {
             ORION_LOG_WARN(LogChannel::Renderer, "Trying to destroy Texture ({}) that is invalid", texture.handle);
         }
