@@ -31,13 +31,23 @@ struct ViewData {
     float4 camera_world_position;
 };
 
+struct GpuInstance {
+    uint mesh_idx;
+    uint material_idx;
+    uint padding[2];
+    float4x4 transform;
+};
+
+struct SceneData {
+    GpuInstance* instances;
+    uint padding[2];
+};
+
 struct MeshRoot {
     MeshRecord* meshes;
     Material* materials;
     ViewData* view;
-    uint mesh_index;
-    uint material_index;
-    float4x4 model;
+    SceneData* scene;
 };
 
 [vk::push_constant]
@@ -46,24 +56,27 @@ ConstantBuffer<MeshRoot> root;
 struct VSOutput {
     float4 position : SV_Position;
     float2 uv : TEXCOORD0;
+    uint material : MATERIAL;
 }
 
 [shader("vertex")]
-VSOutput vsmain(uint vtx : SV_VertexID)
+VSOutput vsmain(uint vtx : SV_VertexID, uint instance_id : SV_VulkanInstanceID)
 {
-    let mesh = root.meshes[root.mesh_index];
+    let instance = root.scene->instances[instance_id];
+    let mesh = root.meshes[instance.mesh_idx];
     let vertex = mesh.positions[vtx];
     VSOutput output;
-    let world_position = mul(root.model, float4(vertex, 1.0));
+    let world_position = mul(instance.transform, float4(vertex, 1.0));
     output.position = mul(root.view->view_projection, world_position);
     output.uv = mesh.uvs[vtx];
+    output.material = instance.material_idx;
     return output;
 }
 
 [shader("fragment")]
 float4 fsmain(VSOutput input) : SV_Target
 {
-    let material = root.materials[root.material_index];
+    let material = root.materials[input.material];
     float4 color = material.base_color;
     color *= sampled_images[material.base_color_texture].Sample(samplers[0], input.uv);
     return color;

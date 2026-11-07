@@ -31,7 +31,7 @@ namespace orion
     struct SceneView {
         glm::mat4 view;
         glm::mat4 projection;
-        const Scene& scene;
+        const Scene* scene;
     };
 
     struct Frame {
@@ -102,6 +102,9 @@ namespace orion
         [[nodiscard]] Texture create_texture(const TextureDesc& desc);
         void destroy_texture(Texture texture);
 
+        [[nodiscard]] Scene* create_scene();
+        void destroy_scene(Scene* scene);
+
         [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
 
         // Last completed frame; zero-initialized until the first frame completes.
@@ -138,7 +141,7 @@ namespace orion
 
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
         // One allocation, partitioned into independently retired frame regions.
-        gpu::Buffer* m_view_buffer = nullptr;
+        gpu::Buffer* m_view_buffer         = nullptr;
         gpu::Image* m_depth_image          = nullptr;
         gpu::ImageView* m_depth_image_view = nullptr;
 

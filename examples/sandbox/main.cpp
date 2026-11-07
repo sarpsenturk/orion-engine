@@ -36,6 +36,7 @@ public:
         , m_asset(std::move(asset))
         , m_asset_directory(std::move(asset_directory))
         , m_default_material(m_renderer.create_material({}))
+        , m_scene(m_renderer.create_scene())
     {
         load_materials();
         load_meshes();
@@ -46,6 +47,7 @@ public:
 
     ~Sandbox() override
     {
+        m_renderer.destroy_scene(m_scene);
         for (const auto& primitives : m_meshes) {
             for (const auto& primitive : primitives) { m_renderer.destroy_mesh(primitive.mesh); }
         }
@@ -233,10 +235,10 @@ private:
                     for (auto row = 0; row < 4; ++row) { model[column][row] = world[column][row]; }
                 }
                 for (const auto& primitive : m_meshes[node.meshIndex.value()]) {
-                    m_instances.push_back({primitive.mesh, primitive.material, model});
+                    m_scene->create_instance(primitive.mesh, primitive.material, model);
                 }
             });
-        ORION_LOG_INFO(orion::LogChannel::Application, "Created {} render instances from scene {}", m_instances.size(), scene_index);
+        ORION_LOG_INFO(orion::LogChannel::Application, "Created {} render instances from scene {}", m_scene->instances().size(), scene_index);
     }
 
     void on_update(float delta_time) override
@@ -352,7 +354,7 @@ private:
             m_renderer.render_scene({
                 .view       = glm::lookAtRH(m_camera_position, m_camera_position + m_camera_front, m_camera_up),
                 .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
-                .scene      = {.instances = m_instances},
+                .scene      = m_scene,
             });
             m_renderer.render_ui(ImGui::GetDrawData());
             m_renderer.end_frame();
@@ -370,11 +372,10 @@ private:
     fastgltf::Asset m_asset;
     std::filesystem::path m_asset_directory;
     orion::Material m_default_material;
+    orion::Scene* m_scene;
     std::unordered_map<std::size_t, orion::Texture> m_textures;
     std::vector<orion::Material> m_materials;
     std::vector<std::vector<MeshPrimitive>> m_meshes;
-    std::vector<orion::RenderInstance> m_instances;
-
     orion::MousePosition m_last_mouse_position{0.0f, 0.0f};
     glm::vec3 m_camera_position{0.0f, 0.0f, -5.0f};
     glm::vec3 m_camera_front{0.0f, 0.0f, 1.0f};

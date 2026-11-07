@@ -271,20 +271,16 @@ namespace orion
         // Bind index buffer
         gpu::bind_index_buffer(command_buffer, m_mesh_manager.index_buffer(), 0);
         // Iterate over the scene instances and issue draw calls
-        for (const auto& instance : view.scene.instances) {
+        for (const auto& [handle, instance] : view.scene->instances().entries()) {
             struct MeshRoot {
                 gpu::Address meshes;
                 gpu::Address materials;
                 gpu::Address view;
-                std::uint32_t mesh_index;
-                std::uint32_t material_index;
-                alignas(16) glm::mat4 model;
+                gpu::Address scene;
             };
             static_assert(offsetof(MeshRoot, materials) == 8z);
             static_assert(offsetof(MeshRoot, view) == 16z);
-            static_assert(offsetof(MeshRoot, mesh_index) == 24z);
-            static_assert(offsetof(MeshRoot, material_index) == 28z);
-            static_assert(offsetof(MeshRoot, model) == 32z);
+            static_assert(offsetof(MeshRoot, scene) == 24z);
             const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
             gpu::draw_indexed(
                 command_buffer,
@@ -293,15 +289,13 @@ namespace orion
                     .instance_count = 1u,
                     .first_index    = mesh.first_index,
                     .vertex_offset  = 0,
-                    .first_instance = 0u,
+                    .first_instance = handle.index,
                 },
                 MeshRoot{
-                    .meshes         = m_mesh_manager.mesh_table_address(),
-                    .materials      = m_material_manager.material_table_address(),
-                    .view           = view_address,
-                    .mesh_index     = m_mesh_manager.get_mesh_index(instance.mesh),
-                    .material_index = m_material_manager.get_material_index(instance.material),
-                    .model          = instance.model,
+                    .meshes    = m_mesh_manager.mesh_table_address(),
+                    .materials = m_material_manager.material_table_address(),
+                    .view      = view_address,
+                    .scene     = view.scene->scene_buffer_address(),
                 });
             ++m_current_frame_stats.instance_count;
             ++m_current_frame_stats.draw_calls;
@@ -499,5 +493,15 @@ namespace orion
         m_pending_deletions.push([this, texture] {
             m_texture_manager.destroy_texture(texture);
         });
+    }
+
+    Scene* Renderer::create_scene()
+    {
+        return new Scene{m_device.get()};
+    }
+
+    void Renderer::destroy_scene(Scene* scene)
+    {
+        m_pending_deletions.push([this, scene] { delete scene; });
     }
 } // namespace orion
