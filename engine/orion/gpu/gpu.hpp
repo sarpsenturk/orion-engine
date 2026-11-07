@@ -32,9 +32,9 @@ namespace orion
         };
 
         enum class Memory {
-            GpuOnly,
-            CpuVisible,
-            Readback,
+            GpuOnly,    // Device-local memory; no CPU access.
+            CpuVisible, // Host-coherent memory for sequential CPU writes.
+            Readback,   // Host-coherent memory for random CPU reads.
         };
 
         using Address = std::uint64_t;

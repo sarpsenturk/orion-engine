@@ -7,6 +7,11 @@
 #include "orion/core/logger.hpp"
 
 #include <Volk/volk.h>
+
+#define VMA_IMPLEMENTATION
+#define VMA_STATIC_VULKAN_FUNCTIONS  0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
+#include <vma/vk_mem_alloc.h>
 #include <vulkan/vk_enum_string_helper.h>
 
 #include <GLFW/glfw3.h>
@@ -51,7 +56,7 @@ namespace orion::gpu
 
     struct Image {
         VkImage handle                = VK_NULL_HANDLE;
-        VkDeviceMemory memory         = VK_NULL_HANDLE;
+        VmaAllocation allocation      = VK_NULL_HANDLE;
         std::uint64_t allocation_size = 0ull;
 
         std::uint32_t width  = 0u;
@@ -78,12 +83,11 @@ namespace orion::gpu
     };
 
     struct Buffer {
-        VkBuffer handle       = VK_NULL_HANDLE;
-        VkDeviceMemory memory = VK_NULL_HANDLE;
+        VkBuffer handle          = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
 
-        std::size_t size                = 0z;
-        std::uint64_t allocation_size   = 0ull;
-        std::uint32_t memory_type_index = 0u;
+        std::size_t size              = 0z;
+        std::uint64_t allocation_size = 0ull;
 
         void* mapped                   = nullptr;
         VkDeviceAddress device_address = 0ull;
@@ -139,6 +143,7 @@ namespace orion::gpu
 
         VkPhysicalDevice physical_device = VK_NULL_HANDLE;
         VkDevice device                  = VK_NULL_HANDLE;
+        VmaAllocator allocator           = VK_NULL_HANDLE;
 
         VkDescriptorSetLayout sampler_set_layout       = VK_NULL_HANDLE;
         VkDescriptorSetLayout sampled_image_set_layout = VK_NULL_HANDLE;
@@ -146,7 +151,6 @@ namespace orion::gpu
         VkPipelineLayout pipeline_layout               = VK_NULL_HANDLE;
 
         VkPhysicalDeviceProperties device_properties;
-        VkPhysicalDeviceMemoryProperties memory_properties;
 
         VulkanQueue graphics_queue = {};
         VulkanQueue compute_queue  = {};
@@ -164,32 +168,6 @@ namespace orion::gpu
                 default:
                     std::unreachable();
             }
-        }
-
-        [[nodiscard]] std::uint32_t find_memory_type(
-            std::uint32_t type_filter,
-            VkMemoryPropertyFlags required,
-            VkMemoryPropertyFlags preferred,
-            VkMemoryPropertyFlags forbidden,
-            VkDeviceSize min_size) const noexcept
-        {
-            std::uint32_t best_type = VK_MAX_MEMORY_TYPES;
-            int best_score          = -1;
-
-            for (std::uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i) {
-                if ((type_filter & (1u << i)) == 0u) { continue; }
-                const auto flags = memory_properties.memoryTypes[i].propertyFlags;
-                if ((flags & required) != required) { continue; }
-                if ((flags & forbidden) != 0u) { continue; }
-                const auto& heap = memory_properties.memoryHeaps[memory_properties.memoryTypes[i].heapIndex];
-                if (heap.size < min_size) { continue; }
-                const auto score = std::popcount(flags & preferred);
-                if (score > best_score) {
-                    best_score = score;
-                    best_type  = i;
-                }
-            }
-            return best_type;
         }
     };
 
@@ -489,36 +467,30 @@ namespace orion::gpu
         return family;
     }
 
-    static VkMemoryPropertyFlags required_memory_properties(Memory memory)
+    static VmaAllocationCreateInfo buffer_allocation_info(Memory memory)
     {
         switch (memory) {
             case Memory::GpuOnly:
-                return VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                return {
+                    .usage         = VMA_MEMORY_USAGE_AUTO,
+                    .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                };
             case Memory::CpuVisible:
+                return {
+                    .flags         = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+                    .usage         = VMA_MEMORY_USAGE_AUTO,
+                    .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                };
             case Memory::Readback:
-                return VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+                return {
+                    .flags         = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                    .usage         = VMA_MEMORY_USAGE_AUTO,
+                    .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                };
             default:
                 std::unreachable();
         }
     }
-
-    static VkMemoryPropertyFlags preferred_memory_properties(Memory memory)
-    {
-        switch (memory) {
-            case Memory::GpuOnly:
-            case Memory::CpuVisible:
-                return 0u;
-            case Memory::Readback:
-                return VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-            default:
-                std::unreachable();
-        }
-    }
-
-    // The deviceCoherentMemory feature is not enabled on the device.
-    static constexpr VkMemoryPropertyFlags forbidden_memory_properties = VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD;
 
     Device* create_device(const DeviceDesc& desc)
     {
@@ -528,12 +500,12 @@ namespace orion::gpu
         std::uint32_t glfw_extension_count;
         const auto* glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
         const auto app_info         = VkApplicationInfo{
-            .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName   = "Orion Engine",
-            .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-            .pEngineName        = "Orion Engine",
-            .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
-            .apiVersion         = vulkan_api_version,
+                    .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                    .pApplicationName   = "Orion Engine",
+                    .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+                    .pEngineName        = "Orion Engine",
+                    .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
+                    .apiVersion         = vulkan_api_version,
         };
         const auto instance_info = VkInstanceCreateInfo{
             .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -554,12 +526,10 @@ namespace orion::gpu
         GPU_CHECK(vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices.data()));
         VkPhysicalDevice physical_device = physical_devices[desc.device_index];
 
-        // Retrieve physical device & memory properties
+        // Retrieve physical device properties
         VkPhysicalDeviceProperties device_properties;
         vkGetPhysicalDeviceProperties(physical_device, &device_properties);
         ORION_LOG_TRACE(LogChannel::Gpu, "Using VkPhysicalDevice {}", device_properties.deviceName);
-        VkPhysicalDeviceMemoryProperties memory_properties;
-        vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
 
         // Select queue families
         std::uint32_t queue_family_count;
@@ -638,6 +608,22 @@ namespace orion::gpu
         volkLoadDevice(device);
         ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDevice {}", fmt::ptr(device));
         const auto device_guard = ScopeFail{[device] { vkDestroyDevice(device, nullptr); }};
+
+        // VMA uses Volk's function table and supports buffer device addresses.
+        VmaVulkanFunctions vulkan_functions{};
+        const auto allocator_info = VmaAllocatorCreateInfo{
+            .flags            = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+            .physicalDevice   = physical_device,
+            .device           = device,
+            .pVulkanFunctions = &vulkan_functions,
+            .instance         = instance,
+            .vulkanApiVersion = vulkan_api_version,
+        };
+        GPU_CHECK(vmaImportVulkanFunctionsFromVolk(&allocator_info, &vulkan_functions));
+        VmaAllocator allocator;
+        GPU_CHECK(vmaCreateAllocator(&allocator_info, &allocator));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VmaAllocator {}", fmt::ptr(allocator));
+        const auto allocator_guard = ScopeFail{[allocator] { vmaDestroyAllocator(allocator); }};
 
         // Create descriptor set layouts for samplers, sampled images, and storage images
         const auto binding_flags = VkDescriptorBindingFlags{
@@ -781,12 +767,12 @@ namespace orion::gpu
             .instance                 = instance,
             .physical_device          = physical_device,
             .device                   = device,
+            .allocator                = allocator,
             .sampler_set_layout       = sampler_set_layout,
             .sampled_image_set_layout = sampled_image_set_layout,
             .storage_image_set_layout = storage_image_set_layout,
             .pipeline_layout          = pipeline_layout,
             .device_properties        = device_properties,
-            .memory_properties        = memory_properties,
             .graphics_queue           = {graphics_queue, graphics_family, graphics_semaphore},
             .compute_queue            = {compute_queue, compute_family, compute_semaphore},
             .transfer_queue           = {transfer_queue, transfer_family, transfer_semaphore},
@@ -813,8 +799,10 @@ namespace orion::gpu
         vkDestroyDescriptorSetLayout(device->device, device->sampler_set_layout, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorSetLayout {} (samplers)", fmt::ptr(device->sampler_set_layout));
 
+        vmaDestroyAllocator(device->allocator);
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VmaAllocator {}", fmt::ptr(device->allocator));
         vkDestroyDevice(device->device, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDevice {}", fmt::ptr(device));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDevice {}", fmt::ptr(device->device));
         vkDestroyInstance(device->instance, nullptr);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkInstance {}", fmt::ptr(device->instance));
 
@@ -1312,9 +1300,9 @@ namespace orion::gpu
             .imageType = VK_IMAGE_TYPE_2D,
             .format    = to_vk_format(desc.format),
             .extent    = {
-                .width  = desc.width,
-                .height = desc.height,
-                .depth  = 1u,
+                   .width  = desc.width,
+                   .height = desc.height,
+                   .depth  = 1u,
             },
             .mipLevels     = desc.mip_levels,
             .arrayLayers   = desc.array_layers,
@@ -1324,48 +1312,22 @@ namespace orion::gpu
             .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         };
-        VkImage image;
-        GPU_CHECK(vkCreateImage(device->device, &image_info, nullptr, &image));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkImage {}", fmt::ptr(image));
-        const auto image_guard = ScopeFail{[device, image] {
-            vkDestroyImage(device->device, image, nullptr);
-        }};
-
-        // Get image memory requirements
-        VkMemoryRequirements memory_requirements;
-        vkGetImageMemoryRequirements(device->device, image, &memory_requirements);
-
-        // Find suitable memory type
-        const auto memory_type_index = device->find_memory_type(
-            memory_requirements.memoryTypeBits,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            0u,
-            VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
-            memory_requirements.size);
-        if (memory_type_index == VK_MAX_MEMORY_TYPES) {
-            throw std::runtime_error("Vulkan: Failed to find suitable memory type for image");
-        }
-
-        // Allocate memory
-        const auto allocation_info = VkMemoryAllocateInfo{
-            .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize  = memory_requirements.size,
-            .memoryTypeIndex = memory_type_index,
+        const auto allocation_create_info = VmaAllocationCreateInfo{
+            .usage = VMA_MEMORY_USAGE_AUTO,
         };
-        VkDeviceMemory memory;
-        GPU_CHECK(vkAllocateMemory(device->device, &allocation_info, nullptr, &memory));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Allocated VkDeviceMemory {} for image {}", fmt::ptr(memory), fmt::ptr(image));
-        const auto memory_guard = ScopeFail{[device, memory] {
-            vkFreeMemory(device->device, memory, nullptr);
+        VkImage image;
+        VmaAllocation allocation;
+        VmaAllocationInfo allocation_info;
+        GPU_CHECK(vmaCreateImage(device->allocator, &image_info, &allocation_create_info, &image, &allocation, &allocation_info));
+        const auto image_guard = ScopeFail{[device, image, allocation] {
+            vmaDestroyImage(device->allocator, image, allocation);
         }};
-
-        // Bind the allocation to the image
-        GPU_CHECK(vkBindImageMemory(device->device, image, memory, 0));
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkImage {} with VmaAllocation {}", fmt::ptr(image), fmt::ptr(allocation));
 
         return new Image{
             .handle          = image,
-            .memory          = memory,
-            .allocation_size = allocation_info.allocationSize,
+            .allocation      = allocation,
+            .allocation_size = allocation_info.size,
             .width           = desc.width,
             .height          = desc.height,
             .depth           = 1u,
@@ -1392,11 +1354,9 @@ namespace orion::gpu
     {
         ORION_ASSERT(device != nullptr);
         ORION_ASSERT(image != nullptr);
-        ORION_ASSERT(image->memory != VK_NULL_HANDLE && "Can't destroy unowned images (e.g. swapchain images)");
+        ORION_ASSERT(image->allocation != nullptr && "Can't destroy unowned images (e.g. swapchain images)");
 
-        vkFreeMemory(device->device, image->memory, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Freed VkDeviceMemory {} for image {}", fmt::ptr(image->memory), fmt::ptr(image->handle));
-        vkDestroyImage(device->device, image->handle, nullptr);
+        vmaDestroyImage(device->allocator, image->handle, image->allocation);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkImage {}", fmt::ptr(image->handle));
 
         delete image;
@@ -1470,55 +1430,15 @@ namespace orion::gpu
             .usage       = default_buffer_usage,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         };
+        const auto allocation_create_info = buffer_allocation_info(desc.memory);
         VkBuffer buffer;
-        GPU_CHECK(vkCreateBuffer(device->device, &buffer_info, nullptr, &buffer));
-        const auto buffer_guard = ScopeFail{[device, buffer] {
-            vkDestroyBuffer(device->device, buffer, nullptr);
+        VmaAllocation allocation;
+        VmaAllocationInfo allocation_info;
+        GPU_CHECK(vmaCreateBuffer(device->allocator, &buffer_info, &allocation_create_info, &buffer, &allocation, &allocation_info));
+        const auto buffer_guard = ScopeFail{[device, buffer, allocation] {
+            vmaDestroyBuffer(device->allocator, buffer, allocation);
         }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkBuffer {}", fmt::ptr(buffer));
-
-        // Get buffer memory requirements
-        VkMemoryRequirements memory_requirements;
-        vkGetBufferMemoryRequirements(device->device, buffer, &memory_requirements);
-
-        // Find suitable memory type
-        const auto memory_type_index = device->find_memory_type(
-            memory_requirements.memoryTypeBits,
-            required_memory_properties(desc.memory),
-            preferred_memory_properties(desc.memory),
-            forbidden_memory_properties,
-            memory_requirements.size);
-        if (memory_type_index == VK_MAX_MEMORY_TYPES) {
-            throw std::runtime_error("Vulkan: Failed to find suitable memory type for buffer");
-        }
-
-        // Allocate memory
-        const auto allocation_flags = VkMemoryAllocateFlagsInfo{
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-            .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
-        };
-        const auto allocation_info = VkMemoryAllocateInfo{
-            .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext           = &allocation_flags,
-            .allocationSize  = memory_requirements.size,
-            .memoryTypeIndex = memory_type_index,
-        };
-        VkDeviceMemory memory;
-        GPU_CHECK(vkAllocateMemory(device->device, &allocation_info, nullptr, &memory));
-        const auto memory_guard = ScopeFail{[device, memory] {
-            // Freeing mapped memory also unmaps it.
-            vkFreeMemory(device->device, memory, nullptr);
-        }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Allocated VkDeviceMemory {} for buffer {}", fmt::ptr(memory), fmt::ptr(buffer));
-
-        // Bind the allocation to the buffer
-        GPU_CHECK(vkBindBufferMemory(device->device, buffer, memory, 0));
-
-        // Map buffers that expose CPU access.
-        void* mapped = nullptr;
-        if (desc.memory != Memory::GpuOnly) {
-            GPU_CHECK(vkMapMemory(device->device, memory, 0, memory_requirements.size, 0, &mapped));
-        }
+        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkBuffer {} with VmaAllocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
 
         // Get the device address of the buffer
         const auto buffer_address_info = VkBufferDeviceAddressInfo{
@@ -1528,13 +1448,12 @@ namespace orion::gpu
         VkDeviceAddress device_address = vkGetBufferDeviceAddress(device->device, &buffer_address_info);
 
         return new Buffer{
-            .handle            = buffer,
-            .memory            = memory,
-            .size              = desc.size,
-            .allocation_size   = allocation_info.allocationSize,
-            .memory_type_index = memory_type_index,
-            .mapped            = mapped,
-            .device_address    = device_address,
+            .handle          = buffer,
+            .allocation      = allocation,
+            .size            = desc.size,
+            .allocation_size = allocation_info.size,
+            .mapped          = allocation_info.pMappedData,
+            .device_address  = device_address,
         };
     }
 
@@ -1561,14 +1480,7 @@ namespace orion::gpu
         ORION_ASSERT(device != nullptr);
         ORION_ASSERT(buffer != nullptr);
 
-        if (buffer->mapped != nullptr) {
-            vkUnmapMemory(device->device, buffer->memory);
-        }
-
-        vkFreeMemory(device->device, buffer->memory, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Freed VkDeviceMemory {} for buffer {}", fmt::ptr(buffer->memory), fmt::ptr(buffer->handle));
-
-        vkDestroyBuffer(device->device, buffer->handle, nullptr);
+        vmaDestroyBuffer(device->allocator, buffer->handle, buffer->allocation);
         ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkBuffer {}", fmt::ptr(buffer->handle));
 
         delete buffer;
@@ -1933,12 +1845,12 @@ namespace orion::gpu
         if (render_pass.depth_attachment.has_value()) {
             const auto& attachment = render_pass.depth_attachment.value();
             depth_attachment       = VkRenderingAttachmentInfo{
-                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .imageView   = attachment.image_view->handle,
-                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                .loadOp      = to_vk_load_op(attachment.load_op),
-                .storeOp     = to_vk_store_op(attachment.store_op),
-                .clearValue  = VkClearValue{.depthStencil = {1.0f, 0u}},
+                      .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                      .imageView   = attachment.image_view->handle,
+                      .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                      .loadOp      = to_vk_load_op(attachment.load_op),
+                      .storeOp     = to_vk_store_op(attachment.store_op),
+                      .clearValue  = VkClearValue{.depthStencil = {1.0f, 0u}},
             };
         }
 
@@ -2047,10 +1959,10 @@ namespace orion::gpu
                 .bufferRowLength   = region.buffer_row_length,
                 .bufferImageHeight = region.buffer_image_height,
                 .imageSubresource  = {
-                    .aspectMask     = dst->aspect_flags,
-                    .mipLevel       = region.image_subresource.mip_level,
-                    .baseArrayLayer = region.image_subresource.base_array_layer,
-                    .layerCount     = region.image_subresource.layer_count,
+                     .aspectMask     = dst->aspect_flags,
+                     .mipLevel       = region.image_subresource.mip_level,
+                     .baseArrayLayer = region.image_subresource.base_array_layer,
+                     .layerCount     = region.image_subresource.layer_count,
                 },
                 .imageOffset = {
                     .x = region.image_offset.x,
