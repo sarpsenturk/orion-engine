@@ -33,7 +33,7 @@ namespace orion
     TextureManager::~TextureManager()
     {
         // Destroy remaining living textures
-        for (const auto& texture : m_texture_slots) {
+        for (const auto& texture : m_texture_slots.values()) {
             gpu::destroy_image_view(m_device, texture.image_view);
             gpu::destroy_image(m_device, texture.image);
         }

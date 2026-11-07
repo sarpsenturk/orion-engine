@@ -25,15 +25,16 @@ namespace orion
         static_assert(std::is_same_v<decltype(std::declval<const IntSlotMap&>().try_get(Handle{})), const int*>);
         static_assert(std::is_same_v<decltype(std::declval<IntSlotMap&&>().get(Handle{})), int&&>);
         static_assert(std::is_same_v<decltype(std::declval<const IntSlotMap&&>().get(Handle{})), const int&&>);
-        static_assert(std::is_same_v<decltype(*std::declval<IntSlotMap&>().begin()), int&>);
-        static_assert(std::is_same_v<decltype(*std::declval<const IntSlotMap&>().begin()), const int&>);
-        static_assert(std::is_same_v<decltype(*std::declval<IntSlotMap&>().cbegin()), const int&>);
+        static_assert(std::is_same_v<decltype(*std::declval<IntSlotMap&>().values().begin()), int&>);
+        static_assert(std::is_same_v<decltype(*std::declval<const IntSlotMap&>().values().begin()), const int&>);
+        static_assert(std::is_same_v<decltype((*std::declval<IntSlotMap&>().entries().begin()).second), int&>);
+        static_assert(std::is_same_v<decltype((*std::declval<const IntSlotMap&>().entries().begin()).second), const int&>);
 
         // Iteration order is unspecified; compare contents without imposing one.
         std::vector<int> sorted_values(const IntSlotMap& map)
         {
             std::vector<int> values;
-            for (const auto& value : map) {
+            for (const auto& value : map.values()) {
                 values.push_back(value);
             }
             std::sort(values.begin(), values.end());
@@ -47,11 +48,42 @@ namespace orion
 
             EXPECT_TRUE(map.empty());
             EXPECT_EQ(map.size(), 0u);
-            EXPECT_EQ(map.begin(), map.end());
-            EXPECT_EQ(const_map.begin(), const_map.end());
-            EXPECT_EQ(map.cbegin(), map.cend());
-            EXPECT_EQ(const_map.cbegin(), const_map.cend());
+            EXPECT_EQ(map.values().begin(), map.values().end());
+            EXPECT_EQ(const_map.values().begin(), const_map.values().end());
             EXPECT_TRUE(sorted_values(map).empty());
+            EXPECT_TRUE(std::ranges::empty(map.entries()));
+            EXPECT_TRUE(std::ranges::empty(const_map.entries()));
+        }
+
+        TEST(SlotMapTest, EntriesPreserveHandlesAndReferencesAfterErasureAndReuse)
+        {
+            IntSlotMap map;
+            const auto erased = map.insert(10);
+            const auto middle = map.insert(20);
+            const auto moved  = map.insert(30);
+            map.erase(erased);
+            const auto reused = map.insert(40);
+            ASSERT_EQ(reused.index, erased.index);
+            ASSERT_NE(reused.generation, erased.generation);
+
+            std::vector<std::uint64_t> visited;
+            for (auto [handle, value] : map.entries()) {
+                ASSERT_TRUE(map.contains(handle));
+                EXPECT_EQ(&value, map.try_get(handle));
+                value += 5;
+                visited.push_back(handle.to_uint64());
+            }
+            std::vector<std::uint64_t> expected{middle.to_uint64(), moved.to_uint64(), reused.to_uint64()};
+            std::sort(visited.begin(), visited.end());
+            std::sort(expected.begin(), expected.end());
+            EXPECT_EQ(visited, expected);
+            EXPECT_EQ(map.get(middle), 25);
+            EXPECT_EQ(map.get(moved), 35);
+            EXPECT_EQ(map.get(reused), 45);
+
+            for (auto [handle, value] : std::as_const(map).entries()) {
+                EXPECT_EQ(&value, std::as_const(map).try_get(handle));
+            }
         }
 
         TEST(SlotMapTest, SizeTracksLiveValuesThroughErasureAndReuse)
@@ -71,8 +103,7 @@ namespace orion
             map.erase(second);
             EXPECT_TRUE(map.empty());
             EXPECT_EQ(map.size(), 0u);
-            EXPECT_EQ(map.begin(), map.end());
-            EXPECT_EQ(map.cbegin(), map.cend());
+            EXPECT_EQ(map.values().begin(), map.values().end());
 
             const auto reused = map.insert(30);
             ASSERT_TRUE(map.contains(reused));
@@ -97,7 +128,7 @@ namespace orion
             EXPECT_EQ(map.size(), 3u);
             EXPECT_EQ(sorted_values(map), (std::vector<int>{20, 20, 50}));
             const auto& const_map = std::as_const(map);
-            std::vector<int> values(const_map.cbegin(), const_map.cend());
+            std::vector<int> values(const_map.values().begin(), const_map.values().end());
             std::sort(values.begin(), values.end());
             EXPECT_EQ(values, (std::vector<int>{20, 20, 50}));
         }
@@ -110,7 +141,7 @@ namespace orion
             const auto last   = map.insert(30);
             map.erase(erased);
 
-            for (auto& value : map) {
+            for (auto& value : map.values()) {
                 value += 5;
             }
 
@@ -216,7 +247,7 @@ namespace orion
 
             EXPECT_TRUE(source.empty());
             EXPECT_EQ(source.size(), 0u);
-            EXPECT_EQ(source.begin(), source.end());
+            EXPECT_EQ(source.values().begin(), source.values().end());
             EXPECT_FALSE(source.contains(live));
             ASSERT_TRUE(destination.contains(live));
             EXPECT_FALSE(destination.contains(erased));
@@ -247,7 +278,7 @@ namespace orion
             EXPECT_EQ(replaced.use_count(), 1);
             EXPECT_EQ(retained.use_count(), 2);
             EXPECT_TRUE(source.empty());
-            EXPECT_EQ(source.begin(), source.end());
+            EXPECT_EQ(source.values().begin(), source.values().end());
             EXPECT_FALSE(source.contains(live));
             ASSERT_TRUE(destination.contains(live));
             EXPECT_EQ(destination.get(live), retained);
@@ -303,7 +334,7 @@ namespace orion
             IntSlotMap empty;
             second.swap(empty);
             EXPECT_TRUE(second.empty());
-            EXPECT_EQ(second.begin(), second.end());
+            EXPECT_EQ(second.values().begin(), second.values().end());
             EXPECT_EQ(sorted_values(empty), (std::vector<int>{20, 40}));
             ASSERT_TRUE(empty.contains(live));
             ASSERT_TRUE(empty.contains(reused));
@@ -637,7 +668,7 @@ namespace orion
             ASSERT_TRUE(map.contains(middle));
             EXPECT_EQ(map.get(middle).value, 20);
             ASSERT_EQ(map.size(), 1u);
-            EXPECT_EQ(map.begin()->value, 20);
+            EXPECT_EQ(map.values().begin()->value, 20);
             map.erase(middle);
             EXPECT_TRUE(map.empty());
         }
@@ -666,7 +697,7 @@ namespace orion
             ASSERT_TRUE(map.contains(last));
             EXPECT_EQ(map.get(last).value, 20);
             ASSERT_EQ(map.size(), 1u);
-            EXPECT_EQ(map.begin()->value, 20);
+            EXPECT_EQ(map.values().begin()->value, 20);
             map.erase(last);
             EXPECT_TRUE(map.empty());
         }
@@ -748,7 +779,7 @@ namespace orion
 
             EXPECT_TRUE(map.empty());
             EXPECT_EQ(map.size(), 0u);
-            EXPECT_EQ(map.begin(), map.end());
+            EXPECT_EQ(map.values().begin(), map.values().end());
             const SlotMap<ThrowOnCopy>::Handle vacant{0, 0};
             EXPECT_FALSE(map.contains(vacant));
             EXPECT_EQ(map.try_get(vacant), nullptr);
@@ -768,7 +799,7 @@ namespace orion
             EXPECT_THROW(map.insert(failing), std::runtime_error);
 
             ASSERT_EQ(map.size(), 1u);
-            EXPECT_EQ(map.begin()->value, 10);
+            EXPECT_EQ(map.values().begin()->value, 10);
             ASSERT_TRUE(map.contains(live));
             EXPECT_EQ(map.get(live).value, 10);
             EXPECT_FALSE(map.contains(erased));
@@ -795,7 +826,7 @@ namespace orion
             EXPECT_THROW(destination = source, std::runtime_error);
 
             ASSERT_EQ(destination.size(), 1u);
-            EXPECT_EQ(destination.begin()->value, 200);
+            EXPECT_EQ(destination.values().begin()->value, 200);
             ASSERT_TRUE(destination.contains(live));
             EXPECT_EQ(destination.get(live).value, 200);
             EXPECT_FALSE(destination.contains(erased));

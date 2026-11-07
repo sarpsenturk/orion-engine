@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -153,17 +154,23 @@ namespace orion
         [[nodiscard]] std::size_t size() const noexcept { return m_values.size(); }
         [[nodiscard]] bool empty() const noexcept { return m_values.empty(); }
 
-        // Iterates only live values, in unspecified order. Handles survive
-        // insertion and unrelated erasure. Insertion can invalidate all value
-        // references/iterators; erasure invalidates those to the erased value and
-        // the last value, which moves into its place. Do not mutate the map's
-        // structure during a range-for loop; modifying individual values is fine.
-        [[nodiscard]] auto begin() noexcept { return m_values.begin(); }
-        [[nodiscard]] auto end() noexcept { return m_values.end(); }
-        [[nodiscard]] auto begin() const noexcept { return m_values.begin(); }
-        [[nodiscard]] auto end() const noexcept { return m_values.end(); }
-        [[nodiscard]] auto cbegin() const noexcept { return m_values.cbegin(); }
-        [[nodiscard]] auto cend() const noexcept { return m_values.cend(); }
+        template<typename Self>
+        [[nodiscard]] auto values(this Self& self) noexcept
+        {
+            return std::ranges::subrange(self.m_values.begin(), self.m_values.end());
+        }
+
+        template<typename Self>
+        [[nodiscard]] auto entries(this Self& self)
+        {
+            return std::views::iota(std::size_t{0}, self.m_values.size()) | std::views::transform([&self](std::size_t dense_index) {
+                       const auto slot_index = self.m_value_slots[dense_index];
+                       return std::pair<Handle, decltype((self.m_values[dense_index]))>{
+                           Handle{slot_index, self.m_slots[slot_index].generation},
+                           self.m_values[dense_index],
+                       };
+                   });
+        }
 
     private:
         struct Slot {
