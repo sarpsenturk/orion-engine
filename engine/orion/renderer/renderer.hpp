@@ -69,7 +69,6 @@ namespace orion
         static constexpr auto frames_in_flight       = 2u;
         static constexpr auto swapchain_image_count  = 3u;
         static constexpr auto swapchain_image_format = gpu::Format::BGRA8_Unorm;
-        static constexpr auto max_views_per_frame    = 64u;
 
         Renderer();
         Renderer(const Renderer&)            = delete;
@@ -120,14 +119,11 @@ namespace orion
         static_assert(offsetof(GpuView, projection) == 64z);
         static_assert(offsetof(GpuView, view_projection) == 128z);
         static_assert(offsetof(GpuView, camera_world_position) == 192z);
-        static constexpr auto view_frame_size = max_views_per_frame * sizeof(GpuView);
 
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] Frame& current_frame() { return m_frame_data[current_frame_index()]; }
 
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
-        // One allocation, partitioned into independently retired frame regions.
-        gpu::Buffer* m_view_buffer         = nullptr;
         gpu::Image* m_depth_image          = nullptr;
         gpu::ImageView* m_depth_image_view = nullptr;
 

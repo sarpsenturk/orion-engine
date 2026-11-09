@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
-#include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -48,15 +47,7 @@ namespace orion
 
     Renderer::Renderer()
         : m_device(gpu::create_device(gpu::DeviceDesc{}), gpu::destroy_device)
-        , m_view_buffer(gpu::create_buffer(
-              m_device.get(),
-              gpu::BufferDesc{
-                  frames_in_flight * view_frame_size,
-                  gpu::Memory::CpuVisible,
-              }))
-        , m_frame_data(make_array<frames_in_flight>([this] {
-            return Frame{m_device.get(), view_frame_size};
-        }))
+        , m_frame_data(make_array<frames_in_flight>([this] { return Frame{m_device.get()}; }))
         , m_mesh_manager(m_device.get())
         , m_material_manager(m_device.get())
         , m_texture_manager(m_device.get())
@@ -91,7 +82,6 @@ namespace orion
         m_pending_deletions.flush();
 
         gpu::destroy_pipeline(m_device.get(), m_dummy_pipeline);
-        gpu::destroy_buffer(m_device.get(), m_view_buffer);
 
         for (auto [_, swapchain] : m_swapchains) {
             gpu::destroy_swapchain(m_device.get(), swapchain);
@@ -108,7 +98,7 @@ namespace orion
         // Wait until the previous submission of this frame has finished
         const auto wait_start = Clock::now();
         gpu::wait_timeline(m_device.get(), frame_data.m_timeline_point);
-        frame_data.m_view_allocator.reset();
+        frame_data.reset_allocations();
         m_current_frame_stats.frame_wait_ms = elapsed_ms(wait_start);
         frame_data.m_deletion_queue.flush();
         // Reset the command allocator for this frame
@@ -151,7 +141,6 @@ namespace orion
 
             frame_data.m_swapchain_frame = *swapchain_frame;
             frame_data.m_command_buffer  = gpu::begin_command_buffer(m_device.get(), frame_data.m_command_allocator);
-            frame_data.m_frame_index    = m_frame_counter;
             return &frame_data;
         } else {
             ORION_LOG_WARN(LogChannel::Renderer, "Swapchain frame acquisition failed, possibly due to window resize or minimization");
@@ -165,22 +154,19 @@ namespace orion
         auto& frame_data        = current_frame();
         auto* command_buffer    = frame_data.m_command_buffer;
 
-        // Each render call gets its own record. Reuse this frame's region only
-        // after begin_frame() has waited for its previous submission.
-        const auto view_offset = frame_data.m_view_allocator.allocate(sizeof(GpuView), alignof(GpuView));
-        if (view_offset == std::numeric_limits<std::size_t>::max()) {
-            throw std::length_error("View buffer capacity exhausted for this frame");
-        }
-        const auto buffer_offset = current_frame_index() * view_frame_size + view_offset;
-        const auto gpu_view      = GpuView{
-                 .view                  = view.view,
-                 .projection            = view.projection,
-                 .view_projection       = view.projection * view.view,
-                 .camera_world_position = glm::inverse(view.view)[3],
+        // Each render call gets its own record, retained until this frame completes.
+        const auto [view_buffer, view_offset] = frame_data.allocate<GpuView>();
+        const auto gpu_view                   = GpuView{
+                              .view                  = view.view,
+                              .projection            = view.projection,
+                              .view_projection       = view.projection * view.view,
+                              .camera_world_position = glm::inverse(view.view)[3],
         };
-        std::memcpy(static_cast<char*>(gpu::buffer_host_address(m_view_buffer)) + buffer_offset,
-                    &gpu_view, sizeof(gpu_view));
-        const auto view_address = gpu::buffer_device_address(m_view_buffer) + buffer_offset;
+        std::memcpy(
+            static_cast<char*>(gpu::buffer_host_address(view_buffer)) + view_offset,
+            &gpu_view,
+            sizeof(gpu_view));
+        const auto view_address = gpu::buffer_device_address(view_buffer) + view_offset;
 
         // Transition the swapchain image to color attachment optimal layout
         // Transition the depth image to depth attachment optimal layout
@@ -351,7 +337,7 @@ namespace orion
             });
 
         // Submit the command buffers to the GPU
-        const auto submit_start    = Clock::now();
+        const auto submit_start     = Clock::now();
         frame_data.m_timeline_point = gpu::submit(
             m_device.get(),
             gpu::Queue::Graphics,
@@ -457,7 +443,7 @@ namespace orion
         const auto texture = m_texture_manager.create_texture(desc);
 
         const auto texture_guard = ScopeFail{[&] { m_texture_manager.destroy_texture(texture); }};
-        auto* image = m_texture_manager.get_image(texture);
+        auto* image              = m_texture_manager.get_image(texture);
 
         auto* staging_buffer = gpu::create_buffer(
             m_device.get(),
@@ -468,9 +454,9 @@ namespace orion
         const auto staging_guard = ScopeExit{[&] { gpu::destroy_buffer(m_device.get(), staging_buffer); }};
         std::memcpy(gpu::buffer_host_address(staging_buffer), desc.data.data, desc.data.size);
 
-        auto* command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics);
+        auto* command_allocator    = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics);
         const auto allocator_guard = ScopeExit{[&] { gpu::destroy_command_allocator(m_device.get(), command_allocator); }};
-        auto* command_buffer = gpu::begin_command_buffer(m_device.get(), command_allocator);
+        auto* command_buffer       = gpu::begin_command_buffer(m_device.get(), command_allocator);
 
         const auto before_copy = gpu::ImageBarrier{
             .image             = image,
