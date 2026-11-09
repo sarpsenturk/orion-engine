@@ -51,6 +51,7 @@ target_sources(orion.engine
 		"orion/utils/inplace_function.hpp"
 
 		"orion/renderer/renderer.hpp"
+		"orion/renderer/frame.hpp"
 		"orion/renderer/mesh.hpp"
         "orion/renderer/material.hpp"
 		"orion/renderer/texture.hpp"
@@ -75,6 +76,7 @@ target_sources(orion.engine
 		"orion/core/input.cpp"
 
 		"orion/renderer/renderer.cpp"
+		"orion/renderer/frame.cpp"
 		"orion/renderer/mesh.cpp"
         "orion/renderer/material.cpp"
 		"orion/renderer/texture.cpp"

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "frame.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
 #include "scene.hpp"
 #include "texture.hpp"
 
 #include "orion/core/event.hpp"
-#include "orion/gpu/bump_allocator.hpp"
 #include "orion/gpu/deletion_queue.hpp"
 #include "orion/gpu/gpu.hpp"
 
@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <flat_map>
 #include <memory>
-#include <optional>
 
 // ImGui forward declarations
 struct ImDrawData;
@@ -31,10 +30,6 @@ namespace orion
         glm::mat4 view;
         glm::mat4 projection;
         const Scene* scene;
-    };
-
-    struct Frame {
-        std::uint64_t frame_index = 0ull;
     };
 
     struct FrameStats {
@@ -83,7 +78,9 @@ namespace orion
         Renderer& operator=(Renderer&&)      = delete;
         ~Renderer();
 
-        std::optional<Frame> begin_frame(gpu::Swapchain* swapchain);
+        // Returns nullptr if acquisition fails. The frame is owned by the renderer
+        // and is valid for recording until end_frame().
+        Frame* begin_frame(gpu::Swapchain* swapchain);
         void render_scene(const SceneView& view);
         void render_ui(ImDrawData* imgui_draw_data);
         void end_frame();
@@ -125,17 +122,8 @@ namespace orion
         static_assert(offsetof(GpuView, camera_world_position) == 192z);
         static constexpr auto view_frame_size = max_views_per_frame * sizeof(GpuView);
 
-        struct FrameInFlight {
-            gpu::CommandAllocator* command_allocator = nullptr;
-            gpu::CommandBuffer* command_buffer       = nullptr;
-            gpu::TimelinePoint timeline_point;
-            gpu::SwapchainFrame swapchain_frame;
-            gpu::DeletionQueue deletion_queue;
-            gpu::BumpAllocator view_allocator{view_frame_size};
-        };
-
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
-        [[nodiscard]] FrameInFlight& current_frame() { return m_frame_data[current_frame_index()]; }
+        [[nodiscard]] Frame& current_frame() { return m_frame_data[current_frame_index()]; }
 
         std::unique_ptr<gpu::Device, void (*)(gpu::Device*)> m_device;
         // One allocation, partitioned into independently retired frame regions.
@@ -145,7 +133,7 @@ namespace orion
 
         std::flat_map<const Window*, gpu::Swapchain*> m_swapchains;
 
-        std::array<FrameInFlight, frames_in_flight> m_frame_data;
+        std::array<Frame, frames_in_flight> m_frame_data;
         gpu::DeletionQueue m_pending_deletions;
         std::uint64_t m_frame_counter = 0ull;
         FrameStats m_current_frame_stats;
