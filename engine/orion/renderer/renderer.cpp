@@ -397,12 +397,16 @@ namespace orion
     RendererStats Renderer::renderer_stats() const noexcept
     {
         return RendererStats{
-            .mesh_count                = m_mesh_manager.mesh_count(),
-            .material_count            = m_material_manager.material_count(),
-            .texture_count             = m_texture_manager.texture_count(),
-            .mesh_allocation_bytes     = m_mesh_manager.allocation_bytes(),
-            .material_allocation_bytes = m_material_manager.allocation_bytes(),
-            .texture_allocation_bytes  = m_texture_manager.allocation_bytes(),
+            .mesh_count                   = m_mesh_manager.mesh_count(),
+            .material_count               = m_material_manager.material_count(),
+            .texture_count                = m_texture_manager.texture_count(),
+            .mesh_vertex_used_bytes       = m_mesh_manager.vertex_used_bytes(),
+            .mesh_index_used_bytes        = m_mesh_manager.index_used_bytes(),
+            .mesh_vertex_allocation_bytes = m_mesh_manager.vertex_allocation_bytes(),
+            .mesh_index_allocation_bytes  = m_mesh_manager.index_allocation_bytes(),
+            .mesh_record_allocation_bytes = m_mesh_manager.record_allocation_bytes(),
+            .material_allocation_bytes    = m_material_manager.allocation_bytes(),
+            .texture_allocation_bytes     = m_texture_manager.allocation_bytes(),
         };
     }
 

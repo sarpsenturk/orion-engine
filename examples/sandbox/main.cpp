@@ -77,13 +77,14 @@ private:
                 std::span<const std::byte> bytes;
                 if constexpr (std::is_same_v<Source, fastgltf::sources::BufferView>) {
                     const auto& view = m_asset.bufferViews[source.bufferViewIndex];
-                    bytes = std::visit([](const auto& buffer) -> std::span<const std::byte> {
+                    bytes            = std::visit([](const auto& buffer) -> std::span<const std::byte> {
                         if constexpr (requires { buffer.bytes; }) {
                             return {buffer.bytes.data(), buffer.bytes.size()};
                         } else {
                             return {};
                         }
-                    }, m_asset.buffers[view.bufferIndex].data);
+                    },
+                                       m_asset.buffers[view.bufferIndex].data);
                     if (view.byteOffset > bytes.size() || view.byteLength > bytes.size() - view.byteOffset) {
                         return std::unexpected(orion::LoadImageError::DecodeFailed);
                     }
@@ -96,7 +97,8 @@ private:
                 }
                 return orion::decode_image({reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()});
             }
-        }, m_asset.images[image_index].data);
+        },
+                          m_asset.images[image_index].data);
     }
 
     orion::Texture load_texture(const fastgltf::TextureInfo& info)
@@ -117,13 +119,13 @@ private:
         const auto image = load_image(image_index);
         if (!image) {
             ORION_LOG_WARN(orion::LogChannel::Application, "Failed to load image {} (error {}); using base color only",
-                          image_index, std::to_underlying(image.error()));
+                           image_index, std::to_underlying(image.error()));
             return {};
         }
         entry->second = m_renderer.create_texture({
-            .width = image->width,
+            .width  = image->width,
             .height = image->height,
-            .data = {image->pixels.data(), image->pixels.size()},
+            .data   = {image->pixels.data(), image->pixels.size()},
         });
         ORION_LOG_INFO(orion::LogChannel::Application, "Loaded albedo image {} ({} x {})", image_index, image->width, image->height);
         return entry->second;
@@ -135,10 +137,10 @@ private:
         for (const auto& material : m_asset.materials) {
             const auto& color = material.pbrData.baseColorFactor;
             m_materials.push_back(m_renderer.create_material({
-                .base_color = glm::vec4(color[0], color[1], color[2], color[3]),
+                .base_color         = glm::vec4(color[0], color[1], color[2], color[3]),
                 .base_color_texture = material.pbrData.baseColorTexture.has_value()
-                    ? load_texture(material.pbrData.baseColorTexture.value())
-                    : orion::Texture{},
+                                          ? load_texture(material.pbrData.baseColorTexture.value())
+                                          : orion::Texture{},
             }));
         }
     }
@@ -172,7 +174,7 @@ private:
                     uvs.resize(accessor.count);
                     fastgltf::copyFromAccessor<glm::vec2>(m_asset, accessor, uvs.data());
                 }
-                
+
                 std::vector<glm::vec3> normals;
                 if (const auto attribute = primitive.findAttribute("NORMAL"); attribute != primitive.attributes.end()) {
                     const auto& accessor = m_asset.accessors[attribute->accessorIndex];
@@ -204,16 +206,16 @@ private:
                     continue;
                 }
 
-                const auto mesh = m_renderer.create_mesh({
-                    .positions = positions,
-                    .uvs = uvs,
-                    .normals = normals,
-                    .indices = indices,
-                    .vertex_count = static_cast<std::uint32_t>(positions.size()),
+                const auto mesh     = m_renderer.create_mesh({
+                        .positions    = positions,
+                        .uvs          = uvs,
+                        .normals      = normals,
+                        .indices      = indices,
+                        .vertex_count = static_cast<std::uint32_t>(positions.size()),
                 });
                 const auto material = primitive.materialIndex.has_value()
-                    ? m_materials[primitive.materialIndex.value()]
-                    : m_default_material;
+                                          ? m_materials[primitive.materialIndex.value()]
+                                          : m_default_material;
                 m_meshes[mesh_index].push_back({mesh, material});
             }
         }
@@ -227,17 +229,17 @@ private:
         }
         const auto scene_index = m_asset.defaultScene.value_or(0);
         fastgltf::iterateSceneNodes(m_asset, scene_index, fastgltf::math::fmat4x4(),
-            [this](const fastgltf::Node& node, const fastgltf::math::fmat4x4& world) {
-                if (!node.meshIndex.has_value()) { return; }
-                // Both matrix types use column-major storage; copy the accumulated world transform.
-                glm::mat4 model(1.0f);
-                for (auto column = 0; column < 4; ++column) {
-                    for (auto row = 0; row < 4; ++row) { model[column][row] = world[column][row]; }
-                }
-                for (const auto& primitive : m_meshes[node.meshIndex.value()]) {
-                    m_scene->create_instance(primitive.mesh, primitive.material, model);
-                }
-            });
+                                    [this](const fastgltf::Node& node, const fastgltf::math::fmat4x4& world) {
+                                        if (!node.meshIndex.has_value()) { return; }
+                                        // Both matrix types use column-major storage; copy the accumulated world transform.
+                                        glm::mat4 model(1.0f);
+                                        for (auto column = 0; column < 4; ++column) {
+                                            for (auto row = 0; row < 4; ++row) { model[column][row] = world[column][row]; }
+                                        }
+                                        for (const auto& primitive : m_meshes[node.meshIndex.value()]) {
+                                            m_scene->create_instance(primitive.mesh, primitive.material, model);
+                                        }
+                                    });
         ORION_LOG_INFO(orion::LogChannel::Application, "Created {} render instances from scene {}", m_scene->instances().size(), scene_index);
     }
 
@@ -329,9 +331,9 @@ private:
             ImGui::Text("Triangles: %" PRIu32, stats.triangle_count);
 
             constexpr auto bytes_per_mib = 1024.0 * 1024.0;
-            const auto utilization = stats.allocation_bytes != 0ull
-                ? 100.0 * static_cast<double>(stats.used_bytes) / static_cast<double>(stats.allocation_bytes)
-                : 0.0;
+            const auto utilization       = stats.allocation_bytes != 0ull
+                                               ? 100.0 * static_cast<double>(stats.used_bytes) / static_cast<double>(stats.allocation_bytes)
+                                               : 0.0;
             ImGui::SeparatorText("Frame memory");
             ImGui::Text("Used: %" PRIu64 " bytes (%.3f MiB)", stats.used_bytes, static_cast<double>(stats.used_bytes) / bytes_per_mib);
             ImGui::Text("Allocated: %.3f MiB", static_cast<double>(stats.allocation_bytes) / bytes_per_mib);
@@ -348,8 +350,15 @@ private:
             ImGui::Text("Textures: %" PRIu32, stats.texture_count);
 
             constexpr auto bytes_per_mib = 1024.0 * 1024.0;
-            ImGui::SeparatorText("Allocated memory");
-            ImGui::Text("Meshes: %.3f MiB", static_cast<double>(stats.mesh_allocation_bytes) / bytes_per_mib);
+            ImGui::SeparatorText("Mesh memory (used / allocated)");
+            ImGui::Text("Vertices: %.3f / %.3f MiB",
+                        static_cast<double>(stats.mesh_vertex_used_bytes) / bytes_per_mib,
+                        static_cast<double>(stats.mesh_vertex_allocation_bytes) / bytes_per_mib);
+            ImGui::Text("Indices: %.3f / %.3f MiB",
+                        static_cast<double>(stats.mesh_index_used_bytes) / bytes_per_mib,
+                        static_cast<double>(stats.mesh_index_allocation_bytes) / bytes_per_mib);
+            ImGui::Text("Mesh records: %.3f MiB allocated", static_cast<double>(stats.mesh_record_allocation_bytes) / bytes_per_mib);
+            ImGui::SeparatorText("Other allocated memory");
             ImGui::Text("Materials: %.3f MiB", static_cast<double>(stats.material_allocation_bytes) / bytes_per_mib);
             ImGui::Text("Textures: %.3f MiB", static_cast<double>(stats.texture_allocation_bytes) / bytes_per_mib);
             ImGui::TextDisabled("Buffer/image allocations, including unused capacity.");
@@ -432,8 +441,10 @@ int main(int argc, char* argv[])
 
     ORION_LOG_INFO(
         orion::LogChannel::Application,
-        "Loaded {}: {} scenes, {} nodes, {} meshes, {} textures",
-        asset_path.string(), asset->scenes.size(), asset->nodes.size(), asset->meshes.size(), asset->textures.size());
+        "Loaded {}: {} scenes, {} nodes, {} meshes, {} textures, {} materials",
+        asset_path.string(),
+        asset->scenes.size(), asset->nodes.size(),
+        asset->meshes.size(), asset->textures.size(), asset->materials.size());
 
     engine.run(std::make_unique<Sandbox>(engine, std::move(asset.get()), asset_path.parent_path()));
     return 0;

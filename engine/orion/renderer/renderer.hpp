@@ -62,11 +62,18 @@ namespace orion
         std::uint32_t material_count = 0u;
         std::uint32_t texture_count  = 0u;
 
+        // Live mesh ranges, including pending destruction. Vertex usage includes
+        // padding between attribute sections, but excludes gaps between allocations.
+        std::uint64_t mesh_vertex_used_bytes = 0ull;
+        std::uint64_t mesh_index_used_bytes  = 0ull;
+
         // Manager-owned buffer/image backing allocations in bytes, including unused
         // capacity and pending destruction. Excludes CPU storage and other GPU objects.
-        std::uint64_t mesh_allocation_bytes     = 0ull;
-        std::uint64_t material_allocation_bytes = 0ull;
-        std::uint64_t texture_allocation_bytes  = 0ull;
+        std::uint64_t mesh_vertex_allocation_bytes = 0ull;
+        std::uint64_t mesh_index_allocation_bytes  = 0ull;
+        std::uint64_t mesh_record_allocation_bytes = 0ull;
+        std::uint64_t material_allocation_bytes    = 0ull;
+        std::uint64_t texture_allocation_bytes     = 0ull;
     };
 
     class Renderer
