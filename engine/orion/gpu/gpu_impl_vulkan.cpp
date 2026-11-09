@@ -2175,6 +2175,14 @@ namespace orion::gpu
         ORION_ASSERT(m_block != nullptr);
         vmaClearVirtualBlock(static_cast<VmaVirtualBlock>(m_block));
     }
+
+    std::size_t RangeAllocator::used_bytes() const noexcept
+    {
+        ORION_ASSERT(m_block != nullptr);
+        VmaStatistics statistics{};
+        vmaGetVirtualBlockStatistics(static_cast<VmaVirtualBlock>(m_block), &statistics);
+        return static_cast<std::size_t>(statistics.allocationBytes);
+    }
 } // namespace orion::gpu
 
 bool ImGui_ImplOrion_Init(const ImGui_ImplOrion_InitInfo& init_info)

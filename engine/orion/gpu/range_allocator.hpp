@@ -35,6 +35,9 @@ namespace orion::gpu
         // Frees all ranges and invalidates every outstanding allocation handle.
         void reset();
 
+        // Sum of live allocation sizes, excluding alignment gaps, in allocator units.
+        [[nodiscard]] std::size_t used_bytes() const noexcept;
+
     private:
         void* m_block = nullptr;
     };
