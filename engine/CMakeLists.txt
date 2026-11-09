@@ -57,6 +57,7 @@ target_sources(orion.engine
 		"orion/renderer/scene.hpp"
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/bump_allocator.hpp"
+		"orion/gpu/range_allocator.hpp"
 		"orion/gpu/deletion_queue.hpp"
 		"orion/gpu/upload_queue.hpp"
 		"orion/imgui/imgui.hpp"

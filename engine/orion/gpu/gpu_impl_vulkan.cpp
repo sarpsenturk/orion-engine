@@ -1,4 +1,5 @@
 #include "gpu.hpp"
+#include "range_allocator.hpp"
 
 #include "orion/core/assert.hpp"
 #include "orion/utils/scope_guard.hpp"
@@ -2096,6 +2097,83 @@ namespace orion::gpu
     {
         ORION_ASSERT(device != nullptr);
         return device->device_properties.deviceName;
+    }
+
+    RangeAllocator::RangeAllocator(std::size_t size, Algorithm algorithm)
+    {
+        ORION_ASSERT(size != 0z);
+        ORION_ASSERT(algorithm == Algorithm::Default || algorithm == Algorithm::Linear);
+
+        const auto create_info = VmaVirtualBlockCreateInfo{
+            .size  = size,
+            .flags = algorithm == Algorithm::Linear ? VMA_VIRTUAL_BLOCK_CREATE_LINEAR_ALGORITHM_BIT : 0u,
+        };
+        VmaVirtualBlock block;
+        GPU_CHECK(vmaCreateVirtualBlock(&create_info, &block));
+        m_block = block;
+    }
+
+    RangeAllocator::RangeAllocator(RangeAllocator&& other) noexcept
+        : m_block(std::exchange(other.m_block, nullptr))
+    {
+    }
+
+    RangeAllocator& RangeAllocator::operator=(RangeAllocator&& other) noexcept
+    {
+        if (this != &other) {
+            if (m_block != nullptr) {
+                const auto block = static_cast<VmaVirtualBlock>(m_block);
+                vmaClearVirtualBlock(block);
+                vmaDestroyVirtualBlock(block);
+            }
+            m_block = std::exchange(other.m_block, nullptr);
+        }
+        return *this;
+    }
+
+    RangeAllocator::~RangeAllocator()
+    {
+        if (m_block != nullptr) {
+            const auto block = static_cast<VmaVirtualBlock>(m_block);
+            vmaClearVirtualBlock(block);
+            vmaDestroyVirtualBlock(block);
+        }
+    }
+
+    RangeAllocator::Allocation RangeAllocator::allocate(std::size_t size, std::size_t alignment)
+    {
+        ORION_ASSERT(m_block != nullptr);
+        ORION_ASSERT(size != 0z);
+        ORION_ASSERT(std::has_single_bit(alignment));
+
+        const auto allocation_info = VmaVirtualAllocationCreateInfo{
+            .size      = size,
+            .alignment = alignment,
+        };
+        VmaVirtualAllocation allocation;
+        VkDeviceSize offset;
+        const auto result = vmaVirtualAllocate(static_cast<VmaVirtualBlock>(m_block), &allocation_info, &allocation, &offset);
+        if (result == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
+            return {};
+        }
+        GPU_CHECK(result);
+        return Allocation{
+            .handle = allocation,
+            .offset = static_cast<std::size_t>(offset),
+            .size   = size,
+        };
+    }
+
+    void RangeAllocator::free(const Allocation& allocation)
+    {
+        ORION_ASSERT(m_block != nullptr);
+        vmaVirtualFree(static_cast<VmaVirtualBlock>(m_block), static_cast<VmaVirtualAllocation>(allocation.handle));
+    }
+
+    void RangeAllocator::reset()
+    {
+        ORION_ASSERT(m_block != nullptr);
+        vmaClearVirtualBlock(static_cast<VmaVirtualBlock>(m_block));
     }
 } // namespace orion::gpu
 
