@@ -58,6 +58,7 @@ target_sources(orion.engine
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/bump_allocator.hpp"
 		"orion/gpu/range_allocator.hpp"
+		"orion/gpu/page_allocator.hpp"
 		"orion/gpu/deletion_queue.hpp"
 		"orion/gpu/upload_queue.hpp"
 		"orion/imgui/imgui.hpp"
@@ -80,6 +81,7 @@ target_sources(orion.engine
 		"orion/renderer/scene.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
 		"orion/gpu/deletion_queue.cpp"
+		"orion/gpu/page_allocator.cpp"
 		"orion/gpu/upload_queue.cpp"
 		"orion/imgui/imgui.cpp"
 )
