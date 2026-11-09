@@ -9,7 +9,6 @@
 #include "orion/gpu/bump_allocator.hpp"
 #include "orion/gpu/deletion_queue.hpp"
 #include "orion/gpu/gpu.hpp"
-#include "orion/gpu/upload_queue.hpp"
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
@@ -46,7 +45,6 @@ namespace orion
         double swapchain_acquire_ms = 0.0;
         double scene_record_ms      = 0.0;
         double ui_record_ms         = 0.0;
-        double upload_flush_ms      = 0.0;
         double command_submit_ms    = 0.0;
         double swapchain_present_ms = 0.0;
 
@@ -149,7 +147,6 @@ namespace orion
 
         std::array<FrameInFlight, frames_in_flight> m_frame_data;
         gpu::DeletionQueue m_pending_deletions;
-        gpu::UploadQueue m_upload_queue;
         std::uint64_t m_frame_counter = 0ull;
         FrameStats m_current_frame_stats;
         FrameStats m_last_frame_stats;

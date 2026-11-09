@@ -4,6 +4,7 @@
 #include "orion/core/logger.hpp"
 #include "orion/core/window.hpp"
 #include "orion/utils/array.hpp"
+#include "orion/utils/scope_guard.hpp"
 
 #include <glm/matrix.hpp>
 #include <imgui.h>
@@ -58,7 +59,6 @@ namespace orion
                 .command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics),
             };
         }))
-        , m_upload_queue(m_device.get())
         , m_mesh_manager(m_device.get())
         , m_material_manager(m_device.get())
         , m_texture_manager(m_device.get())
@@ -84,9 +84,6 @@ namespace orion
 
     Renderer::~Renderer()
     {
-        // Submit pending uploads while their destinations are still alive.
-        m_upload_queue.finish();
-
         // Wait until all work on the GPU has finished before tearing down the Renderer
         gpu::wait_idle(m_device.get());
 
@@ -358,12 +355,6 @@ namespace orion
                 }},
             });
 
-        // Uploads and rendering share the graphics queue. Submit uploads first
-        // so their final barriers cover this frame's texture reads.
-        const auto upload_start = Clock::now();
-        (void)m_upload_queue.flush();
-        m_current_frame_stats.upload_flush_ms = elapsed_ms(upload_start);
-
         // Submit the command buffers to the GPU
         const auto submit_start   = Clock::now();
         frame_data.timeline_point = gpu::submit(
@@ -470,20 +461,55 @@ namespace orion
         // Create texture object
         const auto texture = m_texture_manager.create_texture(desc);
 
+        const auto texture_guard = ScopeFail{[&] { m_texture_manager.destroy_texture(texture); }};
         auto* image = m_texture_manager.get_image(texture);
-        m_upload_queue.upload_image(
-            gpu::ImageUpload{
-                .dst    = image,
-                .extent = {desc.width, desc.height},
-                .after  = {
-                     .access = {
-                         .stages = gpu::PipelineStage::FragmentShader,
-                         .access = gpu::Access::ShaderRead,
-                    },
-                     .layout = gpu::ImageLayout::ShaderReadOnly,
-                },
-            },
-            desc.data);
+
+        auto* staging_buffer = gpu::create_buffer(
+            m_device.get(),
+            gpu::BufferDesc{
+                .size   = desc.data.size,
+                .memory = gpu::Memory::CpuVisible,
+            });
+        const auto staging_guard = ScopeExit{[&] { gpu::destroy_buffer(m_device.get(), staging_buffer); }};
+        std::memcpy(gpu::buffer_host_address(staging_buffer), desc.data.data, desc.data.size);
+
+        auto* command_allocator = gpu::create_command_allocator(m_device.get(), gpu::Queue::Graphics);
+        const auto allocator_guard = ScopeExit{[&] { gpu::destroy_command_allocator(m_device.get(), command_allocator); }};
+        auto* command_buffer = gpu::begin_command_buffer(m_device.get(), command_allocator);
+
+        const auto before_copy = gpu::ImageBarrier{
+            .image             = image,
+            .dst_stages        = gpu::PipelineStage::Transfer,
+            .dst_access        = gpu::Access::TransferWrite,
+            .old_layout        = gpu::ImageLayout::Undefined,
+            .new_layout        = gpu::ImageLayout::TransferDst,
+            .subresource_range = {0u, 1u, 0u, 1u},
+        };
+        gpu::barrier(command_buffer, {.image_barriers = {&before_copy, 1}});
+
+        const auto copy = gpu::BufferImageCopy{
+            .image_subresource = {0u, 0u, 1u},
+            .image_extent      = {desc.width, desc.height},
+        };
+        gpu::copy_buffer_to_image(command_buffer, staging_buffer, image, {&copy, 1});
+
+        const auto after_copy = gpu::ImageBarrier{
+            .image             = image,
+            .src_stages        = gpu::PipelineStage::Transfer,
+            .src_access        = gpu::Access::TransferWrite,
+            .dst_stages        = gpu::PipelineStage::FragmentShader,
+            .dst_access        = gpu::Access::ShaderRead,
+            .old_layout        = gpu::ImageLayout::TransferDst,
+            .new_layout        = gpu::ImageLayout::ShaderReadOnly,
+            .subresource_range = {0u, 1u, 0u, 1u},
+        };
+        gpu::barrier(command_buffer, {.image_barriers = {&after_copy, 1}});
+
+        const auto timeline_point = gpu::submit(
+            m_device.get(), gpu::Queue::Graphics,
+            gpu::Submit{.command_buffers = {{command_buffer}}});
+        // Keep the staging buffer and allocator alive until the upload completes.
+        gpu::wait_timeline(m_device.get(), timeline_point);
 
         return texture;
     }

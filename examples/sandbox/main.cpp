@@ -319,7 +319,6 @@ private:
             ImGui::Text("Swapchain acquire: %.3f ms", stats.swapchain_acquire_ms);
             ImGui::Text("Scene recording: %.3f ms", stats.scene_record_ms);
             ImGui::Text("UI recording: %.3f ms", stats.ui_record_ms);
-            ImGui::Text("Upload flush: %.3f ms", stats.upload_flush_ms);
             ImGui::Text("Command submit: %.3f ms", stats.command_submit_ms);
             ImGui::Text("Swapchain present: %.3f ms", stats.swapchain_present_ms);
 
