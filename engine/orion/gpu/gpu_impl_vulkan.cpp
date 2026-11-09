@@ -2152,11 +2152,11 @@ namespace orion::gpu
         };
         VmaVirtualAllocation allocation;
         VkDeviceSize offset;
-        const auto result = vmaVirtualAllocate(static_cast<VmaVirtualBlock>(m_block), &allocation_info, &allocation, &offset);
-        if (result == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
+        const auto alloc_error = vmaVirtualAllocate(static_cast<VmaVirtualBlock>(m_block), &allocation_info, &allocation, &offset);
+        if (alloc_error == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
             return {};
         }
-        GPU_CHECK(result);
+        GPU_CHECK(alloc_error);
         return Allocation{
             .handle = allocation,
             .offset = static_cast<std::size_t>(offset),
