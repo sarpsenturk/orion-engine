@@ -33,11 +33,16 @@ namespace orion
             return allocate(sizeof(T), alignof(T));
         }
 
+        // Buffer backing allocations, including retained unused capacity.
+        [[nodiscard]] std::uint64_t allocation_bytes() const noexcept;
+        // Live allocation sizes for this frame, excluding alignment gaps.
+        [[nodiscard]] std::uint64_t used_bytes() const noexcept;
+
     private:
         friend class Renderer;
 
         // Default page size for linear frame allocations.
-        static constexpr std::size_t allocation_page_size = 4z * 1'024z * 1'024z;
+        static constexpr std::size_t allocation_page_size = 64z * 1'024z;
 
         struct AllocationPage {
             gpu::Buffer* buffer;

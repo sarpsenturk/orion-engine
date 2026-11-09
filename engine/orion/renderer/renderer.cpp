@@ -355,6 +355,8 @@ namespace orion
         const auto present_start = Clock::now();
         gpu::present(m_device.get(), frame_data.m_swapchain_frame);
         m_current_frame_stats.swapchain_present_ms = elapsed_ms(present_start);
+        m_current_frame_stats.allocation_bytes     = frame_data.allocation_bytes();
+        m_current_frame_stats.used_bytes           = frame_data.used_bytes();
         m_last_frame_stats                         = m_current_frame_stats;
         // Increment the frame counter
         ++m_frame_counter;

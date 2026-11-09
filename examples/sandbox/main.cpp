@@ -327,6 +327,16 @@ private:
             ImGui::Text("Draw calls: %" PRIu32, stats.draw_calls);
             ImGui::Text("Indices: %" PRIu32, stats.index_count);
             ImGui::Text("Triangles: %" PRIu32, stats.triangle_count);
+
+            constexpr auto bytes_per_mib = 1024.0 * 1024.0;
+            const auto utilization = stats.allocation_bytes != 0ull
+                ? 100.0 * static_cast<double>(stats.used_bytes) / static_cast<double>(stats.allocation_bytes)
+                : 0.0;
+            ImGui::SeparatorText("Frame memory");
+            ImGui::Text("Used: %" PRIu64 " bytes (%.3f MiB)", stats.used_bytes, static_cast<double>(stats.used_bytes) / bytes_per_mib);
+            ImGui::Text("Allocated: %.3f MiB", static_cast<double>(stats.allocation_bytes) / bytes_per_mib);
+            ImGui::Text("Utilization: %.3f%%", utilization);
+            ImGui::TextDisabled("Used excludes alignment gaps; this frame only.");
         }
         ImGui::End();
 

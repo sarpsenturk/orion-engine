@@ -35,6 +35,12 @@ namespace orion
     struct FrameStats {
         std::uint64_t frame_index = 0ull;
 
+        // This frame's buffer backing allocations, including retained unused
+        // capacity. Excludes other frames in flight, CPU storage and command buffers.
+        std::uint64_t allocation_bytes = 0ull;
+        // Live frame allocation sizes, excluding alignment gaps.
+        std::uint64_t used_bytes = 0ull;
+
         // CPU elapsed times, measured in milliseconds.
         double frame_wait_ms        = 0.0;
         double swapchain_acquire_ms = 0.0;

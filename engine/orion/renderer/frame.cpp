@@ -44,6 +44,20 @@ namespace orion
         return {buffer, allocation.offset};
     }
 
+    std::uint64_t Frame::allocation_bytes() const noexcept
+    {
+        auto bytes = std::uint64_t{0};
+        for (const auto& page : m_allocation_pages) { bytes += gpu::buffer_allocation_size(page.buffer); }
+        return bytes;
+    }
+
+    std::uint64_t Frame::used_bytes() const noexcept
+    {
+        auto bytes = std::uint64_t{0};
+        for (const auto& page : m_allocation_pages) { bytes += page.ranges.used_bytes(); }
+        return bytes;
+    }
+
     void Frame::reset_allocations()
     {
         for (auto& page : m_allocation_pages) { page.ranges.reset(); }
