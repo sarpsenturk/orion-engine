@@ -49,6 +49,7 @@ target_sources(orion.engine
 		"orion/utils/byte_span.hpp"
 		"orion/utils/slot_map.hpp"
 		"orion/utils/inplace_function.hpp"
+		"orion/utils/timer.hpp"
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/frame.hpp"
