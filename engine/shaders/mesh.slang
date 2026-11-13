@@ -1,12 +1,5 @@
-// Bindless descriptor arrays; binding 0 in each set matches the GPU layout.
-[[vk::binding(0, 0)]]
-SamplerState samplers[];
-
-[[vk::binding(0, 1)]]
-Texture2D<float4> sampled_images[];
-
-[[vk::binding(0, 2)]]
-RWTexture2D<float4> storage_images[];
+import common.bindings;
+import common.view;
 
 struct Material {
     float4 base_color;
@@ -22,13 +15,6 @@ struct MeshRecord {
     float3* normals;
     uint index_count;
     uint first_index;
-};
-
-struct ViewData {
-    float4x4 view;
-    float4x4 projection;
-    float4x4 view_projection;
-    float4 camera_world_position;
 };
 
 struct GpuInstance {
