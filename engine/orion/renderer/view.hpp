@@ -10,6 +10,8 @@
 #include <cstddef>
 #include <cstdint>
 
+struct ImDrawData;
+
 namespace orion
 {
     // Valid only within the Frame that created it, until that frame is reset.
@@ -45,6 +47,9 @@ namespace orion
         gpu::Viewport viewport;
         gpu::Rect2D scissor;
         gpu::Address gpu_address;
+        // Opaque pass draws
         OpaqueDrawList opaque_draws;
+        // Imgui pass draws
+        ImDrawData* imgui_draw_data = nullptr;
     };
 } // namespace orion

@@ -109,6 +109,12 @@ namespace orion
         m_views[index.value].opaque_draws.push_back(packet);
     }
 
+    void Frame::draw_imgui(ViewIndex index, ImDrawData* draw_data)
+    {
+        ORION_ASSERT(index.value < m_views.size());
+        m_views[index.value].imgui_draw_data = draw_data;
+    }
+
     void Frame::reset()
     {
         m_views.clear();

@@ -66,6 +66,7 @@ namespace orion
         [[nodiscard]] const RenderView& view(ViewIndex index) const;
 
         void draw_opaque(ViewIndex index, const DrawPacket& packet);
+        void draw_imgui(ViewIndex index, ImDrawData* draw_data);
 
         [[nodiscard]] Allocation allocate(std::size_t size, std::size_t alignment = 1z)
         {

@@ -103,8 +103,16 @@ namespace orion
 
     void Renderer::render_view(Frame& frame, ViewIndex index)
     {
-        const auto record_timer = Timer{};
         const auto& render_view = frame.view(index);
+        opaque_pass(frame, render_view);
+        if (render_view.imgui_draw_data) {
+            imgui_pass(frame, render_view.imgui_draw_data);
+        }
+    }
+
+    void Renderer::opaque_pass(Frame& frame, const RenderView& render_view)
+    {
+        const auto record_timer = Timer{};
         auto* command_buffer    = frame.m_command_buffer;
 
         // Transition the swapchain image to color attachment optimal layout
@@ -180,11 +188,10 @@ namespace orion
         m_current_frame_stats.opaque_record_ms += record_timer.elapsed();
     }
 
-    void Renderer::render_ui(ImDrawData* imgui_draw_data)
+    void Renderer::imgui_pass(Frame& frame, ImDrawData* draw_data)
     {
         const auto record_timer = Timer{};
-        auto& frame_data        = current_frame();
-        auto* command_buffer    = frame_data.m_command_buffer;
+        auto* command_buffer    = frame.m_command_buffer;
 
         // ImGui render pass
         gpu::begin_render_pass(
@@ -192,13 +199,13 @@ namespace orion
             gpu::RenderPass{
                 .color_attachments = {{
                     gpu::RenderPassAttachment{
-                        .image_view = frame_data.m_swapchain_frame.image_view,
+                        .image_view = frame.m_swapchain_frame.image_view,
                         .load_op    = gpu::LoadOp::Load,
                         .store_op   = gpu::StoreOp::Store,
                     },
                 }},
             });
-        ImGui_ImplOrion_RenderDrawData(imgui_draw_data, frame_data.m_command_buffer);
+        ImGui_ImplOrion_RenderDrawData(draw_data, command_buffer);
         gpu::end_render_pass(command_buffer);
         m_current_frame_stats.ui_record_ms += record_timer.elapsed();
     }

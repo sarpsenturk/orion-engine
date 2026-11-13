@@ -2,10 +2,10 @@
 
 #include <orion/core/logger.hpp>
 #include <orion/core/window.hpp>
-#include <orion/renderer/imgui.hpp>
 #include <orion/loaders/texture.hpp>
-#include <orion/renderer/renderer.hpp>
+#include <orion/renderer/imgui.hpp>
 #include <orion/renderer/mesh_renderer.hpp>
+#include <orion/renderer/renderer.hpp>
 
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -85,7 +85,7 @@ private:
                             return {};
                         }
                     },
-                                       m_asset.buffers[view.bufferIndex].data);
+                                                  m_asset.buffers[view.bufferIndex].data);
                     if (view.byteOffset > bytes.size() || view.byteLength > bytes.size() - view.byteOffset) {
                         return std::unexpected(orion::LoadImageError::DecodeFailed);
                     }
@@ -208,11 +208,11 @@ private:
                 }
 
                 const auto mesh     = m_renderer.create_mesh({
-                        .positions    = positions,
-                        .uvs          = uvs,
-                        .normals      = normals,
-                        .indices      = indices,
-                        .vertex_count = static_cast<std::uint32_t>(positions.size()),
+                    .positions    = positions,
+                    .uvs          = uvs,
+                    .normals      = normals,
+                    .indices      = indices,
+                    .vertex_count = static_cast<std::uint32_t>(positions.size()),
                 });
                 const auto material = primitive.materialIndex.has_value()
                                           ? m_materials[primitive.materialIndex.value()]
@@ -371,15 +371,15 @@ private:
         if (m_window.width() == 0 || m_window.height() == 0) { return; }
         if (auto* frame = m_renderer.begin_frame(m_swapchain)) {
             const auto extent = frame->output_extent();
-            const auto view = frame->create_view({
+            const auto view   = frame->create_view({
                 .view       = glm::lookAtRH(m_camera_position, m_camera_position + m_camera_front, m_camera_up),
                 .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), static_cast<float>(extent.width) / static_cast<float>(extent.height), 0.1f, 100.0f),
                 .viewport   = {.width = static_cast<float>(extent.width), .height = static_cast<float>(extent.height)},
                 .scissor    = {.extent = extent},
             });
             m_mesh_renderer.prepare(*frame, std::span{&view, 1z});
+            frame->draw_imgui(view, ImGui::GetDrawData());
             m_renderer.render_view(*frame, view);
-            m_renderer.render_ui(ImGui::GetDrawData());
             m_renderer.end_frame(*frame);
         }
 

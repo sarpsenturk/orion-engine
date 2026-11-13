@@ -17,9 +17,6 @@
 #include <flat_map>
 #include <memory>
 
-// ImGui forward declarations
-struct ImDrawData;
-
 namespace orion
 {
     // Forward declarations
@@ -89,7 +86,6 @@ namespace orion
         // and is valid for recording until end_frame(frame).
         Frame* begin_frame(gpu::Swapchain* swapchain);
         void render_view(Frame& frame, ViewIndex view);
-        void render_ui(ImDrawData* imgui_draw_data);
         void end_frame(Frame& frame);
 
         [[nodiscard]] gpu::Swapchain* create_swapchain(const Window& window);
@@ -116,6 +112,9 @@ namespace orion
         [[nodiscard]] RendererStats renderer_stats() const noexcept;
 
     private:
+        void opaque_pass(Frame& frame, const RenderView& view);
+        void imgui_pass(Frame& frame, ImDrawData* draw_data);
+
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] Frame& current_frame() { return m_frame_data[current_frame_index()]; }
 
