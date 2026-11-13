@@ -5,6 +5,7 @@
 #include <orion/renderer/imgui.hpp>
 #include <orion/loaders/texture.hpp>
 #include <orion/renderer/renderer.hpp>
+#include <orion/renderer/mesh_renderer.hpp>
 
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -36,7 +37,8 @@ public:
         , m_asset(std::move(asset))
         , m_asset_directory(std::move(asset_directory))
         , m_default_material(m_renderer.create_material({}))
-        , m_scene(m_renderer.create_scene())
+        , m_mesh_renderer(m_renderer.device(), m_renderer.mesh_manager(), m_renderer.material_manager(),
+                          orion::Renderer::swapchain_image_format, orion::Renderer::opaque_depth_format)
     {
         load_materials();
         load_meshes();
@@ -47,7 +49,6 @@ public:
 
     ~Sandbox() override
     {
-        m_renderer.destroy_scene(m_scene);
         for (const auto& primitives : m_meshes) {
             for (const auto& primitive : primitives) { m_renderer.destroy_mesh(primitive.mesh); }
         }
@@ -237,10 +238,10 @@ private:
                                             for (auto row = 0; row < 4; ++row) { model[column][row] = world[column][row]; }
                                         }
                                         for (const auto& primitive : m_meshes[node.meshIndex.value()]) {
-                                            m_scene->create_instance(primitive.mesh, primitive.material, model);
+                                            m_mesh_renderer.create_instance(primitive.mesh, primitive.material, model);
                                         }
                                     });
-        ORION_LOG_INFO(orion::LogChannel::Application, "Created {} render instances from scene {}", m_scene->instances().size(), scene_index);
+        ORION_LOG_INFO(orion::LogChannel::Application, "Created {} render instances from scene {}", m_mesh_renderer.instance_count(), scene_index);
     }
 
     void on_update(float delta_time) override
@@ -319,12 +320,12 @@ private:
             ImGui::SeparatorText("CPU timings");
             ImGui::Text("Frame wait: %.3f ms", stats.frame_wait_ms);
             ImGui::Text("Swapchain acquire: %.3f ms", stats.swapchain_acquire_ms);
-            ImGui::Text("Scene recording: %.3f ms", stats.scene_record_ms);
+            ImGui::Text("Opaque recording: %.3f ms", stats.opaque_record_ms);
             ImGui::Text("UI recording: %.3f ms", stats.ui_record_ms);
             ImGui::Text("Command submit: %.3f ms", stats.command_submit_ms);
             ImGui::Text("Swapchain present: %.3f ms", stats.swapchain_present_ms);
 
-            ImGui::SeparatorText("Scene geometry");
+            ImGui::SeparatorText("Opaque geometry");
             ImGui::Text("Instances: %" PRIu32, stats.instance_count);
             ImGui::Text("Draw calls: %" PRIu32, stats.draw_calls);
             ImGui::Text("Indices: %" PRIu32, stats.index_count);
@@ -368,14 +369,18 @@ private:
         m_imgui.end_frame();
 
         if (m_window.width() == 0 || m_window.height() == 0) { return; }
-        if (auto frame = m_renderer.begin_frame(m_swapchain)) {
-            m_renderer.render_scene({
+        if (auto* frame = m_renderer.begin_frame(m_swapchain)) {
+            const auto extent = frame->output_extent();
+            const auto view = frame->create_view({
                 .view       = glm::lookAtRH(m_camera_position, m_camera_position + m_camera_front, m_camera_up),
-                .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), m_window.aspect_ratio(), 0.1f, 100.0f),
-                .scene      = m_scene,
+                .projection = glm::perspectiveRH_ZO(glm::radians(45.0f), static_cast<float>(extent.width) / static_cast<float>(extent.height), 0.1f, 100.0f),
+                .viewport   = {.width = static_cast<float>(extent.width), .height = static_cast<float>(extent.height)},
+                .scissor    = {.extent = extent},
             });
+            m_mesh_renderer.prepare(*frame, std::span{&view, 1z});
+            m_renderer.render_view(*frame, view);
             m_renderer.render_ui(ImGui::GetDrawData());
-            m_renderer.end_frame();
+            m_renderer.end_frame(*frame);
         }
 
         m_imgui.update_platform_windows();
@@ -390,7 +395,7 @@ private:
     fastgltf::Asset m_asset;
     std::filesystem::path m_asset_directory;
     orion::Material m_default_material;
-    orion::Scene* m_scene;
+    orion::MeshRenderer m_mesh_renderer;
     std::unordered_map<std::size_t, orion::Texture> m_textures;
     std::vector<orion::Material> m_materials;
     std::vector<std::vector<MeshPrimitive>> m_meshes;

@@ -3,7 +3,6 @@
 #include "frame.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
-#include "scene.hpp"
 #include "texture.hpp"
 
 #include "orion/core/event.hpp"
@@ -26,12 +25,6 @@ namespace orion
     // Forward declarations
     class Window;
 
-    struct SceneView {
-        glm::mat4 view;
-        glm::mat4 projection;
-        const Scene* scene;
-    };
-
     struct FrameStats {
         std::uint64_t frame_index = 0ull;
 
@@ -44,12 +37,12 @@ namespace orion
         // CPU elapsed times, measured in milliseconds.
         double frame_wait_ms        = 0.0;
         double swapchain_acquire_ms = 0.0;
-        double scene_record_ms      = 0.0;
+        double opaque_record_ms      = 0.0;
         double ui_record_ms         = 0.0;
         double command_submit_ms    = 0.0;
         double swapchain_present_ms = 0.0;
 
-        // Scene geometry only; excludes ImGui draws.
+        // Opaque geometry only; excludes ImGui draws.
         std::uint32_t instance_count = 0u;
         std::uint32_t draw_calls     = 0u;
         std::uint32_t index_count    = 0u;
@@ -83,6 +76,8 @@ namespace orion
         static constexpr auto swapchain_image_count  = 3u;
         static constexpr auto swapchain_image_format = gpu::Format::BGRA8_Unorm;
 
+        static constexpr auto opaque_depth_format = gpu::Format::D32_Float;
+
         Renderer();
         Renderer(const Renderer&)            = delete;
         Renderer& operator=(const Renderer&) = delete;
@@ -91,11 +86,11 @@ namespace orion
         ~Renderer();
 
         // Returns nullptr if acquisition fails. The frame is owned by the renderer
-        // and is valid for recording until end_frame().
+        // and is valid for recording until end_frame(frame).
         Frame* begin_frame(gpu::Swapchain* swapchain);
-        void render_scene(const SceneView& view);
+        void render_view(Frame& frame, ViewIndex view);
         void render_ui(ImDrawData* imgui_draw_data);
-        void end_frame();
+        void end_frame(Frame& frame);
 
         [[nodiscard]] gpu::Swapchain* create_swapchain(const Window& window);
         void on_event(const Event& event);
@@ -109,8 +104,8 @@ namespace orion
         [[nodiscard]] Texture create_texture(const TextureDesc& desc);
         void destroy_texture(Texture texture);
 
-        [[nodiscard]] Scene* create_scene();
-        void destroy_scene(Scene* scene);
+        [[nodiscard]] const MeshManager& mesh_manager() const noexcept { return m_mesh_manager; }
+        [[nodiscard]] const MaterialManager& material_manager() const noexcept { return m_material_manager; }
 
         [[nodiscard]] gpu::Device* device() const { return m_device.get(); }
 
@@ -140,6 +135,5 @@ namespace orion
         MaterialManager m_material_manager;
         TextureManager m_texture_manager;
 
-        gpu::PipelineState* m_dummy_pipeline = nullptr;
     };
 } // namespace orion

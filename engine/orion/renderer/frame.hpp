@@ -60,6 +60,8 @@ namespace orion
         Frame& operator=(Frame&&)      = delete;
         ~Frame();
 
+        [[nodiscard]] gpu::Extent2D output_extent() const { return gpu::image_extent_2d(m_swapchain_frame.image); }
+
         [[nodiscard]] ViewIndex create_view(const ViewDesc& desc);
         [[nodiscard]] const RenderView& view(ViewIndex index) const;
 

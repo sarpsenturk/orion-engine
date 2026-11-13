@@ -38,16 +38,11 @@ struct GpuInstance {
     float4x4 transform;
 };
 
-struct SceneData {
-    GpuInstance* instances;
-    uint padding[2];
-};
-
 struct MeshRoot {
     MeshRecord* meshes;
     Material* materials;
     ViewData* view;
-    SceneData* scene;
+    GpuInstance* instances;
 };
 
 [vk::push_constant]
@@ -62,7 +57,7 @@ struct VSOutput {
 [shader("vertex")]
 VSOutput vsmain(uint vtx : SV_VertexID, uint instance_id : SV_VulkanInstanceID)
 {
-    let instance = root.scene->instances[instance_id];
+    let instance = root.instances[instance_id];
     let mesh = root.meshes[instance.mesh_idx];
     let vertex = mesh.positions[vtx];
     VSOutput output;

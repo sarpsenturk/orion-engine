@@ -12,51 +12,17 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
-#include <stdexcept>
 #include <utility>
-#include <vector>
 
 namespace orion
 {
-    static std::vector<std::uint32_t> load_spirv(const char* path)
-    {
-        // Load spirv from disk
-        auto file = std::ifstream(path, std::ios::binary | std::ios::ate);
-        if (!file.is_open()) {
-            ORION_LOG_ERROR(LogChannel::Renderer, "Failed to open SPIR-V file: {}", path);
-            throw std::runtime_error(fmt::format("Failed to open SPIR-V file: {}", path));
-        }
-        const auto size = file.tellg();
-        file.seekg(0, std::ios::beg);
-        std::vector<std::uint32_t> spirv(size / sizeof(std::uint32_t));
-        file.read(reinterpret_cast<char*>(spirv.data()), size);
-        return spirv;
-    }
-
     Renderer::Renderer()
         : m_device(gpu::create_device(gpu::DeviceDesc{}), gpu::destroy_device)
         , m_frame_data(make_array<frames_in_flight>([this] { return Frame{m_device.get()}; }))
         , m_mesh_manager(m_device.get())
         , m_material_manager(m_device.get())
         , m_texture_manager(m_device.get())
-        , m_dummy_pipeline(gpu::create_graphics_pipeline(
-              m_device.get(),
-              gpu::GraphicsPipelineDesc{
-                  .spirv      = load_spirv(ORION_SHADER_OUTPUT_DIR "/mesh.spv"),
-                  .topology   = gpu::Topology::TriangleList,
-                  .rasterizer = gpu::RasterizerDesc{
-                      .cull_mode      = gpu::CullMode::Back,
-                      .front_face_ccw = true,
-                  },
-                  .depth_stencil = gpu::DepthStencilDesc{
-                      .depth_test_enable  = true,
-                      .depth_write_enable = true,
-                      .depth_compare_op   = gpu::CompareOp::LessOrEqual,
-                  },
-                  .color_attachments = {{gpu::Format::BGRA8_Unorm}},
-                  .depth_attachment  = gpu::Format::D32_Float,
-              }))
+
     {
     }
 
@@ -69,8 +35,6 @@ namespace orion
             frame.m_deletion_queue.flush();
         }
         m_pending_deletions.flush();
-
-        gpu::destroy_pipeline(m_device.get(), m_dummy_pipeline);
 
         for (auto [_, swapchain] : m_swapchains) {
             gpu::destroy_swapchain(m_device.get(), swapchain);
@@ -118,7 +82,7 @@ namespace orion
                     gpu::ImageDesc{
                         .width  = swapchain_extent.width,
                         .height = swapchain_extent.height,
-                        .format = gpu::Format::D32_Float,
+                        .format = opaque_depth_format,
                         .usage  = gpu::ImageUsage::DepthStencilAttachment,
                     });
                 m_depth_image_view = gpu::create_image_view(
@@ -137,23 +101,11 @@ namespace orion
         }
     }
 
-    void Renderer::render_scene(const SceneView& view)
+    void Renderer::render_view(Frame& frame, ViewIndex index)
     {
         const auto record_timer = Timer{};
-        auto& frame_data        = current_frame();
-        auto* command_buffer    = frame_data.m_command_buffer;
-
-        const auto swapchain_extent = gpu::image_extent_2d(frame_data.m_swapchain_frame.image);
-        const auto view_index = frame_data.create_view({
-            .view       = view.view,
-            .projection = view.projection,
-            .viewport   = {
-                .width  = static_cast<float>(swapchain_extent.width),
-                .height = static_cast<float>(swapchain_extent.height),
-            },
-            .scissor = {.extent = swapchain_extent},
-        });
-        const auto& render_view = frame_data.view(view_index);
+        const auto& render_view = frame.view(index);
+        auto* command_buffer    = frame.m_command_buffer;
 
         // Transition the swapchain image to color attachment optimal layout
         // Transition the depth image to depth attachment optimal layout
@@ -162,7 +114,7 @@ namespace orion
             gpu::Barrier{
                 .image_barriers = {{
                     gpu::ImageBarrier{
-                        .image             = frame_data.m_swapchain_frame.image,
+                        .image             = frame.m_swapchain_frame.image,
                         .src_stages        = gpu::PipelineStage::ColorAttachmentOutput,
                         .src_access        = gpu::Access::None,
                         .dst_stages        = gpu::PipelineStage::ColorAttachmentOutput,
@@ -199,7 +151,7 @@ namespace orion
             gpu::RenderPass{
                 .color_attachments = {{
                     gpu::RenderPassAttachment{
-                        .image_view = frame_data.m_swapchain_frame.image_view,
+                        .image_view = frame.m_swapchain_frame.image_view,
                         .load_op    = gpu::LoadOp::Clear,
                         .store_op   = gpu::StoreOp::Store,
                     },
@@ -210,49 +162,22 @@ namespace orion
                     .store_op   = gpu::StoreOp::Store,
                 },
             });
-        // Bind the dummy graphics pipeline
-        gpu::bind_pipeline_state(command_buffer, m_dummy_pipeline);
         gpu::bind_sampler_heap(command_buffer, m_texture_manager.sampler_heap());
         gpu::bind_resource_heap(command_buffer, m_texture_manager.resource_heap());
         gpu::set_viewport(command_buffer, render_view.viewport);
         gpu::set_scissor(command_buffer, render_view.scissor);
-        // Bind index buffer
-        gpu::bind_index_buffer(command_buffer, m_mesh_manager.index_buffer(), 0);
-        // Iterate over the scene instances and issue draw calls
-        for (const auto& [handle, instance] : view.scene->instances().entries()) {
-            struct MeshRoot {
-                gpu::Address meshes;
-                gpu::Address materials;
-                gpu::Address view;
-                gpu::Address scene;
-            };
-            static_assert(offsetof(MeshRoot, materials) == 8z);
-            static_assert(offsetof(MeshRoot, view) == 16z);
-            static_assert(offsetof(MeshRoot, scene) == 24z);
-            const auto& mesh = m_mesh_manager.get_mesh_record(instance.mesh);
-            gpu::draw_indexed(
-                command_buffer,
-                gpu::DrawIndexed{
-                    .index_count    = mesh.index_count,
-                    .instance_count = 1u,
-                    .first_index    = mesh.first_index,
-                    .vertex_offset  = 0,
-                    .first_instance = handle.index,
-                },
-                MeshRoot{
-                    .meshes    = m_mesh_manager.mesh_table_address(),
-                    .materials = m_material_manager.material_table_address(),
-                    .view      = render_view.gpu_address,
-                    .scene     = view.scene->scene_buffer_address(),
-                });
-            ++m_current_frame_stats.instance_count;
+        for (const auto& packet : render_view.opaque_draws) {
+            gpu::bind_pipeline_state(command_buffer, packet.pipeline);
+            gpu::bind_index_buffer(command_buffer, packet.index_buffer, packet.index_buffer_offset);
+            gpu::draw_indexed(command_buffer, packet.draw, packet.root());
+            m_current_frame_stats.instance_count += packet.draw.instance_count;
             ++m_current_frame_stats.draw_calls;
-            m_current_frame_stats.index_count += mesh.index_count;
-            m_current_frame_stats.triangle_count += mesh.index_count / 3u;
+            m_current_frame_stats.index_count += packet.draw.index_count * packet.draw.instance_count;
+            m_current_frame_stats.triangle_count += packet.draw.index_count / 3u * packet.draw.instance_count;
         }
         // End render pass
         gpu::end_render_pass(command_buffer);
-        m_current_frame_stats.scene_record_ms += record_timer.elapsed();
+        m_current_frame_stats.opaque_record_ms += record_timer.elapsed();
     }
 
     void Renderer::render_ui(ImDrawData* imgui_draw_data)
@@ -278,10 +203,9 @@ namespace orion
         m_current_frame_stats.ui_record_ms += record_timer.elapsed();
     }
 
-    void Renderer::end_frame()
+    void Renderer::end_frame(Frame& frame)
     {
-        auto& frame_data     = current_frame();
-        auto* command_buffer = frame_data.m_command_buffer;
+        auto* command_buffer = frame.m_command_buffer;
 
         // Transition the swapchain image to present source layout
         gpu::barrier(
@@ -289,7 +213,7 @@ namespace orion
             gpu::Barrier{
                 .image_barriers = {{
                     gpu::ImageBarrier{
-                        .image             = frame_data.m_swapchain_frame.image,
+                        .image             = frame.m_swapchain_frame.image,
                         .src_stages        = gpu::PipelineStage::ColorAttachmentOutput,
                         .src_access        = gpu::Access::ColorAttachmentWrite,
                         .dst_stages        = gpu::PipelineStage::AllCommands,
@@ -307,26 +231,26 @@ namespace orion
             });
 
         // Submit the command buffers to the GPU
-        const auto submit_timer     = Timer{};
-        frame_data.m_timeline_point = gpu::submit(
+        const auto submit_timer = Timer{};
+        frame.m_timeline_point  = gpu::submit(
             m_device.get(),
             gpu::Queue::Graphics,
             gpu::Submit{
                 .command_buffers = {{command_buffer}},
-                .swapchain_frame = &frame_data.m_swapchain_frame,
+                .swapchain_frame = &frame.m_swapchain_frame,
             });
         m_current_frame_stats.command_submit_ms = submit_timer.elapsed();
 
         // Retire pending resources once this submission has completed. The frame
         // queue was flushed in begin_frame(), leaving the pending queue empty.
-        std::swap(m_pending_deletions, frame_data.m_deletion_queue);
+        std::swap(m_pending_deletions, frame.m_deletion_queue);
 
         // Present the swapchain image
         const auto present_timer = Timer{};
-        gpu::present(m_device.get(), frame_data.m_swapchain_frame);
+        gpu::present(m_device.get(), frame.m_swapchain_frame);
         m_current_frame_stats.swapchain_present_ms = present_timer.elapsed();
-        m_current_frame_stats.allocation_bytes     = frame_data.allocation_bytes();
-        m_current_frame_stats.used_bytes           = frame_data.used_bytes();
+        m_current_frame_stats.allocation_bytes     = frame.allocation_bytes();
+        m_current_frame_stats.used_bytes           = frame.used_bytes();
         m_last_frame_stats                         = m_current_frame_stats;
         // Increment the frame counter
         ++m_frame_counter;
@@ -478,13 +402,4 @@ namespace orion
         });
     }
 
-    Scene* Renderer::create_scene()
-    {
-        return new Scene{m_device.get()};
-    }
-
-    void Renderer::destroy_scene(Scene* scene)
-    {
-        m_pending_deletions.push([this, scene] { delete scene; });
-    }
 } // namespace orion
