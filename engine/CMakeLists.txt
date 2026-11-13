@@ -57,12 +57,12 @@ target_sources(orion.engine
         "orion/renderer/material.hpp"
 		"orion/renderer/texture.hpp"
 		"orion/renderer/scene.hpp"
+		"orion/renderer/imgui.hpp"
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/bump_allocator.hpp"
 		"orion/gpu/range_allocator.hpp"
 		"orion/gpu/page_allocator.hpp"
 		"orion/gpu/deletion_queue.hpp"
-		"orion/imgui/imgui.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 		"orion/loaders/texture.cpp"
@@ -81,10 +81,10 @@ target_sources(orion.engine
         "orion/renderer/material.cpp"
 		"orion/renderer/texture.cpp"
 		"orion/renderer/scene.cpp"
+		"orion/renderer/imgui.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
 		"orion/gpu/deletion_queue.cpp"
 		"orion/gpu/page_allocator.cpp"
-		"orion/imgui/imgui.cpp"
 )
 
 # Engine shaders

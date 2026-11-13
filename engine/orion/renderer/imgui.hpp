@@ -1,7 +1,5 @@
 #pragma once
 
-#include "orion/gpu/gpu.hpp"
-
 #include <imgui.h>
 
 namespace orion

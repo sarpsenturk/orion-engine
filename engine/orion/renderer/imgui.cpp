@@ -1,6 +1,7 @@
 #include "imgui.hpp"
 
 #include "orion/core/window.hpp"
+#include "orion/gpu/gpu.hpp"
 #include "orion/renderer/renderer.hpp"
 
 #include <stdexcept>
