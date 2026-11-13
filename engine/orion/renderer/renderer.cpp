@@ -95,8 +95,8 @@ namespace orion
         gpu::reset_command_allocator(m_device.get(), frame_data.m_command_allocator);
         // Acquire the next frame from the swapchain
         // Return the active Frame if successful, otherwise return nullptr
-        const auto acquire_timer                  = Timer{};
-        auto swapchain_frame                      = gpu::acquire_swapchain_frame(m_device.get(), swapchain);
+        const auto acquire_timer                   = Timer{};
+        auto swapchain_frame                       = gpu::acquire_swapchain_frame(m_device.get(), swapchain);
         m_current_frame_stats.swapchain_acquire_ms = acquire_timer.elapsed();
         if (swapchain_frame) {
             const auto swapchain_extent = gpu::image_extent_2d(swapchain_frame->image);
@@ -147,10 +147,10 @@ namespace orion
         // Each render call gets its own record, retained until this frame completes.
         const auto [view_buffer, view_offset] = frame_data.allocate<GpuView>();
         const auto gpu_view                   = GpuView{
-                              .view                  = view.view,
-                              .projection            = view.projection,
-                              .view_projection       = view.projection * view.view,
-                              .camera_world_position = glm::inverse(view.view)[3],
+            .view                  = view.view,
+            .projection            = view.projection,
+            .view_projection       = view.projection * view.view,
+            .camera_world_position = glm::inverse(view.view)[3],
         };
         std::memcpy(
             static_cast<char*>(gpu::buffer_host_address(view_buffer)) + view_offset,
@@ -208,9 +208,9 @@ namespace orion
                     },
                 }},
                 .depth_attachment  = gpu::RenderPassAttachment{
-                     .image_view = m_depth_image_view,
-                     .load_op    = gpu::LoadOp::Clear,
-                     .store_op   = gpu::StoreOp::Store,
+                    .image_view = m_depth_image_view,
+                    .load_op    = gpu::LoadOp::Clear,
+                    .store_op   = gpu::StoreOp::Store,
                 },
             });
         // Bind the dummy graphics pipeline
