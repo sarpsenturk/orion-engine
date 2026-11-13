@@ -44,9 +44,6 @@ namespace orion::gpu
     // Target Vulkan API version
     static constexpr auto vulkan_api_version = VK_API_VERSION_1_4;
 
-    // Minimum push constant size guaranteed by Vulkan.
-    static constexpr std::uint32_t push_constant_size = 128u;
-
     struct VulkanQueue {
         VkQueue handle       = VK_NULL_HANDLE;
         std::uint32_t family = VK_QUEUE_FAMILY_IGNORED;
@@ -707,7 +704,7 @@ namespace orion::gpu
         const auto push_constant_range = VkPushConstantRange{
             .stageFlags = VK_SHADER_STAGE_ALL,
             .offset     = 0u,
-            .size       = push_constant_size,
+            .size       = static_cast<std::uint32_t>(max_root_size),
         };
         const auto pipeline_layout_info = VkPipelineLayoutCreateInfo{
             .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -1762,7 +1759,7 @@ namespace orion::gpu
 
     static void push_root_data(CommandBuffer* command_buffer, ByteSpan root)
     {
-        ORION_ASSERT(root.size <= push_constant_size);
+        ORION_ASSERT(root.size <= max_root_size);
         ORION_ASSERT(root.size % 4u == 0u);
         if (!root.empty()) {
             vkCmdPushConstants(

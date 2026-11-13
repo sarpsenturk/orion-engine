@@ -12,6 +12,7 @@ namespace orion
     namespace gpu
     {
         inline constexpr auto max_color_attachments = 8u;
+        inline constexpr auto max_root_size = 128z;
 
         struct Device;
         struct Image;
