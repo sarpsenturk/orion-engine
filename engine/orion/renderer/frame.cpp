@@ -3,8 +3,11 @@
 #include "orion/core/assert.hpp"
 #include "orion/utils/scope_guard.hpp"
 
+#include <glm/matrix.hpp>
+
 #include <algorithm>
 #include <bit>
+#include <cstring>
 #include <limits>
 #include <utility>
 
@@ -65,5 +68,50 @@ namespace orion
     Frame::~Frame()
     {
         gpu::destroy_command_allocator(m_device, m_command_allocator);
+    }
+
+    ViewIndex Frame::create_view(const ViewDesc& desc)
+    {
+        const auto gpu_view = GpuView{
+            .view                  = desc.view,
+            .projection            = desc.projection,
+            .view_projection       = desc.projection * desc.view,
+            .camera_world_position = glm::inverse(desc.view)[3],
+        };
+        const auto [buffer, offset] = allocate<GpuView>();
+        std::memcpy(
+            static_cast<std::byte*>(gpu::buffer_host_address(buffer)) + offset,
+            &gpu_view, sizeof(gpu_view));
+
+        const auto index = ViewIndex{static_cast<std::uint32_t>(m_views.size())};
+        m_views.push_back({
+            .view                  = gpu_view.view,
+            .projection            = gpu_view.projection,
+            .view_projection       = gpu_view.view_projection,
+            .camera_world_position = gpu_view.camera_world_position,
+            .viewport              = desc.viewport,
+            .scissor               = desc.scissor,
+            .gpu_address           = gpu::buffer_device_address(buffer) + offset,
+            .opaque_draws          = {},
+        });
+        return index;
+    }
+
+    const RenderView& Frame::view(ViewIndex index) const
+    {
+        ORION_ASSERT(index.value < m_views.size());
+        return m_views[index.value];
+    }
+
+    void Frame::draw_opaque(ViewIndex index, const DrawPacket& packet)
+    {
+        ORION_ASSERT(index.value < m_views.size());
+        m_views[index.value].opaque_draws.push_back(packet);
+    }
+
+    void Frame::reset()
+    {
+        m_views.clear();
+        m_allocator.reset();
     }
 } // namespace orion

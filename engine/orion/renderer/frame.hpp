@@ -1,5 +1,8 @@
 #pragma once
 
+#include "draw_packet.hpp"
+#include "view.hpp"
+
 #include "orion/gpu/deletion_queue.hpp"
 #include "orion/gpu/gpu.hpp"
 #include "orion/gpu/page_allocator.hpp"
@@ -57,6 +60,11 @@ namespace orion
         Frame& operator=(Frame&&)      = delete;
         ~Frame();
 
+        [[nodiscard]] ViewIndex create_view(const ViewDesc& desc);
+        [[nodiscard]] const RenderView& view(ViewIndex index) const;
+
+        void draw_opaque(ViewIndex index, const DrawPacket& packet);
+
         [[nodiscard]] Allocation allocate(std::size_t size, std::size_t alignment = 1z)
         {
             return m_allocator.allocate(size, alignment);
@@ -74,7 +82,7 @@ namespace orion
         friend class Renderer;
 
         // The renderer must wait for this frame's submission before resetting.
-        void reset_allocations() { m_allocator.reset(); }
+        void reset();
 
         gpu::Device* m_device;
 
@@ -85,5 +93,6 @@ namespace orion
         gpu::DeletionQueue m_deletion_queue;
 
         FrameAllocator m_allocator;
+        std::vector<RenderView> m_views;
     };
 } // namespace orion

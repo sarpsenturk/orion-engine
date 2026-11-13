@@ -53,6 +53,7 @@ target_sources(orion.engine
 
 		"orion/renderer/renderer.hpp"
 		"orion/renderer/draw_packet.hpp"
+		"orion/renderer/view.hpp"
 		"orion/renderer/frame.hpp"
 		"orion/renderer/mesh.hpp"
         "orion/renderer/material.hpp"

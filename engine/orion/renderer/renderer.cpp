@@ -7,7 +7,6 @@
 #include "orion/utils/scope_guard.hpp"
 #include "orion/utils/timer.hpp"
 
-#include <glm/matrix.hpp>
 #include <imgui.h>
 
 #include <algorithm>
@@ -88,7 +87,7 @@ namespace orion
         // Wait until the previous submission of this frame has finished
         const auto wait_timer = Timer{};
         gpu::wait_timeline(m_device.get(), frame_data.m_timeline_point);
-        frame_data.reset_allocations();
+        frame_data.reset();
         m_current_frame_stats.frame_wait_ms = wait_timer.elapsed();
         frame_data.m_deletion_queue.flush();
         // Reset the command allocator for this frame
@@ -144,19 +143,17 @@ namespace orion
         auto& frame_data        = current_frame();
         auto* command_buffer    = frame_data.m_command_buffer;
 
-        // Each render call gets its own record, retained until this frame completes.
-        const auto [view_buffer, view_offset] = frame_data.allocate<GpuView>();
-        const auto gpu_view                   = GpuView{
-            .view                  = view.view,
-            .projection            = view.projection,
-            .view_projection       = view.projection * view.view,
-            .camera_world_position = glm::inverse(view.view)[3],
-        };
-        std::memcpy(
-            static_cast<char*>(gpu::buffer_host_address(view_buffer)) + view_offset,
-            &gpu_view,
-            sizeof(gpu_view));
-        const auto view_address = gpu::buffer_device_address(view_buffer) + view_offset;
+        const auto swapchain_extent = gpu::image_extent_2d(frame_data.m_swapchain_frame.image);
+        const auto view_index = frame_data.create_view({
+            .view       = view.view,
+            .projection = view.projection,
+            .viewport   = {
+                .width  = static_cast<float>(swapchain_extent.width),
+                .height = static_cast<float>(swapchain_extent.height),
+            },
+            .scissor = {.extent = swapchain_extent},
+        });
+        const auto& render_view = frame_data.view(view_index);
 
         // Transition the swapchain image to color attachment optimal layout
         // Transition the depth image to depth attachment optimal layout
@@ -217,25 +214,8 @@ namespace orion
         gpu::bind_pipeline_state(command_buffer, m_dummy_pipeline);
         gpu::bind_sampler_heap(command_buffer, m_texture_manager.sampler_heap());
         gpu::bind_resource_heap(command_buffer, m_texture_manager.resource_heap());
-        // Get the extent of the swapchain image
-        const auto swapchain_extent = gpu::image_extent_2d(frame_data.m_swapchain_frame.image);
-        // Set viewport and scissor to cover the entire swapchain image
-        gpu::set_viewport(
-            command_buffer,
-            gpu::Viewport{
-                .x         = 0.0f,
-                .y         = 0.0f,
-                .width     = static_cast<float>(swapchain_extent.width),
-                .height    = static_cast<float>(swapchain_extent.height),
-                .min_depth = 0.0f,
-                .max_depth = 1.0f,
-            });
-        gpu::set_scissor(
-            command_buffer,
-            gpu::Rect2D{
-                .offset = {0, 0},
-                .extent = swapchain_extent,
-            });
+        gpu::set_viewport(command_buffer, render_view.viewport);
+        gpu::set_scissor(command_buffer, render_view.scissor);
         // Bind index buffer
         gpu::bind_index_buffer(command_buffer, m_mesh_manager.index_buffer(), 0);
         // Iterate over the scene instances and issue draw calls
@@ -262,7 +242,7 @@ namespace orion
                 MeshRoot{
                     .meshes    = m_mesh_manager.mesh_table_address(),
                     .materials = m_material_manager.material_table_address(),
-                    .view      = view_address,
+                    .view      = render_view.gpu_address,
                     .scene     = view.scene->scene_buffer_address(),
                 });
             ++m_current_frame_stats.instance_count;

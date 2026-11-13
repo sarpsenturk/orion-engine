@@ -121,18 +121,6 @@ namespace orion
         [[nodiscard]] RendererStats renderer_stats() const noexcept;
 
     private:
-        struct alignas(16) GpuView {
-            glm::mat4 view;
-            glm::mat4 projection;
-            glm::mat4 view_projection;
-            glm::vec4 camera_world_position;
-        };
-        static_assert(sizeof(GpuView) == 208z);
-        static_assert(offsetof(GpuView, view) == 0z);
-        static_assert(offsetof(GpuView, projection) == 64z);
-        static_assert(offsetof(GpuView, view_projection) == 128z);
-        static_assert(offsetof(GpuView, camera_world_position) == 192z);
-
         [[nodiscard]] std::uint64_t current_frame_index() const { return m_frame_counter % frames_in_flight; }
         [[nodiscard]] Frame& current_frame() { return m_frame_data[current_frame_index()]; }
 
