@@ -18,6 +18,8 @@ namespace orion::gpu
             void* handle       = nullptr;
             std::size_t offset = 0z;
             std::size_t size   = 0z;
+
+            explicit operator bool() const noexcept { return handle != nullptr; }
         };
 
         // Capacity must be nonzero. All sizes, offsets, and alignments use the same units.

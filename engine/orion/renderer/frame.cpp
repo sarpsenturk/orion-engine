@@ -23,7 +23,7 @@ namespace orion
 
         for (auto& page : m_allocation_pages) {
             const auto allocation = page.ranges.allocate(size, alignment);
-            if (allocation.handle) { return {page.buffer, allocation.offset}; }
+            if (allocation) { return {page.buffer, allocation.offset}; }
         }
 
         const auto page_size  = std::max(allocation_page_size, size);
@@ -31,7 +31,7 @@ namespace orion
         const auto guard      = ScopeFail{[&] { m_page_allocator.release(buffer); }};
         auto ranges           = gpu::RangeAllocator{page_size, gpu::RangeAllocator::Algorithm::Linear};
         const auto allocation = ranges.allocate(size, alignment);
-        ORION_ASSERT(allocation.handle != nullptr);
+        ORION_ASSERT(allocation);
         m_allocation_pages.push_back({buffer, std::move(ranges)});
         return {buffer, allocation.offset};
     }

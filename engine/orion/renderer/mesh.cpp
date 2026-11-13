@@ -39,13 +39,13 @@ namespace orion
     {
         for (std::size_t i = 0z; i < m_vertex_pages.size(); ++i) {
             const auto range = m_vertex_pages[i].ranges.allocate(size, alignment);
-            if (range.handle) { return {i, range}; }
+            if (range) { return {i, range}; }
         }
 
         const auto page_size = std::max(vertex_page_size, size);
         auto ranges          = gpu::RangeAllocator{page_size};
         const auto range     = ranges.allocate(size, alignment);
-        if (!range.handle) { throw std::bad_alloc{}; }
+        if (!range) { throw std::bad_alloc{}; }
         // Finish CPU allocations before acquiring the page so no retained page
         // can be left outside m_vertex_pages if allocation fails.
         if (m_vertex_pages.size() == m_vertex_pages.capacity()) {
@@ -123,16 +123,16 @@ namespace orion
         const auto normal_offset   = desc.normals.empty() ? 0z : append(desc.normals.size_bytes(), alignof(glm::vec3));
         const auto vertices        = vertex_size == 0z ? VertexAllocation{} : allocate_vertices(vertex_size, alignof(glm::vec3));
         const auto vertex_guard    = ScopeFail{[&] {
-            if (vertices.range.handle) { m_vertex_pages[vertices.page].ranges.free(vertices.range); }
+            if (vertices.range) { m_vertex_pages[vertices.page].ranges.free(vertices.range); }
         }};
 
         auto indices           = gpu::RangeAllocator::Allocation{};
         const auto index_guard = ScopeFail{[&] {
-            if (indices.handle) { m_index_allocator.free(indices); }
+            if (indices) { m_index_allocator.free(indices); }
         }};
         if (!desc.indices.empty()) {
             indices = m_index_allocator.allocate(desc.indices.size_bytes(), alignof(std::uint32_t));
-            if (!indices.handle) { throw std::length_error("Mesh index address space exhausted"); }
+            if (!indices) { throw std::length_error("Mesh index address space exhausted"); }
             grow_index_buffer(indices.offset + indices.size);
             std::memcpy(static_cast<char*>(gpu::buffer_host_address(m_index_buffer)) + indices.offset,
                         desc.indices.data(), desc.indices.size_bytes());
@@ -143,7 +143,7 @@ namespace orion
             .index_count      = static_cast<std::uint32_t>(desc.indices.size()),
             .first_index      = static_cast<std::uint32_t>(indices.offset / sizeof(std::uint32_t)),
         };
-        if (vertices.range.handle) {
+        if (vertices.range) {
             auto* buffer       = m_vertex_pages[vertices.page].buffer;
             auto* host         = static_cast<char*>(gpu::buffer_host_address(buffer)) + vertices.range.offset;
             const auto address = gpu::buffer_device_address(buffer) + vertices.range.offset;
@@ -176,10 +176,10 @@ namespace orion
         const auto* entry = m_mesh_records.try_get(handle);
         if (!entry) { return; }
         // Renderer defers this call until all GPU readers have completed.
-        if (entry->vertices.range.handle) {
+        if (entry->vertices.range) {
             m_vertex_pages[entry->vertices.page].ranges.free(entry->vertices.range);
         }
-        if (entry->indices.handle) { m_index_allocator.free(entry->indices); }
+        if (entry->indices) { m_index_allocator.free(entry->indices); }
         m_mesh_records.erase(handle);
     }
 
