@@ -10,20 +10,12 @@
 
 namespace orion
 {
-    Frame::Frame(gpu::Device* device)
-        : m_device(device)
-        , m_command_allocator(gpu::create_command_allocator(m_device, gpu::Queue::Graphics))
-        , m_page_allocator(device, {.size = allocation_page_size, .memory = gpu::Memory::CpuVisible})
+    FrameAllocator::FrameAllocator(gpu::Device* device)
+        : m_page_allocator(device, {.size = allocation_page_size, .memory = gpu::Memory::CpuVisible})
     {
     }
 
-    Frame::~Frame()
-    {
-        // The renderer waits for GPU completion and flushes deletions before teardown.
-        gpu::destroy_command_allocator(m_device, m_command_allocator);
-    }
-
-    Frame::Allocation Frame::allocate(std::size_t size, std::size_t alignment)
+    FrameAllocator::Allocation FrameAllocator::allocate(std::size_t size, std::size_t alignment)
     {
         ORION_ASSERT(size != 0z);
         ORION_ASSERT(std::has_single_bit(alignment));
@@ -44,22 +36,34 @@ namespace orion
         return {buffer, allocation.offset};
     }
 
-    std::uint64_t Frame::allocation_bytes() const noexcept
+    std::uint64_t FrameAllocator::allocation_bytes() const noexcept
     {
         auto bytes = std::uint64_t{0};
         for (const auto& page : m_allocation_pages) { bytes += gpu::buffer_allocation_size(page.buffer); }
         return bytes;
     }
 
-    std::uint64_t Frame::used_bytes() const noexcept
+    std::uint64_t FrameAllocator::used_bytes() const noexcept
     {
         auto bytes = std::uint64_t{0};
         for (const auto& page : m_allocation_pages) { bytes += page.ranges.used_bytes(); }
         return bytes;
     }
 
-    void Frame::reset_allocations()
+    void FrameAllocator::reset()
     {
         for (auto& page : m_allocation_pages) { page.ranges.reset(); }
+    }
+
+    Frame::Frame(gpu::Device* device)
+        : m_device(device)
+        , m_command_allocator(gpu::create_command_allocator(m_device, gpu::Queue::Graphics))
+        , m_allocator(device)
+    {
+    }
+
+    Frame::~Frame()
+    {
+        gpu::destroy_command_allocator(m_device, m_command_allocator);
     }
 } // namespace orion
