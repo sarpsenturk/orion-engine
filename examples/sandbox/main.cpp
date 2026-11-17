@@ -3,6 +3,7 @@
 #include <cstdio>
 
 using orion::App;
+using orion::DefaultPlugins;
 using orion::World;
 
 struct Sandbox {
@@ -12,17 +13,17 @@ struct Sandbox {
 
     static void on_startup(World& world)
     {
-        std::puts("Sandbox::on_startup()");
+        orion::log::add_channel("sandbox");
+        ORION_LOG_INFO("sandbox", "Sandbox::on_startup({})", "trace");
     }
 
     static void on_shutdown(World& world)
     {
-        std::puts("Sandbox::on_shutdown()");
+        ORION_LOG_INFO("sandbox", "Sandbox::on_shutdown()");
     }
 
     void build(App& app)
     {
-        std::puts("Hello from Sandbox::build()");
         app
             .add_system(App::Schedule::Startup, on_startup)
             .add_system(App::Schedule::Shutdown, on_shutdown);
@@ -32,6 +33,7 @@ struct Sandbox {
 int main()
 {
     return App()
+        .add_plugin(DefaultPlugins{})
         .add_plugin(Sandbox{})
         .run();
 }
