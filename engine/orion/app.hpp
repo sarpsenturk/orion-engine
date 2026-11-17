@@ -18,10 +18,13 @@ namespace orion
     public:
         enum class Schedule {
             Startup,
+            Update,
             Shutdown,
 
             COUNT,
         };
+
+        using Runner = std::function<int(App&)>;
 
         App() = default;
 
@@ -58,10 +61,19 @@ namespace orion
         // Execution
         int run();
         void run_schedule(Schedule schedule);
+        void do_frame();
+        App& set_runner(Runner runner);
+
+        // Lifetime
+        void exit() { m_should_exit = true; }
+        [[nodiscard]] bool should_exit() const noexcept { return m_should_exit; }
 
     private:
         World m_world;
         entt::dense_set<entt::id_type> m_plugins;
         std::array<std::vector<System>, static_cast<std::size_t>(Schedule::COUNT)> m_schedules;
+
+        Runner m_runner    = [](App& app) { app.do_frame(); return 0; };
+        bool m_should_exit = false;
     };
 } // namespace orion

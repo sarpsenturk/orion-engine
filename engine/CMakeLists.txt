@@ -39,6 +39,7 @@ target_sources(orion.engine
 		"orion/app.hpp"
 		"orion/world.hpp"
 		"orion/logger.hpp"
+		"orion/window.hpp"
 
 		"orion/loaders/texture.hpp"
 
@@ -73,6 +74,7 @@ target_sources(orion.engine
 		"orion/app.cpp"
 		"orion/world.cpp"
 		"orion/logger.cpp"
+		"orion/window.cpp"
 
 		"orion/loaders/texture.cpp"
 		"orion/loaders/stb_image.h"
