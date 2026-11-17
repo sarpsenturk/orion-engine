@@ -36,6 +36,7 @@ target_link_libraries(orion.engine
 target_sources(orion.engine
 	PUBLIC FILE_SET HEADERS FILES
 		"orion/orion.hpp"
+		"orion/app.hpp"
 
 		"orion/loaders/texture.hpp"
 
@@ -67,6 +68,8 @@ target_sources(orion.engine
 		"orion/gpu/deletion_queue.hpp"
 	PRIVATE
 		"orion/orion.cpp"
+		"orion/app.cpp"
+
 		"orion/loaders/texture.cpp"
 		"orion/loaders/stb_image.h"
 
