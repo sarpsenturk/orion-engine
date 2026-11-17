@@ -3,18 +3,29 @@
 #include <cstdio>
 
 using orion::App;
+using orion::World;
 
 struct Sandbox {
     struct Counter {
         int value = 0;
     };
 
+    static void on_startup(World& world)
+    {
+        std::puts("Sandbox::on_startup()");
+    }
+
+    static void on_shutdown(World& world)
+    {
+        std::puts("Sandbox::on_shutdown()");
+    }
+
     void build(App& app)
     {
         std::puts("Hello from Sandbox::build()");
-        app.insert_resource(Counter{});
-        app.world().get_resource<Counter>()->value++;
-        std::printf("Counter: %d\n", app.world().get_resource<Counter>()->value);
+        app
+            .add_system(App::Schedule::Startup, on_startup)
+            .add_system(App::Schedule::Shutdown, on_shutdown);
     }
 };
 

@@ -4,11 +4,25 @@
 
 #include <entt/entt.hpp>
 
+#include <array>
+#include <cstddef>
+#include <functional>
+#include <vector>
+
 namespace orion
 {
+    using System = std::function<void(World&)>;
+
     class App
     {
     public:
+        enum class Schedule {
+            Startup,
+            Shutdown,
+
+            COUNT,
+        };
+
         App() = default;
 
         // Plugin system
@@ -19,6 +33,14 @@ namespace orion
             if (m_plugins.insert(type_index).second) {
                 plugin.build(*this);
             }
+            return *this;
+        }
+
+        // Systems and schedules
+        App& add_system(Schedule schedule, System system)
+        {
+            m_schedules[static_cast<std::size_t>(schedule)]
+                .push_back(std::move(system));
             return *this;
         }
 
@@ -35,9 +57,11 @@ namespace orion
 
         // Execution
         int run();
+        void run_schedule(Schedule schedule);
 
     private:
         World m_world;
         entt::dense_set<entt::id_type> m_plugins;
+        std::array<std::vector<System>, static_cast<std::size_t>(Schedule::COUNT)> m_schedules;
     };
 } // namespace orion
