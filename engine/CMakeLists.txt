@@ -25,6 +25,7 @@ target_link_libraries(orion.engine
 		spdlog::spdlog
 		glm::glm
 		imgui
+		EnTT::EnTT
 	PRIVATE
 		glfw
 		Vulkan::Headers Vulkan::volk
