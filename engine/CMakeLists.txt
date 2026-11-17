@@ -37,6 +37,7 @@ target_sources(orion.engine
 	PUBLIC FILE_SET HEADERS FILES
 		"orion/orion.hpp"
 		"orion/app.hpp"
+		"orion/world.hpp"
 
 		"orion/loaders/texture.hpp"
 
@@ -69,6 +70,7 @@ target_sources(orion.engine
 	PRIVATE
 		"orion/orion.cpp"
 		"orion/app.cpp"
+		"orion/world.cpp"
 
 		"orion/loaders/texture.cpp"
 		"orion/loaders/stb_image.h"

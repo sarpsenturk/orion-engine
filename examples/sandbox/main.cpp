@@ -5,9 +5,16 @@
 using orion::App;
 
 struct Sandbox {
-    void build(App&)
+    struct Counter {
+        int value = 0;
+    };
+
+    void build(App& app)
     {
         std::puts("Hello from Sandbox::build()");
+        app.insert_resource(Counter{});
+        app.world().get_resource<Counter>()->value++;
+        std::printf("Counter: %d\n", app.world().get_resource<Counter>()->value);
     }
 };
 
