@@ -1,6 +1,6 @@
 #include "window.hpp"
 
-#include "app.hpp"
+#include "orion/app.hpp"
 
 #include <GLFW/glfw3.h>
 

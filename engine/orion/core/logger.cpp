@@ -1,34 +1,52 @@
 #include "logger.hpp"
 
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include "orion/app.hpp"
 
-#include <array>
-#include <utility>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 namespace orion
 {
-    static constexpr auto channels = std::array{
-        "CORE",
-        "PLATFORM",
-        "APP",
-        "ASSERT",
-        "GPU",
-        "RENDERER",
-    };
-    static_assert(channels.size() == std::to_underlying(LogChannel::COUNT));
-
-    Logger::Logger()
+    namespace log
     {
-        auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-        for (const char* channel : channels) {
-            auto logger = std::make_shared<spdlog::logger>(channel, console_sink);
-            logger->set_level(spdlog::level::trace);
-            spdlog::register_logger(std::move(logger));
+        static spdlog::level::level_enum to_spdlog_level(Level level)
+        {
+            switch (level) {
+                case Level::Trace:
+                    return spdlog::level::trace;
+                case Level::Debug:
+                    return spdlog::level::debug;
+                case Level::Info:
+                    return spdlog::level::info;
+                case Level::Warn:
+                    return spdlog::level::warn;
+                case Level::Error:
+                    return spdlog::level::err;
+                case Level::Off:
+                    return spdlog::level::off;
+            }
         }
-    }
 
-    std::shared_ptr<spdlog::logger> Logger::get(LogChannel channel)
+        void add_channel(const std::string& name, log::Level level)
+        {
+            const auto logger = spdlog::stdout_color_mt(name);
+            logger->set_level(to_spdlog_level(level));
+        }
+
+        bool has_channel(const std::string& name)
+        {
+            return spdlog::get(name) != nullptr;
+        }
+
+        void write(const std::string& channel, Level level, const std::string& msg)
+        {
+            const auto logger = spdlog::get(channel);
+            if (!logger) { return; };
+            logger->log(to_spdlog_level(level), msg);
+        }
+    } // namespace log
+
+    void LoggingPlugin::build(App&)
     {
-        return spdlog::get(channels[std::to_underlying(channel)]);
     }
 } // namespace orion

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "app.hpp"
-#include "logger.hpp"
-#include "window.hpp"
+#include "core/logger.hpp"
+#include "core/window.hpp"
 
 namespace orion
 {

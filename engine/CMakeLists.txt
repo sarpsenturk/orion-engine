@@ -22,11 +22,11 @@ target_compile_definitions(orion.engine
 # Third-party libraries
 target_link_libraries(orion.engine
 	PUBLIC
-		spdlog::spdlog
 		glm::glm
 		imgui
 		EnTT::EnTT
 	PRIVATE
+		spdlog::spdlog
 		glfw
 		Vulkan::Headers Vulkan::volk
 )
@@ -38,13 +38,9 @@ target_sources(orion.engine
 		"orion/orion.hpp"
 		"orion/app.hpp"
 		"orion/world.hpp"
-		"orion/logger.hpp"
-		"orion/window.hpp"
 
-		"orion/loaders/texture.hpp"
-
-		"orion/core/logger.hpp"
 		"orion/core/assert.hpp"
+		"orion/core/logger.hpp"
 		"orion/core/window.hpp"
 		"orion/core/event.hpp"
 		"orion/core/input.hpp"
@@ -56,46 +52,29 @@ target_sources(orion.engine
 		"orion/utils/inplace_function.hpp"
 		"orion/utils/timer.hpp"
 
-		"orion/renderer/renderer.hpp"
-		"orion/renderer/draw_packet.hpp"
-		"orion/renderer/view.hpp"
-		"orion/renderer/frame.hpp"
-		"orion/renderer/mesh.hpp"
-        "orion/renderer/material.hpp"
-		"orion/renderer/texture.hpp"
-		"orion/renderer/mesh_renderer.hpp"
-		"orion/renderer/imgui.hpp"
 		"orion/gpu/gpu.hpp"
 		"orion/gpu/range_allocator.hpp"
 		"orion/gpu/page_allocator.hpp"
 		"orion/gpu/deletion_queue.hpp"
+
+		"orion/loaders/texture.hpp"
 	PRIVATE
 		"orion/orion.cpp"
 		"orion/app.cpp"
-		"orion/world.cpp"
-		"orion/logger.cpp"
-		"orion/window.cpp"
-
-		"orion/loaders/texture.cpp"
-		"orion/loaders/stb_image.h"
 
 		"orion/core/logger.cpp"
 		"orion/core/assert.cpp"
-		"orion/core/platform.hpp"
-		"orion/core/platform_impl_glfw.cpp"
+		"orion/core/logger.cpp"
+		"orion/core/window.cpp"
 		"orion/core/event.cpp"
 		"orion/core/input.cpp"
 
-		"orion/renderer/renderer.cpp"
-		"orion/renderer/frame.cpp"
-		"orion/renderer/mesh.cpp"
-        "orion/renderer/material.cpp"
-		"orion/renderer/texture.cpp"
-		"orion/renderer/mesh_renderer.cpp"
-		"orion/renderer/imgui.cpp"
 		"orion/gpu/gpu_impl_vulkan.cpp"
 		"orion/gpu/deletion_queue.cpp"
 		"orion/gpu/page_allocator.cpp"
+
+		"orion/loaders/stb_image.h"
+		"orion/loaders/texture.cpp"
 )
 
 # Engine shaders

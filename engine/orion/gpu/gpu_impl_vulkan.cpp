@@ -4,7 +4,7 @@
 #include "orion/core/assert.hpp"
 #include "orion/utils/scope_guard.hpp"
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define ORION_ACTIVE_LOG_LEVEL ORION_LOG_LEVEL_TRACE
 #include "orion/core/logger.hpp"
 
 #include <Volk/volk.h>
@@ -33,8 +33,8 @@
 #define GPU_CHECK(vkcall)                                                                 \
     do {                                                                                  \
         if (VkResult result = (vkcall); result != VK_SUCCESS) [[unlikely]] {              \
-            const auto msg = fmt::format(#vkcall " failed: {}", string_VkResult(result)); \
-            ORION_LOG_ERROR(::orion::LogChannel::Gpu, msg);                               \
+            const auto msg = std::format(#vkcall " failed: {}", string_VkResult(result)); \
+            ORION_LOG_ERROR("vulkan", "{}", msg);                                         \
             throw std::runtime_error(msg);                                                \
         }                                                                                 \
     } while (0)
@@ -493,17 +493,17 @@ namespace orion::gpu
     Device* create_device(const DeviceDesc& desc)
     {
         // Initialize Volk & create VkInstance
-        ORION_LOG_TRACE(LogChannel::Gpu, "Initializing Vulkan backend...");
+        ORION_LOG_TRACE("vulkan", "Initializing Vulkan backend...");
         GPU_CHECK(volkInitialize());
         std::uint32_t glfw_extension_count;
         const auto* glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
         const auto app_info         = VkApplicationInfo{
-                    .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                    .pApplicationName   = "Orion Engine",
-                    .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-                    .pEngineName        = "Orion Engine",
-                    .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
-                    .apiVersion         = vulkan_api_version,
+            .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pApplicationName   = "Orion Engine",
+            .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+            .pEngineName        = "Orion Engine",
+            .engineVersion      = VK_MAKE_VERSION(1, 0, 0),
+            .apiVersion         = vulkan_api_version,
         };
         const auto instance_info = VkInstanceCreateInfo{
             .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -514,7 +514,7 @@ namespace orion::gpu
         VkInstance instance;
         GPU_CHECK(vkCreateInstance(&instance_info, nullptr, &instance));
         volkLoadInstance(instance);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkInstance {}", fmt::ptr(instance));
+        ORION_LOG_TRACE("vulkan", "Created VkInstance {}", (void*)(instance));
         const auto instance_guard = ScopeFail([instance] { vkDestroyInstance(instance, nullptr); });
 
         // Select physical device
@@ -527,7 +527,7 @@ namespace orion::gpu
         // Retrieve physical device properties
         VkPhysicalDeviceProperties device_properties;
         vkGetPhysicalDeviceProperties(physical_device, &device_properties);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Using VkPhysicalDevice {}", device_properties.deviceName);
+        ORION_LOG_TRACE("vulkan", "Using VkPhysicalDevice {}", device_properties.deviceName);
 
         // Select queue families
         std::uint32_t queue_family_count;
@@ -535,11 +535,11 @@ namespace orion::gpu
         std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families.data());
         const auto graphics_family = select_queue_family(queue_families, VK_QUEUE_GRAPHICS_BIT);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Using queue family {} for graphics", graphics_family);
+        ORION_LOG_TRACE("vulkan", "Using queue family {} for graphics", graphics_family);
         const auto compute_family = select_queue_family(queue_families, VK_QUEUE_COMPUTE_BIT);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Using queue family {} for compute", compute_family);
+        ORION_LOG_TRACE("vulkan", "Using queue family {} for compute", compute_family);
         const auto transfer_family = select_queue_family(queue_families, VK_QUEUE_TRANSFER_BIT);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Using queue family {} for transfer", transfer_family);
+        ORION_LOG_TRACE("vulkan", "Using queue family {} for transfer", transfer_family);
 
         // Set up queue create infos
         const auto selected_families = std::set{graphics_family, compute_family, transfer_family};
@@ -604,7 +604,7 @@ namespace orion::gpu
         VkDevice device;
         GPU_CHECK(vkCreateDevice(physical_device, &device_info, nullptr, &device));
         volkLoadDevice(device);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDevice {}", fmt::ptr(device));
+        ORION_LOG_TRACE("vulkan", "Created VkDevice {}", (void*)(device));
         const auto device_guard = ScopeFail{[device] { vkDestroyDevice(device, nullptr); }};
 
         // VMA uses Volk's function table and supports buffer device addresses.
@@ -620,7 +620,7 @@ namespace orion::gpu
         GPU_CHECK(vmaImportVulkanFunctionsFromVolk(&allocator_info, &vulkan_functions));
         VmaAllocator allocator;
         GPU_CHECK(vmaCreateAllocator(&allocator_info, &allocator));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VmaAllocator {}", fmt::ptr(allocator));
+        ORION_LOG_TRACE("vulkan", "Created VmaAllocator {}", (void*)(allocator));
         const auto allocator_guard = ScopeFail{[allocator] { vmaDestroyAllocator(allocator); }};
 
         // Create descriptor set layouts for samplers, sampled images, and storage images
@@ -653,7 +653,7 @@ namespace orion::gpu
         const auto sampler_set_layout_guard = ScopeFail{[device, sampler_set_layout] {
             vkDestroyDescriptorSetLayout(device, sampler_set_layout, nullptr);
         }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorSetLayout {} (samplers)", fmt::ptr(sampler_set_layout));
+        ORION_LOG_TRACE("vulkan", "Created VkDescriptorSetLayout {} (samplers)", (void*)(sampler_set_layout));
 
         const auto sampled_image_set_layout_binding = VkDescriptorSetLayoutBinding{
             .binding         = 0u,
@@ -673,7 +673,7 @@ namespace orion::gpu
         const auto sampled_image_set_layout_guard = ScopeFail{[device, sampled_image_set_layout] {
             vkDestroyDescriptorSetLayout(device, sampled_image_set_layout, nullptr);
         }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorSetLayout {} (sampled images)", fmt::ptr(sampled_image_set_layout));
+        ORION_LOG_TRACE("vulkan", "Created VkDescriptorSetLayout {} (sampled images)", (void*)(sampled_image_set_layout));
 
         const auto storage_image_set_layout_binding = VkDescriptorSetLayoutBinding{
             .binding         = 0u,
@@ -693,7 +693,7 @@ namespace orion::gpu
         const auto storage_image_set_layout_guard = ScopeFail{[device, storage_image_set_layout] {
             vkDestroyDescriptorSetLayout(device, storage_image_set_layout, nullptr);
         }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorSetLayout {} (storage images)", fmt::ptr(storage_image_set_layout));
+        ORION_LOG_TRACE("vulkan", "Created VkDescriptorSetLayout {} (storage images)", (void*)(storage_image_set_layout));
 
         // Create the default pipeline layout shared by all pipelines on this device.
         const auto set_layouts = std::array{
@@ -715,7 +715,7 @@ namespace orion::gpu
         };
         VkPipelineLayout pipeline_layout;
         GPU_CHECK(vkCreatePipelineLayout(device, &pipeline_layout_info, nullptr, &pipeline_layout));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkPipelineLayout {}", fmt::ptr(pipeline_layout));
+        ORION_LOG_TRACE("vulkan", "Created VkPipelineLayout {}", (void*)(pipeline_layout));
         const auto pipeline_layout_guard = ScopeFail{[device, pipeline_layout] {
             vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
         }};
@@ -723,13 +723,13 @@ namespace orion::gpu
         // Retrieve queue handles
         VkQueue graphics_queue;
         vkGetDeviceQueue(device, graphics_family, 0u, &graphics_queue);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkQueue {} for graphics", fmt::ptr(graphics_queue));
+        ORION_LOG_TRACE("vulkan", "Created VkQueue {} for graphics", (void*)(graphics_queue));
         VkQueue compute_queue;
         vkGetDeviceQueue(device, compute_family, 0u, &compute_queue);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkQueue {} for compute", fmt::ptr(compute_queue));
+        ORION_LOG_TRACE("vulkan", "Created VkQueue {} for compute", (void*)(compute_queue));
         VkQueue transfer_queue;
         vkGetDeviceQueue(device, transfer_family, 0u, &transfer_queue);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkQueue {} for transfer", fmt::ptr(transfer_queue));
+        ORION_LOG_TRACE("vulkan", "Created VkQueue {} for transfer", (void*)(transfer_queue));
 
         // Create timeline semaphores for each queue
         const auto semaphore_type_info = VkSemaphoreTypeCreateInfo{
@@ -743,24 +743,24 @@ namespace orion::gpu
         };
         VkSemaphore graphics_semaphore;
         GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &graphics_semaphore));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSemaphore {} for graphics queue", fmt::ptr(graphics_semaphore));
+        ORION_LOG_TRACE("vulkan", "Created VkSemaphore {} for graphics queue", (void*)(graphics_semaphore));
         const auto graphics_semaphore_guard = ScopeFail{[device, graphics_semaphore] {
             vkDestroySemaphore(device, graphics_semaphore, nullptr);
         }};
         VkSemaphore compute_semaphore;
         GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &compute_semaphore));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSemaphore {} for compute queue", fmt::ptr(compute_semaphore));
+        ORION_LOG_TRACE("vulkan", "Created VkSemaphore {} for compute queue", (void*)(compute_semaphore));
         const auto compute_semaphore_guard = ScopeFail{[device, compute_semaphore] {
             vkDestroySemaphore(device, compute_semaphore, nullptr);
         }};
         VkSemaphore transfer_semaphore;
         GPU_CHECK(vkCreateSemaphore(device, &semaphore_info, nullptr, &transfer_semaphore));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSemaphore {} for transfer queue", fmt::ptr(transfer_semaphore));
+        ORION_LOG_TRACE("vulkan", "Created VkSemaphore {} for transfer queue", (void*)(transfer_semaphore));
         const auto transfer_semaphore_guard = ScopeFail{[device, transfer_semaphore] {
             vkDestroySemaphore(device, transfer_semaphore, nullptr);
         }};
 
-        ORION_LOG_TRACE(LogChannel::Gpu, "Vulkan backend initialized");
+        ORION_LOG_TRACE("vulkan", "Vulkan backend initialized");
         return new Device{
             .instance                 = instance,
             .physical_device          = physical_device,
@@ -782,27 +782,27 @@ namespace orion::gpu
         ORION_ASSERT(device != nullptr);
 
         vkDestroySemaphore(device->device, device->transfer_queue.semaphore, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (transfer queue)", fmt::ptr(device->transfer_queue.semaphore));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkSemaphore {} (transfer queue)", (void*)(device->transfer_queue.semaphore));
         vkDestroySemaphore(device->device, device->compute_queue.semaphore, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (compute queue)", fmt::ptr(device->compute_queue.semaphore));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkSemaphore {} (compute queue)", (void*)(device->compute_queue.semaphore));
         vkDestroySemaphore(device->device, device->graphics_queue.semaphore, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSemaphore {} (graphics queue)", fmt::ptr(device->graphics_queue.semaphore));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkSemaphore {} (graphics queue)", (void*)(device->graphics_queue.semaphore));
 
         vkDestroyPipelineLayout(device->device, device->pipeline_layout, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkPipelineLayout {}", fmt::ptr(device->pipeline_layout));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkPipelineLayout {}", (void*)(device->pipeline_layout));
         vkDestroyDescriptorSetLayout(device->device, device->storage_image_set_layout, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorSetLayout {} (storage images)", fmt::ptr(device->storage_image_set_layout));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkDescriptorSetLayout {} (storage images)", (void*)(device->storage_image_set_layout));
         vkDestroyDescriptorSetLayout(device->device, device->sampled_image_set_layout, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorSetLayout {} (sampled images)", fmt::ptr(device->sampled_image_set_layout));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkDescriptorSetLayout {} (sampled images)", (void*)(device->sampled_image_set_layout));
         vkDestroyDescriptorSetLayout(device->device, device->sampler_set_layout, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorSetLayout {} (samplers)", fmt::ptr(device->sampler_set_layout));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkDescriptorSetLayout {} (samplers)", (void*)(device->sampler_set_layout));
 
         vmaDestroyAllocator(device->allocator);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VmaAllocator {}", fmt::ptr(device->allocator));
+        ORION_LOG_TRACE("vulkan", "Destroyed VmaAllocator {}", (void*)(device->allocator));
         vkDestroyDevice(device->device, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDevice {}", fmt::ptr(device->device));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkDevice {}", (void*)(device->device));
         vkDestroyInstance(device->instance, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkInstance {}", fmt::ptr(device->instance));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkInstance {}", (void*)(device->instance));
 
         delete device;
     }
@@ -833,7 +833,7 @@ namespace orion::gpu
 
         // Release swapchain
         vkDestroySwapchainKHR(device->device, swapchain->swapchain, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSwapchainKHR {}", fmt::ptr(swapchain->swapchain));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkSwapchainKHR {}", (void*)(swapchain->swapchain));
     }
 
     static void create_or_resize_swapchain(
@@ -878,16 +878,16 @@ namespace orion::gpu
         };
         VkSwapchainKHR new_swapchain;
         GPU_CHECK(vkCreateSwapchainKHR(device->device, &swapchain_info, nullptr, &new_swapchain));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSwapchainKHR {}", fmt::ptr(new_swapchain));
-        ORION_LOG_TRACE(LogChannel::Gpu, "VkSwapchainCreateInfoKHR::minImageCount = {}",
+        ORION_LOG_TRACE("vulkan", "Created VkSwapchainKHR {}", (void*)(new_swapchain));
+        ORION_LOG_TRACE("vulkan", "VkSwapchainCreateInfoKHR::minImageCount = {}",
                         swapchain_info.minImageCount);
-        ORION_LOG_TRACE(LogChannel::Gpu, "VkSwapchainCreateInfoKHR::imageFormat = {}",
+        ORION_LOG_TRACE("vulkan", "VkSwapchainCreateInfoKHR::imageFormat = {}",
                         string_VkFormat(swapchain_info.imageFormat));
-        ORION_LOG_TRACE(LogChannel::Gpu, "VkSwapchainCreateInfoKHR::imageColorSpace = {}",
+        ORION_LOG_TRACE("vulkan", "VkSwapchainCreateInfoKHR::imageColorSpace = {}",
                         string_VkColorSpaceKHR(swapchain_info.imageColorSpace));
-        ORION_LOG_TRACE(LogChannel::Gpu, "VkSwapchainCreateInfoKHR::imageExtent = {},{}",
+        ORION_LOG_TRACE("vulkan", "VkSwapchainCreateInfoKHR::imageExtent = {},{}",
                         swapchain_info.imageExtent.width, swapchain_info.imageExtent.height);
-        ORION_LOG_TRACE(LogChannel::Gpu, "VkSwapchainCreateInfoKHR::imageUsage = {}",
+        ORION_LOG_TRACE("vulkan", "VkSwapchainCreateInfoKHR::imageUsage = {}",
                         string_VkImageUsageFlags(swapchain_info.imageUsage));
 
         // Destroy old swapchain if it exists
@@ -976,7 +976,7 @@ namespace orion::gpu
         VkSurfaceKHR surface;
         GPU_CHECK(glfwCreateWindowSurface(
             device->instance, static_cast<GLFWwindow*>(desc.native_window_handle), nullptr, &surface));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSurfaceKHR {}", fmt::ptr(surface));
+        ORION_LOG_TRACE("vulkan", "Created VkSurfaceKHR {}", (void*)(surface));
         const auto surface_guard = ScopeFail{[&]() {
             vkDestroySurfaceKHR(device->instance, surface, nullptr);
         }};
@@ -1037,7 +1037,7 @@ namespace orion::gpu
             case VK_ERROR_OUT_OF_DATE_KHR:
                 return std::nullopt;
             default:
-                throw std::runtime_error(fmt::format(
+                throw std::runtime_error(std::format(
                     "vkAcquireNextImageKHR failed: {}", string_VkResult(result)));
         }
     }
@@ -1065,7 +1065,7 @@ namespace orion::gpu
 
         release_swapchain_resources(device, swapchain);
         vkDestroySurfaceKHR(device->instance, swapchain->surface, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSurfaceKHR {}", fmt::ptr(swapchain->surface));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkSurfaceKHR {}", (void*)(swapchain->surface));
 
         delete swapchain;
     }
@@ -1081,7 +1081,7 @@ namespace orion::gpu
         };
         VkCommandPool command_pool;
         GPU_CHECK(vkCreateCommandPool(device->device, &command_pool_info, nullptr, &command_pool));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkCommandPool {}", fmt::ptr(command_pool));
+        ORION_LOG_TRACE("vulkan", "Created VkCommandPool {}", (void*)(command_pool));
         return new CommandAllocator{.command_pool = command_pool};
     }
 
@@ -1128,7 +1128,7 @@ namespace orion::gpu
         ORION_ASSERT(allocator != nullptr);
 
         vkDestroyCommandPool(device->device, allocator->command_pool, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkCommandPool {}", fmt::ptr(allocator->command_pool));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkCommandPool {}", (void*)(allocator->command_pool));
 
         delete allocator;
     }
@@ -1263,7 +1263,7 @@ namespace orion::gpu
         };
         VkPipeline pipeline;
         GPU_CHECK(vkCreateGraphicsPipelines(device->device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkPipeline {} (graphics)", fmt::ptr(pipeline));
+        ORION_LOG_TRACE("vulkan", "Created VkPipeline {} (graphics)", (void*)(pipeline));
 
         return new PipelineState{
             .handle     = pipeline,
@@ -1277,7 +1277,7 @@ namespace orion::gpu
         ORION_ASSERT(pipeline != nullptr);
 
         vkDestroyPipeline(device->device, pipeline->handle, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkPipeline {}", fmt::ptr(pipeline->handle));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkPipeline {}", (void*)(pipeline->handle));
 
         delete pipeline;
     }
@@ -1298,9 +1298,9 @@ namespace orion::gpu
             .imageType = VK_IMAGE_TYPE_2D,
             .format    = to_vk_format(desc.format),
             .extent    = {
-                   .width  = desc.width,
-                   .height = desc.height,
-                   .depth  = 1u,
+                .width  = desc.width,
+                .height = desc.height,
+                .depth  = 1u,
             },
             .mipLevels     = desc.mip_levels,
             .arrayLayers   = desc.array_layers,
@@ -1320,7 +1320,7 @@ namespace orion::gpu
         const auto image_guard = ScopeFail{[device, image, allocation] {
             vmaDestroyImage(device->allocator, image, allocation);
         }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkImage {} with VmaAllocation {}", fmt::ptr(image), fmt::ptr(allocation));
+        ORION_LOG_TRACE("vulkan", "Created VkImage {} with VmaAllocation {}", (void*)(image), (void*)(allocation));
 
         return new Image{
             .handle          = image,
@@ -1355,7 +1355,7 @@ namespace orion::gpu
         ORION_ASSERT(image->allocation != nullptr && "Can't destroy unowned images (e.g. swapchain images)");
 
         vmaDestroyImage(device->allocator, image->handle, image->allocation);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkImage {}", fmt::ptr(image->handle));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkImage {}", (void*)(image->handle));
 
         delete image;
     }
@@ -1381,7 +1381,7 @@ namespace orion::gpu
         };
         VkImageView image_view;
         GPU_CHECK(vkCreateImageView(device->device, &image_view_info, nullptr, &image_view));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkImageView {} for image {}", fmt::ptr(image_view), fmt::ptr(desc.image->handle));
+        ORION_LOG_TRACE("vulkan", "Created VkImageView {} for image {}", (void*)(image_view), (void*)(desc.image->handle));
 
         // Calculate width & height based on the base mip level
         const auto width  = std::max(1u, desc.image->width >> desc.subresource_range.base_mip_level);
@@ -1403,7 +1403,7 @@ namespace orion::gpu
         ORION_ASSERT(image_view != nullptr);
 
         vkDestroyImageView(device->device, image_view->handle, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkImageView {}", fmt::ptr(image_view->handle));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkImageView {}", (void*)(image_view->handle));
 
         delete image_view;
     }
@@ -1436,7 +1436,7 @@ namespace orion::gpu
         const auto buffer_guard = ScopeFail{[device, buffer, allocation] {
             vmaDestroyBuffer(device->allocator, buffer, allocation);
         }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkBuffer {} with VmaAllocation {}", fmt::ptr(buffer), fmt::ptr(allocation));
+        ORION_LOG_TRACE("vulkan", "Created VkBuffer {} with VmaAllocation {}", (void*)(buffer), (void*)(allocation));
 
         // Get the device address of the buffer
         const auto buffer_address_info = VkBufferDeviceAddressInfo{
@@ -1479,7 +1479,7 @@ namespace orion::gpu
         ORION_ASSERT(buffer != nullptr);
 
         vmaDestroyBuffer(device->allocator, buffer->handle, buffer->allocation);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkBuffer {}", fmt::ptr(buffer->handle));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkBuffer {}", (void*)(buffer->handle));
 
         delete buffer;
     }
@@ -1508,7 +1508,7 @@ namespace orion::gpu
         };
         VkSampler sampler = VK_NULL_HANDLE;
         GPU_CHECK(vkCreateSampler(device->device, &sampler_info, nullptr, &sampler));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkSampler {}", fmt::ptr(sampler));
+        ORION_LOG_TRACE("vulkan", "Created VkSampler {}", (void*)(sampler));
 
         return new Sampler{.handle = sampler};
     }
@@ -1519,7 +1519,7 @@ namespace orion::gpu
         ORION_ASSERT(sampler != nullptr);
 
         vkDestroySampler(device->device, sampler->handle, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkSampler {}", fmt::ptr(sampler->handle));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkSampler {}", (void*)(sampler->handle));
 
         delete sampler;
     }
@@ -1543,7 +1543,7 @@ namespace orion::gpu
         };
         VkDescriptorPool descriptor_pool;
         GPU_CHECK(vkCreateDescriptorPool(device->device, &descriptor_pool_info, nullptr, &descriptor_pool));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorPool {} (samplers)", fmt::ptr(descriptor_pool));
+        ORION_LOG_TRACE("vulkan", "Created VkDescriptorPool {} (samplers)", (void*)(descriptor_pool));
         const auto descriptor_pool_guard = ScopeFail{[device, descriptor_pool] {
             vkDestroyDescriptorPool(device->device, descriptor_pool, nullptr);
         }};
@@ -1563,7 +1563,7 @@ namespace orion::gpu
         };
         VkDescriptorSet descriptor_set;
         GPU_CHECK(vkAllocateDescriptorSets(device->device, &descriptor_set_allocate_info, &descriptor_set));
-        ORION_LOG_TRACE(LogChannel::Gpu, "Allocated VkDescriptorSet {} for {} samplers", fmt::ptr(descriptor_set), desc.sampler_count);
+        ORION_LOG_TRACE("vulkan", "Allocated VkDescriptorSet {} for {} samplers", (void*)(descriptor_set), desc.sampler_count);
 
         return new SamplerHeap{.descriptor_pool = descriptor_pool, .descriptor_set = descriptor_set};
     }
@@ -1601,7 +1601,7 @@ namespace orion::gpu
         const auto descriptor_pool_guard = ScopeFail{[device, descriptor_pool] {
             vkDestroyDescriptorPool(device->device, descriptor_pool, nullptr);
         }};
-        ORION_LOG_TRACE(LogChannel::Gpu, "Created VkDescriptorPool {} (sampled & storage images)", fmt::ptr(descriptor_pool));
+        ORION_LOG_TRACE("vulkan", "Created VkDescriptorPool {} (sampled & storage images)", (void*)(descriptor_pool));
 
         // Allocate the descriptor set for the sampled and storage images in the heap
         const auto variable_descriptor_sizes      = std::array{sampled_image_count, storage_image_count};
@@ -1620,9 +1620,9 @@ namespace orion::gpu
         };
         std::array<VkDescriptorSet, 2u> descriptor_sets;
         GPU_CHECK(vkAllocateDescriptorSets(device->device, &descriptor_set_allocate_info, descriptor_sets.data()));
-        ORION_LOG_TRACE(LogChannel::Gpu,
+        ORION_LOG_TRACE("vulkan",
                         "Allocated VkDescriptorSets {} and {} for {} sampled images and {} storage images",
-                        fmt::ptr(descriptor_sets[0]), fmt::ptr(descriptor_sets[1]),
+                        (void*)(descriptor_sets[0]), (void*)(descriptor_sets[1]),
                         desc.sampled_image_count, desc.storage_image_count);
 
         return new ResourceHeap{
@@ -1712,7 +1712,7 @@ namespace orion::gpu
         ORION_ASSERT(sampler_heap != nullptr);
 
         vkDestroyDescriptorPool(device->device, sampler_heap->descriptor_pool, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorPool {} (samplers)", fmt::ptr(sampler_heap->descriptor_pool));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkDescriptorPool {} (samplers)", (void*)(sampler_heap->descriptor_pool));
 
         delete sampler_heap;
     }
@@ -1723,7 +1723,7 @@ namespace orion::gpu
         ORION_ASSERT(resource_heap != nullptr);
 
         vkDestroyDescriptorPool(device->device, resource_heap->descriptor_pool, nullptr);
-        ORION_LOG_TRACE(LogChannel::Gpu, "Destroyed VkDescriptorPool {} (sampled & storage images)", fmt::ptr(resource_heap->descriptor_pool));
+        ORION_LOG_TRACE("vulkan", "Destroyed VkDescriptorPool {} (sampled & storage images)", (void*)(resource_heap->descriptor_pool));
 
         delete resource_heap;
     }
@@ -1843,12 +1843,12 @@ namespace orion::gpu
         if (render_pass.depth_attachment.has_value()) {
             const auto& attachment = render_pass.depth_attachment.value();
             depth_attachment       = VkRenderingAttachmentInfo{
-                      .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                      .imageView   = attachment.image_view->handle,
-                      .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                      .loadOp      = to_vk_load_op(attachment.load_op),
-                      .storeOp     = to_vk_store_op(attachment.store_op),
-                      .clearValue  = VkClearValue{.depthStencil = {1.0f, 0u}},
+                .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView   = attachment.image_view->handle,
+                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                .loadOp      = to_vk_load_op(attachment.load_op),
+                .storeOp     = to_vk_store_op(attachment.store_op),
+                .clearValue  = VkClearValue{.depthStencil = {1.0f, 0u}},
             };
         }
 
@@ -1957,10 +1957,10 @@ namespace orion::gpu
                 .bufferRowLength   = region.buffer_row_length,
                 .bufferImageHeight = region.buffer_image_height,
                 .imageSubresource  = {
-                     .aspectMask     = dst->aspect_flags,
-                     .mipLevel       = region.image_subresource.mip_level,
-                     .baseArrayLayer = region.image_subresource.base_array_layer,
-                     .layerCount     = region.image_subresource.layer_count,
+                    .aspectMask     = dst->aspect_flags,
+                    .mipLevel       = region.image_subresource.mip_level,
+                    .baseArrayLayer = region.image_subresource.base_array_layer,
+                    .layerCount     = region.image_subresource.layer_count,
                 },
                 .imageOffset = {
                     .x = region.image_offset.x,
@@ -2085,7 +2085,7 @@ namespace orion::gpu
             const auto major = VK_VERSION_MAJOR(api_version);
             const auto minor = VK_VERSION_MINOR(api_version);
             const auto patch = VK_VERSION_PATCH(api_version);
-            return fmt::format("{}.{}.{}", major, minor, patch);
+            return std::format("{}.{}.{}", major, minor, patch);
         }();
         return version.c_str();
     }
